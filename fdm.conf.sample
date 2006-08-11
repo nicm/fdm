@@ -1,10 +1,17 @@
 set maxsize 10M
 
+# The following strings are replaced in pipe commands and maildir
+# paths:
+# 	%h: user's home directory
+#	%a: account name
+#	%t: action name
+
 #action "default" pipe "/usr/sbin/sendmail -- nicholas@mail"
 action "drop" drop
 
 action "inbox" maildir "%h/mail/inbox"
 action "junk" maildir "%h/mail/junk"
+action "backup" maildir "%h/mail/backup"
 action "netbsd-tech-kern" maildir "%h/mail/netbsd-tech-kern"
 action "netbsd-tech-misc" maildir "%h/mail/netbsd-tech-misc"
 action "netbsd-source-changes" maildir "%h/mail/netbsd-source-changes"
@@ -27,6 +34,9 @@ account "gmail1" pop3s server "pop.googlemail.com" port 995 user "yyy"
 account "gmail2" pop3s server "pop.googlemail.com" port 995 user "yyy"
 
 match in headers "^From:.*root@[a-z]*.nicm.ath.cx" account "stdin" action "inbox"
+
+# duplicate all mail to backup and continue to remaining rules
+match all action "backup" continue
 
 # junk
 match in body ".*YAHOO.*BOOTER.*" action "junk"
