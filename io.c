@@ -262,7 +262,7 @@ io_push(struct io *io)
 		io->need_wr = 0;
 	}
 
-	log_debug2("io_fill: out");
+	log_debug2("io_push: out");
 
 	return (1);
 }
