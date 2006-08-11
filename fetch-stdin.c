@@ -90,7 +90,9 @@ stdin_fetch(struct account *a, struct mail *m)
 	for (;;) {
 		if ((error = io_poll(data->io)) != 1) {
 			/* normal close (error == 0) is fine */
-			return (error == -1);
+			if (error == 0)
+				goto out;
+			return (1);
 		}
 
 		for (;;) {
@@ -114,5 +116,7 @@ stdin_fetch(struct account *a, struct mail *m)
 			break;
 	}
 
+out:
+	trim_from(m);
 	return (0);
 }

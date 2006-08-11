@@ -251,6 +251,9 @@ extern struct deliver 	 deliver_maildir;
 /* connect.c */
 int			 connectto(struct addrinfo *, char **);
 
+/* mail.c */
+void			 trim_from(struct mail *);
+
 /* replace.c */
 #define REPL_LEN 52
 #define REPL_IDX(ch) ((ch >= 'a' || ch <= 'z') ? ch - 'a' : 		\

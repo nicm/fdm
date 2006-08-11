@@ -10,7 +10,7 @@ OS!= uname
 REL!= uname -r
 DATE!= date +%Y%m%d-%H%M
 
-SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c
+SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c mail.c
 SRCS+= fetch-pop3.c fetch-pop3s.c fetch-stdin.c
 SRCS+= deliver-smtp.c deliver-pipe.c deliver-drop.c deliver-maildir.c
 
