@@ -51,6 +51,7 @@ maildir_deliver(unused struct account *a, unused struct action *t,
 	map[REPL_IDX('a')] = a->name;
 	map[REPL_IDX('h')] = conf.home;
 	map[REPL_IDX('t')] = t->name;
+	map[REPL_IDX('u')] = conf.user;
 	path = replace(t->data, map);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);

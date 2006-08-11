@@ -125,21 +125,30 @@ main(int argc, char **argv)
 
 	/* start logging to syslog if necessary */
 	log_init(!conf.syslog);
-
 	log_debug("version is: %s " BUILD, __progname);
 
-	/* save the home dir */
+	/* save the home dir and misc user */
 	conf.home = getenv("HOME");
-	if (conf.home == NULL || *conf.home == '\0') {
-		pw = getpwuid(getuid());
-		if (pw != NULL && 
-		    pw->pw_dir != NULL && *pw->pw_dir != '\0')
-			conf.home = xstrdup(pw->pw_dir);
-		else
-			conf.home = xstrdup(".");
+	if (conf.home != NULL && *conf.home == '\0')
+		conf.home = NULL;
+	pw = getpwuid(getuid());
+	if (pw != NULL) {
+		if (conf.home == NULL) {
+			if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
+				conf.home = xstrdup(pw->pw_dir);
+			else
+				conf.home = xstrdup(".");
+		}
+		if (pw->pw_name != NULL && *pw->pw_name != '\0')
+			conf.user = xstrdup(pw->pw_name);
 		endpwent();
+	} 
+	if (conf.user == NULL) {
+		xasprintf(&conf.user, "%llu", (unsigned long long) getuid());
+		log_warn("can't find name for user %llu", 
+		    (unsigned long long) getuid());
 	}
-	log_debug("home is %s", conf.home);
+	log_debug("user %s, home %s", conf.user, conf.home);
 
 	/* find the config file */
 	if (conf.conf_file == NULL)

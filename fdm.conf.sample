@@ -5,6 +5,7 @@ set maxsize 10M
 # 	%h: user's home directory
 #	%a: account name
 #	%t: action name
+#	%u: name of user
 
 #action "default" pipe "/usr/sbin/sendmail -- nicholas@mail"
 action "drop" drop

@@ -135,6 +135,7 @@ struct conf {
 	int			 syslog;
 
 	char			*home;
+	char			*user;
 
 	char			*conf_file;
 
