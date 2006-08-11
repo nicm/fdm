@@ -9,8 +9,6 @@
 - write/write-append actions
 - imap fetching
 - options for delete oversized, delete error etc
-- refactor io.c
 - multiple regexps, and/or
 - merge header lines before matching
-- trim initial "From " from stdin
 
