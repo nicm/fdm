@@ -1,0 +1,75 @@
+set maxsize 10M
+
+#action "default" pipe "/usr/sbin/sendmail -- nicholas@mail"
+action "drop" drop
+
+action "inbox" maildir "%h/mail/inbox"
+action "junk" maildir "%h/mail/junk"
+action "netbsd-tech-kern" maildir "%h/mail/netbsd-tech-kern"
+action "netbsd-tech-misc" maildir "%h/mail/netbsd-tech-misc"
+action "netbsd-source-changes" maildir "%h/mail/netbsd-source-changes"
+action "openbsd-misc" maildir "%h/mail/openbsd-misc"
+action "openbsd-bugs" maildir "%h/mail/openbsd-bugs"
+action "openbsd-tech" maildir "%h/mail/openbsd-tech"
+action "openbsd-ports" maildir "%h/mail/openbsd-ports"
+action "openbsd-source-changes" maildir "%h/mail/openbsd-source-changes"
+action "pf" maildir "%h/mail/pf"
+action "bugtraq" maildir "%h/mail/bugtraq"
+action "forensics" maildir "%h/mail/forensics"
+action "freebsd-hackers" maildir "%h/mail/freebsd-hackers"
+action "linux-kernel" maildir "%h/mail/linux-kernel"
+action "marxism" maildir "%h/mail/marxism"
+
+account "stdin" stdin
+account "gmx" pop3 server "pop.gmx.net" user "yyy"
+account "ntlworld" pop3 server "pop.ntlworld.com" user "yyy"
+account "gmail1" pop3s server "pop.googlemail.com" port 995 user "yyy"
+account "gmail2" pop3s server "pop.googlemail.com" port 995 user "yyy"
+
+match in headers "^From:.*root@[a-z]*.nicm.ath.cx" account "stdin" action "inbox"
+
+# junk
+match in body ".*YAHOO.*BOOTER.*" action "junk"
+match in headers "^From:.*eric-list-openbsd-misc@catastrophe.net" action "junk"
+match in headers "^From:.*mailings@gmx.net" account "gmx" action "junk"
+match in headers "^From:.*suck@my-balls.com" action "junk"
+match in headers "^From:.*peter_philipp@freenet.de" action "junk"
+match in headers "^From:.*@*.chase.com" action "junk"
+match in headers "^From:.*@*.chaseonline.com" action "junk"
+match in headers "^From:.*dfeustel@mindspring.com" action "junk"
+match in headers "^From:.*baypos@gmail.com" action "junk"
+
+# netbsd
+match in headers "^(To:|Cc:).*tech-kern@netbsd.org" action "netbsd-tech-kern"
+match in headers "^(To:|Cc:).*tech-misc@netbsd.org" action "netbsd-tech-misc"
+match in headers "^(To:|Cc:).*source-changes@netbsd.org" action "netbsd-source-changes"
+
+# openbsd
+match in headers "^(To:|Cc:).*misc@(cvs\\.)?openbsd\\.org" action "openbsd-misc"
+match in headers "^(To:|Cc:).*bugs@(cvs\\.)?openbsd\\.org" action "openbsd-bugs"
+match in headers "^(To:|Cc:).*gnats@(cvs\\.)?openbsd\\.org" action "openbsd-bugs"
+match in headers "^(To:|Cc:).*tech@(cvs\\.)?openbsd\\.org" action "openbsd-tech"
+match in headers "^(To:|Cc:).*ports@(cvs\\.)?openbsd\\.org" action "openbsd-ports"
+match in headers "^(To:|Cc:).*source-changes@(cvs\\.)?openbsd\\.org" action "openbsd-source-changes"
+
+# pf
+match in headers "^(To:|Cc:).*pf@benzedrine.cx" action "pf"
+
+# bugtraq
+match in headers "^(To:|Cc:).*bugtraq@" action "bugtraq"
+
+# forensics
+match in headers "^(To:|Cc:).*forensics@securityfocus.com" action "forensics"
+
+# freebsd
+match in headers "^(To:|Cc:).*(freebsd-hackers|hackers)@freebsd.org" action "freebsd-hackers"
+
+# marxism
+match in headers "^Subject:.*\\[Marxism\\]" action "marxism"
+
+# linux-kernel
+match in headers "^X-Mailing-List:.*linux-kernel@vger.kernel.org" action "linux-kernel"
+match in headers "^(To:|Cc:):.*@vger.kernel.org" action "linux-kernel"
+
+# default
+match all action "inbox"

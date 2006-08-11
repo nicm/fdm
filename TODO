@@ -1,0 +1,16 @@
+- case sensitive regexps?
+- multidrop etc
+- deliver to mbox
+- test all rules properly
+- audit/cleanup error paths
+- smtp delivery
+- macros in config file
+- % replacement for commands, pipe filenames, etc
+- write/write-append actions
+- imap fetching
+- options for delete oversized, delete error etc
+- refactor io.c
+- multiple regexps, and/or
+- merge header lines before matching
+- trim initial "From " from stdin
+
