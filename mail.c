@@ -27,8 +27,7 @@ trim_from(struct mail *m)
 {
 	char	*ptr;
 
-	if (m->data == NULL || m->size < 5 || 
-	    strncmp(m->data, "From ", 5) != 0)
+	if (m->data == NULL || m->size < 5 || strncmp(m->data, "From ", 5) != 0)
 		return;
 	
 	ptr = memchr(m->data, '\n', m->size);
