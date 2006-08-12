@@ -52,7 +52,6 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	}
 
 	/* ensure the mail has a leading "From " */
-	trim_from(m);
 	insert_from(m);
 
 	/* XXX dest file sanity checks: ownership? */
