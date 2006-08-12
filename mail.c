@@ -35,8 +35,10 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
 		if ((fd = open(lock, O_WRONLY|O_CREAT|O_EXCL)) != 0) {
-			if (errno == EEXIST)
-				return (1);
+			if (errno == EEXIST) {
+				errno = EAGAIN;
+				return (-1);
+			}
 			return (-1);
 		}
 		close(fd);
@@ -55,10 +57,8 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 		if (fcntl(fd, F_SETLK, fl) == -1) {
 			if (locks & LOCK_DOTLOCK)
 				unlink(lock);
-			if (errno == EAGAIN)
-				return (1);
-			return (-1);
-			
+			/* fcntl returns EAGAIN if locked */
+			return (-1);		
 		}
 	}
 

@@ -1,6 +1,6 @@
 - case sensitive regexps?
 - multidrop etc
-- deliver to mbox
+- fix insert_from to use the headers
 - test all rules properly
 - audit/cleanup error paths
 - smtp delivery
