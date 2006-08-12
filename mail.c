@@ -18,16 +18,79 @@
 
 #include <sys/types.h>
 
+#include <fcntl.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "fdm.h"
+
+int
+openlock(char *path, u_int locks, int flags, mode_t mode)
+{
+	char		*lock;
+	int	 	 fd;
+	struct flock	 fl;
+
+	if (locks & LOCK_DOTLOCK) {
+		xasprintf(&lock, "%s.lock", path);
+		if ((fd = open(lock, O_WRONLY|O_CREAT|O_EXCL)) != 0) {
+			if (errno == EEXIST)
+				return (1);
+			return (-1);
+		}
+		close(fd);
+	}
+	if (locks & LOCK_FLOCK)
+		flags |= O_EXLOCK;
+
+	fd = open(path, flags, mode);
+	
+	if (fd != -1 && locks & LOCK_FCNTL) {
+		memset(&fl, 0, sizeof fl);
+		fl.l_start = 0;
+		fl.l_len = 0;
+		fl.l_type = F_WRLCK;
+		fl.l_whence = SEEK_SET;
+		if (fcntl(fd, F_SETLK, fl) == -1) {
+			if (locks & LOCK_DOTLOCK)
+				unlink(lock);
+			if (errno == EAGAIN)
+				return (1);
+			return (-1);
+			
+		}
+	}
+
+	return (fd);
+}
+
+void
+closelock(int fd, char *path, u_int locks)
+{
+	char	*lock;
+
+	if (locks & LOCK_DOTLOCK) {
+		xasprintf(&lock, "%s.lock", path);
+		unlink(lock);
+	}
+
+	close(fd);
+}
+
+int
+has_from(struct mail *m)
+{
+	if (m->data == NULL)
+		return (0);
+	return (m->size >= 5 && strncmp(m->data, "From ", 5) == 0);
+}
     
 void
 trim_from(struct mail *m)
 {
 	char	*ptr;
 
-	if (m->data == NULL || m->size < 5 || strncmp(m->data, "From ", 5) != 0)
+	if (!has_from(m))
 		return;
 	
 	ptr = memchr(m->data, '\n', m->size);
