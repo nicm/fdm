@@ -78,7 +78,8 @@ check_account(char *name)
 %token SYMOPEN SYMCLOSE SYMSTAR
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR
+%token TOKNONE
+%token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX
 %token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -112,33 +113,44 @@ check_account(char *name)
 
 %type  <server> server
 %type  <action> action
-%type  <string> port
-%type  <string> command
-%type  <accounts> accounts
-%type  <accounts> accountslist
+%type  <string> port command
+%type  <accounts> accounts accountslist
 %type  <flag> continue
 %type  <match> match
 %type  <number> size
-%type  <fetch> poptype
-%type  <fetch> fetchtype
-%type  <locks> lock
-%type  <locks> locklist
+%type  <fetch> poptype fetchtype
+%type  <locks> lock locklist
 
 %%
 
 /* Rules */
 
 cmds: /* empty */
+    | cmds set
     | cmds account
     | cmds define
     | cmds rule
-    | cmds set
 
 size: NUMBER
     | SIZE
       {
 	      $$ = $1;
       }
+
+set: TOKSET OPTMAXSIZE size
+     {
+	     if ($3 > MAXMAILSIZE)
+		     yyerror("maxsize too large: %d", $3);
+	     conf.max_size = $3;
+     }
+   | TOKSET OPTLOCKTYPES locklist
+     {
+	     conf.lock_types = $3;
+     }
+   | TOKSET OPTDELOVERSIZED
+     {
+	     conf.del_oversized = 1;
+     }
 
 lock: LCKFCNTL
       {
@@ -161,21 +173,10 @@ locklist: locklist lock
 	  {
 		  $$ = $1;
 	  }
-
-set: TOKSET OPTMAXSIZE size
-     {
-	     if ($3 > MAXMAILSIZE)
-		     yyerror("maxsize is too large");
-	     conf.max_size = $3;
-     }
-   | TOKSET OPTDELOVERSIZED
-     {
-	     conf.del_oversized = 1;
-     }
-   | TOKSET OPTLOCKTYPES locklist
-     {
-	     conf.lock_types = $3;
-     }
+	| TOKNONE
+	  {
+		  $$ = 0;
+	  }
 
 port: TOKPORT STRING
       {

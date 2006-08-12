@@ -262,6 +262,7 @@ int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 int			 has_from(struct mail *);
 void			 trim_from(struct mail *);
+void			 insert_from(struct mail *);
 
 /* replace.c */
 #define REPL_LEN 52

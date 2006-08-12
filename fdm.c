@@ -70,7 +70,7 @@ main(int argc, char **argv)
 	struct passwd	*pw;
         int		 opt;
 	u_int		 i;
-	char		*cmd = NULL;
+	char		*cmd = NULL, tmp[128];
 	struct account	*a;
 	struct accounts	 incl, excl;
 
@@ -149,7 +149,7 @@ main(int argc, char **argv)
 		log_warn("can't find name for user %llu", 
 		    (unsigned long long) getuid());
 	}
-	log_debug("user %s, home %s", conf.user, conf.home);
+	log_debug("user is: %s, home is: %s", conf.user, conf.home);
 
 	/* find the config file */
 	if (conf.conf_file == NULL)
@@ -159,6 +159,23 @@ main(int argc, char **argv)
                 log_warn("%s", conf.conf_file);
 		exit(1);
 	}
+	log_debug("configuration loaded");
+
+	/* print some locking info */
+	*tmp = '\0';
+	if (conf.lock_types == 0)
+		strlcpy(tmp, "none", sizeof tmp);
+	else {
+		if (conf.lock_types & LOCK_FCNTL)
+			strlcat(tmp, "fcntl ", sizeof tmp);
+		if (conf.lock_types & LOCK_FLOCK)
+			strlcat(tmp, "flock ", sizeof tmp);
+		if (conf.lock_types & LOCK_DOTLOCK)
+			strlcat(tmp, "dotlock ", sizeof tmp);
+	}
+	log_debug("locking using: %s", tmp);
+
+	/* if -n, bail now, otherwise check there is something to work with */
 	if (conf.check_only) 
 		exit(0);
         if (TAILQ_EMPTY(&conf.accounts)) {
@@ -169,7 +186,6 @@ main(int argc, char **argv)
                 log_warnx("no rules specified");
 		exit(1);
 	}
-	log_debug("configuration loaded");
 
         SSL_library_init();
         SSL_load_error_strings();
