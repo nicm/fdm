@@ -37,8 +37,7 @@ int	maildir_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_maildir = { "maildir", maildir_deliver };
 
 int
-maildir_deliver(unused struct account *a, unused struct action *t, 
-    unused struct mail *m) 
+maildir_deliver(struct account *a, struct action *t, struct mail *m) 
 {
 	char	*path, *map[REPL_LEN], ch;
 	char	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
@@ -153,8 +152,6 @@ restart:
 		log_warn("%s: write", a->name);
 		close(fd);
 		unlink(src);
-		if (n != -1)
-			errno = EIO;
 		goto error;
 	}
 	close(fd);

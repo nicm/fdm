@@ -217,6 +217,11 @@ action: ACTPIPE command
 		$$.deliver = &deliver_maildir;
 		$$.data = $2;
 	}
+      | ACTMBOX STRING
+	{
+		$$.deliver = &deliver_mbox;
+		$$.data = $2;
+	}
       | ACTSMTP server
 	{
 		int		 error;

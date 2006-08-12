@@ -31,8 +31,7 @@ int	drop_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_drop = { "drop", drop_deliver };
 
 int
-drop_deliver(unused struct account *a, unused struct action *t, 
-    unused struct mail *m) 
+drop_deliver(struct account *a, struct action *t, struct mail *m) 
 {
 	return (0);
 }

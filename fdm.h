@@ -31,11 +31,12 @@
 
 #define CONFFILE	".fdm"
 #define MAXMAILSIZE	SSIZE_MAX	
+#define LOCKSLEEPTIME	2
 
 extern char	*__progname;
 
 /* Definition to shut gcc up about unused arguments in a few cases. */
-#define unused __attribute__ ((unused))
+/* #define unused __attribute__ ((unused)) */
 
 /* Ensure buffer size */
 #define ENSURE_SIZE(buf, len, req) do {					\
@@ -253,6 +254,9 @@ extern struct deliver 	 deliver_drop;
 
 /* deliver-maildir.c */
 extern struct deliver 	 deliver_maildir;
+
+/* deliver-mbox.c */
+extern struct deliver 	 deliver_mbox;
 
 /* connect.c */
 int			 connectto(struct addrinfo *, char **);

@@ -31,8 +31,7 @@ int	smtp_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_smtp = { "smtp", smtp_deliver };
 
 int
-smtp_deliver(unused struct account *a, unused struct action *t, 
-    unused struct mail *m) 
+smtp_deliver(struct account *a, struct action *t, struct mail *m) 
 {
 	fatal("smtp_deliver: not yet implemented");
 	return (0);
