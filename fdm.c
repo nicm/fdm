@@ -287,6 +287,7 @@ fetch_account(struct account *a)
 				xfree(m.data);
 			break;
 		}
+		unwrap_headers(&m);
 
 		log_debug("%s: got message: size=%zu, body=%zu", a->name,
 		    m.size, m.body);

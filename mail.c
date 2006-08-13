@@ -100,7 +100,9 @@ trim_from(struct mail *m)
 	else
 		ptr++;
 
-	m->size -= ptr - m->data;		
+	m->size -= ptr - m->data;
+	if (m->body != -1)
+		m->body -= ptr - m->data;
 	memmove(m->data, ptr, m->size);
 }
 
@@ -122,6 +124,60 @@ insert_from(struct mail *m)
 	memmove(m->data + len, m->data, m->size);
 	memcpy(m->data, from, len);
 	m->size += len;
+	if (m->body != -1)
+		m->body += len;
 
 	xfree(from);
 }
+
+/* 
+ * Sometimes mail has wrapped header lines, this undoubtedly looks neater but
+ * makes them a pain to match using regexps, so this function undoes it.
+ */
+void
+unwrap_headers(struct mail *m)
+{
+	char		*ptr;
+	size_t	 	 off, len;
+	
+	ptr = m->data;
+	for (;;) {
+		ptr = memchr(ptr, '\n', m->size);
+		if (ptr == NULL)
+			break;
+		ptr++;
+		off = ptr - m->data;
+		if (m->body != -1) {
+			if (off >= (size_t) m->body)
+				break;
+		} else {
+			if (off >= m->size)
+				break;
+		}
+
+		/* off is now the start of a line, check if it starts with
+		   whitespace */
+		if (!isblank((int) *ptr))
+			continue;
+
+		/* otherwise remove the newline */
+		ptr[-1] = ' ';
+
+		/* and trim any whitespace (except the space replacing the LF).
+		   see, we can be neat too */
+		while (isblank((int) *ptr))
+			ptr++;
+		len = ptr - m->data - off;
+		if (len == 0)
+			continue;
+		/* ptr is now the character after the end of the whitespace,
+		   off is the start of the whitespace, and len is its length.
+		   so move the rest of the mail after the whitespace from ptr
+		   down to off */
+		memmove(m->data + off, ptr, m->size - off - len);
+		m->size -= len;
+		if (m->body != -1)
+			m->body -= len;
+	}
+}
+

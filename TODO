@@ -10,5 +10,4 @@
 - imap fetching
 - options for delete oversized, delete error etc
 - multiple regexps, and/or
-- merge header lines before matching
 
