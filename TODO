@@ -1,4 +1,3 @@
-- case sensitive regexps?
 - multidrop etc
 - fix insert_from to use the headers
 - test all rules properly
