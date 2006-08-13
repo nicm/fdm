@@ -105,6 +105,7 @@ stdin_fetch(struct account *a, struct mail *m)
 				m->body = m->size + 2;
 			
 			ENSURE_SIZE(m->data, m->space, m->size + len + 1);
+			m->base = m->data;
 
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);

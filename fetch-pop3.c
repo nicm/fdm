@@ -219,6 +219,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					m->body = off + 2;
 
 				ENSURE_SIZE(m->data, m->space, off + len + 1);
+				m->base = m->data;
 
 				if (len > 0)
 					memcpy(m->data + off, ptr, len);

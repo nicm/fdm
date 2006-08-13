@@ -20,7 +20,7 @@ LEX= lex
 YACC= yacc -d
 
 CC= cc
-CFLAGS+= -g -ggdb -std=c99 -pg
+CFLAGS+= -g -ggdb -std=c99
 CFLAGS+= -DDEBUG
 CFLAGS+= -pedantic -Wno-long-long
 CFLAGS+= -Wall -W -Wnested-externs -Wformat-security
@@ -35,7 +35,7 @@ INSTALLBIN= install -g bin -o root -m 555
 INSTALLMAN= install -g bin -o root -m 444
 
 INCDIRS= -I- -I. -I/usr/local/include
-LDFLAGS+= -L/usr/local/lib -pg
+LDFLAGS+= -L/usr/local/lib
 LIBS= -lm -lcrypto -lssl
 
 TARFLAGS= 
