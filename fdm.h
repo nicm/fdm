@@ -52,6 +52,10 @@ struct mail {
 	size_t	 size;		/* size of mail */
 	size_t	 space;		/* size of malloc'd area */
 
+	char	*from;		/* from line */
+
+	size_t	*wrapped;	/* list of wrapped lines */
+
 	ssize_t	 body;		/* offset of body */
 };
 
@@ -262,12 +266,14 @@ extern struct deliver 	 deliver_mbox;
 int			 connectto(struct addrinfo *, char **);
 
 /* mail.c */
+void			 free_mail(struct mail *);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
-int			 has_from(struct mail *);
 void			 trim_from(struct mail *);
-void			 insert_from(struct mail *);
-void			 unwrap_headers(struct mail *);
+void			 make_from(struct mail *);
+u_int			 fill_wrapped(struct mail *);
+void			 set_wrapped(struct mail *, char);
+void			 free_wrapped(struct mail *);
 
 /* replace.c */
 #define REPL_LEN 52

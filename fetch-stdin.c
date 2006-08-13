@@ -116,6 +116,6 @@ stdin_fetch(struct account *a, struct mail *m)
 			break;
 	}
 
-	trim_from(m);
+	trim_from(&m);
 	return (0);
 }

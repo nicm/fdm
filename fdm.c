@@ -278,7 +278,7 @@ fetch_account(struct account *a)
 	n = 0;
 	cancel = 0;
         for (;;) {
-		m.data = NULL;
+		memset(&m, 0, sizeof m);
 		m.body = -1;
 		if (a->fetch->fetch(a, &m) != 0)
 			return;
@@ -287,10 +287,13 @@ fetch_account(struct account *a)
 				xfree(m.data);
 			break;
 		}
-		unwrap_headers(&m);
-
+		
 		log_debug("%s: got message: size=%zu, body=%zu", a->name,
 		    m.size, m.body);
+
+		i = fill_wrapped(&m);
+		log_debug("%s: found %u wrapped lines", a->name, i);
+
 		TAILQ_FOREACH(r, &conf.rules, entry) {
 			list = r->accounts;
 			if (!ACCOUNTS_EMPTY(list)) {
@@ -322,6 +325,7 @@ fetch_account(struct account *a)
 				break;
 			}
 
+			set_wrapped(&m, ' ');
 			if (r->area == AREA_NONE || regexec(&r->re,
 			    m.data, 0, &pmatch, REG_STARTEND) == 0) {
 				t = r->action;
@@ -335,6 +339,7 @@ fetch_account(struct account *a)
 					continue;
 				}
 
+				set_wrapped(&m, '\n');
 				if (t->deliver->deliver(a,r->action, &m) != 0) {
 					/* delivery error, abort fetching */
 					cancel = 1;
@@ -345,7 +350,7 @@ fetch_account(struct account *a)
 			}
 		}
 
-		xfree(m.data);
+		free_mail(&m);
 
 		if (cancel) {
 			log_warnx("%s: processing error. aborted", a->name);

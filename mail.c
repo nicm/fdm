@@ -25,6 +25,15 @@
 
 #include "fdm.h"
 
+void
+free_mail(struct mail *m)
+{
+	free_wrapped(m);
+	if (m->from != NULL)
+		xfree(m->from);
+	xfree(m->data);
+}
+
 int
 openlock(char *path, u_int locks, int flags, mode_t mode)
 {
@@ -78,20 +87,15 @@ closelock(int fd, char *path, u_int locks)
 	close(fd);
 }
 
-int
-has_from(struct mail *m)
-{
-	if (m->data == NULL)
-		return (0);
-	return (m->size >= 5 && strncmp(m->data, "From ", 5) == 0);
-}
-    
 void
 trim_from(struct mail *m)
 {
 	char	*ptr;
+	size_t	 len;
 
-	if (!has_from(m))
+	m->from = NULL;
+
+	if (m->data == NULL || m->size < 5 || strncmp(m->data, "From ", 5) != 0)
 		return;
 	
 	ptr = memchr(m->data, '\n', m->size);
@@ -99,46 +103,49 @@ trim_from(struct mail *m)
 		ptr = m->data + m->size;
 	else
 		ptr++;
+	len = ptr - m->data;
 
-	m->size -= ptr - m->data;
-	if (m->body != -1)
-		m->body -= ptr - m->data;
+	m->from = xmalloc(len + 1);
+	memcpy(m->from, m->data, len);
+	m->from[len] = '\0';
+
+	m->size -= len;
 	memmove(m->data, ptr, m->size);
+	if (m->body != -1)
+		m->body -= len;
 }
 
 void
-insert_from(struct mail *m)
+make_from(struct mail *m)
 {
-	char 	*from;
 	size_t	 len;
 	time_t	 t;
 
-	if (has_from(m))
-		return;
-
+	if (m->from != NULL)
+		fatalx("attempt to call make_from twice");
+	
 	/* fake it up using local user */ /* XXX */
 	t = time(NULL);
-	len = xasprintf(&from, "From %s %s", conf.user, ctime(&t));
-
-	ENSURE_SIZE(m->data, m->space, m->size + len);
-	memmove(m->data + len, m->data, m->size);
-	memcpy(m->data, from, len);
-	m->size += len;
-	if (m->body != -1)
-		m->body += len;
-
-	xfree(from);
+	/* XXX why no trailing \n? */
+	len = xasprintf(&m->from, "From %s %s", conf.user, ctime(&t));
 }
 
 /* 
- * Sometimes mail has wrapped header lines, this undoubtedly looks neater but
- * makes them a pain to match using regexps, so this function undoes it.
+ * Sometimes mail has wrapped header lines, this undoubtedly looks neat but
+ * makes them a pain to match using regexps. We build a list of all the wrapped
+ * headers in m->wrapped, and can then quickly unwrap them for regexp matching
+ * and wrap them again for delivery.
  */
-void
-unwrap_headers(struct mail *m)
+u_int
+fill_wrapped(struct mail *m)
 {
 	char		*ptr;
-	size_t	 	 off, len;
+	size_t	 	 off;
+	u_int		 size, p;
+
+	size = 128 * sizeof (size_t);
+	p = 0;
+	m->wrapped = xmalloc(size);
 	
 	ptr = m->data;
 	for (;;) {
@@ -155,29 +162,40 @@ unwrap_headers(struct mail *m)
 				break;
 		}
 
-		/* off is now the start of a line, check if it starts with
-		   whitespace */
+		/* check if the line starts with whitespace */
 		if (!isblank((int) *ptr))
 			continue;
 
-		/* otherwise remove the newline */
-		ptr[-1] = ' ';
-
-		/* and trim any whitespace (except the space replacing the LF).
-		   see, we can be neat too */
-		while (isblank((int) *ptr))
-			ptr++;
-		len = ptr - m->data - off;
-		if (len == 0)
-			continue;
-		/* ptr is now the character after the end of the whitespace,
-		   off is the start of the whitespace, and len is its length.
-		   so move the rest of the mail after the whitespace from ptr
-		   down to off */
-		memmove(m->data + off, ptr, m->size - off - len);
-		m->size -= len;
-		if (m->body != -1)
-			m->body -= len;
+		/* save the position */
+		ENSURE_SIZE(m->wrapped, size, (p + 2) * sizeof (size_t));
+		m->wrapped[p] = off - 1;
+		p++;
+		m->wrapped[p] = 0;
 	}
+
+	if (p == 0) {
+		xfree(m->wrapped);
+		m->wrapped = NULL;
+	}
+
+	return (p);
 }
 
+void
+set_wrapped(struct mail *m, char ch)
+{
+	u_int	i;
+
+	if (m->wrapped == NULL)
+		return;
+
+	for (i = 0; m->wrapped[i] > 0; i++)
+		m->data[m->wrapped[i]] = ch;
+}
+
+void
+free_wrapped(struct mail *m)
+{
+	if (m->wrapped != NULL)	
+		xfree(m->wrapped);
+}

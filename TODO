@@ -1,5 +1,5 @@
 - multidrop etc
-- fix insert_from to use the headers
+- fix make_from to use the headers
 - test all rules properly
 - audit/cleanup error paths
 - smtp delivery
@@ -9,4 +9,3 @@
 - imap fetching
 - options for delete oversized, delete error etc
 - multiple regexps, and/or
-
