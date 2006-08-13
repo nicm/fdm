@@ -36,9 +36,9 @@
 extern char	*__progname;
 
 /* Definition to shut gcc up about unused arguments in a few cases. */
-/* #define unused __attribute__ ((unused)) */
+#define unused __attribute__ ((unused))
 
-/* Ensure buffer size */
+/* Ensure buffer size. */
 #define ENSURE_SIZE(buf, len, req) do {					\
 	while (len <= (req)) {						\
 		buf = xrealloc(buf, 2, len);				\
@@ -46,7 +46,7 @@ extern char	*__progname;
 	}								\
 } while (0)
 
-/* A single mail */
+/* A single mail. */
 struct mail {
 	char	*data;
 	size_t	 size;		/* size of mail */
@@ -55,7 +55,7 @@ struct mail {
 	ssize_t	 body;		/* offset of body */
 };
 
-/* Account entry */
+/* Account entry. */
 struct account {
 	char			*name;
 
@@ -65,7 +65,7 @@ struct account {
 	TAILQ_ENTRY(account)	 entry;
 };
 
-/* Delivery action */
+/* Delivery action. */
 struct action {
 	char			*name;
 
@@ -75,7 +75,7 @@ struct action {
 	TAILQ_ENTRY(action)	 entry;
 };
 
-/* Account name list */
+/* Account name list. */
 struct accounts {
 	char	**list;
 	u_int	  num;
@@ -91,7 +91,7 @@ struct accounts {
 } while (0)
 #define ACCOUNTS_EMPTY(a) ((a) == NULL || (a)->num == 0)
 
-/* Match areas */
+/* Match areas. */
 enum area {
 	AREA_NONE,	/* don't try to match the regexp at all */
 	AREA_BODY,
@@ -99,7 +99,7 @@ enum area {
 	AREA_ANY
 };
 
-/* Rule entry */
+/* Rule entry. */
 struct rule {
 	regex_t			 re;
 	enum area		 area;
@@ -112,7 +112,7 @@ struct rule {
 	TAILQ_ENTRY(rule)	 entry;
 };
 
-/* Fetch functions */
+/* Fetch functions. */
 struct fetch {
 	char	*name;
 	char	*port;
@@ -123,19 +123,19 @@ struct fetch {
 	int	 (*disconnect)(struct account *);	
 };
 
-/* Deliver functions */
+/* Deliver functions. */
 struct deliver {
 	char	*name;
 
 	int	(*deliver)(struct account *, struct action *, struct mail *);
 };
 
-/* Lock types */
+/* Lock types. */
 #define LOCK_FCNTL 0x1
 #define LOCK_FLOCK 0x2
 #define LOCK_DOTLOCK 0x4
 
-/* Configuration settings */
+/* Configuration settings. */
 struct conf {
 	int 			 debug;
 	int			 syslog;
@@ -156,23 +156,23 @@ struct conf {
 };
 extern struct conf		 conf;
 
-/* Shorthand for the ridiculous call to get the SSL error */
+/* Shorthand for the ridiculous call to get the SSL error. */
 #define ssl_err() (ERR_error_string(ERR_get_error(), NULL))
 
 /* Limits at which to abort. Would die when memory ran out anyway but better
-   to die at a ridiculous point rather than an insane one */
+   to die at a ridiculous point rather than an insane one. */
 #define IO_MAXLINELEN 1048576
 #define IO_MAXBUFFERLEN 8388608
 
-/* IO line endings */
+/* IO line endings. */
 #define IO_CRLF "\r\n"
 #define IO_CR   "\r"
 #define IO_LF   "\n"
 
-/* Amount to attempt to append to the buffer each time */
+/* Amount to attempt to append to the buffer each time. */
 #define IO_BLKSIZE 1024
 
-/* IO structure */
+/* IO structure. */
 struct io {
 	int		 fd;
 	int		 dup_fd;	/* dup all data to this fd */
@@ -193,12 +193,12 @@ struct io {
 	const	 char	*eol;
 };
 
-/* stdin data */
+/* Fetch stdin data. */
 struct stdin_data {
 	struct io		*io;
 };
 
-/* pop3 states */
+/* Fetch pop3 states. */
 enum pop3_state {
 	POP3_CONNECTING,
 	POP3_USER,
@@ -212,7 +212,7 @@ enum pop3_state {
 	POP3_QUIT
 };
 
-/* pop3 data */
+/* Fetch pop3 data. */
 struct pop3_data {
 	char			*user;
 	char			*pass;
@@ -228,7 +228,7 @@ struct pop3_data {
 	struct io		*io;
 };
 
-/* pop3 macros */
+/* Fetch pop3 macros. */
 #define pop3_isOK(s) (strncmp(s, "+OK", 3) == 0)
 #define pop3_isERR(s) (strncmp(s, "+ERR", 4) == 0)
 
