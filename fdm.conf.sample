@@ -1,5 +1,8 @@
 set maxsize 10M
 
+# Use flock locking only for mboxes.
+set locktypes flock
+
 # The following strings are replaced in pipe commands and maildir
 # paths:
 # 	%h: user's home directory
@@ -29,10 +32,10 @@ action "linux-kernel" maildir "%h/mail/linux-kernel"
 action "marxism" maildir "%h/mail/marxism"
 
 account "stdin" stdin
-account "gmx" pop3 server "pop.gmx.net" user "yyy"
-account "ntlworld" pop3 server "pop.ntlworld.com" user "yyy"
-account "gmail1" pop3s server "pop.googlemail.com" port 995 user "yyy"
-account "gmail2" pop3s server "pop.googlemail.com" port 995 user "yyy"
+account "gmx" pop3 server "pop.gmx.net" user "yyy" pass "xxx"
+account "ntlworld" pop3 server "pop.ntlworld.com" user "yyy" pass "xxx"
+account "gmail1" pop3s server "pop.googlemail.com" port 995 user "yyy" pass "xxx"
+account "gmail2" pop3s server "pop.googlemail.com" port 995 user "yyy" pass "xxx"
 
 match in headers "^From:.*root@[a-z]*.nicm.ath.cx" account "stdin" action "inbox"
 

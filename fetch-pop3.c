@@ -96,7 +96,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 	if (m != NULL)
 		m->data = NULL;
 
-	/* We want to be paranoid and not delete the message until it has been
+	/* we want to be paranoid and not delete the message until it has been
 	   dealt with by the caller and the next one asked for but equally we
 	   don't want to complicate the state machine by having one event which
 	   isn't triggered by a line being ready, so this is special-cased
