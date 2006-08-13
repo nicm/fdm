@@ -3,7 +3,7 @@ set maxsize 10M
 # Use flock locking only for mboxes.
 set locktypes flock
 
-# The following strings are replaced in pipe commands and maildir
+# The following strings are replaced in pipe commands and maildir/mbox
 # paths:
 # 	%h: user's home directory
 #	%a: account name
@@ -15,7 +15,8 @@ action "drop" drop
 
 action "inbox" maildir "%h/mail/inbox"
 action "junk" maildir "%h/mail/junk"
-action "backup" maildir "%h/mail/backup"
+action "backup" mbox "%h/mail/backup.mbox"
+
 action "netbsd-tech-kern" maildir "%h/mail/netbsd-tech-kern"
 action "netbsd-tech-misc" maildir "%h/mail/netbsd-tech-misc"
 action "netbsd-source-changes" maildir "%h/mail/netbsd-source-changes"
