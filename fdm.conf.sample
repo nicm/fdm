@@ -5,7 +5,7 @@ set locktypes flock
 
 # The following strings are replaced in pipe commands and maildir/mbox
 # paths:
-# 	%h: user's home directory
+#	%h: user's home directory
 #	%a: account name
 #	%t: action name
 #	%u: name of user
@@ -40,11 +40,11 @@ account "gmail2" pop3s server "pop.googlemail.com" port 995 user "yyy" pass "xxx
 
 match in headers "^From:.*root@[a-z]*.nicm.ath.cx" account "stdin" action "inbox"
 
-# duplicate all mail to backup and continue to remaining rules
+# Duplicate all mail to backup and continue to remaining rules.
 match all action "backup" continue
 
 # junk
-match in body ".*YAHOO.*BOOTER.*" action "junk"
+match case in body ".*YAHOO.*BOOTER.*" action "junk"
 match in headers "^From:.*eric-list-openbsd-misc@catastrophe.net" action "junk"
 match in headers "^From:.*mailings@gmx.net" account "gmx" action "junk"
 match in headers "^From:.*suck@my-balls.com" action "junk"

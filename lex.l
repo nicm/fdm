@@ -157,6 +157,7 @@ action return (TOKACTION);
 account return (TOKACCOUNT);
 server return (TOKSERVER);
 port return (TOKPORT);
+case return (TOKCASE);
 command return (TOKCOMMAND);
 continue return (TOKCONTINUE);
 (username|user) return (TOKUSER);

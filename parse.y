@@ -78,7 +78,7 @@ check_account(char *name)
 %token SYMOPEN SYMCLOSE SYMSTAR
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE
+%token TOKNONE TOKCASE
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX
 %token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
@@ -101,6 +101,7 @@ check_account(char *name)
 	enum area	 	 area;
 	struct {
 		char		*re;
+		int		 icase;
 		enum area	 area;
 	} match;
 	struct accounts		*accounts;
@@ -115,7 +116,7 @@ check_account(char *name)
 %type  <action> action
 %type  <string> port command
 %type  <accounts> accounts accountslist
-%type  <flag> continue
+%type  <flag> continue icase
 %type  <match> match
 %type  <number> size
 %type  <fetch> poptype fetchtype
@@ -177,6 +178,17 @@ locklist: locklist lock
 	  {
 		  $$ = 0;
 	  }
+
+icase: TOKCASE
+      {
+	      /* match case */
+	      $$ = 0;
+      }
+    | /* empty */
+      {
+	      /* ignore case */
+	      $$ = 1;
+      }
 
 port: TOKPORT STRING
       {
@@ -320,10 +332,11 @@ continue: /* empty */
 		  $$ = 1;
 	  }
 
-match: TOKIN AREA STRING
+match: icase TOKIN AREA STRING
        {
-	       $$.area = $2;
-	       $$.re = $3;
+	       $$.icase = $1;
+	       $$.area = $3;
+	       $$.re = $4;
        }
      | all
        {
@@ -335,7 +348,7 @@ rule: TOKMATCH match accounts TOKACTION STRING continue
       {
 	      struct rule	*r;
 	      struct action	*t;
-	      int		 error;
+	      int		 error, flags;
 	      size_t		 len;
 	      char		*buf;
 
@@ -345,8 +358,10 @@ rule: TOKMATCH match accounts TOKACTION STRING continue
 	      r->accounts = $3;
 
 	      if ($2.re != NULL) {
-		      if ((error = regcomp(&r->re, $2.re, 
-			  REG_ICASE|REG_EXTENDED|REG_NOSUB|REG_NEWLINE)) != 0) {
+		      flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
+		      if ($2.icase)
+			      flags |= REG_ICASE;
+		      if ((error = regcomp(&r->re, $2.re, flags)) != 0) {
 			      len = regerror(error, &r->re, NULL, 0);
 			      buf = xmalloc(len);
 			      regerror(error, &r->re, buf, len);
