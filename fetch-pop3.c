@@ -184,7 +184,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				}
 				
 				off = 0;
-				m->data = xmalloc(m->size);
+				m->base = m->data = xmalloc(m->size);
 				m->space = m->size;
 				m->body = -1;
 				

@@ -48,6 +48,8 @@ extern char	*__progname;
 
 /* A single mail. */
 struct mail {
+	char	*base;
+	
 	char	*data;
 	size_t	 size;		/* size of mail */
 	size_t	 space;		/* size of malloc'd area */

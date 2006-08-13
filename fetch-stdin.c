@@ -81,7 +81,7 @@ stdin_fetch(struct account *a, struct mail *m)
 
 	if (m->data == NULL) {
 		m->space = 4096;
-		m->data = malloc(m->space);
+		m->base = m->data = malloc(m->space);
 		m->size = 0;
 		m->body = -1;
 	}
@@ -116,6 +116,6 @@ stdin_fetch(struct account *a, struct mail *m)
 			break;
 	}
 
-	trim_from(&m);
+	trim_from(m);
 	return (0);
 }

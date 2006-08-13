@@ -31,7 +31,7 @@ free_mail(struct mail *m)
 	free_wrapped(m);
 	if (m->from != NULL)
 		xfree(m->from);
-	xfree(m->data);
+	xfree(m->base);
 }
 
 int
@@ -110,7 +110,7 @@ trim_from(struct mail *m)
 	m->from[len] = '\0';
 
 	m->size -= len;
-	memmove(m->data, ptr, m->size);
+	m->data += len;
 	if (m->body != -1)
 		m->body -= len;
 }
