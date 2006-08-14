@@ -369,9 +369,11 @@ perform_match(struct mail *m, struct rule *r)
 		case AREA_BODY:
 			pmatch.rm_so = m->body;
 			pmatch.rm_eo = m->size;
+			break;
 		case AREA_ANY:
 			pmatch.rm_so = 0;
 			pmatch.rm_eo = m->size;
+			break;
 		}
 		
 		result = regexec(&r->re, m->data, 0, &pmatch, REG_STARTEND);
