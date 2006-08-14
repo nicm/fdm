@@ -101,6 +101,7 @@ closelock(int fd, char *path, u_int locks)
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
 		unlink(lock);
+		xfree(lock);
 	}
 
 	close(fd);
