@@ -165,6 +165,7 @@ make_from(struct mail *m)
 			else
 				from = NULL;
 		} else {
+			/* can't find a <...>, so just use the first word */
 			ptr = from;
 			while (*ptr != '\n' && !isblank((int) *ptr))
 				ptr++;

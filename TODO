@@ -1,6 +1,5 @@
 - man pages
 - multidrop etc
-- fix make_from to use the headers
 - test all rules properly
 - audit/cleanup error paths
 - smtp delivery
