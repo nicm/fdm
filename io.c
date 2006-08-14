@@ -40,7 +40,7 @@
 int	io_push(struct io *);
 int	io_fill(struct io *);
 
-/* Create a struct io for the specified socket and SSL descriptors */
+/* Create a struct io for the specified socket and SSL descriptors. */
 struct io *
 io_create(int fd, SSL *ssl, const char *eol)
 {
@@ -77,7 +77,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 	return (io);
 }
 
-/* Free a struct io */
+/* Free a struct io. */
 void
 io_free(struct io *io)
 {
@@ -86,7 +86,7 @@ io_free(struct io *io)
 	xfree(io);
 }
 
-/* Poll the io */
+/* Poll the io. */
 int
 io_poll(struct io *io)
 {
@@ -143,7 +143,7 @@ error:
 }
 
 /* Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,
-   a la read(2) */
+   a la read(2). */
 int
 io_fill(struct io *io)
 {
@@ -211,7 +211,7 @@ io_fill(struct io *io)
 	return (1);
 }
 
-/* Empty write buffer */
+/* Empty write buffer. */
 int
 io_push(struct io *io) 
 {
@@ -272,7 +272,7 @@ io_push(struct io *io)
 	return (1);
 }
 
-/* Return a specific number of bytes from the read buffer, if available */
+/* Return a specific number of bytes from the read buffer, if available. */
 void *
 io_read(struct io *io, size_t len)
 {
@@ -290,7 +290,7 @@ io_read(struct io *io, size_t len)
 	return (buf);
 }
 
-/* Write a block to the io write buffer */
+/* Write a block to the io write buffer. */
 void
 io_write(struct io *io, const void *buf, size_t len)
 {
@@ -304,7 +304,7 @@ io_write(struct io *io, const void *buf, size_t len)
 }
 
 /* Return a line from the read buffer. EOL is stripped and the string
-   returned is zero-terminated */
+   returned is zero-terminated. */
 char *
 io_readline(struct io *io)
 {
@@ -372,7 +372,7 @@ io_readline(struct io *io)
 	return (line);
 }
 
-/* Write a line to the io write buffer */
+/* Write a line to the io write buffer. */
 void
 io_writeline(struct io *io, const char *fmt, ...)
 {
@@ -385,7 +385,7 @@ io_writeline(struct io *io, const char *fmt, ...)
 	va_end(ap);
 }
 
-/* Write a line to the io write buffer from a va_list */
+/* Write a line to the io write buffer from a va_list. */
 void
 io_vwriteline(struct io *io, const char *fmt, va_list ap)
 {
@@ -401,7 +401,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	xfree(buf);
 }
 
-/* Poll until all data in the write buffer has been written to the socket */
+/* Poll until all data in the write buffer has been written to the socket. */
 int
 io_flush(struct io *io)
 {
@@ -413,7 +413,7 @@ io_flush(struct io *io)
 	return (0);
 }
 
-/* Poll until len bytes have been read into the read buffer */
+/* Poll until len bytes have been read into the read buffer. */
 int
 io_wait(struct io *io, size_t len)
 {
