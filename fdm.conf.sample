@@ -83,8 +83,7 @@ match "^(To:|Cc:).*(freebsd-hin headers ackers|hackers)@freebsd.org" action "fre
 match "^Subject:.*\\[Marxism\\]" in headers action "marxism"
 
 # linux-kernel
-match "^X-Mailing-List:.*linux-kernel@vger.kernel.org" in headers action "linux-kernel"
-match "^(To:|Cc:):.*@vger.kernel.org" in headers action "linux-kernel"
+match "^X-Mailing-List:.*linux-kernel@vger.kernel.org" in headers or "^(To:|Cc:):.*@vger.kernel.org" in headers action "linux-kernel"
 
 # default
 match all action "inbox"
