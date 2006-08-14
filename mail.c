@@ -41,7 +41,7 @@ int
 openlock(char *path, u_int locks, int flags, mode_t mode)
 {
 	char		*lock;
-	int	 	 fd;
+	int	 	 fd, error;
 	struct flock	 fl;
 
 	if (locks & LOCK_DOTLOCK) {
@@ -50,6 +50,7 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 		if (fd == -1) {
 			if (errno == EEXIST)
 				errno = EAGAIN;
+			xfree(lock);
 			return (-1);
 		}
 		close(fd);
@@ -59,12 +60,9 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 	
 	if (fd != -1 && locks & LOCK_FLOCK) {
 		if (flock(fd, LOCK_EX|LOCK_NB) != 0) {
-			close(fd);
-			if (locks & LOCK_DOTLOCK)
-				unlink(lock);
 			if (errno == EWOULDBLOCK)
 				errno = EAGAIN;
-			return (-1);		
+			goto error;
 		}
 	}
 
@@ -75,15 +73,24 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 		fl.l_type = F_WRLCK;
 		fl.l_whence = SEEK_SET;
 		if (fcntl(fd, F_SETLK, &fl) == -1) {
-			close(fd);
-			if (locks & LOCK_DOTLOCK)
-				unlink(lock);
-			/* fcntl returns EAGAIN if locked */
-			return (-1);		
+			/* fcntl already returns EAGAIN if needed */
+			goto error;
 		}
 	}
 
+	if (locks & LOCK_DOTLOCK)
+		xfree(lock);
 	return (fd);
+
+error:
+	error = errno;
+	close(fd);
+	if (locks & LOCK_DOTLOCK) {
+		unlink(lock);
+		xfree(lock);
+	}
+	errno = error;
+	return (-1);
 }
 
 void
