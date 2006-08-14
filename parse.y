@@ -147,6 +147,8 @@ set: TOKSET OPTMAXSIZE size
      }
    | TOKSET OPTLOCKTYPES locklist
      {
+	     if ($3 & LOCK_FCNTL && $3 & LOCK_FLOCK)
+		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
      }
    | TOKSET OPTDELOVERSIZED

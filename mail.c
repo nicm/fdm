@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -45,7 +46,8 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
-		if ((fd = open(lock, O_WRONLY|O_CREAT|O_EXCL)) != 0) {
+		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		if (fd == -1) {
 			if (errno == EEXIST)
 				errno = EAGAIN;
 			return (-1);
@@ -56,13 +58,14 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 	fd = open(path, flags, mode);
 	
 	if (fd != -1 && locks & LOCK_FLOCK) {
-		if (flock(fd, LOCK_EX|LOCK_NB) != 0)
+		if (flock(fd, LOCK_EX|LOCK_NB) != 0) {
 			close(fd);
 			if (locks & LOCK_DOTLOCK)
 				unlink(lock);
 			if (errno == EWOULDBLOCK)
 				errno = EAGAIN;
 			return (-1);		
+		}
 	}
 
 	if (fd != -1 && locks & LOCK_FCNTL) {
@@ -71,7 +74,7 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 		fl.l_len = 0;
 		fl.l_type = F_WRLCK;
 		fl.l_whence = SEEK_SET;
-		if (fcntl(fd, F_SETLK, fl) == -1) {
+		if (fcntl(fd, F_SETLK, &fl) == -1) {
 			close(fd);
 			if (locks & LOCK_DOTLOCK)
 				unlink(lock);
@@ -127,16 +130,70 @@ trim_from(struct mail *m)
 void
 make_from(struct mail *m)
 {
-	size_t	 len;
+	size_t	 end, off, fromlen = 0, datelen = 0;
 	time_t	 t;
+	char	*from = NULL, *date = NULL, *ptr;
 
 	if (m->from != NULL)
-		fatalx("attempt to call make_from twice");
-	
-	/* fake it up using local user */ /* XXX */
-	t = time(NULL);
-	/* XXX why no trailing \n? */
-	len = xasprintf(&m->from, "From %s %s", conf.user, ctime(&t));
+		return;
+
+	/* find the from and date headers */
+	end = m->body == -1 ? m->size : (size_t) m->body;	
+	ptr = m->data;
+	for (;;) {
+		ptr = memchr(ptr, '\n', m->size);
+		if (ptr == NULL)
+			break;
+		ptr++;
+		off = ptr - m->data;
+		if (off >= end)
+			break;
+
+		if (m->size - off > 6 && strncmp(ptr, "From: ", 6) == 0)
+			from = ptr + 6;
+		else if (m->size - off > 6 && strncmp(ptr, "Date: ", 6) == 0)
+			date = ptr + 6;
+	}
+	    
+	if (from != NULL) {
+		ptr = memchr(from, '<', end - (from - m->data));
+		if (ptr != NULL) {
+			from = ptr + 1;
+			ptr = memchr(from, '>', end - (from - m->data));
+			if (ptr != NULL)
+ 				fromlen = ptr - from;
+			else
+				from = NULL;
+		} else {
+			ptr = from;
+			while (*ptr != '\n' && !isblank((int) *ptr))
+				ptr++;
+			fromlen = ptr - from;
+		}
+	}
+	if (from == NULL) {
+		from = conf.user;
+		fromlen = strlen(from);
+	}
+
+	if (date != NULL) {
+		while (isblank((int) *date))
+			date++;
+		ptr = memchr(date, '\n', end - (date - m->data));
+		if (ptr != NULL)
+			datelen = ptr - date;
+		else
+			date = NULL;
+	} 
+	if (date == NULL) {
+		t = time(NULL);
+		date = ctime(&t);
+		datelen = strlen(date);
+	}
+
+	xasprintf(&ptr, "From %%.%ds %%.%ds\n", fromlen, datelen);
+	xasprintf(&m->from, ptr, from, date);
+	free(ptr);
 }
 
 /* 
@@ -149,13 +206,14 @@ u_int
 fill_wrapped(struct mail *m)
 {
 	char		*ptr;
-	size_t	 	 off;
+	size_t	 	 off, end;
 	u_int		 size, p;
 
 	size = 128 * sizeof (size_t);
 	p = 0;
 	m->wrapped = xmalloc(size);
-	
+
+	end = m->body == -1 ? m->size : (size_t) m->body;	
 	ptr = m->data;
 	for (;;) {
 		ptr = memchr(ptr, '\n', m->size);
@@ -163,13 +221,8 @@ fill_wrapped(struct mail *m)
 			break;
 		ptr++;
 		off = ptr - m->data;
-		if (m->body != -1) {
-			if (off >= (size_t) m->body)
-				break;
-		} else {
-			if (off >= m->size)
-				break;
-		}
+		if (off >= end)
+			break;
 
 		/* check if the line starts with whitespace */
 		if (!isblank((int) *ptr))
