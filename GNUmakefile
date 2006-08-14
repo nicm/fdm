@@ -52,7 +52,7 @@ CFLAGS = -std=c99 -pedantic -Wno-long-long -Wall -W -Wnested-externs \
 	 -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual \
 	 -Wsign-compare 
 
-LIBS = -lm -lssl
+LIBS = -lssl
 
 CLEANFILES = $(PROG) y.tab.c lex.yy.c y.tab.h $(OBJS) .depend
 

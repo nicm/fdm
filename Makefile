@@ -36,7 +36,7 @@ INSTALLMAN= install -g bin -o root -m 444
 
 INCDIRS= -I- -I. -I/usr/local/include
 LDFLAGS+= -L/usr/local/lib
-LIBS= -lm -lcrypto -lssl
+LIBS= -lcrypto -lssl
 
 TARFLAGS= 
 DISTFILES= *.[chyl] Makefile ${PROG}.conf *.[1-9] # XXX README

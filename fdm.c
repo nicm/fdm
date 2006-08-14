@@ -130,7 +130,7 @@ main(int argc, char **argv)
 	log_init(!conf.syslog);
 	log_debug("version is: %s " BUILD, __progname);
 
-	/* save the home dir and misc user */
+	/* save the home dir and misc user info */
 	conf.home = getenv("HOME");
 	if (conf.home != NULL && *conf.home == '\0')
 		conf.home = NULL;
