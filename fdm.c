@@ -265,6 +265,8 @@ fetch_account(struct account *a)
 	struct rule	*r;
 	struct mail	 m;
 	struct action	*t;
+	struct timeval	 tv;
+	double		 tim;
 	u_int	 	 n, i;
 	int		 cancel;
 	struct accounts	*list;
@@ -274,6 +276,8 @@ fetch_account(struct account *a)
 		return;
 	}
 
+	gettimeofday(&tv, NULL);
+	tim = tv.tv_sec + (tv.tv_usec / 1000000.0);
 	log_debug("%s: fetching", a->name);
 
 	n = 0;
@@ -338,8 +342,10 @@ fetch_account(struct account *a)
 
 		n++;
 	}
-	
-	log_info("%s: %u messages processed", a->name, n);
+
+	gettimeofday(&tv, NULL);
+	tim = (tv.tv_sec + (tv.tv_usec / 1000000.0)) - tim;
+	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
 }
 
 int
