@@ -330,7 +330,8 @@ void			 free_wrapped(struct mail *);
 
 /* replace.c */
 #define REPL_LEN 52
-#define REPL_IDX(ch) ((ch >= 'a' || ch <= 'z') ? ch - 'a' : 		\
+#define REPL_IDX(ch) /* LINTED */ 				\
+	((ch >= 'a' || ch <= 'z') ? ch - 'a' :			\
 	((ch >= 'A' || ch <= 'z') ? 26 + ch - 'A' : -1))
 char 			*replace(char *, char *[52]);
 
