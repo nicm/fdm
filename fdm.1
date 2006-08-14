@@ -1,0 +1,114 @@
+.\" $Id$
+.\"
+.\" Copyright (c) 2004 Nicholas Marriott <nicm@users.sourceforge.net>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF MIND, USE, DATA OR PROFITS, WHETHER
+.\" IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
+.\" OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd August 14, 2006
+.Dt FDM 1
+.Os
+.Sh NAME
+.Nm fdm
+.Nd "fetch and deliver mail"
+.Sh SYNOPSIS
+.Nm fdm
+.Op Fl lnv
+.Bk -words
+.Op Fl f Ar conffile
+.Ek
+.Bk -words
+.Op Fl a Ar account
+.Ek
+.Bk -words
+.Op Fl x Ar account
+.Ek
+.Op Ar fetch | poll
+.Sh DESCRIPTION
+The
+.Nm
+program fetches mail from a POP3 server or from 
+.Em stdin
+and delivers it based on a ruleset in the configuration file.
+.Pp
+The options are as follows:
+.Bl -tag -width "-f conffileXXX"
+.It Fl a Ar account
+Process only the specified account. This option may appear multiple times.
+.Pp
+.It Fl f Ar conffile
+.Pp
+.It Fl l
+Log using
+.Xr syslog 3
+rather than to
+.Em stderr .
+.Pp
+.It Fl n
+Do not process any accounts, just verify the configuration file syntax and exit.
+.Pp
+.It Fl v
+Request verbose logging. This option may be specified multiple times.
+.Pp
+.It Fl x Ar account
+Exclude the named account. Multiple
+.Fl x
+options may be specified.
+.Pp
+.It Ar fetch | poll
+The 
+.Ar fetch 
+command instructs
+.Nm
+to fetch and deliver messages. The 
+.Ar poll
+command polls the configured servers and reports a message count.
+.Pp
+.El
+.Sh LOCAL MAIL WITH SENDMAIL
+.Nm
+can be used to deliver local mail from 
+.Xr sendmail 8
+by making use of .forward files. An account fetching mail from 
+.Em stdin
+should be specified in the user's 
+.Pa ~/.fdm.conf
+file,
+.Bd -ragged -offset indent
+account "stdinacct" stdin
+.Ed
+.Pp
+and the user's 
+.Pa ~/.forward
+file should be set to contain something like (including "s):
+.Bd -ragged -offset indent
+"|/usr/local/bin/fdm -l -a stdinacct fetch"
+.Ed
+.Pp
+.Xr sendmail 8
+will then invoke
+.Nm
+to deliver mail and 
+.Nm
+will pass it through any filtering rules as normal.
+.Sh FILES
+.Bl -tag -width "~/.fdm.confXXX" -compact
+.It Pa ~/.fdm.conf
+default
+.Nm
+configuration file
+.El
+.Sh AUTHORS
+.An Nicholas Marriott Aq nicm@users.sourceforge.net
+.Sh SEE ALSO
+.Xr mail 1
+.Xr sendmail 8
