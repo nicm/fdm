@@ -77,7 +77,7 @@ match "^(To:|Cc:).*bugtraq@" in headers action "bugtraq"
 match "^(To:|Cc:).*forensics@securityfocus.com" in headers action "forensics"
 
 # freebsd
-match "^(To:|Cc:).*(freebsd-hin headers ackers|hackers)@freebsd.org" action "freebsd-hackers"
+match "^(To:|Cc:).*(freebsd-hackers|hackers)@freebsd.org" in headers action "freebsd-hackers"
 
 # marxism
 match "^Subject:.*\\[Marxism\\]" in headers action "marxism"

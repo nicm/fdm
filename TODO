@@ -8,4 +8,3 @@
 - write/write-append actions
 - imap fetching
 - options for delete oversized, delete error etc
-- multiple regexps, and/or
