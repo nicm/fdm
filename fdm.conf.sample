@@ -38,53 +38,53 @@ account "ntlworld" pop3 server "pop.ntlworld.com" user "yyy" pass "xxx"
 account "gmail1" pop3s server "pop.googlemail.com" port 995 user "yyy" pass "xxx"
 account "gmail2" pop3s server "pop.googlemail.com" port 995 user "yyy" pass "xxx"
 
-match in headers "^From:.*root@[a-z]*.nicm.ath.cx" account "stdin" action "inbox"
+match "^From:.*root@[a-z]*.nicm.ath.cx" in headers account "stdin" action "inbox"
 
 # Duplicate all mail to backup and continue to remaining rules.
 match all action "backup" continue
 
 # junk
-match case in body ".*YAHOO.*BOOTER.*" action "junk"
-match in headers "^From:.*eric-list-openbsd-misc@catastrophe.net" action "junk"
-match in headers "^From:.*mailings@gmx.net" account "gmx" action "junk"
-match in headers "^From:.*suck@my-balls.com" action "junk"
-match in headers "^From:.*peter_philipp@freenet.de" action "junk"
-match in headers "^From:.*@*.chase.com" action "junk"
-match in headers "^From:.*@*.chaseonline.com" action "junk"
-match in headers "^From:.*dfeustel@mindspring.com" action "junk"
-match in headers "^From:.*baypos@gmail.com" action "junk"
+match case ".*YAHOO.*BOOTER.*" in body action "junk"
+match "^From:.*eric-list-openbsd-misc@catastrophe.net" in headers action "junk"
+match "^From:.*mailings@gmx.net" in headers account "gmx" action "junk"
+match "^From:.*suck@my-balls.com" in headers action "junk"
+match "^From:.*peter_philipp@freenet.de" in headers action "junk"
+match "^From:.*@*.chase.com" in headers action "junk"
+match "^From:.*@*.chaseonline.com" in headers action "junk"
+match "^From:.*dfeustel@mindspring.com" in headers action "junk"
+match "^From:.*baypos@gmail.com" in headers action "junk"
 
 # netbsd
-match in headers "^(To:|Cc:).*tech-kern@netbsd.org" action "netbsd-tech-kern"
-match in headers "^(To:|Cc:).*tech-misc@netbsd.org" action "netbsd-tech-misc"
-match in headers "^(To:|Cc:).*source-changes@netbsd.org" action "netbsd-source-changes"
+match "^(To:|Cc:).*tech-kern@netbsd.org" in headers action "netbsd-tech-kern"
+match "^(To:|Cc:).*tech-misc@netbsd.org" in headers action "netbsd-tech-misc"
+match "^(To:|Cc:).*source-changes@netbsd.org" in headers action "netbsd-source-changes"
 
 # openbsd
-match in headers "^(To:|Cc:).*misc@(cvs\\.)?openbsd\\.org" action "openbsd-misc"
-match in headers "^(To:|Cc:).*bugs@(cvs\\.)?openbsd\\.org" action "openbsd-bugs"
-match in headers "^(To:|Cc:).*gnats@(cvs\\.)?openbsd\\.org" action "openbsd-bugs"
-match in headers "^(To:|Cc:).*tech@(cvs\\.)?openbsd\\.org" action "openbsd-tech"
-match in headers "^(To:|Cc:).*ports@(cvs\\.)?openbsd\\.org" action "openbsd-ports"
-match in headers "^(To:|Cc:).*source-changes@(cvs\\.)?openbsd\\.org" action "openbsd-source-changes"
+match "^(To:|Cc:).*misc@(cvs\\.)?openbsd\\.org" in headers action "openbsd-misc"
+match "^(To:|Cc:).*bugs@(cvs\\.)?openbsd\\.org" in headers action "openbsd-bugs"
+match "^(To:|Cc:).*gnats@(cvs\\.)?openbsd\\.org" in headers action "openbsd-bugs"
+match "^(To:|Cc:).*tech@(cvs\\.)?openbsd\\.org" in headers action "openbsd-tech"
+match "^(To:|Cc:).*ports@(cvs\\.)?openbsd\\.org" in headers action "openbsd-ports"
+match "^(To:|Cc:).*source-changes@(cvs\\.)?openbsd\\.org" in headers action "openbsd-source-changes"
 
 # pf
-match in headers "^(To:|Cc:).*pf@benzedrine.cx" action "pf"
+match "^(To:|Cc:).*pf@benzedrine.cx" in headers action "pf"
 
 # bugtraq
-match in headers "^(To:|Cc:).*bugtraq@" action "bugtraq"
+match "^(To:|Cc:).*bugtraq@" in headers action "bugtraq"
 
 # forensics
-match in headers "^(To:|Cc:).*forensics@securityfocus.com" action "forensics"
+match "^(To:|Cc:).*forensics@securityfocus.com" in headers action "forensics"
 
 # freebsd
-match in headers "^(To:|Cc:).*(freebsd-hackers|hackers)@freebsd.org" action "freebsd-hackers"
+match "^(To:|Cc:).*(freebsd-hin headers ackers|hackers)@freebsd.org" action "freebsd-hackers"
 
 # marxism
-match in headers "^Subject:.*\\[Marxism\\]" action "marxism"
+match "^Subject:.*\\[Marxism\\]" in headers action "marxism"
 
 # linux-kernel
-match in headers "^X-Mailing-List:.*linux-kernel@vger.kernel.org" action "linux-kernel"
-match in headers "^(To:|Cc:):.*@vger.kernel.org" action "linux-kernel"
+match "^X-Mailing-List:.*linux-kernel@vger.kernel.org" in headers action "linux-kernel"
+match "^(To:|Cc:):.*@vger.kernel.org" in headers action "linux-kernel"
 
 # default
 match all action "inbox"

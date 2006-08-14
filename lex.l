@@ -153,6 +153,8 @@ none return (TOKNONE);
 accounts return (TOKACCOUNTS);
 match return (TOKMATCH);
 in return (TOKIN);
+and return (TOKAND);
+or return (TOKOR);
 action return (TOKACTION);
 account return (TOKACCOUNT);
 server return (TOKSERVER);

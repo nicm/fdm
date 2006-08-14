@@ -17,7 +17,7 @@ SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c mail.c \
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
 LEX= lex
-YACC= yacc -d
+YACC= yacc -dv
 
 CC= cc
 CFLAGS+= -g -ggdb -std=c99

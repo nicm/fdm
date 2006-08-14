@@ -39,6 +39,7 @@ int			 load_conf(void);
 void			 usage(void);
 void			 poll_account(struct account *);
 void			 fetch_account(struct account *);
+int			 perform_match(struct mail *, struct rule *);
 
 struct conf		 conf;
 
@@ -264,7 +265,6 @@ fetch_account(struct account *a)
 	struct mail	 m;
 	struct action	*t;
 	u_int	 	 n, i;
-	regmatch_t	 pmatch;
 	int		 cancel;
 	struct accounts	*list;
 
@@ -304,50 +304,28 @@ fetch_account(struct account *a)
 				if (i == list->num)
 					continue;
 			}
-
-			if (r->area == AREA_BODY && m.body == -1)
-				continue;
-			switch (r->area) {
-			case AREA_HEADERS:
-				pmatch.rm_so = 0;
-				if (m.body == -1)
-					pmatch.rm_eo = m.size;
-				else
-					pmatch.rm_eo = m.body;
-				break;
-			case AREA_BODY:
-				pmatch.rm_so = m.body;
-				pmatch.rm_eo = m.size;
-			case AREA_ANY:
-				pmatch.rm_so = 0;
-				pmatch.rm_eo = m.size;
-			case AREA_NONE:
-				break;
-			}
-
-			set_wrapped(&m, ' ');
-			if (r->area == AREA_NONE || regexec(&r->re,
-			    m.data, 0, &pmatch, REG_STARTEND) == 0) {
-				t = r->action;
-
-				log_debug("%s: matched message: action=%s", 
-				    a->name, t->name);
 				
-				if (t->deliver->deliver == NULL) {
-					if (r->stop)
-						break;
-					continue;
-				}
+			if (!perform_match(&m, r))
+				continue;
 
-				set_wrapped(&m, '\n');
-				if (t->deliver->deliver(a,r->action, &m) != 0) {
-					/* delivery error, abort fetching */
-					cancel = 1;
-					break;
-				}
+			t = r->action;
+			log_debug("%s: matched message: action=%s", 
+			    a->name, t->name);
+				
+			if (t->deliver->deliver == NULL) {
 				if (r->stop)
 					break;
+				continue;
 			}
+
+			set_wrapped(&m, '\n');
+			if (t->deliver->deliver(a,r->action, &m) != 0) {
+				/* delivery error, abort fetching */
+				cancel = 1;
+				break;
+			}
+			if (r->stop)
+				break;
 		}
 
 		free_mail(&m);
@@ -361,4 +339,52 @@ fetch_account(struct account *a)
 	}
 	
 	log_info("%s: %u messages processed", a->name, n);
+}
+
+int
+perform_match(struct mail *m, struct rule *r)
+{
+	regmatch_t	 pmatch;
+	int		 matched, result;
+	struct match	*c;
+
+	if (r->matches == NULL)
+		return (1);
+
+	set_wrapped(m, ' ');
+
+	matched = 0;
+	TAILQ_FOREACH(c, r->matches, entry) {
+		if (c->area == AREA_BODY && m->body == -1)
+			continue;
+		
+		switch (c->area) {
+		case AREA_HEADERS:
+			pmatch.rm_so = 0;
+			if (m->body == -1)
+				pmatch.rm_eo = m->size;
+			else
+				pmatch.rm_eo = m->body;
+			break;
+		case AREA_BODY:
+			pmatch.rm_so = m->body;
+			pmatch.rm_eo = m->size;
+		case AREA_ANY:
+			pmatch.rm_so = 0;
+			pmatch.rm_eo = m->size;
+		}
+		
+		result = regexec(&r->re, m->data, 0, &pmatch, REG_STARTEND);
+		switch (c->op) {
+		case OP_NONE:
+		case OP_OR:
+			matched = matched || result;
+			break;
+		case OP_AND:
+			matched = matched && result;
+			break;
+		}
+	}
+
+	return (matched != 0);
 }

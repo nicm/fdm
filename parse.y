@@ -78,7 +78,7 @@ check_account(char *name)
 %token SYMOPEN SYMCLOSE SYMSTAR
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE
+%token TOKNONE TOKCASE TOKAND TOKOR
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX
 %token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
@@ -99,12 +99,10 @@ check_account(char *name)
 	} server;
 	struct action	 	 action;
 	enum area	 	 area;
-	struct {
-		char		*re;
-		int		 icase;
-		enum area	 area;
-	} match;
+	enum op			 op;
 	struct accounts		*accounts;
+	struct matches		*matches;
+	struct match		*match;
 }
 
 %token <number> NUMBER
@@ -117,10 +115,13 @@ check_account(char *name)
 %type  <string> port command
 %type  <accounts> accounts accountslist
 %type  <flag> continue icase
-%type  <match> match
 %type  <number> size
 %type  <fetch> poptype fetchtype
 %type  <locks> lock locklist
+%type  <area> area
+%type  <match> match
+%type  <matches> matches matchlist
+%type  <op> op
 
 %%
 
@@ -168,7 +169,7 @@ lock: LCKFCNTL
 
 locklist: locklist lock
 	  {
-		  $$ |= $2;
+		  $$ = $1 | $2;
 	  }
 	| lock
 	  {
@@ -312,6 +313,7 @@ accounts: /* empty */
 
 accountslist: accountslist STRING
  	      {
+		      $$ = $1;
 		      check_account($2);
 		      ACCOUNTS_ADD($$, $2);
 	      }	
@@ -332,55 +334,132 @@ continue: /* empty */
 		  $$ = 1;
 	  }
 
-match: icase TOKIN AREA STRING
+area: /* empty */
+      {
+	      $$ = AREA_ANY;
+      }
+    | TOKIN AREA
+      {
+	      $$ = $2;
+      }
+
+op: TOKAND
+    {
+	    $$ = OP_AND;
+    }
+  | TOKOR
+    {
+	    $$ = OP_OR;
+    }
+
+match: icase STRING area
        {
-	       $$.icase = $1;
-	       $$.area = $3;
-	       $$.re = $4;
-       }
-     | all
-       {
-	       $$.area = AREA_NONE;
-	       $$.re = NULL;
+	       int	 error, flags;
+	       size_t	 len;
+	       char	*buf;
+
+	       $$ = xcalloc(1, sizeof (struct match));
+	       $$->s = $2;
+	       $$->op = OP_NONE;
+	       $$->area = $3;
+
+	       flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
+	       if ($1)
+		       flags |= REG_ICASE;
+	       if ((error = regcomp(&$$->re, $2, flags)) != 0) {
+		       len = regerror(error, &$$->re, NULL, 0);
+		       buf = xmalloc(len);
+		       regerror(error, &$$->re, buf, len);
+		       yyerror("%s", buf);
+	       }
        }
 
-rule: TOKMATCH match accounts TOKACTION STRING continue
+matchlist: matchlist op match
+	   {
+		   $$ = $1;
+		   $3->op = $2;
+		   TAILQ_INSERT_TAIL($$, $3, entry);
+	   }
+         | op match
+	   {
+		   $$ = xcalloc(1, sizeof (struct matches));
+		   $2->op = $1;
+		   TAILQ_INSERT_HEAD($$, $2, entry);
+	   }
+
+matches: TOKMATCH match matchlist
+         {
+		 if ($3 != NULL)
+			 $$ = $3;
+		 else
+			 $$ = xcalloc(1, sizeof (struct matches));
+		 TAILQ_INSERT_HEAD($$, $2, entry);
+	 }
+       | TOKMATCH match
+         {
+		 $$ = xcalloc(1, sizeof (struct matches));
+		 TAILQ_INSERT_HEAD($$, $2, entry);
+	 }
+       | TOKMATCH all
+	 {
+		 $$ = NULL;
+	 }
+
+rule: matches accounts TOKACTION STRING continue
       {
 	      struct rule	*r;
 	      struct action	*t;
-	      int		 error, flags;
-	      size_t		 len;
-	      char		*buf;
+	      char		 tmp[1024];
+	      struct match	*c;
 
 	      r = xcalloc(1, sizeof *r);      
-	      r->area = $2.area;
-	      r->stop = !$6;
-	      r->accounts = $3;
-
-	      if ($2.re != NULL) {
-		      flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-		      if ($2.icase)
-			      flags |= REG_ICASE;
-		      if ((error = regcomp(&r->re, $2.re, flags)) != 0) {
-			      len = regerror(error, &r->re, NULL, 0);
-			      buf = xmalloc(len);
-			      regerror(error, &r->re, buf, len);
-			      yyerror("%s", buf);
-		      }
-		      xfree($2.re);
-	      }
+	      r->stop = !$5;
+	      r->accounts = $2;
+	      r->matches = $1;
 
 	      r->action = NULL;
 	      TAILQ_FOREACH(t, &conf.actions, entry) {
-		      if (strcmp(t->name, $5) == 0)
+		      if (strcmp(t->name, $4) == 0)
 			      r->action = t;
 	      }
 	      if (r->action == NULL)
-		      yyerror("unknown action \"%s\"", $5);
+		      yyerror("unknown action \"%s\"", $4);
 	      
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
 
-	      log_debug("added rule: action=%s");
+	      if (r->matches == NULL)
+		      xsnprintf(tmp, sizeof tmp, "all");
+	      else {
+		      *tmp = '\0';
+		      TAILQ_FOREACH(c, r->matches, entry) {
+			      switch (c->op) {
+			      case OP_AND:
+				      strlcat(tmp, "and \"", sizeof tmp);
+				      break;
+			      case OP_OR:
+				      strlcat(tmp, "or \"", sizeof tmp);
+				      break;
+			      case OP_NONE:
+				      strlcat(tmp, "\"", sizeof tmp);
+				      break;
+			      }
+			      strlcat(tmp, c->s, sizeof tmp);
+			      strlcat(tmp, "\" ", sizeof tmp);
+			      switch (c->area) {
+			      case AREA_BODY:
+				      strlcat(tmp, "in body ", sizeof tmp);
+				      break;
+			      case AREA_HEADERS:
+				      strlcat(tmp, "in headers ", sizeof tmp);
+				      break;
+			      case AREA_ANY:
+				      strlcat(tmp, "in any ", sizeof tmp);
+				      break;
+			      }
+		      }
+	      }
+	      
+	      log_debug("added rule: action=%s matches=%s", $4, tmp);
       }
 
 poptype: TOKPOP3
