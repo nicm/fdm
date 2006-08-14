@@ -140,7 +140,7 @@ make_from(struct mail *m)
 	/* find the from and date headers */
 	end = m->body == -1 ? m->size : (size_t) m->body;	
 	ptr = m->data;
-	for (;;) {
+	while (from == NULL || date == NULL) {
 		ptr = memchr(ptr, '\n', m->size);
 		if (ptr == NULL)
 			break;
