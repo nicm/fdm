@@ -23,7 +23,6 @@
 #include <sys/queue.h>
 
 #include <stdarg.h>
-#include <poll.h>
 #include <regex.h>
 
 #include <openssl/ssl.h>
@@ -34,6 +33,29 @@
 #define LOCKSLEEPTIME	2
 
 extern char	*__progname;
+
+#ifndef __dead
+#define __dead
+#endif
+
+#ifndef TAILQ_FIRST
+#define TAILQ_FIRST(head) (head)->tqh_first
+#endif
+#ifndef TAILQ_END
+#define TAILQ_END(head) NULL
+#endif
+#ifndef TAILQ_NEXT
+#define TAILQ_NEXT(elm, field) ((elm)->field.tqe_next)
+#endif
+#ifndef TAILQ_FOREACH
+#define TAILQ_FOREACH(var, head, field)					\
+	for ((var) = TAILQ_FIRST(head);					\
+	     (var) != TAILQ_END(head);				 	\
+	     (var) = TAILQ_NEXT(var, field))
+#endif
+#ifndef TAILQ_EMPTY
+#define TAILQ_EMPTY(head) (TAILQ_FIRST(head) == TAILQ_END(head))
+#endif
 
 /* Definition to shut gcc up about unused arguments in a few cases. */
 #define unused __attribute__ ((unused))
@@ -282,6 +304,16 @@ extern struct deliver 	 deliver_maildir;
 
 /* deliver-mbox.c */
 extern struct deliver 	 deliver_mbox;
+
+#ifdef NO_STRLCPY
+/* strlcpy.c */
+size_t	 strlcpy(char *, const char *, size_t);
+#endif
+
+#ifdef NO_STRLCAT
+/* strlcat.c */
+size_t	 strlcat(char *, const char *, size_t);
+#endif
 
 /* connect.c */
 int			 connectto(struct addrinfo *, char **);

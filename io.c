@@ -21,6 +21,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +30,10 @@
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+
+#ifndef INFTIM	/* stupid Linux */
+#define INFTIM -1
+#endif
 
 #include "fdm.h"
 
