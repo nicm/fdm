@@ -102,7 +102,7 @@ stdin_fetch(struct account *a, struct mail *m)
 
 			len = strlen(line);
 			if (len == 0 && m->body == -1)
-				m->body = m->size + 2;
+				m->body = m->size + 1;
 			
 			ENSURE_SIZE(m->data, m->space, m->size + len + 1);
 			m->base = m->data;

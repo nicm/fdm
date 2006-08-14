@@ -216,7 +216,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				}
 				len = strlen(ptr);
 				if (len == 0 && m->body == -1)
-					m->body = off + 2;
+					m->body = off + 1;
 
 				ENSURE_SIZE(m->data, m->space, off + len + 1);
 				m->base = m->data;

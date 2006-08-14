@@ -127,9 +127,7 @@ TAILQ_HEAD(matches, match);
 
 /* Rule entry. */
 struct rule {
-	regex_t			 re;
 	struct matches		*matches;
-	enum area		 area;
 
 	int			 stop;	/* stop matching at this rule */
 

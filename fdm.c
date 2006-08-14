@@ -39,7 +39,8 @@ int			 load_conf(void);
 void			 usage(void);
 void			 poll_account(struct account *);
 void			 fetch_account(struct account *);
-int			 perform_match(struct mail *, struct rule *);
+int			 perform_match(struct account *, struct mail *,
+			     struct rule *);
 
 struct conf		 conf;
 
@@ -305,7 +306,7 @@ fetch_account(struct account *a)
 					continue;
 			}
 				
-			if (!perform_match(&m, r))
+			if (!perform_match(a, &m, r))
 				continue;
 
 			t = r->action;
@@ -342,7 +343,7 @@ fetch_account(struct account *a)
 }
 
 int
-perform_match(struct mail *m, struct rule *r)
+perform_match(struct account *a, struct mail *m, struct rule *r)
 {
 	regmatch_t	 pmatch;
 	int		 matched, result;
@@ -357,7 +358,6 @@ perform_match(struct mail *m, struct rule *r)
 	TAILQ_FOREACH(c, r->matches, entry) {
 		if (c->area == AREA_BODY && m->body == -1)
 			continue;
-		
 		switch (c->area) {
 		case AREA_HEADERS:
 			pmatch.rm_so = 0;
@@ -376,7 +376,8 @@ perform_match(struct mail *m, struct rule *r)
 			break;
 		}
 		
-		result = regexec(&r->re, m->data, 0, &pmatch, REG_STARTEND);
+		result = !regexec(&c->re, m->data, 0, &pmatch, REG_STARTEND);
+		log_debug("%s: tried \"%s\": got %d", a->name, c->s, result);
 		switch (c->op) {
 		case OP_NONE:
 		case OP_OR:
@@ -388,5 +389,5 @@ perform_match(struct mail *m, struct rule *r)
 		}
 	}
 
-	return (matched != 0);
+	return (matched);
 }
