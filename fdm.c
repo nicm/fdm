@@ -320,7 +320,7 @@ fetch_account(struct account *a)
 			}
 
 			set_wrapped(&m, '\n');
-			if (t->deliver->deliver(a,r->action, &m) != 0) {
+			if (t->deliver->deliver(a, r->action, &m) != 0) {
 				/* delivery error, abort fetching */
 				cancel = 1;
 				break;
