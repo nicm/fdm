@@ -45,6 +45,8 @@ pipe_deliver(struct account *a, struct action *t, struct mail *m)
 	cmd = replace(t->data, map);
         if (cmd == NULL || *cmd == '\0') {
 		log_warnx("%s: empty command", a->name);
+		if (cmd != NULL)
+			xfree(cmd);
                 return (1);
         }
 
@@ -52,17 +54,21 @@ pipe_deliver(struct account *a, struct action *t, struct mail *m)
         f = popen(cmd, "w");
         if (f == NULL) {
 		log_warn("%s: %s: popen", a->name, cmd);
+		xfree(cmd);
 		return (1);
 	}
 	if (fwrite(m->data, m->size, 1, f) != 1) {
 		log_warn("%s: %s: fwrite", a->name, cmd);
+		xfree(cmd);
 		return (1);
 	}
 	if ((error = pclose(f)) != 0) {
 		log_warn("%s: %s: pipe error, return value %d", a->name,
 		    cmd, error);
+		xfree(cmd);
 		return (1);
 	}
-	
+
+	xfree(cmd);	
 	return (0);
 }
