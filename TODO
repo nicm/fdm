@@ -7,3 +7,4 @@
 - more % replacement ops for commands, pipe filenames, etc
 - imap fetching
 - options for delete oversized, delete error etc
+- multiple actions "pipe "x" then append "y""

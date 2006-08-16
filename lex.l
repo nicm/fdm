@@ -78,13 +78,13 @@ extern __dead void yyerror(const char *, ...);
 	case 'M':
 		if (yylval.number > INT_MAX / (1024 * 1024))
 			yyerror("size too large");
-                yylval.number *= 1048576;
+                yylval.number *= 1024 * 1024;
                 break;
         case 'g':
 	case 'G':
 		if (yylval.number > INT_MAX / (1024 * 1024 * 1024))
 			yyerror("size too large");
-                yylval.number *= 1048576;
+                yylval.number *= 1024 * 1024 * 1024;
                 break;
         }
 
