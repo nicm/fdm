@@ -305,6 +305,13 @@ extern struct deliver 	 deliver_maildir;
 /* deliver-mbox.c */
 extern struct deliver 	 deliver_mbox;
 
+/* deliver-write.c */
+extern struct deliver 	 deliver_write;
+int	 do_write(struct account *, struct action *, struct mail *, int);
+
+/* deliver-append.c */
+extern struct deliver 	 deliver_append;
+
 #ifdef NO_STRLCPY
 /* strlcpy.c */
 size_t	 strlcpy(char *, const char *, size_t);

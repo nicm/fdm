@@ -79,7 +79,7 @@ check_account(char *name)
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR
-%token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX
+%token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
 %token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -225,6 +225,16 @@ command: TOKCOMMAND STRING
 action: ACTPIPE command
 	{
 		$$.deliver = &deliver_pipe;
+		$$.data = $2;
+	}
+      | ACTWRITE command
+	{
+		$$.deliver = &deliver_write;
+		$$.data = $2;
+	}
+      | ACTAPPEND command
+	{
+		$$.deliver = &deliver_append;
 		$$.data = $2;
 	}
       | ACTMAILDIR STRING

@@ -5,6 +5,5 @@
 - smtp delivery
 - macros in config file
 - more % replacement ops for commands, pipe filenames, etc
-- write/write-append actions
 - imap fetching
 - options for delete oversized, delete error etc
