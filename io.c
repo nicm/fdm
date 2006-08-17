@@ -86,6 +86,16 @@ io_free(struct io *io)
 	xfree(io);
 }
 
+/* Poll if there is lots of data to write. */
+int
+io_update(struct io *io)
+{
+	if (io->wsize > IO_BLKSIZE * 2)
+		return (1);
+
+	return (io_poll(io));
+}
+
 /* Poll the io. */
 int
 io_poll(struct io *io)
@@ -294,10 +304,12 @@ io_read(struct io *io, size_t len)
 void
 io_write(struct io *io, const void *buf, size_t len)
 {
-	ENSURE_SIZE(io->wbase, io->wspace, io->wsize + len);
-
-	memcpy(io->wbase + io->wsize, buf, len);
-	io->wsize += len;
+	if (len != 0) {
+		ENSURE_SIZE(io->wbase, io->wspace, io->wsize + len);
+		
+		memcpy(io->wbase + io->wsize, buf, len);
+		io->wsize += len;
+	}
 
 	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", io->wsize,
 	    io->wspace);

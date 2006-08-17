@@ -282,10 +282,10 @@ struct pop3_data {
 /* Deliver smtp states. */
 enum smtp_state {
 	SMTP_CONNECTING,
+	SMTP_HELO,
 	SMTP_FROM,
 	SMTP_TO,
 	SMTP_DATA,
-	SMTP_LINE,
 	SMTP_DONE,
 	SMTP_QUIT
 };
@@ -294,8 +294,6 @@ enum smtp_state {
 struct smtp_data {
 	struct addrinfo		*ai;
 	char			*to;
-
-	enum smtp_state		 state;
 };
 
 /* fetch-stdin.c */
@@ -348,6 +346,8 @@ int			 connectto(struct addrinfo *, char **);
 void			 free_mail(struct mail *);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
+void			 line_init(struct mail *, char **, size_t *);
+void			 line_next(struct mail *, char **, size_t *);
 char 			*find_header(struct mail *, char *, size_t *);
 void			 trim_from(struct mail *);
 void			 make_from(struct mail *);
@@ -365,7 +365,8 @@ char 			*replace(char *, char *[52]);
 /* io.c */
 struct io		*io_create(int, SSL *, const char [2]);
 void			 io_free(struct io *);
-int			 io_poll(struct io *io);
+int			 io_update(struct io *);
+int			 io_poll(struct io *);
 void 			*io_read(struct io *, size_t);
 void			 io_write(struct io *, const void *, size_t);
 char 			*io_readline(struct io *);

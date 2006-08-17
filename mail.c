@@ -107,6 +107,38 @@ closelock(int fd, char *path, u_int locks)
 	close(fd);
 }
 
+void
+line_init(struct mail *m, char **line, size_t *len)
+{
+	char	*ptr;
+
+	*line = m->data;
+
+	ptr = memchr(m->data, '\n', m->size);
+	if (ptr == NULL)
+		*len = m->size;
+	else
+		*len = (ptr - *line) + 1;
+}
+
+void
+line_next(struct mail *m, char **line, size_t *len)
+{
+	char	*ptr;
+
+	*line += *len;
+	if (*line == m->data + m->size) {
+		*line = NULL;
+		return;
+	}
+
+	ptr = memchr(*line, '\n', (m->data + m->size) - *line);
+	if (ptr == NULL)
+		*len = (m->data + m->size) - *line;
+	else
+		*len = (ptr - *line) + 1;
+}
+
 char *
 find_header(struct mail *m, char *hdr, size_t *len)
 {
@@ -121,7 +153,7 @@ find_header(struct mail *m, char *hdr, size_t *len)
 		if (ptr == NULL)
 			return (NULL);
 		ptr++;
-		if (end - ptr < *len)
+		if (*len > (size_t) (end - ptr))
 			return (NULL);
 	} while (strncmp(ptr, hdr, *len) != 0);
 		
@@ -130,7 +162,7 @@ find_header(struct mail *m, char *hdr, size_t *len)
 	if (ptr == NULL)
 		*len = end - hdr;
 	else
-		*len = ptr - hdr;
+		*len = (ptr - hdr) + 1;
 
 	return (hdr);
 }
@@ -209,9 +241,7 @@ make_from(struct mail *m)
 		datelen = strlen(date);
 	}
 
-	xasprintf(&ptr, "From %%.%zus %%.%zus\n", fromlen, datelen);
-	xasprintf(&m->from, ptr, from, date);
-	xfree(ptr);
+	xasprintf(&m->from, "From %.*s %.*s", fromlen, from, datelen, date);
 }
 
 /* 

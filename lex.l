@@ -43,7 +43,7 @@ extern __dead void yyerror(const char *, ...);
 	long long	num;
 
 	errno = 0;
-        num = strtol(yytext, NULL, 10);
+        num = strtoll(yytext, NULL, 10);
 	if (num == 0 && (errno == EINVAL || errno == ERANGE))
 		yyerror("illegal number");
 	if (num > INT_MAX)
@@ -175,6 +175,7 @@ server return (TOKSERVER);
 set return (TOKSET);
 smtp return (ACTSMTP);
 stdin return (TOKSTDIN);
+to return (TOKTO);
 write return (ACTWRITE);
 \{ return (SYMOPEN);
 \} return (SYMCLOSE);

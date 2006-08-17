@@ -37,7 +37,8 @@ struct deliver deliver_mbox = { "mbox", mbox_deliver };
 int
 mbox_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-	char	*path, *map[REPL_LEN], *line, *ptr;
+	char	*path, *map[REPL_LEN], *ptr;
+	size_t	 len;
 	int	 fd = -1, error = 0;
 
 	bzero(map, sizeof map);
@@ -81,14 +82,10 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	}
 
 	/* write the mail */
-	line = m->data;
-	do {
-		ptr = memchr(line, '\n', m->size - (line - m->data));
-		if (ptr == NULL)
-			ptr = m->data + m->size;
-		
-		if (line != m->data &&
-		    ptr - line >= 5 && strncmp(line, "From ", 5) == 0) {
+	line_init(m, &ptr, &len);
+	while (ptr != NULL) {
+		if (ptr != m->data && 
+		    len >= 5 && strncmp(ptr, "From ", 5) == 0) {
 			if (write(fd, ">", 1) == -1) {
 				log_warn("%s: %s: write", a->name, path);
 				error = 1;
@@ -96,15 +93,15 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 			}
 		}
 
-		if (write(fd, line, ptr - line + 1) == -1) {
+		if (write(fd, ptr, len) == -1) {
 			log_warn("%s: %s: write", a->name, path);
 			error = 1;
 			goto out;
 		}
 		
-		line = ptr + 1;
-	} while (line != m->data + m->size);
-
+		line_next(m, &ptr, &len);
+	}
+	
 	if (write(fd, "\n\n", 2) == -1) {
 		log_warn("%s: %s: write", a->name, path);
 		error = 1;
