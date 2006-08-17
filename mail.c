@@ -107,6 +107,34 @@ closelock(int fd, char *path, u_int locks)
 	close(fd);
 }
 
+char *
+find_header(struct mail *m, char *hdr, size_t *len)
+{
+	char	*ptr, *end;
+	
+	*len = strlen(hdr);
+
+	end = m->data + (m->body == -1 ? m->size : (size_t) m->body);
+	ptr = m->data;
+	do {
+		ptr = memchr(ptr, '\n', end - ptr);
+		if (ptr == NULL)
+			return (NULL);
+		ptr++;
+		if (end - ptr < *len)
+			return (NULL);
+	} while (strncmp(ptr, hdr, *len) != 0);
+		
+	hdr = ptr + *len;
+	ptr = memchr(hdr, '\n', end - hdr);
+	if (ptr == NULL)
+		*len = end - hdr;
+	else
+		*len = ptr - hdr;
+
+	return (hdr);
+}
+
 void
 trim_from(struct mail *m)
 {
@@ -138,36 +166,20 @@ trim_from(struct mail *m)
 void
 make_from(struct mail *m)
 {
-	size_t	 end, off, fromlen = 0, datelen = 0;
 	time_t	 t;
 	char	*from = NULL, *date = NULL, *ptr;
+	size_t	 fromlen = 0, datelen = 0;
 
 	if (m->from != NULL)
 		return;
 
-	/* find the from and date headers */
-	end = m->body == -1 ? m->size : (size_t) m->body;	
-	ptr = m->data;
-	while (from == NULL || date == NULL) {
-		ptr = memchr(ptr, '\n', m->size);
-		if (ptr == NULL)
-			break;
-		ptr++;
-		off = ptr - m->data;
-		if (off >= end)
-			break;
-
-		if (m->size - off > 6 && strncmp(ptr, "From: ", 6) == 0)
-			from = ptr + 6;
-		else if (m->size - off > 6 && strncmp(ptr, "Date: ", 6) == 0)
-			date = ptr + 6;
-	}
-	    
-	if (from != NULL) {
-		ptr = memchr(from, '<', end - (from - m->data));
+	from = find_header(m, "From: ", &fromlen);    
+	if (from != NULL && fromlen > 0) {
+		ptr = memchr(from, '<', fromlen);
 		if (ptr != NULL) {
+			fromlen -= (ptr + 1) - from;
 			from = ptr + 1;
-			ptr = memchr(from, '>', end - (from - m->data));
+			ptr = memchr(from, '>', fromlen);
 			if (ptr != NULL)
  				fromlen = ptr - from;
 			else
@@ -185,16 +197,13 @@ make_from(struct mail *m)
 		fromlen = strlen(from);
 	}
 
-	if (date != NULL) {
-		while (isblank((int) *date))
+	date = find_header(m, "Date: ", &datelen);
+	if (date != NULL && datelen > 0) {
+		while (isblank((int) *date)) {
 			date++;
-		ptr = memchr(date, '\n', end - (date - m->data));
-		if (ptr != NULL)
-			datelen = ptr - date;
-		else
-			date = NULL;
-	} 
-	if (date == NULL) {
+			datelen--;
+		}
+	} else {
 		t = time(NULL);
 		date = ctime(&t);
 		datelen = strlen(date);
@@ -202,7 +211,7 @@ make_from(struct mail *m)
 
 	xasprintf(&ptr, "From %%.%zus %%.%zus\n", fromlen, datelen);
 	xasprintf(&m->from, ptr, from, date);
-	free(ptr);
+	xfree(ptr);
 }
 
 /* 

@@ -83,7 +83,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	/* write the mail */
 	line = m->data;
 	do {
-		ptr = memchr(line, '\n', m->size);
+		ptr = memchr(line, '\n', m->size - (line - m->data));
 		if (ptr == NULL)
 			ptr = m->data + m->size;
 		

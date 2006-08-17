@@ -279,10 +279,23 @@ struct pop3_data {
 #define pop3_isOK(s) (strncmp(s, "+OK", 3) == 0)
 #define pop3_isERR(s) (strncmp(s, "+ERR", 4) == 0)
 
+/* Deliver smtp states. */
+enum smtp_state {
+	SMTP_CONNECTING,
+	SMTP_FROM,
+	SMTP_TO,
+	SMTP_DATA,
+	SMTP_LINE,
+	SMTP_DONE,
+	SMTP_QUIT
+};
+
 /* Deliver smtp data. */
 struct smtp_data {
 	struct addrinfo		*ai;
 	char			*to;
+
+	enum smtp_state		 state;
 };
 
 /* fetch-stdin.c */
@@ -335,6 +348,7 @@ int			 connectto(struct addrinfo *, char **);
 void			 free_mail(struct mail *);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
+char 			*find_header(struct mail *, char *, size_t *);
 void			 trim_from(struct mail *);
 void			 make_from(struct mail *);
 u_int			 fill_wrapped(struct mail *);

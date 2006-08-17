@@ -40,7 +40,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	char			*cause, *to;
 	char			 host[MAXHOSTNAMELEN];
 
-	fatal("smtp_deliver: not yet implemented");
+	fatalx("smtp_deliver: not yet implemented");
 
 	data = t->data;
 
