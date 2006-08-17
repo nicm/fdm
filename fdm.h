@@ -93,7 +93,7 @@ struct account {
 	TAILQ_ENTRY(account)	 entry;
 };
 
-/* Delivery action. */
+/* Action definition. */
 struct action {
 	char			*name;
 
@@ -103,21 +103,30 @@ struct action {
 	TAILQ_ENTRY(action)	 entry;
 };
 
-/* Account name list. */
+#define ARRAY_INIT(a) do {						\
+	(a)->num = 0;							\
+	(a)->list = NULL;						\
+} while (0)
+#define ARRAY_ADD(a, s, l) do {						\
+	(a)->list = xrealloc((a)->list, (a)->num + 1, l);		\
+	(a)->list[(a)->num] = s;					\
+	(a)->num++;							\
+} while (0)
+#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
+#define ARRAY_LENGTH(a) ((a)->num)
+#define ARRAY_ITEM(a, n) ((a)->list[n])
+
+/* Accounts array. */
 struct accounts {
 	char	**list;
 	u_int	  num;
 };
-#define ACCOUNTS_INIT(a) do {						\
-	(a)->num = 0;							\
-	(a)->list = NULL;						\
-} while (0)
-#define ACCOUNTS_ADD(a, s) do {						\
-	(a)->list = xrealloc((a)->list, (a)->num + 1, sizeof (char *));	\
-	(a)->list[(a)->num] = s;					\
-	(a)->num++;							\
-} while (0)
-#define ACCOUNTS_EMPTY(a) ((a) == NULL || (a)->num == 0)
+
+/* Actions array. */
+struct actions {
+	struct action	**list;
+	u_int	  	  num;
+};
 
 /* Match areas. */
 enum area {
@@ -153,7 +162,7 @@ struct rule {
 
 	int			 stop;	/* stop matching at this rule */
 
- 	struct action		*action;
+	struct actions		*actions;
 	struct accounts		*accounts;
 
 	TAILQ_ENTRY(rule)	 entry;

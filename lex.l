@@ -148,6 +148,7 @@ any {
 account return (TOKACCOUNT);
 accounts return (TOKACCOUNTS);
 action return (TOKACTION);
+actions return (TOKACTIONS);
 all return (TOKALL);
 and return (TOKAND);
 append return (ACTAPPEND);

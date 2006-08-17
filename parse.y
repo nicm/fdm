@@ -35,10 +35,11 @@ extern int	yylineno;
 extern int 	yylex(void);
 
 int		yyparse(void);
-void 		yyerror(const char *, ...);
+__dead void 	yyerror(const char *, ...);
 int 		yywrap(void);
 
 void		check_account(char *);
+struct action  *find_action(char *);
 
 __dead void
 yyerror(const char *fmt, ...)
@@ -73,12 +74,25 @@ check_account(char *name)
 	if (a == TAILQ_END(&conf.accounts))
 		yyerror("unknown account \"%s\"", name);
 }
+
+struct action *
+find_action(char *name)
+{
+	struct action	*t;
+
+	TAILQ_FOREACH(t, &conf.actions, entry) {
+		if (strcmp(t->name, name) == 0)
+			return (t);
+	}
+	yyerror("unknown action \"%s\"", name);
+	return (NULL);
+}
 %}
 
 %token SYMOPEN SYMCLOSE SYMSTAR
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE TOKAND TOKOR TOKTO
+%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
 %token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
@@ -101,6 +115,7 @@ check_account(char *name)
 	enum area	 	 area;
 	enum op			 op;
 	struct accounts		*accounts;
+	struct actions		*actions;
 	struct matches		*matches;
 	struct match		*match;
 }
@@ -114,6 +129,7 @@ check_account(char *name)
 %type  <action> action
 %type  <string> port command to
 %type  <accounts> accounts accountslist
+%type  <actions> actions actionslist
 %type  <flag> continue icase
 %type  <number> size
 %type  <fetch> poptype fetchtype
@@ -322,16 +338,16 @@ accounts: /* empty */
 	| TOKACCOUNTS STRING
 	  {
 		  $$ = xmalloc(sizeof (struct accounts));
-		  ACCOUNTS_INIT($$);
+		  ARRAY_INIT($$);
 		  check_account($2);
-		  ACCOUNTS_ADD($$, $2);
+		  ARRAY_ADD($$, $2, sizeof (char *));
 	  }
         | TOKACCOUNT STRING
 	  {
 		  $$ = xmalloc(sizeof (struct accounts));
-		  ACCOUNTS_INIT($$);
+		  ARRAY_INIT($$);
 		  check_account($2);
-		  ACCOUNTS_ADD($$, $2);
+		  ARRAY_ADD($$, $2, sizeof (char *));
 	  }
 	| TOKACCOUNTS SYMOPEN accountslist SYMCLOSE
 	  {
@@ -342,14 +358,59 @@ accountslist: accountslist STRING
  	      {
 		      $$ = $1;
 		      check_account($2);
-		      ACCOUNTS_ADD($$, $2);
+		      ARRAY_ADD($$, $2, sizeof (char *));
 	      }	
 	    | STRING
 	      {
 		      $$ = xmalloc(sizeof (struct accounts));
-		      ACCOUNTS_INIT($$);
+		      ARRAY_INIT($$);
 		      check_account($1);
-		      ACCOUNTS_ADD($$, $1);
+		      ARRAY_ADD($$, $1, sizeof (char *));
+	      }
+
+actions:  TOKACTIONS STRING
+	  {
+		  struct action	*t;
+
+		  $$ = xmalloc(sizeof (struct actions));
+		  ARRAY_INIT($$);
+		  t = find_action($2);
+		  ARRAY_ADD($$, t, sizeof (struct action *));
+		  free($2);
+	  }
+        | TOKACTION STRING
+	  {
+		  struct action	*t;
+
+		  $$ = xmalloc(sizeof (struct actions));
+		  ARRAY_INIT($$);
+		  t = find_action($2);
+		  ARRAY_ADD($$, t, sizeof (struct action *));
+		  free($2);
+	  }
+	| TOKACTIONS SYMOPEN actionslist SYMCLOSE
+	  {
+		  $$ = $3;
+	  }	
+
+actionslist: actionslist STRING
+ 	      {
+		      struct action	*t;
+
+		      $$ = $1;
+		      t = find_action($2);
+		      ARRAY_ADD($$, t, sizeof (struct action *));
+		      free($2);
+	      }	
+	    | STRING
+	      {
+		      struct action	*t;
+
+		      $$ = xmalloc(sizeof (struct actions));
+		      ARRAY_INIT($$);
+		      t = find_action($1);
+		      ARRAY_ADD($$, t, sizeof (struct action *));
+		      free($1);
 	      }
 
 continue: /* empty */
@@ -432,25 +493,18 @@ matches: TOKMATCH match matchlist
 		 $$ = NULL;
 	 }
 
-rule: matches accounts TOKACTION STRING continue
+rule: matches accounts actions continue
       {
 	      struct rule	*r;
-	      struct action	*t;
-	      char		 tmp[1024];
 	      struct match	*c;
+	      char		 tmp[1024], tmp2[1024];
+	      u_int		 i;
 
 	      r = xcalloc(1, sizeof *r);      
-	      r->stop = !$5;
+	      r->stop = !$4;
 	      r->accounts = $2;
 	      r->matches = $1;
-
-	      r->action = NULL;
-	      TAILQ_FOREACH(t, &conf.actions, entry) {
-		      if (strcmp(t->name, $4) == 0)
-			      r->action = t;
-	      }
-	      if (r->action == NULL)
-		      yyerror("unknown action \"%s\"", $4);
+	      r->actions = $3;
 	      
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
 
@@ -485,8 +539,13 @@ rule: matches accounts TOKACTION STRING continue
 			      }
 		      }
 	      }
-	      
-	      log_debug2("added rule: action=%s matches=%s", $4, tmp);
+	      *tmp2 = '\0';
+	      for (i = 0; i < ARRAY_LENGTH($3); i++) {
+		      strlcat(tmp2, ARRAY_ITEM($3, i)->name, sizeof tmp2);
+		      strlcat(tmp2, " ", sizeof tmp2);
+	      }
+			  
+	      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
       }
 
 poptype: TOKPOP3

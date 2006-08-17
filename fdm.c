@@ -85,13 +85,13 @@ main(int argc, char **argv)
 
 	log_init(1);
 
-	ACCOUNTS_INIT(&incl);  
-	ACCOUNTS_INIT(&excl);
+	ARRAY_INIT(&incl);  
+	ARRAY_INIT(&excl);
 
         while ((opt = getopt(argc, argv, "a:f:lnvx:")) != EOF) {
                 switch (opt) {
 		case 'a':
-			ACCOUNTS_ADD(&incl, optarg);
+			ARRAY_ADD(&incl, optarg, sizeof (char *));
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
@@ -106,7 +106,7 @@ main(int argc, char **argv)
                         conf.debug++;
                         break;
 		case 'x':
-			ACCOUNTS_ADD(&excl, optarg);
+			ARRAY_ADD(&excl, optarg, sizeof (char *));
 			break;
                 case '?':
                 default:
@@ -194,25 +194,25 @@ main(int argc, char **argv)
 
         log_debug("processing accounts");
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (!ACCOUNTS_EMPTY(&incl)) {
+		if (!ARRAY_EMPTY(&incl)) {
 			/* check include list */
-			for (i = 0; i < incl.num; i++) {
-				if (strcmp(incl.list[i], a->name) == 0)
+			for (i = 0; i < ARRAY_LENGTH(&incl); i++) {
+				if (strcmp(ARRAY_ITEM(&incl, i), a->name) == 0)
 					break;
 			}
-			if (i == incl.num) {
+			if (i == ARRAY_LENGTH(&incl)) {
 				log_debug("account %s not included. skipping",
 				    a->name);
 				continue;
 			}
 		}
-		if (!ACCOUNTS_EMPTY(&excl)) {
+		if (!ARRAY_EMPTY(&excl)) {
 			/* check exclude list */
-			for (i = 0; i < excl.num; i++) {
-				if (strcmp(excl.list[i], a->name) == 0)
+			for (i = 0; i < ARRAY_LENGTH(&excl); i++) {
+				if (strcmp(ARRAY_ITEM(&excl, i), a->name) == 0)
 					break;
 			}
-			if (i != excl.num) {
+			if (i != ARRAY_LENGTH(&excl)) {
 				log_debug("account %s excluded. skipping",
 				    a->name);
 				continue;
@@ -268,7 +268,8 @@ fetch_account(struct account *a)
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, i;
-	int		 cancel;
+	int		 cancel, error;
+	char		*name;
 	struct accounts	*list;
 
 	if (a->fetch->fetch == NULL) {
@@ -283,7 +284,7 @@ fetch_account(struct account *a)
 
 	n = 0;
 	cancel = 0;
-        for (;;) {
+        while (!cancel) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
 		if (a->fetch->fetch(a, &m) != 0)
@@ -301,49 +302,55 @@ fetch_account(struct account *a)
 		log_debug("%s: found %u wrapped lines", a->name, i);
 
 		TAILQ_FOREACH(r, &conf.rules, entry) {
+			/* check if the rule is for the current account */
 			list = r->accounts;
-			if (!ACCOUNTS_EMPTY(list)) {
-				for (i = 0; i < list->num; i++) {
-					if (strcmp(list->list[i], a->name) == 0)
+			if (!ARRAY_EMPTY(list)) {
+				for (i = 0; i < ARRAY_LENGTH(list); i++) {
+					name = ARRAY_ITEM(list, i);
+					if (strcmp(name, a->name) == 0)
 						break;
 				}
-				if (i == list->num)
+				if (i == ARRAY_LENGTH(list))
 					continue;
 			}
 				
+			/* match all the regexps */
 			if (!perform_match(a, &m, r))
 				continue;
 
-			t = r->action;
-			log_debug("%s: matched message: action=%s", 
-			    a->name, t->name);
-				
-			if (t->deliver->deliver == NULL) {
-				if (r->stop)
-					break;
-				continue;
-			}
+			/* process all the actions */
+			log_debug("%s: matched message", a->name);
+			for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
+				t = ARRAY_ITEM(r->actions, i);
+				if (t->deliver->deliver == NULL)
+					continue;
+				log_debug("%s: action %s", a->name, t->name);
 
-			set_wrapped(&m, '\n');
-			if (t->deliver->deliver(a, r->action, &m) != 0) {
-				/* delivery error, abort fetching */
-				cancel = 1;
-				break;
+				set_wrapped(&m, '\n');
+				error = t->deliver->deliver(a, t, &m);
+				if (error != 0) {
+					/* delivery error, abort fetching */
+					cancel = 1;
+					break;
+				}
 			}
+			if (cancel)
+				break;
+
+			/* if this rule is marked as stop, stop checking
+			   the rules now */
 			if (r->stop)
 				break;
 		}
 
 		free_mail(&m);
-
-		if (cancel) {
-			log_warnx("%s: processing error. aborted", a->name);
-			break;
-		}
-
 		n++;
 	}
-
+	if (cancel) {
+		log_warnx("%s: processing error. aborted", a->name);
+		n--;
+	}
+	
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
 	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
