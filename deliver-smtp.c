@@ -140,6 +140,8 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 			break;
 	}
 
+	xfree(from);
+
 	io_free(io);
 	close(fd);
 
@@ -151,6 +153,8 @@ error:
 error2:
 	io_writeline(io, "QUIT");
 	io_flush(io);
+
+	xfree(from);
 
 	io_free(io);
 	close(fd);
