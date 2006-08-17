@@ -63,12 +63,12 @@ io_create(int fd, SSL *ssl, const char *eol)
 	io->need_wr = 0;
 	io->closed = 0;
 
-	io->rspace = IO_BLKSIZE;
+	io->rspace = IO_BLOCKSIZE;
 	io->rbase = xmalloc(io->rspace);
 	io->rsize = 0;
 	io->roff = 0;
 
-	io->wspace = IO_BLKSIZE;
+	io->wspace = IO_BLOCKSIZE;
 	io->wbase = xmalloc(io->wspace);
 	io->wsize = 0;
 
@@ -90,7 +90,7 @@ io_free(struct io *io)
 int
 io_update(struct io *io)
 {
-	if (io->wsize > IO_BLKSIZE * 2)
+	if (io->wsize < IO_FLUSHSIZE)
 		return (1);
 
 	return (io_poll(io));
@@ -168,16 +168,19 @@ io_fill(struct io *io)
 	}
 
 	/* ensure there is enough space */
-	if (io->rspace - io->rsize < IO_BLKSIZE) {
-		io->rspace += IO_BLKSIZE;
-		if (io->rspace > IO_MAXBUFFERLEN)
-			fatalx("io: maximum buffer length exceeded");
+	if (io->rspace - io->rsize < IO_BLOCKSIZE) {
+		io->rspace += IO_BLOCKSIZE;
+		if (io->rspace > IO_MAXBUFFERLEN) {
+			log_warnx("io: maximum buffer length exceeded");
+			return (-1);
+		}
 		io->rbase = xrealloc(io->rbase, 1, io->rspace);
 	}
 
 	/* attempt to read a block */
 	if (io->ssl == NULL) {
-		n = read(io->fd, io->rbase + io->roff + io->rsize, IO_BLKSIZE);
+		n = read(io->fd, io->rbase + io->roff + io->rsize,
+		    IO_BLOCKSIZE);
 		if (n == 0)
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -186,7 +189,7 @@ io_fill(struct io *io)
 		}
 	} else {
 		n = SSL_read(io->ssl, io->rbase + io->roff + io->rsize,
-		    IO_BLKSIZE);
+		    IO_BLOCKSIZE);
 		if (n == 0)
 			return (0);
 		if (n < 0) {
@@ -197,7 +200,7 @@ io_fill(struct io *io)
 				io->need_wr = 1;
 				break;
 			default:
-				log_warnx("SSL_read: %s", ssl_err());
+				log_warnx("SSL_read: %s", SSL_err());
 				return (-1);
 			}
 		}
@@ -254,7 +257,7 @@ io_push(struct io *io)
 				io->need_wr = 1;
 				break;
 			default:
-				log_warnx("SSL_write: %s", ssl_err());
+				log_warnx("SSL_write: %s", SSL_err());
 				return (-1);
 			}
 		}

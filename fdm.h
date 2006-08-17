@@ -213,12 +213,11 @@ struct conf {
 extern struct conf		 conf;
 
 /* Shorthand for the ridiculous call to get the SSL error. */
-#define ssl_err() (ERR_error_string(ERR_get_error(), NULL))
+#define SSL_err() (ERR_error_string(ERR_get_error(), NULL))
 
-/* Limits at which to abort. Would die when memory ran out anyway but better
-   to die at a ridiculous point rather than an insane one. */
-#define IO_MAXLINELEN 1048576
-#define IO_MAXBUFFERLEN 8388608
+/* Limits at which to fail. */
+#define IO_MAXLINELEN (1024 * 1024) 		/* 1 MB */
+#define IO_MAXBUFFERLEN (1024 * 1024 * 1024) 	/* 1 GB */
 
 /* IO line endings. */
 #define IO_CRLF "\r\n"
@@ -226,7 +225,10 @@ extern struct conf		 conf;
 #define IO_LF   "\n"
 
 /* Amount to attempt to append to the buffer each time. */
-#define IO_BLKSIZE 1024
+#define IO_BLOCKSIZE 16384
+
+/* Amount to poll after in io_accept. */
+#define IO_FLUSHSIZE (8 * IO_BLOCKSIZE)
 
 /* IO structure. */
 struct io {
