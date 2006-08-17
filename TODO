@@ -2,7 +2,6 @@
 - multidrop etc
 - test all rules properly
 - audit/cleanup error paths
-- smtp delivery
 - macros in config file
 - more % replacement ops for commands, pipe filenames, etc
 - imap fetching
