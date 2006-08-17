@@ -324,7 +324,7 @@ fetch_account(struct account *a)
 				t = ARRAY_ITEM(r->actions, i);
 				if (t->deliver->deliver == NULL)
 					continue;
-				log_debug("%s: action %s", a->name, t->name);
+				log_debug2("%s: action %s", a->name, t->name);
 
 				set_wrapped(&m, '\n');
 				error = t->deliver->deliver(a, t, &m);
