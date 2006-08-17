@@ -17,6 +17,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
  
 #include <errno.h>
 #include <stdio.h>
@@ -33,6 +34,49 @@ struct deliver deliver_smtp = { "smtp", smtp_deliver };
 int
 smtp_deliver(struct account *a, struct action *t, struct mail *m) 
 {
+	struct smtp_data	*data;
+	int		 	 fd;
+	struct io		*io;
+	char			*cause, *to;
+	char			 host[MAXHOSTNAMELEN];
+
 	fatal("smtp_deliver: not yet implemented");
+
+	data = t->data;
+
+	if (data->to == NULL) {
+		if (gethostname(host, sizeof host) != 0)
+			fatal("gethostname");
+		xasprintf(&to, "%s@%s", host, conf.user);
+	} else
+		to = data->to;
+
+	if ((fd = connectto(t->data, &cause)) < 0) {
+		log_warn("%s: %s", a->name, cause);
+		return (1);
+	}
+	io = io_create(fd, NULL, IO_CRLF);
+	if (conf.debug > 3)
+		io->dup_fd = STDOUT_FILENO;
+	
+	for (;;) {
+		if (io_poll(io) != 1)
+			goto error;
+
+		/** **/
+	}
+
+	io_free(io);
+	close(fd);
+
 	return (0);
+
+error:
+	io_writeline(io, "QUIT");
+	io_flush(io);
+
+	io_free(io);
+	close(fd);
+
+	return (1);
 }

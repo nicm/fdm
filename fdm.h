@@ -279,6 +279,12 @@ struct pop3_data {
 #define pop3_isOK(s) (strncmp(s, "+OK", 3) == 0)
 #define pop3_isERR(s) (strncmp(s, "+ERR", 4) == 0)
 
+/* Deliver smtp data. */
+struct smtp_data {
+	struct addrinfo		*ai;
+	char			*to;
+};
+
 /* fetch-stdin.c */
 extern struct fetch 	 fetch_stdin;
 

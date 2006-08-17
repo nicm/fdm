@@ -112,7 +112,7 @@ check_account(char *name)
 
 %type  <server> server
 %type  <action> action
-%type  <string> port command
+%type  <string> port command to
 %type  <accounts> accounts accountslist
 %type  <flag> continue icase
 %type  <number> size
@@ -222,6 +222,15 @@ command: TOKCOMMAND STRING
 		 $$ = $1;
 	 }
 
+to: /* empty */
+    {
+	    $$ = NULL;
+    } 
+  | STRING
+    {
+	    $$ = $1;
+    }
+
 action: ACTPIPE command
 	{
 		$$.deliver = &deliver_pipe;
@@ -247,18 +256,24 @@ action: ACTPIPE command
 		$$.deliver = &deliver_mbox;
 		$$.data = $2;
 	}
-      | ACTSMTP server
+      | ACTSMTP server to
 	{
-		int		 error;
-		struct addrinfo	 hints;
+		struct smtp_data	*data;
+		int		 	 error;
+		struct addrinfo		 hints;
 
 		$$.deliver = &deliver_smtp;
+		
+		data = xcalloc(1, sizeof *data);
+		$$.data = data;
+
+		data->to = $3;
 
 		memset(&hints, 0, sizeof hints);
 		hints.ai_family = PF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
 		error = getaddrinfo($2.host, $2.port != NULL ? $2.port : 
-		    "smtp", &hints, (struct addrinfo **) &$$.data);
+		    "smtp", &hints, &data->ai);
 		if (error != 0)
 			yyerror(gai_strerror(error));
 
