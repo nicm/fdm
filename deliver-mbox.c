@@ -50,6 +50,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 		log_warnx("%s: empty path", a->name);
 		goto out;
 	}
+	log_debug("%s: saving to mbox %s", a->name, path); 
 
 	/* ensure an existing from line is available */
 	if (m->from == NULL)

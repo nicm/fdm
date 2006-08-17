@@ -362,6 +362,7 @@ void			 log_warnx(const char *, ...);
 void			 log_info(const char *, ...);
 void			 log_debug(const char *, ...);
 void			 log_debug2(const char *, ...);
+void			 log_debug3(const char *, ...);
 __dead void		 fatal(const char *);
 __dead void		 fatalx(const char *);
 

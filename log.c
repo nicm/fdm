@@ -146,6 +146,18 @@ log_debug2(const char *emsg, ...)
 	}
 }
 
+void
+log_debug3(const char *emsg, ...)
+{
+	va_list	ap;
+
+	if (conf.debug > 2) {
+		va_start(ap, emsg);
+		vlog(LOG_DEBUG, emsg, ap);
+		va_end(ap);
+	}
+}
+
 __dead void
 fatal(const char *emsg)
 {

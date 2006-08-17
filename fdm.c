@@ -384,7 +384,7 @@ perform_match(struct account *a, struct mail *m, struct rule *r)
 		}
 		
 		result = !regexec(&c->re, m->data, 0, &pmatch, REG_STARTEND);
-		log_debug("%s: tried \"%s\": got %d", a->name, c->s, result);
+		log_debug2("%s: tried \"%s\": got %d", a->name, c->s, result);
 		switch (c->op) {
 		case OP_NONE:
 		case OP_OR:

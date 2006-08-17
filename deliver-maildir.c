@@ -56,6 +56,7 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 		log_warnx("%s: empty path", a->name);
 		goto error;
 	}
+	log_debug("%s: saving to maildir %s", a->name, path); 
 
 	/* create the maildir directories */
 	if (mkdir(path, S_IRWXU) != 0 && errno != EEXIST) {
@@ -146,7 +147,7 @@ restart:
 	} while (fd == -1);
 
 	/* write the message */
-	log_debug("%s: writing to %s", a->name, src);
+	log_debug2("%s: writing to %s", a->name, src);
 	n = write(fd, m->data, m->size);
 	if (n < 0 || (size_t) n != m->size) {
 		log_warn("%s: write", a->name);
@@ -162,12 +163,12 @@ restart:
 		log_warn("%s: %s: xsnprintf", a->name, path);
 		goto error;
 	}		
-	log_debug("%s: linking .../%s to .../%s", a->name, 
+	log_debug2("%s: linking .../%s to .../%s", a->name, 
 	    src + strlen(path) + 1, dst + strlen(path) + 1);
 	if (link(src, dst) != 0) {
 		unlink(src);
 		if (errno == EEXIST) {
-			log_debug("%s: link failed", a->name);
+			log_debug2("%s: link failed", a->name);
 			goto restart;
 		}
 		log_warn("%s: link(\"%s, %s\")", a->name, src, dst);
@@ -175,7 +176,7 @@ restart:
 	}
 
 	/* unlink the original tmp file */
-	log_debug("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
+	log_debug2("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
 	if (unlink(src) != 0) {
 		log_warn("%s: unlink(\"%s\")", a->name, src);
 		goto error;

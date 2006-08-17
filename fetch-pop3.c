@@ -50,7 +50,7 @@ pop3_connect(struct account *a)
 	}
 
 	data->io = io_create(data->fd, NULL, IO_CRLF);
-	if (conf.debug > 2)
+	if (conf.debug > 3)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	data->state = POP3_CONNECTING;

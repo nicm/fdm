@@ -49,7 +49,7 @@ stdin_connect(struct account *a)
 	data = a->data;
 
 	data->io = io_create(STDIN_FILENO, NULL, IO_LF);
-	if (conf.debug > 2)
+	if (conf.debug > 3)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	return (0);
