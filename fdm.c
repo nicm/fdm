@@ -17,6 +17,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <errno.h>
 #include <limits.h>
@@ -41,6 +42,9 @@ void			 poll_account(struct account *);
 void			 fetch_account(struct account *);
 int			 perform_match(struct account *, struct mail *,
 			     struct rule *);
+int			 perform_actions(struct account *, struct mail *,
+			     struct rule *);
+pid_t			 dropto(struct account *, uid_t, gid_t);
 
 struct conf		 conf;
 
@@ -264,11 +268,10 @@ fetch_account(struct account *a)
 {
 	struct rule	*r;
 	struct mail	 m;
-	struct action	*t;
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, i;
-	int		 cancel, error;
+	int		 cancel;
 	char		*name;
 	struct accounts	*list;
 
@@ -317,24 +320,10 @@ fetch_account(struct account *a)
 			/* match all the regexps */
 			if (!perform_match(a, &m, r))
 				continue;
+			log_debug("%s: matched message", a->name);
 
 			/* process all the actions */
-			log_debug("%s: matched message", a->name);
-			for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-				t = ARRAY_ITEM(r->actions, i);
-				if (t->deliver->deliver == NULL)
-					continue;
-				log_debug2("%s: action %s", a->name, t->name);
-
-				set_wrapped(&m, '\n');
-				error = t->deliver->deliver(a, t, &m);
-				if (error != 0) {
-					/* delivery error, abort fetching */
-					cancel = 1;
-					break;
-				}
-			}
-			if (cancel)
+			if ((cancel = perform_actions(a, &m, r)) != 0)
 				break;
 
 			/* if this rule is marked as stop, stop checking
@@ -354,6 +343,101 @@ fetch_account(struct account *a)
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
 	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
+}
+
+pid_t
+dropto(struct account *a, uid_t uid, gid_t gid)
+{
+	pid_t	pid;
+
+	if (uid == 0 && gid == 0)
+		return (0);
+	log_debug("%s: changing to uid %u, gid %u", a->name, uid, gid);
+
+	pid = fork();
+	if (pid != 0)
+		return (pid);
+
+	if (gid != 0) {
+		if (geteuid() != 0) {
+                        log_warnx("%s: need root privileges to set group",
+			    a->name);
+			_exit(1);
+		}
+		if (setgroups(1, &gid) != 0 || 
+		    setegid(gid) != 0 || setgid(gid) != 0) {
+			log_warnx("%s: failed to drop group privileges",
+			    a->name);
+			_exit(1);
+		}
+	}
+
+        if (uid != 0) {
+                if (geteuid() != 0) {
+                        log_warnx("%s: need root privileges to set user",
+			    a->name);
+			_exit(1);
+		}
+		if (setuid(uid) != 0 || seteuid(uid) != 0) {
+			log_warnx("%s: failed to drop user privileges",
+			    a->name);
+			_exit(1);
+		}
+	}
+
+	return (0);
+}
+
+int
+perform_actions(struct account *a, struct mail *m, struct rule *r)
+{
+	struct action	*t;
+	u_int		 i;
+	int		 status;
+	uid_t		 uid;
+	gid_t		 gid;
+	pid_t		 pid;
+
+	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
+		t = ARRAY_ITEM(r->actions, i);
+		if (t->deliver->deliver == NULL)
+			continue;
+		log_debug2("%s: action %s", a->name, t->name);
+		
+		set_wrapped(m, '\n');
+
+		/* figure out the user to use */
+		uid = t->uid != 0 ? t->uid : r->uid;
+		gid = t->gid != 0 ? t->gid : r->gid;
+
+		pid = dropto(a, uid, gid);
+		switch (pid) {
+		case 0:
+			/* do the delivery */
+			if (t->deliver->deliver(a, t, m) != 0)
+				_exit(1);
+			_exit(0);
+		case -1:
+			return (1);
+		default:
+			if (waitpid(pid, &status, 0) == -1)
+				fatal("waitpid");
+			if (!WIFEXITED(status)) {
+				log_warnx("%s: child didn't exit normally",
+				    a->name);
+				return (1);
+			}
+			status = WEXITSTATUS(status);
+			if (status != 0) {
+				log_warnx("%s: child failed, exit code %d",
+				    a->name, status);
+				return (1);
+			}
+			break;
+		}
+	}
+
+	return (0);
 }
 
 int

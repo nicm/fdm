@@ -22,7 +22,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <grp.h>
 #include <netdb.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,7 +74,7 @@ check_account(char *name)
 			break;
 	}
 	if (a == TAILQ_END(&conf.accounts))
-		yyerror("unknown account \"%s\"", name);
+		yyerror("unknown account: %s", name);
 }
 
 struct action *
@@ -84,7 +86,7 @@ find_action(char *name)
 		if (strcmp(t->name, name) == 0)
 			return (t);
 	}
-	yyerror("unknown action \"%s\"", name);
+	yyerror("unknown action: %s", name);
 	return (NULL);
 }
 %}
@@ -92,7 +94,7 @@ find_action(char *name)
 %token SYMOPEN SYMCLOSE SYMSTAR
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS
+%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKGROUP
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
 %token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
@@ -118,6 +120,8 @@ find_action(char *name)
 	struct actions		*actions;
 	struct matches		*matches;
 	struct match		*match;
+	uid_t			 uid;
+	gid_t			 gid;
 }
 
 %token <number> NUMBER
@@ -138,6 +142,8 @@ find_action(char *name)
 %type  <match> match
 %type  <matches> matches matchlist
 %type  <op> op
+%type  <uid> user
+%type  <gid> group
 
 %%
 
@@ -197,6 +203,62 @@ locklist: locklist lock
 	  {
 		  $$ = 0;
 	  }
+
+user: /* empty */
+      {
+	      $$ = 0;
+      }
+    | TOKUSER STRING
+      {
+	      struct passwd	*pw;
+	      
+	      pw = getpwnam($2);
+	      if (pw == NULL)
+		      yyerror("unknown user: %s", $2);
+	      $$ = pw->pw_uid;
+	      if ($$ == 0)
+		      yyerror("cannot change to uid 0 user");
+      }
+    | TOKUSER NUMBER
+      {
+	      struct passwd	*pw;
+	      
+	      pw = getpwuid($2);
+	      if (pw == NULL)
+		      yyerror("unknown uid: %d", $2);
+	      $$ = pw->pw_uid;
+	      if ($$ == 0)
+		      yyerror("cannot change to uid 0 user");
+	      endpwent();
+      }
+
+group: /* empty */
+      {
+	      $$ = 0;
+      }
+    | TOKGROUP STRING
+      {
+	      struct group	*gr;
+	      
+	      gr = getgrnam($2);
+	      if (gr == NULL)
+		      yyerror("unknown group: %s", $2);
+	      $$ = gr->gr_gid;
+	      if ($$ == 0)
+		      yyerror("cannot change to gid 0 group");
+      }
+    | TOKGROUP NUMBER
+      {
+	      struct group	*gr;
+	      
+	      gr = getgrgid($2);
+	      if (gr == NULL)
+		      yyerror("unknown gid: %d", $2);
+	      $$ = gr->gr_gid;
+	      if ($$ == 0)
+		      yyerror("cannot change to gid 0 group");
+	      endgrent();
+      }
 
 icase: TOKCASE
       {
@@ -302,18 +364,20 @@ action: ACTPIPE command
 		$$.deliver = &deliver_drop;
 	}
 
-define: TOKACTION STRING action
+define: TOKACTION STRING user group action
 	{
 		struct action	*t, *u;
 
 		TAILQ_FOREACH(u, &conf.actions, entry) {
 			if (strcmp(u->name, $2) == 0)
-				yyerror("duplicate action \"%s\"", $2);
+				yyerror("duplicate action: %s", $2);
 		}
-
+		
 		t = xmalloc(sizeof *t);
-		memcpy(t, &$3, sizeof *t);
+		memcpy(t, &$5, sizeof *t);
 		t->name = $2;
+		t->uid = $3;
+		t->gid = $4;
 		TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
 		log_debug2("added action: name=%s deliver=%s", t->name,
@@ -493,7 +557,7 @@ matches: TOKMATCH match matchlist
 		 $$ = NULL;
 	 }
 
-rule: matches accounts actions continue
+rule: matches accounts user group actions continue
       {
 	      struct rule	*r;
 	      struct match	*c;
@@ -501,10 +565,12 @@ rule: matches accounts actions continue
 	      u_int		 i;
 
 	      r = xcalloc(1, sizeof *r);      
-	      r->stop = !$4;
+	      r->stop = !$6;
 	      r->accounts = $2;
 	      r->matches = $1;
-	      r->actions = $3;
+	      r->uid = $3;
+	      r->gid = $4;
+	      r->actions = $5;
 	      
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
 
@@ -540,8 +606,8 @@ rule: matches accounts actions continue
 		      }
 	      }
 	      *tmp2 = '\0';
-	      for (i = 0; i < ARRAY_LENGTH($3); i++) {
-		      strlcat(tmp2, ARRAY_ITEM($3, i)->name, sizeof tmp2);
+	      for (i = 0; i < ARRAY_LENGTH($5); i++) {
+		      strlcat(tmp2, ARRAY_ITEM($5, i)->name, sizeof tmp2);
 		      strlcat(tmp2, " ", sizeof tmp2);
 	      }
 			  

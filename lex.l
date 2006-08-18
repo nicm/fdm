@@ -158,6 +158,7 @@ dotlock return (LCKDOTLOCK);
 drop return (ACTDROP);
 fcntl return (LCKFCNTL);
 flock return (LCKFLOCK);
+group return (TOKGROUP);
 in return (TOKIN);
 locktypes return (OPTLOCKTYPES);
 maildir return (ACTMAILDIR);

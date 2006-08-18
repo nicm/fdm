@@ -97,6 +97,9 @@ struct account {
 struct action {
 	char			*name;
 
+	uid_t			 uid;
+	gid_t			 gid;
+
 	struct deliver		*deliver;
 	void			*data;
 
@@ -159,6 +162,9 @@ TAILQ_HEAD(matches, match);
 /* Rule entry. */
 struct rule {
 	struct matches		*matches;
+
+	uid_t			 uid;
+	gid_t			 gid;
 
 	int			 stop;	/* stop matching at this rule */
 
