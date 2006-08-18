@@ -44,7 +44,6 @@ int			 perform_match(struct account *, struct mail *,
 			     struct rule *);
 int			 perform_actions(struct account *, struct mail *,
 			     struct rule *);
-pid_t			 dropto(uid_t, gid_t);
 
 struct conf		 conf;
 
@@ -346,23 +345,6 @@ fetch_account(struct account *a)
 }
 
 int
-dropto(uid_t uid, gid_t gid)
-{
-	if (gid != 0) {
-		if (setgroups(1, &gid) != 0 || 
-		    setegid(gid) != 0 || setgid(gid) != 0)
-			return (1);
-	}
-	
-        if (uid != 0) {
-		if (setuid(uid) != 0 || seteuid(uid) != 0)
-			return (2);
-	}
-	
-	return (0);
-}
-
-int
 perform_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
@@ -391,28 +373,13 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 			continue;
 		}
 		
-		switch (pid = fork()) {
-		case 0:
-			/* change user and group */
-			log_debug("%s: using user %u, group %u", a->name,
-			    uid, gid);
-			error = dropto(uid, gid);
-			if (error == 1) {
-				log_warn("%s: failed to change group", a->name);
-				_exit(1);
-			}
-			if (error == 2) {
-				log_warn("%s: failed to change user", a->name);
-				_exit(1);
-			}
-			/* do the delivery */
-			if (t->deliver->deliver(a, t, m) != 0)
-				_exit(1);
-			_exit(0);
-		case -1:
+		pid = fork();
+		if (pid == -1) {
 			log_warn("%s: fork", a->name);
 			return (1);
-		default:
+		}
+		if (pid != 0) {
+			/* parent process. wait for child */
 			log_debug2("forked. child pid is %d", pid);
 			if (waitpid(pid, &status, 0) == -1)
 				fatal("waitpid");
@@ -427,8 +394,29 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 				    a->name, status);
 				return (1);
 			}
-			break;
+			continue;
 		}
+		
+		/* child process. change user and group */
+		log_debug("%s: using user %u, group %u", a->name, uid, gid);
+		if (gid != 0) {
+			if (setgroups(1, &gid) != 0 || 
+			    setegid(gid) != 0 || setgid(gid) != 0) {
+				log_warn("%s: failed to change group", a->name);
+				_exit(1);
+			}
+		}
+		if (uid != 0) {
+			if (setuid(uid) != 0 || seteuid(uid) != 0) {
+				log_warn("%s: failed to change user", a->name);
+				_exit(1);
+			}
+		}
+
+		/* do the delivery */
+		if (t->deliver->deliver(a, t, m) != 0)
+			_exit(1);
+		_exit(0);
 	}
 
 	return (0);
