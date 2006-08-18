@@ -208,7 +208,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 						log_warnx("%s: server lied "
 						    "about message size: "
 						    "expected %zu, got %zu "
-						    " (%u lines)", 
+						    "(%u lines)", 
 						    a->name, m->size, 
 						    off + lines, lines);
 					}
