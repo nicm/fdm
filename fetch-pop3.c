@@ -91,6 +91,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 	int		 	 done;
 	char			*line = NULL, *ptr;
 	size_t			 off = 0, len;
+	u_int			 lines = 0;
 
 	data = a->data;
 	if (m != NULL)
@@ -184,6 +185,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				}
 				
 				off = 0;
+				lines = 0;
 				m->base = m->data = xmalloc(m->size);
 				m->space = m->size;
 				m->body = -1;
@@ -202,11 +204,13 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				if (ptr[0] == '.' && ptr[1] != '\0')
 					ptr++;
 				else if (ptr[0] == '.') {
-					if (off != m->size) {
+					if (off + lines != m->size) {
 						log_warnx("%s: server lied "
 						    "about message size: "
-						    "expected %zu, got %zu", 
-						    a->name, m->size, off);
+						    "expected %zu, got %zu "
+						    " (%u lines)", 
+						    a->name, m->size, 
+						    off + lines, lines);
 					}
 					m->size = off;
 
@@ -225,6 +229,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					memcpy(m->data + off, ptr, len);
 				/* append an LF */
 				m->data[off + len] = '\n';
+				lines++;
 				off += len + 1;
 				break;
 			case POP3_DELE:	
