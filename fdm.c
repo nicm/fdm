@@ -150,9 +150,8 @@ main(int argc, char **argv)
 		endpwent();
 	} 
 	if (conf.user == NULL) {
-		xasprintf(&conf.user, "%llu", (unsigned long long) getuid());
-		log_warn("can't find name for user %llu", 
-		    (unsigned long long) getuid());
+		xasprintf(&conf.user, "%lu", (u_long) getuid());
+		log_warn("can't find name for user %lu", (u_long) getuid());
 	}
 	log_debug("user is: %s, home is: %s", conf.user, conf.home);
 
@@ -349,7 +348,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
 	u_int		 i;
-	int		 status, error;
+	int		 status;
 	uid_t		 uid;
 	gid_t		 gid;
 	pid_t		 pid;
@@ -380,7 +379,8 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		}
 		if (pid != 0) {
 			/* parent process. wait for child */
-			log_debug2("%s: forked. child pid is %d", a->name, pid);
+			log_debug2("%s: forked. child pid is %ld", a->name, 
+			    (long) pid);
 			if (waitpid(pid, &status, 0) == -1)
 				fatal("waitpid");
 			if (!WIFEXITED(status)) {
@@ -398,7 +398,8 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		}
 		
 		/* child process. change user and group */
-		log_debug("%s: using user %u, group %u", a->name, uid, gid);
+		log_debug("%s: using user %lu, group %lu", a->name, 
+		    (u_long) uid, (u_long) gid);
 		if (gid != 0) {
 			if (setgroups(1, &gid) != 0 || 
 			    setegid(gid) != 0 || setgid(gid) != 0) {

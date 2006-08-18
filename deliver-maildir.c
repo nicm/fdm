@@ -124,9 +124,8 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 restart:
 	/* find a suitable name in tmp */
 	do {
-		if (xsnprintf(name, sizeof name, "%llu.%llu_%u.%s", 
-		    (unsigned long long) time(NULL), 
-		    (unsigned long long) getpid(), 
+		if (xsnprintf(name, sizeof name, "%ld.%ld_%u.%s", 
+		    (long) time(NULL), (long) getpid(), 
 		    maildir_deliveries, host) < 0) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
 			goto error;

@@ -225,7 +225,7 @@ user: /* empty */
 	      
 	      pw = getpwuid($2);
 	      if (pw == NULL)
-		      yyerror("unknown uid: %d", $2);
+		      yyerror("unknown uid: %lu", (u_long) $2);
 	      $$ = pw->pw_uid;
 	      if ($$ == 0)
 		      yyerror("cannot change to uid 0 user");
@@ -253,7 +253,7 @@ group: /* empty */
 	      
 	      gr = getgrgid($2);
 	      if (gr == NULL)
-		      yyerror("unknown gid: %d", $2);
+		      yyerror("unknown gid: %lu", (u_long) $2);
 	      $$ = gr->gr_gid;
 	      if ($$ == 0)
 		      yyerror("cannot change to gid 0 group");
