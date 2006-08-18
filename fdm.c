@@ -44,7 +44,7 @@ int			 perform_match(struct account *, struct mail *,
 			     struct rule *);
 int			 perform_actions(struct account *, struct mail *,
 			     struct rule *);
-pid_t			 dropto(struct account *, uid_t, gid_t);
+pid_t			 dropto(uid_t, gid_t);
 
 struct conf		 conf;
 
@@ -345,47 +345,20 @@ fetch_account(struct account *a)
 	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
 }
 
-pid_t
-dropto(struct account *a, uid_t uid, gid_t gid)
+int
+dropto(uid_t uid, gid_t gid)
 {
-	pid_t	pid;
-
-	pid = fork();
-	if (pid != 0) {
-		if (pid == -1)
-			log_warn("%s: fork", a->name);
-		return (pid);
-	}
-
-	log_debug("%s: changing to uid %u, gid %u", a->name, uid, gid);
-
 	if (gid != 0) {
-		if (geteuid() != 0) {
-                        log_warnx("%s: need root privileges to set group",
-			    a->name);
-			_exit(1);
-		}
 		if (setgroups(1, &gid) != 0 || 
-		    setegid(gid) != 0 || setgid(gid) != 0) {
-			log_warnx("%s: failed to drop group privileges",
-			    a->name);
-			_exit(1);
-		}
+		    setegid(gid) != 0 || setgid(gid) != 0)
+			return (1);
 	}
-
+	
         if (uid != 0) {
-                if (geteuid() != 0) {
-                        log_warnx("%s: need root privileges to set user",
-			    a->name);
-			_exit(1);
-		}
-		if (setuid(uid) != 0 || seteuid(uid) != 0) {
-			log_warnx("%s: failed to drop user privileges",
-			    a->name);
-			_exit(1);
-		}
+		if (setuid(uid) != 0 || seteuid(uid) != 0)
+			return (2);
 	}
-
+	
 	return (0);
 }
 
@@ -394,11 +367,11 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
 	u_int		 i;
-	int		 status;
+	int		 status, error;
 	uid_t		 uid;
 	gid_t		 gid;
 	pid_t		 pid;
-
+	
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		t = ARRAY_ITEM(r->actions, i);
 		if (t->deliver->deliver == NULL)
@@ -410,22 +383,34 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		/* figure out the user to use */
 		uid = t->uid != 0 ? t->uid : r->uid;
 		gid = t->gid != 0 ? t->gid : r->gid;
-
+		
 		if (uid == 0 && gid == 0) {
 			/* do the delivery without forking */
 			if (t->deliver->deliver(a, t, m) != 0)
 				return (1);
 			continue;
 		}
-
-		pid = dropto(a, uid, gid);
-		switch (pid) {
+		
+		switch (pid = fork()) {
 		case 0:
+			/* change user and group */
+			log_debug("%s: using user %u, group %u", a->name,
+			    uid, gid);
+			error = dropto(uid, gid);
+			if (error == 1) {
+				log_warn("%s: failed to change group", a->name);
+				_exit(1);
+			}
+			if (error == 2) {
+				log_warn("%s: failed to change user", a->name);
+				_exit(1);
+			}
 			/* do the delivery */
 			if (t->deliver->deliver(a, t, m) != 0)
 				_exit(1);
 			_exit(0);
 		case -1:
+			log_warn("%s: fork", a->name);
 			return (1);
 		default:
 			log_debug2("forked. child pid is %d", pid);
