@@ -380,7 +380,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		}
 		if (pid != 0) {
 			/* parent process. wait for child */
-			log_debug2("forked. child pid is %d", pid);
+			log_debug2("%s: forked. child pid is %d", a->name, pid);
 			if (waitpid(pid, &status, 0) == -1)
 				fatal("waitpid");
 			if (!WIFEXITED(status)) {
