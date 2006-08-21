@@ -40,7 +40,7 @@ LDFLAGS+= -L/usr/local/lib
 LIBS= -lcrypto -lssl
 
 TARFLAGS= 
-DISTFILES= *.[chyl] Makefile ${PROG}.conf *.[1-9] # XXX README
+DISTFILES= *.[chyl] Makefile ${PROG}.conf *.[1-9] README
 
 CLEANFILES= ${PROG} *.o y.tab.c lex.yy.c y.tab.h .depend ${PROG}-*.tar.gz \
 	*.[1-9].gz *~ *.ln ${PROG}.core

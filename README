@@ -1,0 +1,31 @@
+fdm is a small program designed to fetch mail POP3 servers, or local mail from
+stdin, and deliver it in various ways. It is meant at present to be a single,
+reasonably easily configured solution for single users (I originally wrote it
+to replace the horrible setup with fetchmail and procmail I was using at
+home). There are a few nods in the direction of multiuser setups but isn't
+really enough and I will probably either change it or take it out once I've 
+made a decision about whether trying to do both is a bad idea. It may work
+(if a bit clunkily since it can't guess the destination user from the headers
+so they would all need to be specified in the config file) but I don't really
+recommend using the current version for this.
+
+To run fdm from cron every half hour, I use:
+
+*/30    *       *       *       *       /usr/local/bin/fdm -l -x stdin fetch
+
+Check out the fdm.conf(5) man page and the included fdm.conf file for config
+file syntax.
+
+For details of using it with sendmail(8) and .forward files, see the fdm(1) man
+page. Users of other MTAs are on their own. Man page diffs and/or instructions
+I can format into the man page would be appreciated.
+
+This is beta-quality software. There will be bugs. I use maildirs so they are
+the most tested.
+
+Feedback, bug reports, suggestions, etc, are welcome.
+
+Nicholas Marriott
+nicm@users.sourceforge.net
+
+# $Id$
