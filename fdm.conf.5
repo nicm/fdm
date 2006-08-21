@@ -147,43 +147,71 @@ should drop before executing the action. The action's user or group may be overr
 .Pp
 The possible values for 
 .Ar action
-are:
+are listed below. In actions for which a
+.Ar command
+or
+.Ar path
+is specified, the following substitutions are made before it is used:
+.Em %a
+is replaced by the account name,
+.Em %h
+by the current user's home directory,
+.Em %t
+by the name of the current action and
+.Em %u
+by the current user's login name.
 .Bl -tag -width Ds
 .It Xo Ic drop
 .Xc
 .El
 .Pp
+Mail passed to this action is simply dropped.
 .Bl -tag -width Ds
 .It Xo Ic maildir Ar path
 .Xc
 .El
 .Pp
+Save the mail to the maildir specified by
+.Ar path .
 .Bl -tag -width Ds
 .It Xo Ic mbox Ar path
 .Xc
 .El
 .Pp
+Append the mail to the mbox at 
+.Ar path .
 .Bl -tag -width Ds
 .It Xo Ic pipe Ar command
 .Xc
 .El
 .Pp
+Pipe the entire mail to
+.Ar command .
 .Bl -tag -width Ds
 .It Xo Ic write Ar path
 .Xc
 .El
 .Pp
+Write the mail to 
+.Ar path .
 .Bl -tag -width Ds
 .It Xo Ic append Ar path
 .Xc
 .El
 .Pp
+Append the mail to
+.Ar path .
 .Bl -tag -width Ds
 .It Xo Ic smtp Ic server Ar host
 .Li [\&  Ic port Ar port Li ]
+.Li [\&  Ic to Ar string Li ]
 .Xc
 .El
 .Pp
+Connect to an SMTP server and attempt to deliver the mail to it. If 
+.Ar to
+is specified, it passed to the server in the RCPT TO command. If not, the
+current user and host names are used.
 .Sh RULES
 
 .Sh FILES
