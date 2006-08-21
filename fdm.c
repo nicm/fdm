@@ -37,7 +37,7 @@ extern FILE		*yyin;
 extern int 		 yyparse(void);
 
 int			 load_conf(void);
-void			 fill_conf(void);
+void			 fill_conf(char *);
 void			 usage(void);
 void			 poll_account(struct account *);
 void			 fetch_account(struct account *);
@@ -63,7 +63,7 @@ load_conf(void)
 }
 
 void
-fill_conf(void)
+fill_conf(char *home)
 {
 	struct passwd	*pw;
 
@@ -76,12 +76,17 @@ fill_conf(void)
 		conf.home = NULL;
 	}
 
+	if (home != NULL && *home != '\0')
+		conf.home = xstrdup(home);
+
 	pw = getpwuid(getuid());
 	if (pw != NULL) {
-		if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
-			conf.home = xstrdup(pw->pw_dir);
-		else
-			conf.home = xstrdup(".");
+		if (conf.home == NULL) {
+			if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
+				conf.home = xstrdup(pw->pw_dir);
+			else
+				conf.home = xstrdup(".");
+		}
 		if (pw->pw_name != NULL && *pw->pw_name != '\0')
 			conf.user = xstrdup(pw->pw_name);
 		endpwent();
@@ -164,7 +169,7 @@ main(int argc, char **argv)
 	log_debug("version is: %s " BUILD, __progname);
 
 	/* save the home dir and misc user info */
-	fill_conf();
+	fill_conf(getenv("HOME"));
 	log_debug("user is: %s, home is: %s", conf.user, conf.home);
 
 	/* find the config file */
@@ -426,7 +431,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 			}
 		}
 		/* refresh user and home */
-		fill_conf();	
+		fill_conf(NULL);	
 		log_debug2("%s: user is: %s, home is: %s", a->name, conf.user,
 		    conf.home);
 
