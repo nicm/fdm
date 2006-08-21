@@ -72,7 +72,7 @@ The
 .Em flock
 and
 .Em fcntl
-types are mutually exclusive and the default is
+types are mutually exclusive. The default is
 .Em flock .
 .Sh ACCOUNTS
 The
@@ -218,7 +218,11 @@ or
 .Ic in body .
 The
 .Ic case
-keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
+keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching. Multiple regexps may be specified by chaining them with 
+.Ic and
+or
+.Ic or
+keywords. The regexps are matched from left to right.
 .Pp
 The optional
 .Ic user
