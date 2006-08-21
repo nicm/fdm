@@ -1,0 +1,122 @@
+.\" $Id$
+.\"
+.\" Copyright (c) 2006 Nicholas Marriott <nicm@users.sourceforge.net>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF MIND, USE, DATA OR PROFITS, WHETHER
+.\" IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
+.\" OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd August 21, 2006
+.Dt FDM.CONF 5
+.Os
+.Sh NAME
+.Nm fdm.conf
+.Nd "fdm configuration file"
+.Sh DESCRIPTION
+This manual page describes the
+.Xr fdm 1
+configuration file. It defines
+.Em accounts
+from which to fetch mail, a number of possible
+.Em actions
+to take, and
+.Em rules
+connecting a regexp with an action.
+.Pp
+The file has the following format:
+.Pp
+Empty lines and lines beginning with the
+.Sq #
+character are ignored.
+.Pp
+Regexps and strings must be enclosed in double quotes. Special characters in
+regexps and strings must be escaped. Note that this may mean double-escaping
+in regexps.
+.Pp
+Possible commands are covered in the following sections.
+.Sh OPTIONS
+Options are configured using the
+.Ic set
+command.
+It may be followed by the following options, one per command:
+.Pp
+.Bl -tag -width Ds
+.It Ic maxsize Ar size
+This is used to set the maximum size of a mail. Mails larger than this limit are dropped and, if applicable, not deleted from the server. The default is
+.Em SSIZE_MAX .
+.Pp
+The size may be specified as a plain number in bytes or with a suffix of
+.Ql K
+for kilobytes,
+.Ql M
+for megabytes or
+.Ql G
+for gigabytes.
+.It Ic locktypes Ar locktype Ar ...
+This specifies the locks to be used for file locking. Possibly types are
+.Em fcntl ,
+.Em flock ,
+and
+.Em dotlock .
+The 
+.Em flock
+and
+.Em fcntl
+types are mutually exclusive and the default is
+.Em flock .
+.Sh ACCOUNTS
+The
+.Ic account
+command is used to instruct
+.Xr fdm 1
+to fetch mail from an account. The syntax is:
+.Bl -tag -width Ds
+.It Xo Ic account Ar name Ar type 
+.Li [\&  Ar args Li ]
+.Xc
+.El
+.Pp
+The
+.Ar name
+argument is a string specifying a name for the account. Supported account types and arguments are:
+.Bl -tag -width Ds
+.It Xo Ic stdin 
+.Xc
+.El
+.Bl -tag -width Ds
+.It Xo Ic pop3 Ic server Ar host
+.Li [\&  Ic port Ar port Li ]
+.Ic user Ar user Ic pass Ar pass
+.Xc
+.El
+.Bl -tag -width Ds
+.It Xo Ic pop3s Ic server Ar host
+.Li [\&  Ic port Ar port Li ]
+.Ic user Ar user Ic pass Ar pass
+.Xc
+.El
+
+.Sh ACTIONS
+.Sh RULES
+
+.Sh FILES
+.Bl -tag -width "~/.fdm.confXXX" -compact
+.It Pa ~/.fdm.conf
+default
+.Xr fdm 1
+configuration file
+.El
+.Sh AUTHORS
+.An Nicholas Marriott Aq nicm@users.sourceforge.net
+.Sh SEE ALSO
+.Xr fdm 1 ,
+.Xr re_format 7
+.Rs

@@ -6,3 +6,4 @@
 - more % replacement ops for commands, pipe filenames, etc
 - imap fetching
 - options for delete oversized, delete error etc
+- apply max size to stdin

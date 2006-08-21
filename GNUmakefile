@@ -74,6 +74,7 @@ lex.yy.c: lex.l
 install:
 	$(INSTALLBIN) $(PROG) $(PREFIX)/sbin/$(PROG)
 	$(INSTALLMAN) $(PROG).1 $(PREFIX)/man/man1/$(PROG).1
+	$(INSTALLMAN) $(PROG).conf.5 $(PREFIX)/man/man5/$(PROG).conf.5
 
 clean:
 	rm -f $(CLEANFILES)
