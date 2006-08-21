@@ -19,6 +19,7 @@
 #include <sys/types.h>
  
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,13 @@ stdin_connect(struct account *a)
 	}
 
 	data = a->data;
+
+	if (fcntl(STDIN_FILENO, F_GETFL) == -1) {
+		if (errno != EBADF)
+			fatal("fcntl");
+		log_warnx("%s: stdin is invalid", a->name);
+		return (1);
+	}
 
 	data->io = io_create(STDIN_FILENO, NULL, IO_LF);
 	if (conf.debug > 3)
