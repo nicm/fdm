@@ -91,7 +91,14 @@ argument is a string specifying a name for the account. Supported account types 
 .It Xo Ic stdin 
 .Xc
 .El
-This account type
+.Pp
+This account type reads mail from 
+.Em stdin ,
+if it is connected to a pipe. This may be used to deliver mail from
+.Xr sendmail 8 ,
+see
+.Xr fdm 1
+for details.
 .Bl -tag -width Ds
 .It Xo Ic pop3 Ic server Ar host
 .Li [\&  Ic port Ar port Li ]
@@ -104,8 +111,79 @@ This account type
 .Ic user Ar user Ic pass Ar pass
 .Xc
 .El
-
+.Pp
+These statements define a POP3 or POP3S account. The
+.Ar host ,
+.Ar user
+and 
+.Ar pass
+arguments must be strings. The port option may be either a string which will
+be looked up in the
+.Xr services 5
+database, or a number. If it is omitted, the default port (143 for POP3, 993
+for POP3S) is used.
 .Sh ACTIONS
+The
+.Ic action
+command is used to define actions. These may be specified by name in rules (see below) to perform some action on a mail. The syntax is:
+.Bl -tag -width Ds
+.It Xo Ic action Ar name
+.Li [\&  Ic user Ar user Li ]
+.Li [\&  Ic group Ar group Li ]
+.Ar action
+.Li [\&  Ar args Li ]
+.Xc
+.El
+.Pp
+The
+.Ar name
+is a string defining a name for the action. The 
+.Ar user
+and
+.Ar group
+keywords specify a user or group to which
+.Xr fdm 1
+should drop before executing the action. The action's user or group may be overridden in the matching rule.
+.Pp
+The possible values for 
+.Ar action
+are:
+.Bl -tag -width Ds
+.It Xo Ic drop
+.Xc
+.El
+.Pp
+.Bl -tag -width Ds
+.It Xo Ic maildir Ar path
+.Xc
+.El
+.Pp
+.Bl -tag -width Ds
+.It Xo Ic mbox Ar path
+.Xc
+.El
+.Pp
+.Bl -tag -width Ds
+.It Xo Ic pipe Ar command
+.Xc
+.El
+.Pp
+.Bl -tag -width Ds
+.It Xo Ic write Ar path
+.Xc
+.El
+.Pp
+.Bl -tag -width Ds
+.It Xo Ic append Ar path
+.Xc
+.El
+.Pp
+.Bl -tag -width Ds
+.It Xo Ic smtp Ic server Ar host
+.Li [\&  Ic port Ar port Li ]
+.Xc
+.El
+.Pp
 .Sh RULES
 
 .Sh FILES
