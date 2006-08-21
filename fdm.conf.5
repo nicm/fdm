@@ -29,7 +29,9 @@ from which to fetch mail, a number of possible
 .Em actions
 to take, and
 .Em rules
-connecting a regexp with an action.
+connecting a regexp with an action. The file is parsed once from top to bottom, so action and account definitions must appear before they are referenced in a rule. Rules are evaluated from first to last and (unless overridden by the
+.Ic continue
+keyword) evaluation stops at the first match.
 .Pp
 The file has the following format:
 .Pp
@@ -80,18 +82,16 @@ command is used to instruct
 to fetch mail from an account. The syntax is:
 .Bl -tag -width Ds
 .It Xo Ic account Ar name Ar type 
-.Li [\&  Ar args Li ]
+.Op Ar args 
 .Xc
 .El
 .Pp
 The
 .Ar name
 argument is a string specifying a name for the account. Supported account types and arguments are:
-.Bl -tag -width Ds
-.It Xo Ic stdin 
-.Xc
-.El
 .Pp
+.Bl -tag -width Ds
+.It Ic stdin 
 This account type reads mail from 
 .Em stdin ,
 if it is connected to a pipe. This may be used to deliver mail from
@@ -99,19 +99,14 @@ if it is connected to a pipe. This may be used to deliver mail from
 see
 .Xr fdm 1
 for details.
-.Bl -tag -width Ds
 .It Xo Ic pop3 Ic server Ar host
-.Li [\&  Ic port Ar port Li ]
+.Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
 .Xc
-.El
-.Bl -tag -width Ds
-.It Xo Ic pop3s Ic server Ar host
-.Li [\&  Ic port Ar port Li ]
+.It Xo Ic pop3s Ic server Ar host 
+.Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
 .Xc
-.El
-.Pp
 These statements define a POP3 or POP3S account. The
 .Ar host ,
 .Ar user
@@ -128,10 +123,9 @@ The
 command is used to define actions. These may be specified by name in rules (see below) to perform some action on a mail. The syntax is:
 .Bl -tag -width Ds
 .It Xo Ic action Ar name
-.Li [\&  Ic user Ar user Li ]
-.Li [\&  Ic group Ar group Li ]
+.Op Ic user Ar user
+.Op Ic group Ar group 
 .Ar action
-.Li [\&  Ar args Li ]
 .Xc
 .El
 .Pp
@@ -163,57 +157,109 @@ by the current user's login name.
 .Bl -tag -width Ds
 .It Xo Ic drop
 .Xc
-.El
-.Pp
-Mail passed to this action is simply dropped.
-.Bl -tag -width Ds
+Discard the mail.
 .It Xo Ic maildir Ar path
 .Xc
-.El
-.Pp
 Save the mail to the maildir specified by
 .Ar path .
-.Bl -tag -width Ds
 .It Xo Ic mbox Ar path
 .Xc
-.El
-.Pp
 Append the mail to the mbox at 
 .Ar path .
-.Bl -tag -width Ds
 .It Xo Ic pipe Ar command
 .Xc
-.El
-.Pp
 Pipe the entire mail to
 .Ar command .
-.Bl -tag -width Ds
 .It Xo Ic write Ar path
 .Xc
-.El
-.Pp
 Write the mail to 
 .Ar path .
-.Bl -tag -width Ds
 .It Xo Ic append Ar path
 .Xc
-.El
-.Pp
 Append the mail to
 .Ar path .
-.Bl -tag -width Ds
 .It Xo Ic smtp Ic server Ar host
-.Li [\&  Ic port Ar port Li ]
-.Li [\&  Ic to Ar string Li ]
+.Op Ic port Ar port
+.Op Ic to Ar to
+.Xc
+Connect to an SMTP server and attempt to deliver the mail to it. If 
+.Ar to
+is specified, it is passed to the server in the RCPT TO command. If not, the
+current user and host names are used.
+.El
+.Sh RULES
+Rules are specified using the 
+.Ic match
+keyword. It has the following basic form:
+.Bl -tag -width Ds
+.It Xo Ic match Ar regexps 
+.Op Ar accounts 
+.Op Ic user Ar user
+.Op Ic group Ar group
+.Ar actions
+.Op Ic continue
 .Xc
 .El
 .Pp
-Connect to an SMTP server and attempt to deliver the mail to it. If 
-.Ar to
-is specified, it passed to the server in the RCPT TO command. If not, the
-current user and host names are used.
-.Sh RULES
-
+The
+.Ar regexps
+part has the following syntax:
+.Bl -tag -width Ds
+.It Xo Op Ic case 
+.Ar regexp 
+.Op Ic in Ic headers | Ic in body
+.Op Ic and | Ic or Ar ...
+.Xc
+.El
+.Pp
+It specifies a list of regexps against which each mail should be matched. The regexp matches may be restricted to either the headers or body of the message by specifying either
+.Ic in headers
+or
+.Ic in body .
+The
+.Ic case
+keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
+.Pp
+The optional
+.Ic user
+and
+.Ic group
+instruct
+.Xr fdm 1
+to change to the specified user and group before performing any of the actions for this rule.
+.Pp
+Both the
+.Ar accounts
+and 
+.Ar actions
+parts consist either of a single name or a list of names enclosed in braces:
+.Bl -tag -width Ds
+.It Xo Ic account Ar name | Ic accounts 
+.Li {
+.Ar name ... 
+.Li }
+.Xc
+.El
+.Bl -tag -width Ds
+.It Xo Ic action Ar name | Ic actions 
+.Li {
+.Ar name ... 
+.Li }
+.Xc
+.El
+.Pp
+The
+.Ar accounts
+list is used to limit rules to matching mail within a set of accounts, and the
+.Ar actions
+list specifies the actions to perform when the rule matches a mail. The actions
+are performed from left to right in the order they are specified in the rule definition.
+.Pp
+If the
+.Ic continue
+keyword is present, evaluation will not stop if this rule is matched. Instead, 
+.Xr fdm 1
+will continue to match further rules after performing any actions for this rule. 
 .Sh FILES
 .Bl -tag -width "~/.fdm.confXXX" -compact
 .It Pa ~/.fdm.conf
