@@ -37,6 +37,7 @@ extern FILE		*yyin;
 extern int 		 yyparse(void);
 
 int			 load_conf(void);
+void			 fill_conf(void);
 void			 usage(void);
 void			 poll_account(struct account *);
 void			 fetch_account(struct account *);
@@ -61,6 +62,36 @@ load_conf(void)
         return (0);
 }
 
+void
+fill_conf(void)
+{
+	struct passwd	*pw;
+
+	if (conf.user != NULL) {
+		xfree(conf.user);
+		conf.user = NULL;
+	}
+	if (conf.home != NULL) {
+		xfree(conf.home);
+		conf.home = NULL;
+	}
+
+	pw = getpwuid(getuid());
+	if (pw != NULL) {
+		if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
+			conf.home = xstrdup(pw->pw_dir);
+		else
+			conf.home = xstrdup(".");
+		if (pw->pw_name != NULL && *pw->pw_name != '\0')
+			conf.user = xstrdup(pw->pw_name);
+		endpwent();
+	} 
+	if (conf.user == NULL) {
+		xasprintf(&conf.user, "%lu", (u_long) getuid());
+		log_warn("can't find name for user %lu", (u_long) getuid());
+	}
+}
+
 __dead void
 usage(void)
 {
@@ -72,7 +103,6 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-	struct passwd	*pw;
         int		 opt;
 	u_int		 i;
 	char		*cmd = NULL, tmp[128];
@@ -134,25 +164,7 @@ main(int argc, char **argv)
 	log_debug("version is: %s " BUILD, __progname);
 
 	/* save the home dir and misc user info */
-	conf.home = getenv("HOME");
-	if (conf.home != NULL && *conf.home == '\0')
-		conf.home = NULL;
-	pw = getpwuid(getuid());
-	if (pw != NULL) {
-		if (conf.home == NULL) {
-			if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
-				conf.home = xstrdup(pw->pw_dir);
-			else
-				conf.home = xstrdup(".");
-		}
-		if (pw->pw_name != NULL && *pw->pw_name != '\0')
-			conf.user = xstrdup(pw->pw_name);
-		endpwent();
-	} 
-	if (conf.user == NULL) {
-		xasprintf(&conf.user, "%lu", (u_long) getuid());
-		log_warn("can't find name for user %lu", (u_long) getuid());
-	}
+	fill_conf();
 	log_debug("user is: %s, home is: %s", conf.user, conf.home);
 
 	/* find the config file */
@@ -413,6 +425,10 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 				_exit(1);
 			}
 		}
+		/* refresh user and home */
+		fill_conf();	
+		log_debug2("%s: user is: %s, home is: %s", a->name, conf.user,
+		    conf.home);
 
 		/* do the delivery */
 		if (t->deliver->deliver(a, t, m) != 0)
