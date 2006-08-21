@@ -1,8 +1,6 @@
-- multidrop etc
-- test all rules properly
-- audit/cleanup error paths
-- macros in config file
-- more % replacement ops for commands, pipe filenames, etc
-- imap fetching
-- options for delete oversized, delete error etc
-- apply max size to stdin
+1 - apply max size to stdin
+2 - options for delete oversized, delete error etc
+3 - audit/cleanup error paths
+4 - imap fetching
+5 - more % replacement ops for commands, pipe filenames, etc
+6 - multidrop, multiuser, run as root, privsep, what?
