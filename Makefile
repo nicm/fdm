@@ -1,7 +1,7 @@
 # $Id$
 
 .SUFFIXES: .c .o .y .l .h
-.PHONY: clean
+.PHONY: clean index.html
 
 PROG= fdm
 VERSION= 0.1
@@ -69,6 +69,20 @@ dist:		clean
 depend:
 		mkdep ${CFLAGS} ${SRCS}
 
+index.html:
+		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
+		nroff -mdoc fdm.1|m2h -u > fdm.1.html
+		awk ' \
+			{ if ($$0 ~ /%%/) {			\
+				name = substr($$0, 3);		\
+				while ((getline < name) == 1) {	\
+					print $$0;		\
+				}				\
+				close(name);			\
+			} else {				\
+				print $$0;			\
+			} }' index.html.in > index.html
+		rm -f fdm.conf.5.html fdm.1.html
 
 install:	all
 		${INSTALLBIN} ${PROG} ${PREFIX}/bin/${PROG}
