@@ -357,7 +357,13 @@ fetch_account(struct account *a)
 	
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
-	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
+	if (n > 0) {
+		log_info("%s: %u messages processed in %.3f seconds "
+		    "(average %.3f)", a->name, n, tim, tim / n);
+	} else {
+	        log_info("%s: %u messages processed in %.3f seconds",
+		    a->name, n, tim);
+	}
 }
 
 int
