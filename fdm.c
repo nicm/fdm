@@ -322,8 +322,6 @@ fetch_account(struct account *a)
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
 		case FETCH_ERROR:
-			if (a->fetch->error != NULL)
-				a->fetch->error(a);
 			cause = "fetching";
 			goto out;
 		case FETCH_OVERSIZE:
@@ -390,8 +388,11 @@ fetch_account(struct account *a)
 
 out:	
 	free_mail(&m);
-	if (cause != NULL)
+	if (cause != NULL) {
+		if (a->fetch->error != NULL)
+			a->fetch->error(a);
 		log_warnx("%s: %s error. aborted", a->name, cause);
+	}
 
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
