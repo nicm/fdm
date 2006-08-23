@@ -60,17 +60,22 @@ void
 xmalloc_dump(void)
 {
  	u_int	i;
+	size_t	len, off;
+	char	tmp[4096];
 
-	printf("xmalloc: allocated=%zu, freed=%zu\n", xmalloc_allocated,
+	log_debug("xmalloc: allocated=%zu, freed=%zu", xmalloc_allocated,
 	    xmalloc_freed);
-	printf("xmalloc: ");
+
+	len = 1024;
+	off = xsnprintf(tmp, len, "xmalloc: ");
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
 		if (xmalloc_array[i].ptr != NULL) {
-			printf("[%p %zu]", xmalloc_array[i].ptr, 
-			    xmalloc_array[i].size);
+			off += xsnprintf(tmp + off, len - off, "[%p %zu] ",
+			    xmalloc_array[i].ptr, xmalloc_array[i].size);
 		}
 	}
-	putchar('\n');
+	tmp[off - 1] = '\0';
+	log_debug("%s", tmp);
 }
 
 struct xmalloc_block *
