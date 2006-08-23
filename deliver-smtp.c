@@ -110,7 +110,8 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 				line_init(m, &ptr, &len);
 				while (ptr != NULL) { 
 					/* write without \n */
-					io_writeline(io, "%.*s", len - 1, ptr);
+					io_writeline(io, "%.*s", (int) len - 1,
+					    ptr); /* XXX cast */
 
 					/* update if necessary */
 					if (io_update(io) != 1)
