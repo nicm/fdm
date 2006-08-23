@@ -413,7 +413,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	io_write(io, buf, len);
 	io_write(io, io->eol, strlen(io->eol));
 
-	xfree(buf);
+	free(buf);
 }
 
 /* Poll until all data in the write buffer has been written to the socket. */

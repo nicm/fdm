@@ -211,6 +211,11 @@ main(int argc, char **argv)
         SSL_library_init();
         SSL_load_error_strings();
 
+#ifdef DEBUG
+	xmalloc_clear();
+	xmalloc_dump();
+#endif
+
         log_debug("processing accounts");
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
 		if (!ARRAY_EMPTY(&incl)) {
@@ -258,6 +263,10 @@ main(int argc, char **argv)
 	}
 
         log_debug("finished processing. exiting");
+
+#ifdef DEBUG
+	xmalloc_dump();
+#endif
 
 	return (0);
 }

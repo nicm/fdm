@@ -405,6 +405,10 @@ __dead void		 fatal(const char *);
 __dead void		 fatalx(const char *);
 
 /* xmalloc.c */
+#ifdef DEBUG
+void			 xmalloc_clear(void);
+void			 xmalloc_dump(void);
+#endif
 char			*xstrdup(const char *);
 void			*xcalloc(size_t, size_t);
 void			*xmalloc(size_t);
@@ -413,4 +417,4 @@ void			 xfree(void *);
 int			 xasprintf(char **, const char *, ...);
 int			 xsnprintf(char *, size_t, const char *, ...);
 
-#endif
+#endif /* FDM_H */
