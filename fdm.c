@@ -108,7 +108,7 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, error;
+        int		 opt, error = 0;
 	u_int		 i;
 	char		*cmd = NULL, tmp[128];
 	struct account	*a;
@@ -284,7 +284,6 @@ poll_account(struct account *a)
 		log_info("%s: polling not supported", a->name);
 		return (1);
 	}
-
 	log_debug("%s: polling", a->name);
 
 	if (a->fetch->poll(a, &n) == POLL_ERROR)
@@ -311,11 +310,10 @@ fetch_account(struct account *a)
 		log_info("%s: fetching not supported", a->name);
 		return (1);
 	}
+	log_debug("%s: fetching", a->name);
 
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
-
-	log_debug("%s: fetching", a->name);
 
 	n = 0;
         for (;;) {
