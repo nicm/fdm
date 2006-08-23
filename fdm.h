@@ -361,6 +361,7 @@ int			 connectto(struct addrinfo *, char **);
 
 /* mail.c */
 void			 free_mail(struct mail *);
+void			 resize_mail(struct mail *, size_t);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);

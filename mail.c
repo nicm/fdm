@@ -42,6 +42,15 @@ free_mail(struct mail *m)
 	}
 }
 
+void
+resize_mail(struct mail *m, size_t size)
+{
+	size_t	off = m->data - m->base;
+
+	ENSURE_SIZE(m->base, m->space, off + size);
+	m->data = m->base + off;
+}
+
 int
 openlock(char *path, u_int locks, int flags, mode_t mode)
 {

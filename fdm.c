@@ -322,7 +322,7 @@ fetch_account(struct account *a)
 			break;
 		}
 		
-		log_debug("%s: got message: size=%zu, body=%zu", a->name,
+		log_debug("%s: got message: size=%zu, body=%zd", a->name,
 		    m.size, m.body);
 
 		i = fill_wrapped(&m);
