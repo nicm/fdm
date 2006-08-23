@@ -120,6 +120,8 @@ stdin_fetch(struct account *a, struct mail *m)
 			m->data[m->size + len] = '\n';
 			m->size += len + 1;
 
+			xfree(line);
+
 			if (m->size > conf.max_size) {
 				log_warnx("%s: message too big: %zu", m->size);
 				return (1);
