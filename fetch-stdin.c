@@ -85,7 +85,7 @@ int
 stdin_fetch(struct account *a, struct mail *m)
 {
 	struct stdin_data	*data;
-	int		 	 error;
+	int		 	 error, flushing;
 	char			*line, *lbuf;
 	size_t			 len, llen;
 
@@ -103,6 +103,7 @@ stdin_fetch(struct account *a, struct mail *m)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
+	flushing = 0;
 	for (;;) {
 		if ((error = io_poll(data->io)) != 1) {
 			/* normal close (error == 0) is fine */
@@ -120,20 +121,22 @@ stdin_fetch(struct account *a, struct mail *m)
 			len = strlen(line);
 			if (len == 0 && m->body == -1)
 				m->body = m->size + 1;
-			
-			resize_mail(m, m->size + len + 1);
 
+			if (flushing) {		      
+				m->size += len + 1;
+				continue;
+			}
+
+			resize_mail(m, m->size + len + 1);
+			
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			/* append an LF */
 			m->data[m->size + len] = '\n';
 			m->size += len + 1;
-
-			if (m->size > conf.max_size) {
-				data->complete = 1;
-				xfree(lbuf);
-				return (FETCH_OVERSIZE);
-			}
+			
+			if (m->size > conf.max_size)
+				flushing = 1;
 		}
 	}
 
@@ -141,5 +144,5 @@ stdin_fetch(struct account *a, struct mail *m)
 
  	data->complete = 1;
 	xfree(lbuf);
-	return (FETCH_SUCCESS);
+	return (flushing ? FETCH_OVERSIZE : FETCH_SUCCESS);
 }
