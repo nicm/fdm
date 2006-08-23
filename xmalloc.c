@@ -66,6 +66,9 @@ xmalloc_dump(void)
 	log_debug("xmalloc: allocated=%zu, freed=%zu", xmalloc_allocated,
 	    xmalloc_freed);
 
+	if (xmalloc_allocated == xmalloc_freed)
+		return;
+
 	len = 1024;
 	off = xsnprintf(tmp, len, "xmalloc: ");
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
