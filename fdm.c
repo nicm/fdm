@@ -341,7 +341,7 @@ fetch_account(struct account *a)
 		    m.size, m.body);
 
 		i = fill_wrapped(&m);
-		log_debug("%s: found %u wrapped lines", a->name, i);
+		log_debug2("%s: found %u wrapped lines", a->name, i);
 
 		TAILQ_FOREACH(r, &conf.rules, entry) {
 			/* check if the rule is for the current account */
