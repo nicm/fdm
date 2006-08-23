@@ -286,8 +286,7 @@ fetch_account(struct account *a)
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, i;
-	int		 cancel;
-	char		*name;
+	char		*name, *cause = NULL;
 	struct accounts	*list;
 
 	if (a->fetch->fetch == NULL) {
@@ -301,16 +300,16 @@ fetch_account(struct account *a)
 	log_debug("%s: fetching", a->name);
 
 	n = 0;
-	cancel = 0;
-        while (!cancel) {
+        for (;;) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
-		if (a->fetch->fetch(a, &m) != 0)
-			return;
+		if (a->fetch->fetch(a, &m) != 0) {		
+			cause = "fetching";
+			goto out;
+		}
 		if (m.data == NULL || m.size == 0) {
-			if (m.data != NULL)
-				xfree(m.data);
-			break;
+			cause = "fetching";
+			goto out;
 		}
 		
 		log_debug("%s: got message: size=%zu, body=%zu", a->name,
@@ -338,8 +337,10 @@ fetch_account(struct account *a)
 			log_debug("%s: matched message", a->name);
 
 			/* process all the actions */
-			if ((cancel = perform_actions(a, &m, r)) != 0)
-				break;
+			if (perform_actions(a, &m, r) != 0) {
+				cause = "processing";
+				goto out;
+			}
 
 			/* if this rule is marked as stop, stop checking
 			   the rules now */
@@ -350,11 +351,13 @@ fetch_account(struct account *a)
 		free_mail(&m);
 		n++;
 	}
-	if (cancel) {
-		log_warnx("%s: processing error. aborted", a->name);
-		n--;
+
+out:	
+	if (cause != NULL) {
+		free_mail(&m);
+		log_warnx("%s: %s error. aborted");
 	}
-	
+
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
 	if (n > 0) {

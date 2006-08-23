@@ -32,9 +32,14 @@ void
 free_mail(struct mail *m)
 {
 	free_wrapped(m);
-	if (m->from != NULL)
+	if (m->from != NULL) {
 		xfree(m->from);
-	xfree(m->base);
+		m->from = NULL;
+	}
+	if (m->base != NULL) {
+		xfree(m->base);
+		m->base = NULL;
+	}
 }
 
 int
@@ -308,4 +313,5 @@ free_wrapped(struct mail *m)
 {
 	if (m->wrapped != NULL)	
 		xfree(m->wrapped);
+	m->wrapped = NULL;
 }

@@ -120,6 +120,11 @@ stdin_fetch(struct account *a, struct mail *m)
 			/* append an LF */
 			m->data[m->size + len] = '\n';
 			m->size += len + 1;
+
+			if (m->size > conf.max_size) {
+				log_warnx("%s: message too big: %zu", m->size);
+				return (1);
+			}
 		}
 		if (done)
 			break;
