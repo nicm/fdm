@@ -33,7 +33,9 @@ int	do_pop3(struct account *, u_int *, struct mail *, int);
 struct fetch	fetch_pop3 = { "pop3", "pop3",
 			       pop3_connect, 
 			       pop3_poll,
-			       pop3_fetch, 
+			       pop3_fetch,
+			       pop3_delete,
+			       pop3_error,
 			       pop3_disconnect };
 
 int
@@ -72,6 +74,17 @@ pop3_disconnect(struct account *a)
 	return (0);
 }
 
+void
+pop3_error(struct account *a)
+{
+	struct pop3_data	*data;
+
+	data = a->data;
+
+	io_writeline(data->io, "QUIT");
+	io_flush(data->io);
+}
+
 int
 pop3_poll(struct account *a, u_int *n)
 {
@@ -88,36 +101,28 @@ int
 do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 {
 	struct pop3_data	*data;
-	int		 	 done;
+	int		 	 res, flushing;
 	char			*line, *ptr, *lbuf;
 	size_t			 off = 0, len, llen;
 	u_int			 lines = 0;
 
 	data = a->data;
+
 	if (m != NULL)
 		m->data = NULL;
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	/* 
-	 * We want to be paranoid and not delete the message until it has been
-	 * dealt with by the caller and the next one asked for but equally we
-	 * don't want to complicate the state machine by having one event which
-	 * isn't triggered by a line being ready, so this is special-cased
-	 * here.
-	 */
-	if (data->state == POP3_DELE) {
-		data->state = POP3_DONE;
-		io_writeline(data->io, "DELE %u", data->cur);
-	}
+	flushing = 0;
+	do {
+		if (io_poll(data->io) != 1) {
+			line = "polling error";
+			goto error;
+		}
 
-	for (;;) {
-		if (io_poll(data->io) != 1)
-			goto error2;
-
-		done = 0;
-		while (!done) {
+		res = -1;
+		do {
 			line = io_readline2(data->io, &lbuf, &llen);
 			if (line == NULL)
 				break;
@@ -176,19 +181,17 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (m->size == 0) {
-					log_warnx("%s: zero-length size", 
-					    a->name);
-					goto error2;
+					line = "zero-length size";
+					goto error;
 				}
 
 				if (m->size > conf.max_size) {
-					log_warnx("%s: size too big: "
-					    "%zu bytes", a->name, m->size);
-					goto error2;
+					//res = FETCH_OVERSIZE;
+					//data->state = POP3_DONE;
+					//break;
 				}
-				
-				off = 0;
-				lines = 0;
+
+				off = lines = 0;
 				m->base = m->data = xmalloc(m->size);
 				m->space = m->size;
 				m->body = -1;
@@ -217,25 +220,36 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					}
 					m->size = off;
 
-					done = 1;
-					data->state = POP3_DELE;
+					if (flushing)
+						res = FETCH_OVERSIZE;
+					else
+						res = FETCH_SUCCESS;
+					data->state = POP3_DONE;
 					break;
 				}
+				
 				len = strlen(ptr);
 				if (len == 0 && m->body == -1)
 					m->body = off + 1;
-
+				
+				if (flushing) {
+					lines++;
+					off += len + 1;
+					break;
+				}						
+					
 				resize_mail(m, off + len + 1);
-
+				
 				if (len > 0)
 					memcpy(m->data + off, ptr, len);
 				/* append an LF */
 				m->data[off + len] = '\n';
 				lines++;
 				off += len + 1;
+				
+				if (off + lines > conf.max_size)
+					flushing = 1;
 				break;
-			case POP3_DELE:	
-				fatalx("invalid state reached");
 			case POP3_DONE:
 				if (!pop3_isOK(line))
 					goto error;
@@ -246,33 +260,41 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					io_writeline(data->io, "QUIT");
 					break;
 				}
-				
-				io_writeline(data->io, "LIST %u", data->cur);
+
 				data->state = POP3_LIST;
+				io_writeline(data->io, "LIST %u", data->cur);
 				break;
 			case POP3_QUIT:
 				if (!pop3_isOK(line))
 					goto error;
 
-				done = 1;
+				res = FETCH_COMPLETE;
 				break;
 			}
-		}
-		if (done)
-			break;
-	}
+		} while (res == -1);
+	} while (res == -1);
 
 	xfree(lbuf);
 	io_flush(data->io);
-	return (0);
+	return (res);
 
 error:
 	log_warnx("%s: %s", a->name, line);
 
-error2:
-	io_writeline(data->io, "QUIT");
-
 	xfree(lbuf);
 	io_flush(data->io);
-	return (1);
+	return (FETCH_ERROR);
+}
+
+int
+pop3_delete(struct account *a)
+{
+	struct pop3_data	*data;
+
+	data = a->data;
+
+	data->state = POP3_DONE;
+	io_writeline(data->io, "DELE %u", data->cur);
+
+	return (0);
 }

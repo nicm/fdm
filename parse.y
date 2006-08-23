@@ -96,7 +96,7 @@ find_action(char *name)
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKGROUP
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
-%token OPTMAXSIZE OPTDELOVERSIZED OPTLOCKTYPES
+%token OPTMAXSIZE OPTDELTOOBIG OPTLOCKTYPES
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -173,9 +173,9 @@ set: TOKSET OPTMAXSIZE size
 		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
      }
-   | TOKSET OPTDELOVERSIZED
+   | TOKSET OPTDELTOOBIG
      {
-	     conf.del_oversized = 1;
+	     conf.del_big = 1;
      }
 
 lock: LCKFCNTL

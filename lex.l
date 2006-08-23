@@ -153,7 +153,7 @@ append return (ACTAPPEND);
 case return (TOKCASE);
 command return (TOKCOMMAND);
 continue return (TOKCONTINUE);
-deloversized return (OPTDELOVERSIZED);
+deltoobig return (OPTDELTOOBIG);
 dotlock return (LCKDOTLOCK);
 drop return (ACTDROP);
 fcntl return (LCKFCNTL);

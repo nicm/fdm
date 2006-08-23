@@ -31,8 +31,10 @@ int	pop3s_disconnect(struct account *);
 
 struct fetch	fetch_pop3s = { "pop3s", "pop3s",
 				pop3s_connect, 
-				pop3_poll, /* from fetch-pop3.c */
-				pop3_fetch, /* from fetch-pop3.c */
+				pop3_poll,	/* from fetch-pop3.c */
+				pop3_fetch, 	/* from fetch-pop3.c */
+				pop3_delete, 	/* from fetch-pop3.c */
+				pop3_error, 	/* from fetch-pop3.c */
 				pop3s_disconnect };
 
 int

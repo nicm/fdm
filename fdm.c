@@ -283,8 +283,13 @@ poll_account(struct account *a)
 
 	log_debug("%s: polling", a->name);
 
-	if (a->fetch->poll(a, &n) == 0)
-		log_info("%s: %u messages found", a->name, n);
+	if (a->fetch->poll(a, &n) == POLL_ERROR) {
+		if (a->fetch->error != NULL)
+			a->fetch->error(a);
+		return;
+	}
+
+	log_info("%s: %u messages found", a->name, n);
 }
 
 void
@@ -295,6 +300,7 @@ fetch_account(struct account *a)
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, i;
+	int		 error;
 	char		*name, *cause = NULL;
 	struct accounts	*list;
 
@@ -312,14 +318,24 @@ fetch_account(struct account *a)
         for (;;) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
-		if (a->fetch->fetch(a, &m) != 0) {		
+
+		error = a->fetch->fetch(a, &m);
+		switch (error) {
+		case FETCH_ERROR:
+			if (a->fetch->error != NULL)
+				a->fetch->error(a);
 			cause = "fetching";
 			goto out;
-		}
-		/* null or empty messages mean finished */
-		if (m.data == NULL || m.size == 0) {
-			free_mail(&m);
-			break;
+		case FETCH_OVERSIZE:
+			log_warnx("%s: message too big: %zu bytes", a->name,
+			    m.size);
+			if (!conf.del_big) {
+				cause = "fetching";
+				goto out;
+			}
+			goto delete;
+		case FETCH_COMPLETE:
+			goto out;
 		}
 		
 		log_debug("%s: got message: size=%zu, body=%zd", a->name,
@@ -358,15 +374,24 @@ fetch_account(struct account *a)
 				break;
 		}
 
-		free_mail(&m);
+	delete:
+		/* delete the message */
+		if (a->fetch->delete != NULL) {
+			log_debug("%s: deleting message", a->name);
+			if (a->fetch->delete(a) != 0) {
+				cause = "deleting";
+				goto out;
+			}
+		}
+
+ 		free_mail(&m);
 		n++;
 	}
 
 out:	
-	if (cause != NULL) {
-		free_mail(&m);
+	free_mail(&m);
+	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
-	}
 
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;

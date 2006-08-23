@@ -179,6 +179,16 @@ struct rule {
 	TAILQ_ENTRY(rule)	 entry;
 };
 
+/* Poll return codes. */
+#define POLL_SUCCESS FETCH_SUCCESS
+#define POLL_ERROR FETCH_ERROR
+
+/* Fetch return codes. */
+#define FETCH_SUCCESS 0
+#define FETCH_ERROR 1
+#define FETCH_OVERSIZE 2
+#define FETCH_COMPLETE 3
+
 /* Fetch functions. */
 struct fetch {
 	char	*name;
@@ -187,6 +197,8 @@ struct fetch {
 	int	 (*connect)(struct account *);
 	int 	 (*poll)(struct account *, u_int *);
 	int 	 (*fetch)(struct account *, struct mail *);
+	int	 (*delete)(struct account *);
+	void	 (*error)(struct account *);
 	int	 (*disconnect)(struct account *);	
 };
 
@@ -213,7 +225,7 @@ struct conf {
 	char			*conf_file;
 
 	size_t			 max_size;
-	int		         del_oversized;
+	int		         del_big;
 	int			 check_only;
 	u_int			 lock_types;
 
@@ -268,6 +280,8 @@ struct io {
 /* Fetch stdin data. */
 struct stdin_data {
 	struct io		*io;
+
+	int			 complete;
 };
 
 /* Fetch pop3 states. */
@@ -279,7 +293,6 @@ enum pop3_state {
 	POP3_LIST,
 	POP3_RETR,
 	POP3_LINE,
-	POP3_DELE,
 	POP3_DONE,
 	POP3_QUIT
 };
@@ -328,6 +341,8 @@ extern struct fetch 	 fetch_stdin;
 extern struct fetch 	 fetch_pop3;
 int			 pop3_poll(struct account *, u_int *);
 int			 pop3_fetch(struct account *, struct mail *);
+int			 pop3_delete(struct account *);
+void			 pop3_error(struct account *);
 
 /* fetch-pop3s.c */
 extern struct fetch 	 fetch_pop3s;
