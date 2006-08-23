@@ -22,6 +22,7 @@ YACC= yacc -d
 
 CC= cc
 CFLAGS+= -g -ggdb -std=c99
+CFLAGS+= -pg
 CFLAGS+= -DDEBUG
 CFLAGS+= -pedantic -Wno-long-long
 CFLAGS+= -Wall -W -Wnested-externs -Wformat-security
@@ -37,6 +38,7 @@ INSTALLMAN= install -g bin -o root -m 444
 
 INCDIRS= -I- -I. -I/usr/local/include
 LDFLAGS+= -L/usr/local/lib
+LDFLAGS+= -pg
 LIBS= -lcrypto -lssl
 
 TARFLAGS= 

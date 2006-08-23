@@ -82,11 +82,10 @@ stdin_fetch(struct account *a, struct mail *m)
 {
 	struct stdin_data	*data;
 	int		 	 error, done;
-	char			*line;
-	size_t			 len;
+	char			*line, *lbuf;
+	size_t			 len, llen;
 
 	data = a->data;
-
 	if (m->data == NULL) {
 		m->space = IO_BLOCKSIZE;
 		m->base = m->data = xmalloc(m->space);
@@ -94,17 +93,21 @@ stdin_fetch(struct account *a, struct mail *m)
 		m->body = -1;
 	}
 
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
 	done = 0;
 	for (;;) {
 		if ((error = io_poll(data->io)) != 1) {
 			/* normal close (error == 0) is fine */
 			if (error == 0)
 				break;
+			xfree(lbuf);
 			return (1);
 		}
 
 		for (;;) {
-			line = io_readline(data->io);
+			line = io_readline2(data->io, &lbuf, &llen);
 			if (line == NULL)
 				break;
 
@@ -120,11 +123,10 @@ stdin_fetch(struct account *a, struct mail *m)
 			m->data[m->size + len] = '\n';
 			m->size += len + 1;
 
-			xfree(line);
-
 			if (m->size > conf.max_size) {
 				log_warnx("%s: message too big: %zu bytes",
 				    a->name, m->size);
+				xfree(lbuf);
 				return (1);
 			}
 		}
@@ -133,5 +135,7 @@ stdin_fetch(struct account *a, struct mail *m)
 	}
 
 	trim_from(m);
+
+	xfree(lbuf);
 	return (0);
 }

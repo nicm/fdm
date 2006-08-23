@@ -321,15 +321,15 @@ io_write(struct io *io, const void *buf, size_t len)
 /* Return a line from the read buffer. EOL is stripped and the string
    returned is zero-terminated. */
 char *
-io_readline(struct io *io)
+io_readline2(struct io *io, char **buf, size_t *len)
 {
-	char	*ptr, *line;
+	char	*ptr;
 	size_t	 off, maxlen, eollen;
 
 	if (io->rsize <= 1)
 		return (NULL);
 
-	log_debug3("io_readline: in: off=%zu used=%zu", io->roff, io->rsize);
+	log_debug3("io_readline2: in: off=%zu used=%zu", io->roff, io->rsize);
 
 	maxlen = io->rsize > IO_MAXLINELEN ? IO_MAXLINELEN : io->rsize;
 	eollen = strlen(io->eol);
@@ -361,9 +361,9 @@ io_readline(struct io *io)
 			}
 			/* if the socket has closed, just return the rest */
 			if (io->closed) {
-				line = xmalloc(io->rsize + 1);
-				memcpy(line, io->rbase + io->roff, io->rsize);
-				line[io->rsize] = '\0';
+				ENSURE_SIZE(*buf, *len, io->rsize + 1);
+				memcpy(*buf, io->rbase + io->roff, io->rsize);
+				(*buf)[io->rsize] = '\0';
 				io->roff += io->rsize;
 				io->rsize = 0;
 			}
@@ -374,17 +374,31 @@ io_readline(struct io *io)
 	}
 
 	/* copy the line */
-	line = xmalloc(off + 1);
-	memcpy(line, io->rbase + io->roff, off);
-	line[off] = '\0';
+	ENSURE_SIZE(*buf, *len, off + 1);
+	memcpy(*buf, io->rbase + io->roff, off);
+	(*buf)[off] = '\0';
 
 	/* adjust the buffer positions */
 	io->roff += off + eollen;
 	io->rsize -= off + eollen;
 
-	log_debug3("io_readline: out: off=%zu used=%zu", io->roff, io->rsize);
+	log_debug3("io_readline2: out: off=%zu used=%zu", io->roff, io->rsize);
 
-	return (line);
+	return (*buf);
+}
+
+/* Return a line from the read buffer. EOL is stripped and the string
+   returned is zero-terminated. */
+char *
+io_readline(struct io *io)
+{
+	size_t	 llen;
+	char	*lbuf;
+	
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	return (io_readline2(io, &lbuf, &llen));
 }
 
 /* Write a line to the io write buffer. */

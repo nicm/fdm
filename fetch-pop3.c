@@ -89,13 +89,16 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 {
 	struct pop3_data	*data;
 	int		 	 done;
-	char			*line = NULL, *ptr;
-	size_t			 off = 0, len;
+	char			*line, *ptr, *lbuf;
+	size_t			 off = 0, len, llen;
 	u_int			 lines = 0;
 
 	data = a->data;
 	if (m != NULL)
 		m->data = NULL;
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
 
 	/* 
 	 * We want to be paranoid and not delete the message until it has been
@@ -115,7 +118,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 
 		done = 0;
 		while (!done) {
-			line = io_readline(data->io);
+			line = io_readline2(data->io, &lbuf, &llen);
 			if (line == NULL)
 				break;
 			
@@ -254,13 +257,12 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				done = 1;
 				break;
 			}
-
-			xfree(line);
 		}
 		if (done)
 			break;
 	}
 
+	xfree(lbuf);
 	io_flush(data->io);
 	return (0);
 
@@ -268,10 +270,9 @@ error:
 	log_warnx("%s: %s", a->name, line);
 
 error2:
-	if (line != NULL)
-		xfree(line);
-
 	io_writeline(data->io, "QUIT");
+
+	xfree(lbuf);
 	io_flush(data->io);
 	return (1);
 }
