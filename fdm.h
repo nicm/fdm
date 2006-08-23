@@ -60,6 +60,11 @@ extern char	*__progname;
 /* Definition to shut gcc up about unused arguments in a few cases. */
 #define unused __attribute__ ((unused))
 
+/* Attribute to make gcc check printf-like arguments. */
+#define printflike1 __attribute__ ((format (printf, 1, 2)))
+#define printflike2 __attribute__ ((format (printf, 2, 3)))
+#define printflike3 __attribute__ ((format (printf, 3, 4)))
+
 /* Ensure buffer size. */
 #define ENSURE_SIZE(buf, len, req) do {					\
 	while (len <= (req)) {						\
@@ -388,7 +393,7 @@ int			 io_poll(struct io *);
 void 			*io_read(struct io *, size_t);
 void			 io_write(struct io *, const void *, size_t);
 char 			*io_readline(struct io *);
-void			 io_writeline(struct io *, const char *, ...);
+void printflike2	 io_writeline(struct io *, const char *, ...);
 void			 io_vwriteline(struct io *, const char *, va_list);
 int			 io_flush(struct io *);
 int			 io_wait(struct io *, size_t);
@@ -396,12 +401,12 @@ int			 io_wait(struct io *, size_t);
 /* log.c */
 void			 log_init(int);
 void		    	 vlog(int, const char *, va_list);
-void			 log_warn(const char *, ...);
-void			 log_warnx(const char *, ...);
-void			 log_info(const char *, ...);
-void			 log_debug(const char *, ...);
-void			 log_debug2(const char *, ...);
-void			 log_debug3(const char *, ...);
+void printflike1	 log_warn(const char *, ...);
+void printflike1	 log_warnx(const char *, ...);
+void printflike1	 log_info(const char *, ...);
+void printflike1	 log_debug(const char *, ...);
+void printflike1	 log_debug2(const char *, ...);
+void printflike1	 log_debug3(const char *, ...);
 __dead void		 fatal(const char *);
 __dead void		 fatalx(const char *);
 
@@ -415,7 +420,7 @@ void			*xcalloc(size_t, size_t);
 void			*xmalloc(size_t);
 void			*xrealloc(void *, size_t, size_t);
 void			 xfree(void *);
-int			 xasprintf(char **, const char *, ...);
-int			 xsnprintf(char *, size_t, const char *, ...);
+int printflike2		 xasprintf(char **, const char *, ...);
+int printflike3	 	xsnprintf(char *, size_t, const char *, ...);
 
 #endif /* FDM_H */

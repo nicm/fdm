@@ -173,14 +173,14 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (m->size == 0) {
-					log_warnx("%s: bad message size: %zu", 
-					    m->size);
+					log_warnx("%s: zero-length size", 
+					    a->name);
 					goto error2;
 				}
 
 				if (m->size > conf.max_size) {
-					log_warnx("%s: message too big: %zu",
-					    m->size);
+					log_warnx("%s: size too big: "
+					    "%zu bytes", a->name, m->size);
 					goto error2;
 				}
 				

@@ -1,4 +1,3 @@
-1 - apply max size to stdin
 2 - options for delete oversized, delete error etc
 3 - audit/cleanup error paths
 4 - imap fetching

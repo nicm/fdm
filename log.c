@@ -48,8 +48,8 @@ log_init(int n_debug)
 	tzset();
 }
 
-void
-logit(int pri, const char *fmt, ...)
+void printflike2
+logit(int pri, const char *fmt, ...) 
 {
 	va_list	ap;
 
@@ -78,7 +78,7 @@ vlog(int pri, const char *fmt, va_list ap)
 }
 
 
-void
+void printflike1
 log_warn(const char *emsg, ...)
 {
 	char	*nfmt;
@@ -102,7 +102,7 @@ log_warn(const char *emsg, ...)
 	}
 }
 
-void
+void printflike1
 log_warnx(const char *emsg, ...)
 {
 	va_list	ap;
@@ -112,7 +112,7 @@ log_warnx(const char *emsg, ...)
 	va_end(ap);
 }
 
-void
+void printflike1
 log_info(const char *emsg, ...)
 {
 	va_list	ap;
@@ -122,7 +122,7 @@ log_info(const char *emsg, ...)
 	va_end(ap);
 }
 
-void
+void printflike1
 log_debug(const char *emsg, ...)
 {
 	va_list	ap;
@@ -134,7 +134,7 @@ log_debug(const char *emsg, ...)
 	}
 }
 
-void
+void printflike1
 log_debug2(const char *emsg, ...)
 {
 	va_list	ap;
@@ -146,7 +146,7 @@ log_debug2(const char *emsg, ...)
 	}
 }
 
-void
+void printflike1
 log_debug3(const char *emsg, ...)
 {
 	va_list	ap;

@@ -314,7 +314,7 @@ io_write(struct io *io, const void *buf, size_t len)
 		io->wsize += len;
 	}
 
-	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", io->wsize,
+	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", len, io->wsize,
 	    io->wspace);
 }
 
@@ -388,7 +388,7 @@ io_readline(struct io *io)
 }
 
 /* Write a line to the io write buffer. */
-void
+void printflike2
 io_writeline(struct io *io, const char *fmt, ...)
 {
 	va_list	 ap;
