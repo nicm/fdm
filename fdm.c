@@ -307,9 +307,10 @@ fetch_account(struct account *a)
 			cause = "fetching";
 			goto out;
 		}
+		/* null or empty messages mean finished */
 		if (m.data == NULL || m.size == 0) {
-			cause = "fetching";
-			goto out;
+			free_mail(&m);
+			break;
 		}
 		
 		log_debug("%s: got message: size=%zu, body=%zu", a->name,
@@ -355,7 +356,7 @@ fetch_account(struct account *a)
 out:	
 	if (cause != NULL) {
 		free_mail(&m);
-		log_warnx("%s: %s error. aborted");
+		log_warnx("%s: %s error. aborted", a->name, cause);
 	}
 
 	gettimeofday(&tv, NULL);
