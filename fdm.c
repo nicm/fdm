@@ -108,7 +108,7 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, error = 0;
+        int		 opt, error = 0, rc;
 	u_int		 i;
 	char		*cmd = NULL, tmp[128];
 	struct account	*a;
@@ -216,6 +216,7 @@ main(int argc, char **argv)
 	xmalloc_dump();
 #endif
 
+	rc = 0;
         log_debug("processing accounts");
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
 		if (!ARRAY_EMPTY(&incl)) {
@@ -259,6 +260,7 @@ main(int argc, char **argv)
 		if (error != 0) {
 			if (a->fetch->error != NULL)
 				a->fetch->error(a);
+			rc = 1;
 		}
 
 		/* disconnect */
@@ -272,7 +274,7 @@ main(int argc, char **argv)
 	xmalloc_dump();
 #endif
 
-	return (0);
+	return (rc);
 }
 
 int

@@ -30,12 +30,13 @@
 int	stdin_connect(struct account *);
 int	stdin_disconnect(struct account *);
 int	stdin_fetch(struct account *, struct mail *);
+int	stdin_delete(struct account *);
 
 struct fetch	fetch_stdin = { "stdin", "stdin",
 				stdin_connect, 
 				NULL,
 				stdin_fetch,
-				NULL,
+				stdin_delete,
 				NULL,
 				stdin_disconnect };
 
@@ -78,6 +79,33 @@ stdin_disconnect(struct account *a)
 
 	close(STDIN_FILENO);
 
+	return (0);
+}
+
+int
+stdin_delete(struct account *a)
+{
+	struct stdin_data	*data;
+	char		        *line, *lbuf;
+	size_t			 llen;
+
+	data = a->data;
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	for (;;) {
+		if (io_poll(data->io) != 1)
+			break;
+
+		for (;;) {
+			line = io_readline2(data->io, &lbuf, &llen);
+			if (line == NULL)
+				break;
+		}		
+	}
+
+	xfree(lbuf);
 	return (0);
 }
 
