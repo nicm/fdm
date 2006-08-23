@@ -39,8 +39,8 @@ extern int 		 yyparse(void);
 int			 load_conf(void);
 void			 fill_conf(char *);
 void			 usage(void);
-void			 poll_account(struct account *);
-void			 fetch_account(struct account *);
+int			 poll_account(struct account *);
+int			 fetch_account(struct account *);
 int			 perform_match(struct account *, struct mail *,
 			     struct rule *);
 int			 perform_actions(struct account *, struct mail *,
@@ -108,7 +108,7 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt;
+        int		 opt, error;
 	u_int		 i;
 	char		*cmd = NULL, tmp[128];
 	struct account	*a;
@@ -253,9 +253,13 @@ main(int argc, char **argv)
 
 		/* process */
 		if (strcmp(cmd, "poll") == 0)
-			poll_account(a);
+			error = poll_account(a);
 		else if (strcmp(cmd, "fetch") == 0)
-			fetch_account(a);
+			error = fetch_account(a);
+		if (error != 0) {
+			if (a->fetch->error != NULL)
+				a->fetch->error(a);
+		}
 
 		/* disconnect */
 		if (a->fetch->disconnect != NULL)
@@ -271,28 +275,27 @@ main(int argc, char **argv)
 	return (0);
 }
 
-void
+int
 poll_account(struct account *a)
 {
 	u_int	n;
 
 	if (a->fetch->poll == NULL) {
 		log_info("%s: polling not supported", a->name);
-		return;
+		return (1);
 	}
 
 	log_debug("%s: polling", a->name);
 
-	if (a->fetch->poll(a, &n) == POLL_ERROR) {
-		if (a->fetch->error != NULL)
-			a->fetch->error(a);
-		return;
-	}
+	if (a->fetch->poll(a, &n) == POLL_ERROR)
+		return (1);
 
 	log_info("%s: %u messages found", a->name, n);
+
+	return (0);
 }
 
-void
+int
 fetch_account(struct account *a)
 {
 	struct rule	*r;
@@ -306,7 +309,7 @@ fetch_account(struct account *a)
 
 	if (a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
-		return;
+		return (1);
 	}
 
 	gettimeofday(&tv, NULL);
@@ -388,11 +391,8 @@ fetch_account(struct account *a)
 
 out:	
 	free_mail(&m);
-	if (cause != NULL) {
-		if (a->fetch->error != NULL)
-			a->fetch->error(a);
+	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
-	}
 
 	gettimeofday(&tv, NULL);
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
@@ -403,6 +403,8 @@ out:
 	        log_info("%s: %u messages processed in %.3f seconds",
 		    a->name, n, tim);
 	}
+
+	return (cause != NULL);
 }
 
 int
