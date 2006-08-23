@@ -88,8 +88,8 @@ stdin_fetch(struct account *a, struct mail *m)
 	data = a->data;
 
 	if (m->data == NULL) {
-		m->space = 4096;
-		m->base = m->data = malloc(m->space);
+		m->space = IO_BLOCKSIZE;
+		m->base = m->data = xmalloc(m->space);
 		m->size = 0;
 		m->body = -1;
 	}
