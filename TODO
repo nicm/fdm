@@ -1,4 +1,3 @@
-2 - options for delete oversized, delete error etc
 3 - audit/cleanup error paths
 4 - imap fetching
 5 - more % replacement ops for commands, pipe filenames, etc
