@@ -112,6 +112,9 @@ dropto(uid_t uid, char *path)
 	struct passwd	*pw;
 	gid_t		 gid;
 
+	if (uid == 0)
+		return (0);
+
 	pw = getpwuid(uid);
 	if (pw == NULL) {
 		endpwent();
@@ -147,7 +150,7 @@ main(int argc, char **argv)
         int		 opt, fds[2];
 	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
-	char		 tmp[512], *s;
+	char		 tmp[512], *user = NULL, *ptr;
 	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
@@ -179,20 +182,7 @@ main(int argc, char **argv)
 			conf.check_only = 1;
 			break;
 		case 'u':
-			pw = getpwnam(optarg);
-			if (pw == NULL) {
-				n = strtol(optarg, &s, 10);
-				if (*s != '\0')
-					usage();
-				pw = getpwuid(n);
-			}
-			if (pw != NULL)
-				conf.def_user = pw->pw_uid;
-			else {
-				log_warnx("unknown user: %s", optarg);
-				exit(1);
-			}
-			endpwent();
+			user = optarg;
 			break;
                 case 'v':
                         conf.debug++;
@@ -219,6 +209,29 @@ main(int argc, char **argv)
 			cmd = CMD_FETCH;
 		else
 			usage();
+	}
+
+	/* check the user */
+	if (user != NULL) {
+		pw = getpwnam(user);
+		if (pw == NULL) {
+			errno = 0;
+			n = strtol(user, &ptr, 10);
+			if (n != 0 || (errno != EINVAL && errno != ERANGE)) {
+				if (n < 0 || (u_long) n > UID_MAX) {
+					log_warnx("invalid uid: %s", user);
+					exit(1);
+				}
+				if (*ptr == '\0')
+					pw = getpwuid((uid_t) n);
+			}
+			if (pw == NULL) {
+				log_warnx("unknown user: %s", user);
+				exit(1);
+			}
+		}
+		conf.def_user = pw->pw_uid;
+		endpwent();
 	}
 
 	/* start logging to syslog if necessary */

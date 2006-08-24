@@ -309,8 +309,6 @@ uid: STRING
 	     pw = getpwnam($1);
 	     if (pw == NULL)
 		     yyerror("unknown user: %s", $1);
-	     if (pw->pw_uid == 0)
-		     yyerror("cannot change to uid 0 user");
 	     $$ = pw->pw_uid;
 	     endpwent();
      }
@@ -323,8 +321,6 @@ uid: STRING
 	     pw = getpwuid($1);
 	     if (pw == NULL)
 		     yyerror("unknown uid: %llu", $1);
-	     if (pw->pw_uid == 0)
-		     yyerror("cannot change to uid 0 user");
 	     $$ = pw->pw_uid;
 	     endpwent();
      }
