@@ -34,7 +34,7 @@ using the user specified in the rule or action or the user specified by the
 	match "^(To:|Cc:).*sam@my.domain" user "sam" action "default"
 	match all action "default" # the rest will use the default user
 
-Alternatively, it could be written this way:
+Alternatively, it could be something like this:
 
 	set defuser "bob" # this is required but not used in this file
 	account ......
