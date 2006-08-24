@@ -127,18 +127,6 @@ extern __dead void yyerror(const char *, ...);
 
         return (STRING);
 }
-body {
-	yylval.area = AREA_BODY;
-	return (AREA);
-}
-headers {
-	yylval.area = AREA_HEADERS;
-	return (AREA);
-}
-any {
-	yylval.area = AREA_ANY;
-	return (AREA);
-}
 account	return (TOKACCOUNT);
 accounts return (TOKACCOUNTS);
 action return (TOKACTION);
@@ -146,22 +134,25 @@ actions return (TOKACTIONS);
 all return (TOKALL);
 and return (TOKAND);
 append return (ACTAPPEND);
+body return (TOKBODY);
 case return (TOKCASE);
 command return (TOKCOMMAND);
 continue return (TOKCONTINUE);
-defuser return (OPTDEFUSER);
-deltoobig return (OPTDELTOOBIG);
-domain return (OPTDOMAIN);
-domains return (OPTDOMAINS);
+defuser return (TOKDEFUSER);
+deltoobig return (TOKDELTOOBIG);
+domain return (TOKDOMAIN);
+domains return (TOKDOMAINS);
 dotlock return (LCKDOTLOCK);
 drop return (ACTDROP);
 fcntl return (LCKFCNTL);
 flock return (LCKFLOCK);
+header return (TOKHEADER);
+headers return (TOKHEADERS);
 in return (TOKIN);
-locktypes return (OPTLOCKTYPES);
+locktypes return (TOKLOCKTYPES);
 maildir return (ACTMAILDIR);
 match return (TOKMATCH);
-maxsize return (OPTMAXSIZE);
+maxsize return (TOKMAXSIZE);
 mbox return (ACTMBOX);
 none return (TOKNONE);
 or return (TOKOR);

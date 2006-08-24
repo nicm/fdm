@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <ctype.h>
 #include <grp.h>
 #include <netdb.h>
 #include <pwd.h>
@@ -94,9 +95,10 @@ find_action(char *name)
 %token SYMOPEN SYMCLOSE
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS
+%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
+%token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
+%token TOKHEADER
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
-%token OPTMAXSIZE OPTDELTOOBIG OPTLOCKTYPES OPTDEFUSER OPTDOMAIN OPTDOMAINS
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -113,21 +115,21 @@ find_action(char *name)
 		char		*host;
 		char		*port;
 	} server;
-	struct action	 	 action;
 	enum area	 	 area;
 	enum op			 op;
 	struct accounts		*accounts;
-	struct domains		*domains;
+	struct action	 	 action;
 	struct actions		*actions;
-	struct matches		*matches;
+	struct domains		*domains;
+	struct headers	 	*headers;
 	struct match		*match;
+	struct matches		*matches;
 	uid_t			 uid;
 }
 
 %token <number> NUMBER
 %token <number> SIZE
 %token <string> STRING
-%token <area>	AREA
 
 %type  <accounts> accounts accountslist
 %type  <action> action
@@ -136,6 +138,7 @@ find_action(char *name)
 %type  <domains> domains domainslist
 %type  <fetch> poptype fetchtype
 %type  <flag> cont icase
+%type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
 %type  <matches> matches matchlist
@@ -161,23 +164,23 @@ size: NUMBER
 	      $$ = $1;
       }
 
-set: TOKSET OPTMAXSIZE size
+set: TOKSET TOKMAXSIZE size
      {
 	     if ($3 > MAXMAILSIZE)
 		     yyerror("maxsize too large: %lld", $3);
 	     conf.max_size = $3;
      }
-   | TOKSET OPTLOCKTYPES locklist
+   | TOKSET TOKLOCKTYPES locklist
      {
 	     if ($3 & LOCK_FCNTL && $3 & LOCK_FLOCK)
 		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
      }
-   | TOKSET OPTDELTOOBIG
+   | TOKSET TOKDELTOOBIG
      {
 	     conf.del_big = 1;
      }
-   | TOKSET OPTDEFUSER userval
+   | TOKSET TOKDEFUSER userval
      {
 	     if (conf.def_user == 0)
 		     conf.def_user = $3;
@@ -188,28 +191,81 @@ set: TOKSET OPTMAXSIZE size
 		     yyerror("cannot set domains twice");
 	     conf.domains = $2;
      }
+   | TOKSET headers
+     {
+	     if (conf.headers != NULL)
+		     yyerror("cannot set headers twice");
+	     conf.headers = $2;
+     }
 
-domains: OPTDOMAIN STRING
+domains: TOKDOMAIN STRING
 	 {
+		 char	*cp;
+
 		 $$ = xmalloc(sizeof (struct domains));
 		 ARRAY_INIT($$);
+		 for (cp = $2; *cp != '\0'; cp++)
+			 *cp = tolower((int) *cp);
 		 ARRAY_ADD($$, $2, sizeof (char *));
 	 }
-       | OPTDOMAINS SYMOPEN domainslist SYMCLOSE
+       | TOKDOMAINS SYMOPEN domainslist SYMCLOSE
 	 {
 		 $$ = $3;
 	 }
 
 domainslist: domainslist STRING
 	     {
+		     char	*cp;
+
 		     $$ = $1;
+		     for (cp = $2; *cp != '\0'; cp++)
+			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, sizeof (char *));
 	     }	
 	   | STRING
 	     {
-		      $$ = xmalloc(sizeof (struct domains));
-		      ARRAY_INIT($$);
-		      ARRAY_ADD($$, $1, sizeof (char *));
+		     char	*cp;
+
+		     $$ = xmalloc(sizeof (struct domains));
+		     ARRAY_INIT($$);
+		     for (cp = $1; *cp != '\0'; cp++)
+			     *cp = tolower((int) *cp);
+		     ARRAY_ADD($$, $1, sizeof (char *));
+	     }
+
+headers: TOKHEADER STRING
+	 {
+		 char	*cp;
+
+		 $$ = xmalloc(sizeof (struct headers));
+		 ARRAY_INIT($$);
+		 for (cp = $2; *cp != '\0'; cp++)
+			 *cp = tolower((int) *cp);
+		 ARRAY_ADD($$, $2, sizeof (char *));
+	 }
+       | TOKHEADERS SYMOPEN headerslist SYMCLOSE
+	 {
+		 $$ = $3;
+	 }
+
+headerslist: headerslist STRING
+	     {
+		     char	*cp;
+		 
+		     $$ = $1;
+		     for (cp = $2; *cp != '\0'; cp++)
+			     *cp = tolower((int) *cp);
+		     ARRAY_ADD($$, $2, sizeof (char *));
+	     }	
+	   | STRING
+	     {
+		     char	*cp;
+
+		     $$ = xmalloc(sizeof (struct headers));
+		     ARRAY_INIT($$);
+		     for (cp = $1; *cp != '\0'; cp++)
+			     *cp = tolower((int) *cp);
+		     ARRAY_ADD($$, $1, sizeof (char *));
 	     }
 
 lock: LCKFCNTL
@@ -485,9 +541,17 @@ area: /* empty */
       {
 	      $$ = AREA_ANY;
       }
-    | TOKIN AREA
+    | TOKIN TOKALL
       {
-	      $$ = $2;
+	      $$ = AREA_ANY;
+      }
+    | TOKIN TOKHEADERS
+      {
+	      $$ = AREA_HEADERS;
+      }
+    | TOKIN TOKBODY
+      {
+	      $$ = AREA_BODY;
       }
 
 op: TOKAND

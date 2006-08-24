@@ -40,7 +40,6 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	long			 code;
 	struct io		*io;
 	char			*cause, *to, *from, *line, *ptr;
-	char			 host[MAXHOSTNAMELEN];
 	enum smtp_state		 state;
 	size_t		 	 len;
 
@@ -54,9 +53,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	if (conf.debug > 3)
 		io->dup_fd = STDOUT_FILENO;
 
-	if (gethostname(host, sizeof host) != 0)
-		fatal("gethostname");
-	xasprintf(&from, "%s@%s", conf.info.user, host);
+	xasprintf(&from, "%s@%s", conf.info.user, conf.info.host);
 	if (data->to == NULL)
 		to = from;
 	else
@@ -84,7 +81,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 				if (code != 220)
 					goto error;
 				state = SMTP_HELO;
-				io_writeline(io, "HELO %s", host);
+				io_writeline(io, "HELO %s", conf.info.host);
 				break;
 			case SMTP_HELO:
 				if (code != 250)

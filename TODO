@@ -1,2 +1,2 @@
 4 - imap fetching
-1 - "set domains ...", "user find-any/find-valid/find-invalid" to guess user@domain
+1 - "set domains ...", "user from-mail" to guess user@domain

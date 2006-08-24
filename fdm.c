@@ -17,6 +17,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
 #include <errno.h>
@@ -61,6 +62,7 @@ fill_info(char *home)
 {
 	struct passwd	*pw;
 	uid_t		 uid;
+	char		 host[MAXHOSTNAMELEN];
 
 	if (conf.info.uid != NULL) {
 		xfree(conf.info.uid);
@@ -73,6 +75,12 @@ fill_info(char *home)
 	if (conf.info.home != NULL) {
 		xfree(conf.info.home);
 		conf.info.home = NULL;
+	}
+
+	if (conf.info.host == NULL) {
+		if (gethostname(host, sizeof host) != 0)
+			fatal("gethostname");
+		conf.info.host = xstrdup(host);
 	}
 
 	if (home != NULL && *home != '\0')
@@ -135,8 +143,9 @@ int
 main(int argc, char **argv)
 {
         int		 opt, fds[2];
+	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
-	char		 tmp[128], *s;
+	char		 tmp[512], *s;
 	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
@@ -242,6 +251,30 @@ main(int argc, char **argv)
 	}
 	log_debug("locking using: %s", tmp);
 
+	if (conf.headers == NULL) {
+		conf.headers = xmalloc(sizeof (struct headers));
+		ARRAY_INIT(conf.headers);
+		ARRAY_ADD(conf.headers, xstrdup("to"), sizeof (char *));
+		ARRAY_ADD(conf.headers, xstrdup("cc"), sizeof (char *));
+	}
+	xsnprintf(tmp, sizeof tmp, "headers are: ");
+	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
+		strlcat(tmp, ARRAY_ITEM(conf.headers, i), sizeof tmp);
+		strlcat(tmp, " ", sizeof tmp);
+	}
+	log_debug("%s", tmp);
+	if (conf.domains == NULL) {
+		conf.domains = xmalloc(sizeof (struct domains));
+		ARRAY_INIT(conf.domains);
+		ARRAY_ADD(conf.domains, conf.info.host, sizeof (char *));
+	}
+	xsnprintf(tmp, sizeof tmp, "domains are: ");
+	for (i = 0; i < ARRAY_LENGTH(conf.domains); i++) {
+		strlcat(tmp, ARRAY_ITEM(conf.domains, i), sizeof tmp);
+		strlcat(tmp, " ", sizeof tmp);
+	}
+	log_debug("%s", tmp);
+
 	/* if -n, bail now, otherwise check there is something to work with */
 	if (conf.check_only) 
 		exit(0);
@@ -253,7 +286,7 @@ main(int argc, char **argv)
                 log_warnx("no rules specified");
 		exit(1);
 	}
-	
+
 	if (geteuid() == 0) {
 		pw = getpwnam(CHILDUSER);
 		if (pw == NULL) {
