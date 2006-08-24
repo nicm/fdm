@@ -60,6 +60,19 @@ extern char	*__progname;
 #define TAILQ_EMPTY(head) (TAILQ_FIRST(head) == TAILQ_END(head))
 #endif
 
+#define ARRAY_INIT(a) do {						\
+	(a)->num = 0;							\
+	(a)->list = NULL;      						\
+} while (0)
+#define ARRAY_ADD(a, s, c) do {						\
+	(a)->list = xrealloc((a)->list, (a)->num + 1, sizeof (c));	\
+	((c *) (a)->list)[(a)->num] = s;				\
+	(a)->num++;							\
+} while (0)
+#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
+#define ARRAY_LENGTH(a) ((a)->num)
+#define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
+
 /* Definition to shut gcc up about unused arguments in a few cases. */
 #define unused __attribute__ ((unused))
 
@@ -150,19 +163,6 @@ struct action {
 	TAILQ_ENTRY(action)	 entry;
 };
 
-#define ARRAY_INIT(a) do {						\
-	(a)->num = 0;							\
-	(a)->list = NULL;      						\
-} while (0)
-#define ARRAY_ADD(a, s, c) do {						\
-	(a)->list = xrealloc((a)->list, (a)->num + 1, sizeof (c));	\
-	((c *) (a)->list)[(a)->num] = s;				\
-	(a)->num++;							\
-} while (0)
-#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
-#define ARRAY_LENGTH(a) ((a)->num)
-#define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
-
 /* Accounts array. */
 struct accounts {
 	char	**list;
@@ -204,17 +204,19 @@ struct match {
 TAILQ_HEAD(matches, match);
 
 /* Rule types. */
-#define RULE_MATCHES 0
-#define RULE_ALL 1
-#define RULE_MATCHED 2
-#define RULE_UNMATCHED 3
+enum ruletype {
+	RULE_MATCHES,
+	RULE_ALL,
+	RULE_MATCHED,
+	RULE_UNMATCHED
+};
 
 /* Rule entry. */
 struct rule {
 	u_int			 index;
 
 	struct matches		*matches;
-	int			 type;
+	enum ruletype		 type;
 
 	struct users		*users;
 	int			 find_uid;	/* find uids from headers */
