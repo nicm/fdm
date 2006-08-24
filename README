@@ -29,8 +29,8 @@ with:
 	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
 
 Mail will be delivered either using the user specified in the rule or action or
-the user specified by the "defuser" keyword. A config file for multiuser may
-look something like:
+the user specified by the "defuser" keyword (or with the -u switch on the
+command line). A config file for multiuser may look something like:
 
 	set defuser "bob"
 	account ......

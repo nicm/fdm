@@ -32,6 +32,9 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      <B>-n              </B>Do not process any accounts, just verify the configura-
                      tion file syntax and exit.
 
+     <B>-u </B><I>user         </I>Specify the default user for delivery. This overrides the
+                     <B>defuser </B>option in the configuration file.
+
      <B>-v              </B>Request verbose logging. This option may be specified
                      multiple times.
 
@@ -111,6 +114,13 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              which exceed <B>maxsize</B>, and continue. If it is not specified, over-
              size messages are a fatal error and cause fdm(1) to abort.
 
+     <B>defuser </B><I>user</I>
+             This sets the default user to change to before delivering mail,
+             if fdm(1) is running as root and no alternative user is specified
+             as part of the action or rule. This option may be override with
+             the <B>-u </B>switch on the command line. A default user must be given
+             if running as root.
+
      <B>locktypes </B><I>locktype ...</I>
              This specifies the locks to be used for mbox locking. Possible
              types are <I>fcntl</I>, <I>flock</I>, and <I>dotlock</I>.  The <I>flock </I>and <I>fcntl </I>types
@@ -143,19 +153,18 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      name in rules (see below) to perform some action on a mail. The syntax
      is:
 
-     <B>action </B><I>name </I>[<B>user </B><I>user</I>] [<B>group </B><I>group</I>] <I>action</I>
+     <B>action </B><I>name </I>[<B>user </B><I>user</I>] <I>action</I>
 
-     The <I>name </I>is a string defining a name for the action. The <I>user </I>and <I>group</I>
-     keywords specify a user or group to which fdm(1) should drop before exe-
-     cuting the action. The action's user or group may be overridden in the
-     matching rule.
+     The <I>name </I>is a string defining a name for the action. The <I>user </I>keyword
+     specifies a user to which fdm(1) should change before executing the ac-
+     tion. The action's user may be overridden in the matching rule. This key-
+     word has no effect if fdm is run as non-root.
 
      The possible values for <I>action </I>are listed below. In actions for which a
      <I>command </I>or <I>path </I>is specified, the following substitutions are made before
      it is used: <I>%a </I>is replaced by the account name, <I>%h </I>by the current user's
      home directory, <I>%t </I>by the name of the current action, <I>%u </I>by the current
-     user's login name, <I>%g </I>by the name of the current user's group and <I>%n </I>and
-     <I>%m </I>by the UID and GID respectively.
+     user's login name and <I>%n </I>by the UID.
 
      <B>drop    </B>Discard the mail.
 
@@ -183,7 +192,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      Rules are specified using the <B>match </B>keyword. It has the following basic
      form:
 
-     <B>match </B><I>regexps </I>[<I>accounts</I>] [<B>user </B><I>user</I>] [<B>group </B><I>group</I>] <I>actions </I>[<B>continue</B>]
+     <B>match </B><I>regexps </I>[<I>accounts</I>] [<B>user </B><I>user</I>] <I>actions </I>[<B>continue</B>]
 
      The <I>regexps </I>part has the following syntax:
 
@@ -196,8 +205,9 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      sensitive matching. Multiple regexps may be specified by chaining them
      with <B>and </B>or <B>or </B>keywords. The regexps are matched from left to right.
 
-     The optional <B>user </B>and <B>group </B>instruct fdm(1) to change to the specified
-     user and group before performing any of the actions for this rule.
+     The optional <B>user </B>keyword instructs fdm(1) to change to the specified us-
+     er before performing any of the actions for this rule, if running as
+     root.
 
      Both the <I>accounts </I>and <I>actions </I>parts consist either of a single name or a
      list of names enclosed in braces:
