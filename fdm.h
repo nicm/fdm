@@ -99,14 +99,16 @@ struct mail {
 };
 
 /* Privsep message types. */
-#define MSG_DELIVER 0
-#define MSG_EXIT 1
-#define MSG_DONE 2
+enum type {
+	MSG_DELIVER,
+	MSG_EXIT,
+	MSG_DONE
+};
 
 /* Privsep message. */
 struct msg {
-	int	 type;
-	int	 error;
+	enum type	 type;
+	int	 	 error;
 
 	struct mail	 mail;
 
