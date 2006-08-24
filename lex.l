@@ -168,6 +168,7 @@ smtp return (ACTSMTP);
 stdin return (TOKSTDIN);
 to return (TOKTO);
 user return (TOKUSER);
+users return (TOKUSERS);
 write return (ACTWRITE);
 \{ return (SYMOPEN);
 \} return (SYMCLOSE);

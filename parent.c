@@ -89,12 +89,13 @@ int
 perform_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
-	u_int		 i, n;
+	u_int		 i;
 	int		 find;
-	uid_t		*uids;
+	struct users	*users;
+	uid_t		 uid;
 	
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		t = ARRAY_ITEM(r->actions, i);
+		t = ARRAY_ITEM(r->actions, i, struct action *);
 		if (t->deliver->deliver == NULL)
 			continue;
 		log_debug2("%s: action %s", a->name, t->name);
@@ -108,40 +109,39 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		}
 	
 		/* figure out the users to use */
-		uids = NULL;
-		if (r->find_uid) {	/* rule comes first */
+		users = NULL;
+		if (r->find_uid) {		/* rule comes first */
 			find = 1;
-			uids = find_users(m, &n);
-		} else if (r->uid != 0) {
+			users = find_users(m);
+		} else if (r->users != NULL) {
 			find = 0;
-			uids = &r->uid;
-			n = 1;
+			users = r->users;
 		} else if (t->find_uid) {
 			find = 1;
-			uids = find_users(m, &n);
-		} else if (t->uid != 0)	{	/* then action */
+			users = find_users(m);
+		} else if (t->users != NULL) {	/* then action */
 			find = 0;
-			uids = &t->uid;
-			n = 1;
+			users = t->users;
 		}
-		if (uids == NULL) {
-			find = 0;
-			uids = &conf.def_user;
-			n = 1;
+		if (users == NULL) {
+			find = 1;
+			users = xmalloc(sizeof *users);
+			ARRAY_INIT(users);
+			ARRAY_ADD(users, conf.def_user, uid_t);
 		}
 
-		log_debug("n = %u", n);
-		for (i = 0; i < n; i++) {
+		for (i = 0; i < ARRAY_LENGTH(users); i++) {
 			/* fork and deliver */
-			if (deliverfork(uids[i], a, m, t) != 0) {
+			uid = ARRAY_ITEM(users, i, uid_t);
+			if (deliverfork(uid, a, m, t) != 0) {
 				if (find)
-					xfree(uids);
+					xfree(users);
 				return (1);
 			}
 		}
 
 		if (find)
-			xfree(uids);
+			xfree(users);
 	}
 
 	return (0);

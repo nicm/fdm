@@ -183,24 +183,23 @@ find_header(struct mail *m, char *hdr, size_t *len)
 	return (hdr);
 }
 
-uid_t *
-find_users(struct mail *m, u_int *n)
+struct users *
+find_users(struct mail *m)
 {
 	struct passwd	*pw;
+	struct users	*users;
 	u_int	 	 i, j;
-	uid_t		*list;
 	char		*hdr, *ptr, *ptr2, *dom;
-	size_t	 	 len, alen, dlen, space;
+	size_t	 	 len, alen, dlen;
 
-	*n = 0;
-	space = 32 * (sizeof *list);
-	list = xmalloc(space);
+	users = xmalloc(sizeof *users);
+	ARRAY_INIT(users);
 
 	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		if (*ARRAY_ITEM(conf.headers, i) == '\0')
+		if (*ARRAY_ITEM(conf.headers, i, char *) == '\0')
 			continue;
 
-		xasprintf(&ptr, "%s: ", ARRAY_ITEM(conf.headers, i));
+		xasprintf(&ptr, "%s: ", ARRAY_ITEM(conf.headers, i, char *));
 		hdr = find_header(m, ptr, &len);
 		free(ptr);
 		
@@ -222,7 +221,7 @@ find_users(struct mail *m, u_int *n)
 
 			ptr2 = (char *) memchr(ptr, '@', alen) + 1;
 			for (j = 0; j < ARRAY_LENGTH(conf.domains); j++) {
-				dom = ARRAY_ITEM(conf.domains, j);
+				dom = ARRAY_ITEM(conf.domains, j, char *);
 				dlen = strlen(dom);
 				if (dlen > alen - (ptr2 - ptr))
 					dlen = alen - (ptr2 - ptr);
@@ -231,10 +230,8 @@ find_users(struct mail *m, u_int *n)
 					*--ptr2 = '\0';
 					pw = getpwnam(ptr);
 					if (pw != NULL) {
-						(*n)++;
-						ENSURE_SIZE(list, space, 
-						    *n * sizeof (uid_t));
-						list[*n - 1] = pw->pw_uid;
+						ARRAY_ADD(users, pw->pw_uid, 
+						    uid_t);
 					}
 					endpwent();
 					*ptr2 = '@';
@@ -247,12 +244,11 @@ find_users(struct mail *m, u_int *n)
 		} 
 	}
 
-	if (*n == 0) {
-		xfree(list);
+	if (ARRAY_EMPTY(users)) {
+		xfree(users);
 		return (NULL);
 	}
-
-	return (list);
+	return (users);
 }
 
 char *

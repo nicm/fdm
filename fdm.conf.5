@@ -87,6 +87,21 @@ and
 .Em fcntl
 types are mutually exclusive. The default is
 .Em flock .
+.It Xo Ic domain Ar domain | Ic domains
+.Li {
+.Ar domain Ar ...
+.Li }
+.Xc
+This specifies the domains to be used when looking for users with the
+.Ic from-headers
+keyword. The default is the computer's hostname.
+.It Xo Ic header Ar header | Ic headers
+.Li {
+.Ar header Ar ...
+.Li }
+.Xc
+This allows the headers to be examined when looking for users to be set. The default is to look only at the "From" and "Cc" headers. The headers are case-sensitive.
+.El
 .Sh ACCOUNTS
 The
 .Ic account
@@ -135,19 +150,40 @@ The
 .Ic action
 command is used to define actions. These may be specified by name in rules (see below) to perform some action on a mail. The syntax is:
 .Bl -tag -width Ds
-.It Xo Ic action Ar name
-.Op Ic user Ar user
+.It Xo Ic action Ar name Op Ar users
 .Ar action
 .Xc
 .El
 .Pp
 The
 .Ar name
-is a string defining a name for the action. The 
-.Ar user
-keyword specifies a user to which
+is a string defining a name for the action. The optional
+.Ar users
+argument has the following form:
+.Bl -tag -width Ds
+.It Xo Ic user Ar user | Ic users 
+.Li { 
+.Ar user ... 
+.Li } |
+.Ic user Ic from-headers
+.Xc
+.El
+.Pp
+The first two options specify a user or list of users as which the mail should be delivered. If 
+.Ic user Ic from-headers
+is specified,
 .Xr fdm 1
-should change before executing the action. The action's user may be overridden in the matching rule. This keyword has no effect if fdm is run as non-root.
+attempts to find the users from the mail headers, using the values of the
+.Ic headers
+and 
+.Ic domains
+options. If no headers are specified, or 
+.Xr fdm 1
+fails to find any valid users in the headers, the default user (set with
+.Ic set Ic defuser )
+is used. An action's user setting may be overridden in the matching rule. This keyword has no effect if 
+.Xr fdm 1
+is run as non-root.
 .Pp
 The possible values for 
 .Ar action
@@ -206,7 +242,7 @@ keyword. It has the following basic form:
 .Bl -tag -width Ds
 .It Xo Ic match Ar regexps 
 .Op Ar accounts 
-.Op Ic user Ar user
+.Op Ar users
 .Ar actions
 .Op Ic continue
 .Xc
@@ -236,10 +272,10 @@ or
 keywords. The regexps are matched from left to right.
 .Pp
 The optional
-.Ic user
-keyword instructs
-.Xr fdm 1
-to change to the specified user before performing any of the actions for this rule, if running as root.
+.Ar users
+argument has the same syntax as for an
+.Ic action
+definition. A rule's user list overrides any lists given as part of the actions.
 .Pp
 Both the
 .Ar accounts

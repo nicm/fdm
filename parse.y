@@ -97,7 +97,7 @@ find_action(char *name)
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
-%token TOKHEADER TOKFROMHEADERS
+%token TOKHEADER TOKFROMHEADERS TOKUSERS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -126,9 +126,9 @@ find_action(char *name)
 	struct matches		*matches;
 	uid_t			 uid;
 	struct {
-		uid_t		 uid;
+		struct users	*users;
 		int		 find_uid;
-	} user;
+	} users;
 }
 
 %token <number> NUMBER
@@ -151,7 +151,7 @@ find_action(char *name)
 %type  <server> server
 %type  <string> port command to
 %type  <uid> uid
-%type  <user> user
+%type  <users> users userslist
 
 %%
 
@@ -211,7 +211,7 @@ domains: TOKDOMAIN STRING
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((int) *cp);
-		 ARRAY_ADD($$, $2, sizeof (char *));
+		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKDOMAINS SYMOPEN domainslist SYMCLOSE
 	 {
@@ -225,7 +225,7 @@ domainslist: domainslist STRING
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
-		     ARRAY_ADD($$, $2, sizeof (char *));
+		     ARRAY_ADD($$, $2, char *);
 	     }	
 	   | STRING
 	     {
@@ -235,7 +235,7 @@ domainslist: domainslist STRING
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
-		     ARRAY_ADD($$, $1, sizeof (char *));
+		     ARRAY_ADD($$, $1, char *);
 	     }
 
 headers: TOKHEADER STRING
@@ -246,7 +246,7 @@ headers: TOKHEADER STRING
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((int) *cp);
-		 ARRAY_ADD($$, $2, sizeof (char *));
+		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKHEADERS SYMOPEN headerslist SYMCLOSE
 	 {
@@ -260,7 +260,7 @@ headerslist: headerslist STRING
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
-		     ARRAY_ADD($$, $2, sizeof (char *));
+		     ARRAY_ADD($$, $2, char *);
 	     }	
 	   | STRING
 	     {
@@ -270,7 +270,7 @@ headerslist: headerslist STRING
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
-		     ARRAY_ADD($$, $1, sizeof (char *));
+		     ARRAY_ADD($$, $1, char *);
 	     }
 
 lock: LCKFCNTL
@@ -326,21 +326,40 @@ uid: STRING
 	     endpwent();
      }
 
-user: /* empty */
-      {
-	      $$.uid = 0;
-	      $$.find_uid = 0;
-      }
-    | TOKUSER uid
-      {
-	      $$.uid = $2;
-	      $$.find_uid = 0;
-      }
-    | TOKUSER TOKFROMHEADERS
-      {
-	      $$.uid = 0;
-	      $$.find_uid = 1;
-      }
+users: /* empty */
+       {
+	       $$.users = NULL;
+	       $$.find_uid = 0;
+       }
+     | TOKUSER TOKFROMHEADERS
+       {
+	       $$.users = NULL;
+	       $$.find_uid = 1;
+       }
+     | TOKUSER uid
+       {
+	       $$.users = xmalloc(sizeof (struct users));
+	       ARRAY_INIT($$.users);
+	       ARRAY_ADD($$.users, $2, uid_t);
+	       $$.find_uid = 0;
+       }
+     | TOKUSERS SYMOPEN userslist SYMCLOSE
+       {
+	       $$ = $3;
+	       $$.find_uid = 0;
+       }
+
+userslist: userslist uid
+	   {
+		   $$ = $1;
+		   ARRAY_ADD($$.users, $2, uid_t);
+	   }	
+	 | uid
+	   {
+		   $$.users = xmalloc(sizeof (struct users));
+		   ARRAY_INIT($$.users);
+		   ARRAY_ADD($$.users, $1, uid_t);
+	   }
 
 icase: TOKCASE
       {
@@ -446,7 +465,7 @@ action: ACTPIPE command
 		$$.deliver = &deliver_drop;
 	}
 
-define: TOKACTION STRING user action
+define: TOKACTION STRING users action
 	{
 		struct action	*t;
 
@@ -460,7 +479,7 @@ define: TOKACTION STRING user action
 		t = xmalloc(sizeof *t);
 		memcpy(t, &$4, sizeof *t);
 		strlcpy(t->name, $2, sizeof t->name);
-		t->uid = $3.uid;
+		t->users = $3.users;
 		t->find_uid = $3.find_uid;
 		TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
@@ -480,7 +499,7 @@ accounts: /* empty */
 		  ARRAY_INIT($$);
 		  if (find_account($2) == NULL)
 			  yyerror("unknown account: %s", $2);
-		  ARRAY_ADD($$, $2, sizeof (char *));
+		  ARRAY_ADD($$, $2, char *);
 	  }
 	| TOKACCOUNTS SYMOPEN accountslist SYMCLOSE
 	  {
@@ -492,7 +511,7 @@ accountslist: accountslist STRING
 		      $$ = $1;
 		      if (find_account($2) == NULL)
 			      yyerror("unknown account: %s", $2);
-		      ARRAY_ADD($$, $2, sizeof (char *));
+		      ARRAY_ADD($$, $2, char *);
 	      }	
 	    | STRING
 	      {
@@ -500,7 +519,7 @@ accountslist: accountslist STRING
 		      ARRAY_INIT($$);
 		      if (find_account($1) == NULL)
 			      yyerror("unknown account: %s", $1);
-		      ARRAY_ADD($$, $1, sizeof (char *));
+		      ARRAY_ADD($$, $1, char *);
 	      }
 
 actions: TOKACTION STRING
@@ -511,7 +530,7 @@ actions: TOKACTION STRING
 		 ARRAY_INIT($$);
 		 if ((t = find_action($2)) == NULL)
 			 yyerror("unknown action: %s", $2);
-		 ARRAY_ADD($$, t, sizeof (struct action *));
+		 ARRAY_ADD($$, t, struct action *);
 		 free($2);
 	 }
        | TOKACTIONS SYMOPEN actionslist SYMCLOSE
@@ -526,7 +545,7 @@ actionslist: actionslist STRING
 		     $$ = $1;
 		     if ((t = find_action($2)) == NULL)
 			     yyerror("unknown action: %s", $2);
-		     ARRAY_ADD($$, t, sizeof (struct action *));
+		     ARRAY_ADD($$, t, struct action *);
 		     free($2);
 	     }	
 	   | STRING
@@ -537,7 +556,7 @@ actionslist: actionslist STRING
 		     ARRAY_INIT($$);
 		     if ((t = find_action($1)) == NULL)
 			     yyerror("unknown action: %s", $1);
-		     ARRAY_ADD($$, t, sizeof (struct action *));
+		     ARRAY_ADD($$, t, struct action *);
 		     free($1);
 	     }
 
@@ -629,7 +648,7 @@ matches: TOKMATCH match matchlist
 		 $$ = NULL;
 	 }
 
-rule: matches accounts user actions cont
+rule: matches accounts users actions cont
       {
 	      struct rule	*r;
 	      struct match	*c;
@@ -641,7 +660,7 @@ rule: matches accounts user actions cont
 	      r->stop = !$5;
 	      r->accounts = $2;
 	      r->matches = $1;
-	      r->uid = $3.uid;
+	      r->users = $3.users;
 	      r->find_uid = $3.find_uid;
 	      r->actions = $4;
 	      
@@ -680,7 +699,8 @@ rule: matches accounts user actions cont
 	      }
 	      *tmp2 = '\0';
 	      for (i = 0; i < ARRAY_LENGTH($4); i++) {
-		      strlcat(tmp2, ARRAY_ITEM($4, i)->name, sizeof tmp2);
+		      strlcat(tmp2, ARRAY_ITEM($4, i, struct action *)->name,
+			  sizeof tmp2);
 		      strlcat(tmp2, " ", sizeof tmp2);
 	      }
 			  

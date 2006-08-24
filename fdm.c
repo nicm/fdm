@@ -167,7 +167,7 @@ main(int argc, char **argv)
         while ((opt = getopt(argc, argv, "a:f:lnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
-			ARRAY_ADD(&conf.incl, optarg, sizeof (char *));
+			ARRAY_ADD(&conf.incl, optarg, char *);
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
@@ -198,7 +198,7 @@ main(int argc, char **argv)
                         conf.debug++;
                         break;
 		case 'x':
-			ARRAY_ADD(&conf.excl, optarg, sizeof (char *));
+			ARRAY_ADD(&conf.excl, optarg, char *);
 			break;
                 case '?':
                 default:
@@ -256,23 +256,23 @@ main(int argc, char **argv)
 	if (conf.headers == NULL) {
 		conf.headers = xmalloc(sizeof (struct headers));
 		ARRAY_INIT(conf.headers);
-		ARRAY_ADD(conf.headers, xstrdup("to"), sizeof (char *));
-		ARRAY_ADD(conf.headers, xstrdup("cc"), sizeof (char *));
+		ARRAY_ADD(conf.headers, xstrdup("to"), char *);
+		ARRAY_ADD(conf.headers, xstrdup("cc"), char *);
 	}
 	xsnprintf(tmp, sizeof tmp, "headers are: ");
 	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		strlcat(tmp, ARRAY_ITEM(conf.headers, i), sizeof tmp);
+		strlcat(tmp, ARRAY_ITEM(conf.headers, i, char *), sizeof tmp);
 		strlcat(tmp, " ", sizeof tmp);
 	}
 	log_debug("%s", tmp);
 	if (conf.domains == NULL) {
 		conf.domains = xmalloc(sizeof (struct domains));
 		ARRAY_INIT(conf.domains);
-		ARRAY_ADD(conf.domains, conf.info.host, sizeof (char *));
+		ARRAY_ADD(conf.domains, conf.info.host, char *);
 	}
 	xsnprintf(tmp, sizeof tmp, "domains are: ");
 	for (i = 0; i < ARRAY_LENGTH(conf.domains); i++) {
-		strlcat(tmp, ARRAY_ITEM(conf.domains, i), sizeof tmp);
+		strlcat(tmp, ARRAY_ITEM(conf.domains, i, char *), sizeof tmp);
 		strlcat(tmp, " ", sizeof tmp);
 	}
 	log_debug("%s", tmp);

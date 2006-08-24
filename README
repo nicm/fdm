@@ -30,21 +30,17 @@ with:
 
 Mail will be delivered either using the user specified in the rule or action or
 the user specified by the "defuser" keyword (or with the -u switch on the
-command line). A config file for multiuser may look something like:
+command line) or the from-headers keyword may be used to try and extract the
+user from the mail headers. A config file for multiuser may look something like:
 
 	set defuser "bob"
+	set headers { "to" "cc" "x-custom" }
+	set domains { "my.domain" "localhost" }
 	account ......
-	action "default" maildir "%h/mail/inbox"
-	# continue is used for these two so that Cc or To headers lines with
-	# multiple users work (otherwise they would be delivered to the first)
-	match "^(To:|Cc:).*[ \t]jim@my.domain" user "jim" action "default" continue
-	match "^(To:|Cc:).*[ \t]sam@my.domain" user "sam" action "default" continue
-	# no continue here, otherwise all mail would end up at the last rule,
-	# not just unmatched
-	match "^(To:|Cc:).*[ \t]bob@my.domain" user "bob" action "default"
-	match all action "default" # the rest will use the default user
+	action "default" user from-headers maildir "%h/mail/inbox"
+	match all action "default"
 
-Alternatively, it could be something like this:
+Alternatively, it could be more limited, perhap something like this:
 
 	set defuser "bob" # this is required but not used in this file
 	account ......

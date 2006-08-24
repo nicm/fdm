@@ -141,7 +141,7 @@ struct account {
 struct action {
 	char			 name[MAXNAMESIZE];
 
-	uid_t			 uid;
+	struct users		*users;
 	int			 find_uid;
 
 	struct deliver		*deliver;
@@ -152,21 +152,16 @@ struct action {
 
 #define ARRAY_INIT(a) do {						\
 	(a)->num = 0;							\
-	(a)->list = NULL;						\
+	(a)->list = NULL;      						\
 } while (0)
-#define ARRAY_FREE(a) do {						\
-	u_int	i;							\
-	for (i = 0; i < (a)->num; i++) 					\
-		xfree((a)->list[i]);					\
-} while (0)
-#define ARRAY_ADD(a, s, l) do {						\
-	(a)->list = xrealloc((a)->list, (a)->num + 1, l);		\
-	(a)->list[(a)->num] = s;					\
+#define ARRAY_ADD(a, s, c) do {						\
+	(a)->list = xrealloc((a)->list, (a)->num + 1, sizeof (c));	\
+	((c *) (a)->list)[(a)->num] = s;				\
 	(a)->num++;							\
 } while (0)
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
-#define ARRAY_ITEM(a, n) ((a)->list[n])
+#define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
 
 /* Accounts array. */
 struct accounts {
@@ -214,7 +209,7 @@ struct rule {
 
 	struct matches		*matches;
 
-	uid_t			 uid;
+	struct users		*users;
 	int			 find_uid;	/* find uids from headers */
 
 	int			 stop;		/* stop matching at this rule */
@@ -268,6 +263,12 @@ struct domains {
 
 /* Headers array. */
 struct headers {
+	char	**list;
+	u_int	  num;
+};
+
+/* Users array. */
+struct users {
 	char	**list;
 	u_int	  num;
 };
@@ -471,7 +472,7 @@ void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
 char 			*find_header(struct mail *, char *, size_t *);
-uid_t 			*find_users(struct mail *, u_int *);
+struct users		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
 void			 make_from(struct mail *);
