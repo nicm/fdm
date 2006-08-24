@@ -91,12 +91,12 @@ find_action(char *name)
 }
 %}
 
-%token SYMOPEN SYMCLOSE SYMSTAR
+%token SYMOPEN SYMCLOSE
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
-%token OPTMAXSIZE OPTDELTOOBIG OPTLOCKTYPES OPTDEFUSER
+%token OPTMAXSIZE OPTDELTOOBIG OPTLOCKTYPES OPTDEFUSER OPTDOMAIN OPTDOMAINS
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -117,6 +117,7 @@ find_action(char *name)
 	enum area	 	 area;
 	enum op			 op;
 	struct accounts		*accounts;
+	struct domains		*domains;
 	struct actions		*actions;
 	struct matches		*matches;
 	struct match		*match;
@@ -128,21 +129,21 @@ find_action(char *name)
 %token <string> STRING
 %token <area>	AREA
 
-%type  <server> server
-%type  <action> action
-%type  <string> port command to
 %type  <accounts> accounts accountslist
+%type  <action> action
 %type  <actions> actions actionslist
-%type  <flag> continue icase
-%type  <number> size
-%type  <fetch> poptype fetchtype
-%type  <locks> lock locklist
 %type  <area> area
+%type  <domains> domains domainslist
+%type  <fetch> poptype fetchtype
+%type  <flag> continue icase
+%type  <locks> lock locklist
 %type  <match> match
 %type  <matches> matches matchlist
+%type  <number> size
 %type  <op> op
-%type  <uid> user
-%type  <uid> userval
+%type  <server> server
+%type  <string> port command to
+%type  <uid> user userval
 
 %%
 
@@ -181,6 +182,33 @@ set: TOKSET OPTMAXSIZE size
 	     if (conf.def_user == 0)
 		     conf.def_user = $3;
      }
+   | TOKSET domains
+     {
+	     conf.domains = $2;
+     }
+
+domains: OPTDOMAIN STRING
+	 {
+		 $$ = xmalloc(sizeof (struct domains));
+		 ARRAY_INIT($$);
+		 ARRAY_ADD($$, $2, sizeof (char *));
+	 }
+       | OPTDOMAINS SYMOPEN domainslist SYMCLOSE
+	 {
+		 $$ = $3;
+	 }
+
+domainslist: domainslist STRING
+	     {
+		     $$ = $1;
+		     ARRAY_ADD($$, $2, sizeof (char *));
+	     }	
+	   | STRING
+	     {
+		      $$ = xmalloc(sizeof (struct domains));
+		      ARRAY_INIT($$);
+		      ARRAY_ADD($$, $1, sizeof (char *));
+	     }
 
 lock: LCKFCNTL
       {
@@ -371,28 +399,9 @@ define: TOKACTION STRING user action
 		xfree($2);
 	}
 
-all: SYMSTAR
-   | TOKALL
-
 accounts: /* empty */
 	  {
 		  $$ = NULL;
-	  }
-	| TOKACCOUNTS all
-	  {
-		  $$ = NULL;
-	  }
-	| TOKACCOUNT all
-	  {
-		  $$ = NULL;
-	  }
-	| TOKACCOUNTS STRING
-	  {
-		  $$ = xmalloc(sizeof (struct accounts));
-		  ARRAY_INIT($$);
-		  if (find_account($2) == NULL)
-			  yyerror("unknown account: %s", $2);
-		  ARRAY_ADD($$, $2, sizeof (char *));
 	  }
         | TOKACCOUNT STRING
 	  {
@@ -423,54 +432,43 @@ accountslist: accountslist STRING
 		      ARRAY_ADD($$, $1, sizeof (char *));
 	      }
 
-actions:  TOKACTIONS STRING
-	  {
-		  struct action	*t;
-
-		  $$ = xmalloc(sizeof (struct actions));
-		  ARRAY_INIT($$);
-		  if ((t = find_action($2)) == NULL)
-			  yyerror("unknown action: %s", $2);
-		  ARRAY_ADD($$, t, sizeof (struct action *));
-		  free($2);
-	  }
-        | TOKACTION STRING
-	  {
-		  struct action	*t;
-
-		  $$ = xmalloc(sizeof (struct actions));
-		  ARRAY_INIT($$);
-		  if ((t = find_action($2)) == NULL)
-			  yyerror("unknown action: %s", $2);
-		  ARRAY_ADD($$, t, sizeof (struct action *));
-		  free($2);
-	  }
-	| TOKACTIONS SYMOPEN actionslist SYMCLOSE
-	  {
-		  $$ = $3;
-	  }	
+actions: TOKACTION STRING
+	 {
+		 struct action	*t;
+		 
+		 $$ = xmalloc(sizeof (struct actions));
+		 ARRAY_INIT($$);
+		 if ((t = find_action($2)) == NULL)
+			 yyerror("unknown action: %s", $2);
+		 ARRAY_ADD($$, t, sizeof (struct action *));
+		 free($2);
+	 }
+       | TOKACTIONS SYMOPEN actionslist SYMCLOSE
+         {
+		 $$ = $3;
+	 }
 
 actionslist: actionslist STRING
- 	      {
-		      struct action	*t;
+	     {
+		     struct action	*t;
 
-		      $$ = $1;
-		      if ((t = find_action($2)) == NULL)
-			      yyerror("unknown action: %s", $2);
-		      ARRAY_ADD($$, t, sizeof (struct action *));
-		      free($2);
-	      }	
-	    | STRING
-	      {
-		      struct action	*t;
-
-		      $$ = xmalloc(sizeof (struct actions));
-		      ARRAY_INIT($$);
-		      if ((t = find_action($1)) == NULL)
-			      yyerror("unknown action: %s", $1);
-		      ARRAY_ADD($$, t, sizeof (struct action *));
-		      free($1);
-	      }
+		     $$ = $1;
+		     if ((t = find_action($2)) == NULL)
+			     yyerror("unknown action: %s", $2);
+		     ARRAY_ADD($$, t, sizeof (struct action *));
+		     free($2);
+	     }	
+	   | STRING
+	     {
+		     struct action	*t;
+		     
+		     $$ = xmalloc(sizeof (struct actions));
+		     ARRAY_INIT($$);
+		     if ((t = find_action($1)) == NULL)
+			     yyerror("unknown action: %s", $1);
+		     ARRAY_ADD($$, t, sizeof (struct action *));
+		     free($1);
+	     }
 
 continue: /* empty */
 	  {
@@ -547,7 +545,7 @@ matches: TOKMATCH match matchlist
 		 $$ = xcalloc(1, sizeof (struct matches));
 		 TAILQ_INSERT_HEAD($$, $2, entry);
 	 }
-       | TOKMATCH all
+       | TOKMATCH TOKALL
 	 {
 		 $$ = NULL;
 	 }

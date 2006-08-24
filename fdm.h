@@ -243,6 +243,12 @@ struct deliver {
 #define LOCK_FLOCK 0x2
 #define LOCK_DOTLOCK 0x4
 
+/* Domains array. */
+struct domains {
+	char	**list;
+	u_int	  num;
+};
+
 /* Configuration settings. */
 struct conf {
 	int 			 debug;
@@ -253,6 +259,8 @@ struct conf {
 
 	struct accounts	 	 incl;
 	struct accounts		 excl;
+
+	struct domains		*domains;
 
 	struct {
 		char		*home;
