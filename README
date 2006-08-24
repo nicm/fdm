@@ -45,7 +45,7 @@ Alternatively, it could be something like this:
 	match "^(To:|Cc:).*sam@my.domain" action "sam"
 	match all action "bob"
 	
-Again, it is best to fdm from cron.
+Again, it is best to run fdm from cron.
 
 --------------------------------------------------------------------------------
 This is beta-quality software. There will be bugs. I use maildirs so they are
