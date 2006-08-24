@@ -30,7 +30,7 @@
 
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
-#define MAXMAILSIZE	SSIZE_MAX
+#define MAXMAILSIZE	INT_MAX
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	32
