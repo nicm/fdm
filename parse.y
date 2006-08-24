@@ -101,7 +101,7 @@ find_action(char *name)
 
 %union
 {
-        int 	 	 	 number;
+	long long 	 	 number;
         char 			*string;
 	int 		 	 flag;
 	u_int			 locks;
@@ -163,7 +163,7 @@ size: NUMBER
 set: TOKSET OPTMAXSIZE size
      {
 	     if ($3 > MAXMAILSIZE)
-		     yyerror("maxsize too large: %d", $3);
+		     yyerror("maxsize too large: %lld", $3);
 	     conf.max_size = $3;
      }
    | TOKSET OPTLOCKTYPES locklist
@@ -223,10 +223,12 @@ userval: STRING
        | NUMBER
          {
 		 struct passwd	*pw;
-		 
+		
+		 if ($1 > UID_MAX)
+			 yyerror("invalid uid: %llu", $1); 
 		 pw = getpwuid($1);
 		 if (pw == NULL)
-			 yyerror("unknown uid: %lu", (u_long) $1);
+			 yyerror("unknown uid: %llu", $1);
 		 if (pw->pw_uid == 0)
 			 yyerror("cannot change to uid 0 user");
 		 $$ = pw->pw_uid;
@@ -259,7 +261,7 @@ port: TOKPORT STRING
       }	
     | TOKPORT NUMBER
       {
-	      xasprintf(&$$, "%d", $2);
+	      xasprintf(&$$, "%lld", $2);
       }
 
 server: TOKSERVER STRING port
