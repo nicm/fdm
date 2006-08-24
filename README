@@ -23,9 +23,14 @@ The included fdm.conf is an example of a single-user configuration.
 MULTIUSER
 --------------------------------------------------------------------------------
 When fdm is run as a root user, it will drop to user _fdm and chroot to that
-user's home directory in order to fetch mail. Mail will be delivered either
-using the user specified in the rule or action or the user specified by the
-"defuser" keyword. A config file for multiuser may look something like:
+user's home directory in order to fetch mail. You can add the user, on OpenBSD,
+with:
+
+	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
+
+Mail will be delivered either using the user specified in the rule or action or
+the user specified by the "defuser" keyword. A config file for multiuser may
+look something like:
 
 	set defuser "bob"
 	account ......
