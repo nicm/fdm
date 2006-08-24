@@ -336,6 +336,11 @@ users: /* empty */
 	       $$.users = NULL;
 	       $$.find_uid = 1;
        }
+     | TOKUSERS TOKFROMHEADERS
+       {
+	       $$.users = NULL;
+	       $$.find_uid = 1;
+       }
      | TOKUSER uid
        {
 	       $$.users = xmalloc(sizeof (struct users));
