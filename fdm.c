@@ -126,8 +126,8 @@ dropto(uid_t uid, char *path)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-lnv] [-f conffile] [-a account] [-x account] "
-	    "[fetch|poll]\n", __progname);
+	printf("usage: %s [-lnv] [-f conffile] [-u user] "
+	    "[-a account] [-x account] [fetch|poll]\n", __progname);
         exit(1);
 }
 
