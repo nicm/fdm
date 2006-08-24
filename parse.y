@@ -97,7 +97,7 @@ find_action(char *name)
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
-%token TOKHEADER TOKFROMHEADERS TOKUSERS
+%token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -123,7 +123,10 @@ find_action(char *name)
 	struct domains		*domains;
 	struct headers	 	*headers;
 	struct match		*match;
-	struct matches		*matches;
+	struct {
+		struct matches	*matches;
+		int		 type;
+	} matches;
 	uid_t			 uid;
 	struct {
 		struct users	*users;
@@ -626,31 +629,46 @@ matchlist: matchlist op match
 	   {
 		   $$ = $1;
 		   $3->op = $2;
-		   TAILQ_INSERT_TAIL($$, $3, entry);
+		   TAILQ_INSERT_TAIL($$.matches, $3, entry);
+		   $$.type = RULE_MATCHES;
 	   }
          | op match
 	   {
-		   $$ = xcalloc(1, sizeof (struct matches));
+		   $$.matches = xcalloc(1, sizeof (struct matches));
 		   $2->op = $1;
-		   TAILQ_INSERT_HEAD($$, $2, entry);
+		   TAILQ_INSERT_HEAD($$.matches, $2, entry);
+		   $$.type = RULE_MATCHES;
 	   }
 
 matches: TOKMATCH match matchlist
          {
-		 if ($3 != NULL)
+		 if ($3.matches != NULL)
 			 $$ = $3;
 		 else
-			 $$ = xcalloc(1, sizeof (struct matches));
-		 TAILQ_INSERT_HEAD($$, $2, entry);
+			 $$.matches = xcalloc(1, sizeof (struct matches));
+		 TAILQ_INSERT_HEAD($$.matches, $2, entry);
+		 $$.type = RULE_MATCHES;
 	 }
        | TOKMATCH match
          {
-		 $$ = xcalloc(1, sizeof (struct matches));
-		 TAILQ_INSERT_HEAD($$, $2, entry);
+		 $$.matches = xcalloc(1, sizeof (struct matches));
+		 TAILQ_INSERT_HEAD($$.matches, $2, entry);
+		 $$.type = RULE_MATCHES;
 	 }
        | TOKMATCH TOKALL
 	 {
-		 $$ = NULL;
+		 $$.matches = NULL;
+		 $$.type = RULE_ALL;
+	 }
+       | TOKMATCH TOKMATCHED
+	 {
+		 $$.matches = NULL;
+		 $$.type = RULE_MATCHED;
+	 }
+       | TOKMATCH TOKUNMATCHED
+	 {
+		 $$.matches = NULL;
+		 $$.type = RULE_UNMATCHED;
 	 }
 
 rule: matches accounts users actions cont
@@ -664,7 +682,8 @@ rule: matches accounts users actions cont
 	      r->index = rules++;
 	      r->stop = !$5;
 	      r->accounts = $2;
-	      r->matches = $1;
+	      r->matches = $1.matches;
+	      r->type = $1.type;
 	      r->users = $3.users;
 	      r->find_uid = $3.find_uid;
 	      r->actions = $4;

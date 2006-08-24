@@ -203,11 +203,18 @@ struct match {
 /* Match struct. */
 TAILQ_HEAD(matches, match);
 
+/* Rule types. */
+#define RULE_MATCHES 0
+#define RULE_ALL 1
+#define RULE_MATCHED 2
+#define RULE_UNMATCHED 3
+
 /* Rule entry. */
 struct rule {
 	u_int			 index;
 
 	struct matches		*matches;
+	int			 type;
 
 	struct users		*users;
 	int			 find_uid;	/* find uids from headers */

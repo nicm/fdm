@@ -174,7 +174,7 @@ fetch_account(struct io *io, struct account *a)
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, i;
-	int		 error;
+	int		 error, matched;
 	char		*name, *cause = NULL;
 	struct accounts	*list;
 
@@ -215,6 +215,7 @@ fetch_account(struct io *io, struct account *a)
 		i = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, i);
 
+		matched = 0;
 		TAILQ_FOREACH(r, &conf.rules, entry) {
 			/* check if the rule is for the current account */
 			list = r->accounts;
@@ -229,9 +230,24 @@ fetch_account(struct io *io, struct account *a)
 			}
 				
 			/* match all the regexps */
-			if (!perform_match(a, &m, r))
-				continue;
+			switch (r->type) {
+			case RULE_MATCHES:
+				if (!perform_match(a, &m, r))
+					continue;
+				break;
+			case RULE_ALL:
+				break;
+			case RULE_MATCHED:
+				if (!matched)
+					continue;
+				break;
+			case RULE_UNMATCHED:
+				if (matched)
+					continue;
+				break;
+			}
 			log_debug("%s: matched message", a->name);
+			matched = 1;
 
 			set_wrapped(&m, '\n');
 
@@ -302,9 +318,6 @@ perform_match(struct account *a, struct mail *m, struct rule *r)
 	regmatch_t	 pmatch;
 	int		 matched, result;
 	struct match	*c;
-
-	if (r->matches == NULL)
-		return (1);
 
 	set_wrapped(m, ' ');
 

@@ -210,18 +210,28 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      Rules are specified using the <B>match </B>keyword. It has the following basic
      form:
 
-     <B>match </B><I>regexps </I>[<I>accounts</I>] [<I>users</I>] <I>actions </I>[<B>continue</B>]
+     <B>match </B><I>conditions </I>[<I>accounts</I>] [<I>users</I>] <I>actions </I>[<B>continue</B>]
 
-     The <I>regexps </I>part has the following syntax:
+     The <I>condition </I>argument may be one of:
+
+     <B>all     </B>Matches all mail.
+
+     <B>matched</B>
+             Matches only mail that has matched a previous rule and been
+             passed on with <B>continue</B>.
+
+     <B>unmatched</B>
+             The opposite of <B>matched</B>: matches only mails which have matched no
+             previous rules.
 
      [<B>case</B>] <I>regexp </I>[<B>in headers </B>| <B>in body</B>] [<B>and </B>| <B>or </B><I>...</I>]
-
-     It specifies a list of regexps against which each mail should be matched.
-     The regexp matches may be restricted to either the headers or body of the
-     message by specifying either <B>in headers </B>or <B>in body</B>.  The <B>case </B>keyword
-     forces the regexp to be matched case-sensitively: the default is case-in-
-     sensitive matching. Multiple regexps may be specified by chaining them
-     with <B>and </B>or <B>or </B>keywords. The regexps are matched from left to right.
+             Specifies a list of regexps against which each mail should be
+             matched. The regexp matches may be restricted to either the head-
+             ers or body of the message by specifying either <B>in headers </B>or <B>in</B>
+             <B>body</B>.  The <B>case </B>keyword forces the regexp to be matched case-sen-
+             sitively: the default is case-insensitive matching. Multiple reg-
+             exps may be specified by chaining them with <B>and </B>or <B>or </B>keywords.
+             The regexps are matched from left to right.
 
      The optional <I>users </I>argument has the same syntax as for an <B>action </B>defini-
      tion. A rule's user list overrides any lists given as part of the ac-

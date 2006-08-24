@@ -47,10 +47,10 @@ Alternatively, it could be more limited, perhap something like this:
 	action "jim" user "jim" mbox "/var/mail/jim"
 	action "sam" user "sam" mbox "/var/mail/sam"
 	action "bob" user "bob" mbox "/var/mail/bob"
-	match "^(To:|Cc:).*[ \t]jim@my.domain" action "jim" continue
-	match "^(To:|Cc:).*[ \t]sam@my.domain" action "sam" continue
-	match "^(To:|Cc:).*[ \t]bob@my.domain" action "bob"
-	match all action "bob" # all other mail will end up with bob
+	match "^(To:|Cc:).* jim@my.domain" action "jim" continue
+	match "^(To:|Cc:).* sam@my.domain" action "sam" continue
+	match "^(To:|Cc:).* bob@my.domain" action "bob" continue
+	match unmatched action "bob" # all other mail will end up with bob
 
 If you use POP3 accounts fdm is best run from cron, but it can also be set up
 to deliver mail via stdin from an MTA. Configuring this is left as an exercise
