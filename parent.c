@@ -24,6 +24,7 @@
 #include "fdm.h"
 
 int	perform_actions(struct account *, struct mail *, struct rule *);
+int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
 int
 parent(int fd, pid_t pid)
@@ -42,8 +43,7 @@ parent(int fd, pid_t pid)
 			fatalx("parent: io_wait error");
 		if (io_read2(io, &msg, sizeof msg) != 0)
 			fatalx("parent: io_read2 error");
-
-		log_debug("parent: got message %d", msg.type);
+		log_debug("parent: got message type %d from child", msg.type);
 
 		switch (msg.type) {
 		case MSG_DELIVER:
@@ -89,17 +89,16 @@ int
 perform_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
-	u_int		 i;
-	int		 status;
-	uid_t		 uid;
-	pid_t		 pid;
+	u_int		 i, n;
+	int		 find;
+	uid_t		*uids;
 	
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		t = ARRAY_ITEM(r->actions, i);
 		if (t->deliver->deliver == NULL)
 			continue;
 		log_debug2("%s: action %s", a->name, t->name);
-		
+
 		if (geteuid() != 0) {
 			log_debug2("%s: not root. using current user", a->name);
 			/* do the delivery without forking */
@@ -107,56 +106,92 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 				return (1);
 			continue;
 		}
-		
-		pid = fork();
-		if (pid == -1) {
-			log_warn("%s: fork", a->name);
-			return (1);
+	
+		/* figure out the users to use */
+		uids = NULL;
+		if (r->find_uid) {	/* rule comes first */
+			find = 1;
+			uids = find_users(m, &n);
+		} else if (r->uid != 0) {
+			find = 0;
+			uids = &r->uid;
+			n = 1;
+		} else if (t->find_uid) {
+			find = 1;
+			uids = find_users(m, &n);
+		} else if (t->uid != 0)	{	/* then action */
+			find = 0;
+			uids = &t->uid;
+			n = 1;
 		}
-		if (pid != 0) {
-			/* parent process. wait for child */
-			log_debug2("%s: forked. child pid is %ld", a->name, 
-			    (long) pid);
-			if (waitpid(pid, &status, 0) == -1)
-				fatal("waitpid");
-			if (!WIFEXITED(status)) {
-				log_warnx("%s: child didn't exit normally",
-				    a->name);
+		if (uids == NULL) {
+			find = 0;
+			uids = &conf.def_user;
+			n = 1;
+		}
+
+		log_debug("n = %u", n);
+		for (i = 0; i < n; i++) {
+			/* fork and deliver */
+			if (deliverfork(uids[i], a, m, t) != 0) {
+				if (find)
+					xfree(uids);
 				return (1);
 			}
-			status = WEXITSTATUS(status);
-			if (status != 0) {
-				log_warnx("%s: child failed, exit code %d",
-				    a->name, status);
-				return (1);
-			}
-			continue;
 		}
-		
-		/* figure out the user to use */
-		uid = t->uid != 0 ? t->uid : r->uid;
-		if (uid == 0)
-			uid = conf.def_user;
 
-		/* child process. change user and group */
-		log_debug("%s: delivering using user %lu", a->name, 
-		    (u_long) uid);
-		if (dropto(uid, NULL) != 0) {
-			log_warnx("%s: can't drop privileges", a->name);
-			_exit(1);
-		}
-		setproctitle("deliver");
-
-		/* refresh user and home */
-		fill_info(NULL);	
-		log_debug2("%s: user is: %s, home is: %s", a->name, 
-		    conf.info.user, conf.info.home);
-
-		/* do the delivery */
-		if (t->deliver->deliver(a, t, m) != 0)
-			_exit(1);
-		_exit(0);
+		if (find)
+			xfree(uids);
 	}
 
 	return (0);
+}
+
+int
+deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
+{
+	int	status;
+	pid_t	pid;
+
+	pid = fork();
+	if (pid == -1) {
+		log_warn("%s: fork", a->name);
+		return (1);
+	}
+	if (pid != 0) {
+		/* parent process. wait for child */
+		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
+		if (waitpid(pid, &status, 0) == -1)
+			fatal("waitpid");
+		if (!WIFEXITED(status)) {
+			log_warnx("%s: child didn't exit normally", a->name);
+			return (1);
+		}
+		status = WEXITSTATUS(status);
+		if (status != 0) {
+			log_warnx("%s: child failed, exit code %d", a->name,
+			    status);
+			return (1);
+		}
+		return (0);
+	}
+		
+	/* child process. change user and group */
+	log_debug("%s: delivering using user %lu", a->name, (u_long) uid);
+	if (dropto(uid, NULL) != 0) {
+		log_warnx("%s: can't drop privileges", a->name);
+		_exit(1);
+	}
+	setproctitle("deliver[%lu]", (u_long) uid);
+
+	/* refresh user and home */
+	fill_info(NULL);	
+	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
+	    conf.info.home);
+
+	/* do the delivery */
+	if (t->deliver->deliver(a, t, m) != 0)
+		_exit(1);
+	_exit(0);
+	return (0); /* pfft */
 }

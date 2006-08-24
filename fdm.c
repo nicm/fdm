@@ -98,8 +98,8 @@ fill_info(char *home)
 		}
 		if (pw->pw_name != NULL && *pw->pw_name != '\0')
 			conf.info.user = xstrdup(pw->pw_name);
-		endpwent();
 	} 
+	endpwent();
 	if (conf.info.user == NULL) {
 		conf.info.user = xstrdup(conf.info.uid);
 		log_warn("can't find name for user %lu", (u_long) uid);
@@ -110,24 +110,26 @@ int
 dropto(uid_t uid, char *path)
 {
 	struct passwd	*pw;
+	gid_t		 gid;
 
 	pw = getpwuid(uid);
 	if (pw == NULL) {
+		endpwent();
 		errno = ESRCH;
 		return (1);
 	}
+	gid = pw->pw_gid;
+	endpwent();
 	
 	if (path != NULL) {
 		if (chroot(conf.child_path) != 0)
 			return (1);
 	}
 
-	if (setgroups(1, &pw->pw_gid) != 0 ||
-	    setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) != 0 ||
-	    setresuid(uid, uid, uid) != 0)
+	if (setgroups(1, &gid) != 0 ||
+	    setresgid(gid, gid, gid) != 0 || setresuid(uid, uid, uid) != 0)
 		return (1);
 
-	endpwent();
 	return (0);
 }
 
@@ -184,13 +186,13 @@ main(int argc, char **argv)
 					usage();
 				pw = getpwuid(n);
 			}
-			if (pw != NULL) {
+			if (pw != NULL)
 				conf.def_user = pw->pw_uid;
-				endpwent();
-			} else {
+			else {
 				log_warnx("unknown user: %s", optarg);
 				exit(1);
 			}
+			endpwent();
 			break;
                 case 'v':
                         conf.debug++;

@@ -23,6 +23,7 @@
 
 #include <ctype.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -170,7 +171,7 @@ find_header(struct mail *m, char *hdr, size_t *len)
 		ptr++;
 		if (*len > (size_t) (end - ptr))
 			return (NULL);
-	} while (strncmp(ptr, hdr, *len) != 0);
+	} while (strncasecmp(ptr, hdr, *len) != 0);
 		
 	hdr = ptr + *len;
 	ptr = memchr(hdr, '\n', end - hdr);
@@ -179,6 +180,127 @@ find_header(struct mail *m, char *hdr, size_t *len)
 	else
 		*len = (ptr - hdr) + 1;
 
+	return (hdr);
+}
+
+uid_t *
+find_users(struct mail *m, u_int *n)
+{
+	struct passwd	*pw;
+	u_int	 	 i, j;
+	uid_t		*list;
+	char		*hdr, *ptr, *ptr2, *dom;
+	size_t	 	 len, alen, dlen, space;
+
+	*n = 0;
+	space = 32 * (sizeof *list);
+	list = xmalloc(space);
+
+	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
+		if (*ARRAY_ITEM(conf.headers, i) == '\0')
+			continue;
+
+		xasprintf(&ptr, "%s: ", ARRAY_ITEM(conf.headers, i));
+		hdr = find_header(m, ptr, &len);
+		free(ptr);
+		
+		if (hdr == NULL || len < 1)
+			continue;
+		len--;	/* lose \n */
+		while (isspace((int) *hdr)) {
+			hdr++;
+			len--;
+		}
+		if (*hdr == '\0')
+			continue;
+
+		ptr = hdr;
+		while (len > 0 && ptr != NULL) {
+			ptr = find_address(hdr, len, &alen);
+			if (ptr == NULL)
+				continue;
+
+			ptr2 = (char *) memchr(ptr, '@', alen) + 1;
+			for (j = 0; j < ARRAY_LENGTH(conf.domains); j++) {
+				dom = ARRAY_ITEM(conf.domains, j);
+				dlen = strlen(dom);
+				if (dlen > alen - (ptr2 - ptr))
+					dlen = alen - (ptr2 - ptr);
+
+				if (strncasecmp(dom, ptr2, dlen) == 0) {
+					*--ptr2 = '\0';
+					pw = getpwnam(ptr);
+					if (pw != NULL) {
+						(*n)++;
+						ENSURE_SIZE(list, space, 
+						    *n * sizeof (uid_t));
+						list[*n - 1] = pw->pw_uid;
+					}
+					endpwent();
+					*ptr2 = '@';
+					break;
+				}
+			}
+
+			len -= (ptr - hdr) + alen;
+			hdr = ptr + alen;
+		} 
+	}
+
+	if (*n == 0) {
+		xfree(list);
+		return (NULL);
+	}
+
+	return (list);
+}
+
+char *
+find_address(char *hdr, size_t len, size_t *alen)
+{
+	char	*ptr;
+	size_t	 off, pos;
+
+	for (off = 0; off < len; off++) {
+		switch (hdr[off]) {
+		case '"':
+			off++;
+			while (off < len && hdr[off] != '"')
+				off++;
+			if (off < len) 
+				off++;
+			break;
+		case '<':
+			off++;
+			ptr = memchr(hdr + off, '>', len - off);
+			if (ptr == NULL)
+				break;
+			*alen = ptr - (hdr + off);
+			for (pos = 0; pos < *alen; pos++) {
+				if (!isaddr(hdr[off + pos]))
+					break;
+			}
+			if (pos != *alen)
+				break;
+			ptr = hdr + off;
+			if (*alen == 0 || memchr(ptr + off, '@', *alen) == NULL)
+				break;
+			if (ptr[0] == '@' || ptr[*alen - 1] == '@')
+				break;
+			return (ptr);
+		}
+	}
+
+	/* no address found */
+	*alen = 0;
+	for (*alen = 0; *alen < len; (*alen)++) {
+		if (!isaddr(hdr[*alen]))
+			break;
+	}
+	if (*alen == 0 || memchr(hdr + off, '@', *alen) == NULL)
+		return (NULL);
+	if (hdr[off] == '@' || hdr[*alen - 1] == '@')
+		return (NULL);
 	return (hdr);
 }
 
@@ -214,7 +336,7 @@ void
 make_from(struct mail *m)
 {
 	time_t	 t;
-	char	*from = NULL, *date = NULL, *ptr;
+	char	*from = NULL, *date = NULL;
 	size_t	 fromlen = 0, datelen = 0;
 
 	if (m->from != NULL)
@@ -223,24 +345,8 @@ make_from(struct mail *m)
 	from = find_header(m, "From: ", &fromlen);    
  	if (fromlen > INT_MAX)
 		from = NULL;
-	if (from != NULL && fromlen > 0) {
-		ptr = memchr(from, '<', fromlen);
-		if (ptr != NULL) {
-			fromlen -= (ptr + 1) - from;
-			from = ptr + 1;
-			ptr = memchr(from, '>', fromlen);
-			if (ptr != NULL)
- 				fromlen = ptr - from;
-			else
-				from = NULL;
-		} else {
-			/* can't find a <...>, so just use the first word */
-			ptr = from;
-			while (*ptr != '\n' && !isblank((int) *ptr))
-				ptr++;
-			fromlen = ptr - from;
-		}
-	}
+	if (from != NULL && fromlen > 0)
+		from = find_address(from, fromlen, &fromlen);
 	if (from == NULL) {
 		from = conf.info.user;
 		fromlen = strlen(from);

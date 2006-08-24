@@ -76,6 +76,16 @@ extern char	*__progname;
 	}								\
 } while (0)
 
+/* Valid email address chars. */
+#define isaddr(c) ( 							\
+	((c) >= 'a' && (c) <= 'z') || 					\
+	((c) >= 'A' && (c) <= 'Z') ||					\
+	((c) >= '0' && (c) <= '9') ||					\
+	(c) == '&' || (c) == '*' || (c) == '+' || (c) == '?' ||	 	\
+	(c) == '-' || (c) == '.' || (c) == '=' || (c) == '/' ||		\
+	(c) == '^' || (c) == '{' || (c) == '}' || (c) == '~' || 	\
+	(c) == '_' || (c) == '@' || (c) == '\'')
+
 /* Command-line commands. */
 enum cmd {
 	CMD_NONE,
@@ -132,6 +142,7 @@ struct action {
 	char			 name[MAXNAMESIZE];
 
 	uid_t			 uid;
+	int			 find_uid;
 
 	struct deliver		*deliver;
 	void			*data;
@@ -204,8 +215,9 @@ struct rule {
 	struct matches		*matches;
 
 	uid_t			 uid;
+	int			 find_uid;	/* find uids from headers */
 
-	int			 stop;	/* stop matching at this rule */
+	int			 stop;		/* stop matching at this rule */
 
 	struct actions		*actions;
 	struct accounts		*accounts;
@@ -271,8 +283,8 @@ struct conf {
 	struct accounts	 	 incl;
 	struct accounts		 excl;
 
-	struct domains		*domains;
-	struct headers		*headers;
+	struct domains		*domains; /* domains to look for with users */
+	struct headers		*headers; /* headers to search for users */
 
 	struct {
 		char		*home;
@@ -459,6 +471,8 @@ void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
 char 			*find_header(struct mail *, char *, size_t *);
+uid_t 			*find_users(struct mail *, u_int *);
+char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
 void			 make_from(struct mail *);
 u_int			 fill_wrapped(struct mail *);

@@ -146,6 +146,7 @@ dotlock return (LCKDOTLOCK);
 drop return (ACTDROP);
 fcntl return (LCKFCNTL);
 flock return (LCKFLOCK);
+from-headers return (TOKFROMHEADERS);
 header return (TOKHEADER);
 headers return (TOKHEADERS);
 in return (TOKIN);

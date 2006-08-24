@@ -97,7 +97,7 @@ find_action(char *name)
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
-%token TOKHEADER
+%token TOKHEADER TOKFROMHEADERS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -125,6 +125,10 @@ find_action(char *name)
 	struct match		*match;
 	struct matches		*matches;
 	uid_t			 uid;
+	struct {
+		uid_t		 uid;
+		int		 find_uid;
+	} user;
 }
 
 %token <number> NUMBER
@@ -146,7 +150,8 @@ find_action(char *name)
 %type  <op> op
 %type  <server> server
 %type  <string> port command to
-%type  <uid> user userval
+%type  <uid> uid
+%type  <user> user
 
 %%
 
@@ -180,7 +185,7 @@ set: TOKSET TOKMAXSIZE size
      {
 	     conf.del_big = 1;
      }
-   | TOKSET TOKDEFUSER userval
+   | TOKSET TOKDEFUSER uid
      {
 	     if (conf.def_user == 0)
 		     conf.def_user = $3;
@@ -294,40 +299,47 @@ locklist: locklist lock
 		  $$ = 0;
 	  }
 
-userval: STRING
-         {
-		 struct passwd	*pw;
-		 
-		 pw = getpwnam($1);
-		 if (pw == NULL)
-			 yyerror("unknown user: %s", $1);
-		 if (pw->pw_uid == 0)
-			 yyerror("cannot change to uid 0 user");
-		 $$ = pw->pw_uid;
-		 endpwent();
-	 }
-       | NUMBER
-         {
-		 struct passwd	*pw;
-		
-		 if ($1 > UID_MAX)
-			 yyerror("invalid uid: %llu", $1); 
-		 pw = getpwuid($1);
-		 if (pw == NULL)
-			 yyerror("unknown uid: %llu", $1);
-		 if (pw->pw_uid == 0)
-			 yyerror("cannot change to uid 0 user");
-		 $$ = pw->pw_uid;
-		 endpwent();
-	 }
+uid: STRING
+     {
+	     struct passwd	*pw;
+	     
+	     pw = getpwnam($1);
+	     if (pw == NULL)
+		     yyerror("unknown user: %s", $1);
+	     if (pw->pw_uid == 0)
+		     yyerror("cannot change to uid 0 user");
+	     $$ = pw->pw_uid;
+	     endpwent();
+     }
+   | NUMBER
+     {
+	     struct passwd	*pw;
+	     
+	     if ($1 > UID_MAX)
+		     yyerror("invalid uid: %llu", $1); 
+	     pw = getpwuid($1);
+	     if (pw == NULL)
+		     yyerror("unknown uid: %llu", $1);
+	     if (pw->pw_uid == 0)
+		     yyerror("cannot change to uid 0 user");
+	     $$ = pw->pw_uid;
+	     endpwent();
+     }
 
 user: /* empty */
       {
-	      $$ = 0;
+	      $$.uid = 0;
+	      $$.find_uid = 0;
       }
-    | TOKUSER userval
+    | TOKUSER uid
       {
-	      $$ = $2;
+	      $$.uid = $2;
+	      $$.find_uid = 0;
+      }
+    | TOKUSER TOKFROMHEADERS
+      {
+	      $$.uid = 0;
+	      $$.find_uid = 1;
       }
 
 icase: TOKCASE
@@ -448,7 +460,8 @@ define: TOKACTION STRING user action
 		t = xmalloc(sizeof *t);
 		memcpy(t, &$4, sizeof *t);
 		strlcpy(t->name, $2, sizeof t->name);
-		t->uid = $3;
+		t->uid = $3.uid;
+		t->find_uid = $3.find_uid;
 		TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
 		log_debug2("added action: name=%s deliver=%s", t->name,
@@ -628,7 +641,8 @@ rule: matches accounts user actions cont
 	      r->stop = !$5;
 	      r->accounts = $2;
 	      r->matches = $1;
-	      r->uid = $3;
+	      r->uid = $3.uid;
+	      r->find_uid = $3.find_uid;
 	      r->actions = $4;
 	      
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);

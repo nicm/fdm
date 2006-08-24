@@ -44,7 +44,6 @@ command line). A config file for multiuser may look something like:
 	match "^(To:|Cc:).*[ \t]bob@my.domain" user "bob" action "default"
 	match all action "default" # the rest will use the default user
 
-
 Alternatively, it could be something like this:
 
 	set defuser "bob" # this is required but not used in this file
@@ -56,10 +55,17 @@ Alternatively, it could be something like this:
 	match "^(To:|Cc:).*[ \t]sam@my.domain" action "sam" continue
 	match "^(To:|Cc:).*[ \t]bob@my.domain" action "bob"
 	match all action "bob" # all other mail will end up with bob
-	
+
 If you use POP3 accounts fdm is best run from cron, but it can also be set up
 to deliver mail via stdin from an MTA. Configuring this is left as an exercise
-for the reader.
+for the reader. If you're using some MTA than can invoke fdm with the -u
+option, you'd probably just need something like:
+
+	account stdin "stdin"
+	action "default" mbox "/var/mail/%u"
+	match all action "default"
+
+Since fdm will use then deliver using the default user from stdin.
 
 Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
 
