@@ -45,7 +45,6 @@ LDFLAGS+= -pg
 .endif
 LIBS= -lcrypto -lssl
 
-TARFLAGS= 
 DISTFILES= *.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] README
 
 CLEANFILES= ${PROG} *.o y.tab.c lex.yy.c y.tab.h .depend ${PROG}-*.tar.gz \
