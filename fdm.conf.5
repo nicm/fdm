@@ -65,6 +65,10 @@ for gigabytes. The default is one gigabyte.
 If this option is specified,
 .Xr fdm 1
 attempts to delete messages which exceed
+.Ic defusre Ar user
+This sets the default user to change to before delivering mail, if 
+.Xr fdm 1
+is running as root and no alternative user is specified as part of the command.
 .Ic maxsize ,
 and continue. If it is not specified, oversize messages are a fatal error and cause
 .Xr fdm 1
@@ -131,7 +135,6 @@ command is used to define actions. These may be specified by name in rules (see 
 .Bl -tag -width Ds
 .It Xo Ic action Ar name
 .Op Ic user Ar user
-.Op Ic group Ar group 
 .Ar action
 .Xc
 .El
@@ -140,11 +143,9 @@ The
 .Ar name
 is a string defining a name for the action. The 
 .Ar user
-and
-.Ar group
-keywords specify a user or group to which
+keyword specifies a user to which
 .Xr fdm 1
-should drop before executing the action. The action's user or group may be overridden in the matching rule.
+should change before executing the action. The action's user may be overridden in the matching rule. This keyword has no effect if fdm is run as non-root.
 .Pp
 The possible values for 
 .Ar action
@@ -160,13 +161,9 @@ by the current user's home directory,
 .Em %t
 by the name of the current action,
 .Em %u
-by the current user's login name,
-.Em %g
-by the name of the current user's group and
-.Em %n 
-and 
-.Em %m
-by the UID and GID respectively.
+by the current user's login name and 
+.Em %n
+by the UID.
 .Bl -tag -width Ds
 .It Xo Ic drop
 .Xc
@@ -208,7 +205,6 @@ keyword. It has the following basic form:
 .It Xo Ic match Ar regexps 
 .Op Ar accounts 
 .Op Ic user Ar user
-.Op Ic group Ar group
 .Ar actions
 .Op Ic continue
 .Xc
@@ -239,11 +235,9 @@ keywords. The regexps are matched from left to right.
 .Pp
 The optional
 .Ic user
-and
-.Ic group
-instruct
+keyword instructs
 .Xr fdm 1
-to change to the specified user and group before performing any of the actions for this rule.
+to change to the specified user before performing any of the actions for this rule, if running as root.
 .Pp
 Both the
 .Ar accounts

@@ -57,20 +57,20 @@ xmalloc_clear(void)
 }
 
 void
-xmalloc_dump(void)
+xmalloc_dump(char *hdr)
 {
  	u_int	i;
 	size_t	len, off;
 	char	tmp[4096];
 
-	log_debug("xmalloc: allocated=%zu, freed=%zu", xmalloc_allocated,
+	log_debug("%s: allocated=%zu, freed=%zu", hdr, xmalloc_allocated,
 	    xmalloc_freed);
 
 	if (xmalloc_allocated == xmalloc_freed)
 		return;
 
 	len = 1024;
-	off = xsnprintf(tmp, len, "xmalloc: ");
+	off = xsnprintf(tmp, len, "%s: ", hdr);
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
 		if (xmalloc_array[i].ptr != NULL) {
 			off += xsnprintf(tmp + off, len - off, "[%p %zu] ",
@@ -143,9 +143,9 @@ xmalloc_free(void *ptr)
 
 	if ((block = xmalloc_find(ptr)) == NULL) {
 		log_warnx("xmalloc_free: not found");
-		abort();
+		return;
 	}
-
+	
 	xmalloc_freed += block->size;
 
 	block->ptr = NULL;

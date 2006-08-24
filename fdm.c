@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
-#include <sys/wait.h>
+#include <sys/socket.h>
 
 #include <errno.h>
 #include <grp.h>
@@ -38,14 +38,7 @@ extern FILE		*yyin;
 extern int 		 yyparse(void);
 
 int			 load_conf(void);
-void			 fill_conf(char *);
 void			 usage(void);
-int			 poll_account(struct account *);
-int			 fetch_account(struct account *);
-int			 perform_match(struct account *, struct mail *,
-			     struct rule *);
-int			 perform_actions(struct account *, struct mail *,
-			     struct rule *);
 
 struct conf		 conf;
 
@@ -64,68 +57,70 @@ load_conf(void)
 }
 
 void
-fill_conf(char *home)
+fill_info(char *home)
 {
 	struct passwd	*pw;
-	struct group	*gr;
 	uid_t		 uid;
-	gid_t		 gid;
 
-	if (conf.uid != NULL) {
-		xfree(conf.uid);
-		conf.uid = NULL;
+	if (conf.info.uid != NULL) {
+		xfree(conf.info.uid);
+		conf.info.uid = NULL;
 	}
-	if (conf.user != NULL) {
-		xfree(conf.user);
-		conf.user = NULL;
+	if (conf.info.user != NULL) {
+		xfree(conf.info.user);
+		conf.info.user = NULL;
 	}
-	if (conf.gid != NULL) {
-		xfree(conf.gid);
-		conf.gid = NULL;
-	}
-	if (conf.group != NULL) {
-		xfree(conf.group);
-		conf.group = NULL;
-	}
-	if (conf.home != NULL) {
-		xfree(conf.home);
-		conf.home = NULL;
+	if (conf.info.home != NULL) {
+		xfree(conf.info.home);
+		conf.info.home = NULL;
 	}
 
 	if (home != NULL && *home != '\0')
-		conf.home = xstrdup(home);
+		conf.info.home = xstrdup(home);
 
 	uid = getuid();
-	xasprintf(&conf.uid, "%lu", (u_long) uid);
+	xasprintf(&conf.info.uid, "%lu", (u_long) uid);
 	pw = getpwuid(uid);
 	if (pw != NULL) {
-		if (conf.home == NULL) {
+		if (conf.info.home == NULL) {
 			if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
-				conf.home = xstrdup(pw->pw_dir);
+				conf.info.home = xstrdup(pw->pw_dir);
 			else
-				conf.home = xstrdup(".");
+				conf.info.home = xstrdup(".");
 		}
 		if (pw->pw_name != NULL && *pw->pw_name != '\0')
-			conf.user = xstrdup(pw->pw_name);
+			conf.info.user = xstrdup(pw->pw_name);
 		endpwent();
 	} 
-	if (conf.user == NULL) {
-		conf.user = xstrdup(conf.uid);
+	if (conf.info.user == NULL) {
+		conf.info.user = xstrdup(conf.info.uid);
 		log_warn("can't find name for user %lu", (u_long) uid);
 	}
+}
 
-	gid = getgid();
-	xasprintf(&conf.gid, "%lu", (u_long) gid);
-	gr = getgrgid(gid);
-	if (gr != NULL) {
-		if (gr->gr_name != NULL && *gr->gr_name != '\0')
-			conf.group = xstrdup(gr->gr_name);
-		endgrent();
-	} 
-	if (conf.group == NULL) {
-		conf.group = xstrdup(conf.gid);
-		log_warn("can't find name for group %lu", (u_long) gid);
+int
+dropto(uid_t uid, char *path)
+{
+	struct passwd	*pw;
+
+	pw = getpwuid(uid);
+	if (pw == NULL) {
+		errno = ESRCH;
+		return (1);
 	}
+	
+	if (path != NULL) {
+		if (chroot(conf.child_path) != 0)
+			return (1);
+	}
+
+	if (setgroups(1, &pw->pw_gid) != 0 ||
+	    setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) != 0 ||
+	    setresuid(uid, uid, uid) != 0)
+		return (1);
+
+	endpwent();
+	return (0);
 }
 
 __dead void
@@ -139,28 +134,28 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, error = 0, rc;
-	u_int		 i;
-	char		*cmd = NULL, tmp[128];
-	struct account	*a;
-	struct accounts	 incl, excl;
+        int		 opt, fds[2];
+	enum cmd         cmd = CMD_NONE;
+	char		 tmp[128];
+	pid_t		 pid;
+	struct passwd	*pw;
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
 	TAILQ_INIT(&conf.rules);
 	TAILQ_INIT(&conf.actions);
-	conf.max_size = MAXMAILSIZE;
+	conf.max_size = DEFMAILSIZE;
 	conf.lock_types = LOCK_FLOCK;
 
 	log_init(1);
 
-	ARRAY_INIT(&incl);  
-	ARRAY_INIT(&excl);
+	ARRAY_INIT(&conf.incl);  
+	ARRAY_INIT(&conf.excl);
 
         while ((opt = getopt(argc, argv, "a:f:lnvx:")) != EOF) {
                 switch (opt) {
 		case 'a':
-			ARRAY_ADD(&incl, optarg, sizeof (char *));
+			ARRAY_ADD(&conf.incl, optarg, sizeof (char *));
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
@@ -175,7 +170,7 @@ main(int argc, char **argv)
                         conf.debug++;
                         break;
 		case 'x':
-			ARRAY_ADD(&excl, optarg, sizeof (char *));
+			ARRAY_ADD(&conf.excl, optarg, sizeof (char *));
 			break;
                 case '?':
                 default:
@@ -190,8 +185,11 @@ main(int argc, char **argv)
 	} else {		
 		if (argc != 1)
 			usage();
-		cmd = argv[0];
-		if (strcmp(cmd, "poll") != 0 && strcmp(cmd, "fetch") != 0)
+		if (strcmp(argv[0], "poll") == 0)
+			cmd = CMD_POLL;
+		else if (strcmp(argv[0], "fetch") == 0)
+			cmd = CMD_FETCH;
+		else
 			usage();
 	}
 
@@ -200,12 +198,12 @@ main(int argc, char **argv)
 	log_debug("version is: %s " BUILD, __progname);
 
 	/* save the home dir and misc user info */
-	fill_conf(getenv("HOME"));
-	log_debug("user is: %s, home is: %s", conf.user, conf.home);
+	fill_info(getenv("HOME"));
+	log_debug("user is: %s, home is: %s", conf.info.user, conf.info.home);
 
 	/* find the config file */
 	if (conf.conf_file == NULL)
-		xasprintf(&conf.conf_file, "%s/%s", conf.home, CONFFILE);
+		xasprintf(&conf.conf_file, "%s/%s", conf.info.home, CONFFILE);
 	log_debug("loading configuration from %s", conf.conf_file);
         if (load_conf() != 0) {
                 log_warn("%s", conf.conf_file);
@@ -234,340 +232,48 @@ main(int argc, char **argv)
                 log_warnx("no accounts specified");
 		exit(1);
 	}
-        if (strcmp(cmd, "fetch") == 0 && TAILQ_EMPTY(&conf.rules)) {
+        if (cmd == CMD_FETCH && TAILQ_EMPTY(&conf.rules)) {
                 log_warnx("no rules specified");
 		exit(1);
 	}
+	
+	if (geteuid() == 0) {
+		pw = getpwnam(CHILDUSER);
+		if (pw == NULL) {
+			log_warnx("can't find user: %s", CHILDUSER);
+			exit(1);
+		}
+		conf.child_uid = pw->pw_uid;
+		if (pw->pw_dir == NULL || *pw->pw_dir == '\0') {
+			log_warnx("cannot find home for user: %s", CHILDUSER);
+			exit(1);
+		}
+		conf.child_path = xstrdup(pw->pw_dir);
+		endpwent();
+
+		if (conf.def_user == 0) {
+			log_warnx("no default user specified");
+			exit(1);
+		}			
+	}
+
+#ifdef DEBUG
+	xmalloc_clear();
+#endif
 
         SSL_library_init();
         SSL_load_error_strings();
 
-#ifdef DEBUG
-	xmalloc_clear();
-	xmalloc_dump();
-#endif
-
-	rc = 0;
-        log_debug("processing accounts");
-	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (!ARRAY_EMPTY(&incl)) {
-			/* check include list */
-			for (i = 0; i < ARRAY_LENGTH(&incl); i++) {
-				if (strcmp(ARRAY_ITEM(&incl, i), a->name) == 0)
-					break;
-			}
-			if (i == ARRAY_LENGTH(&incl)) {
-				log_debug("account %s not included. skipping",
-				    a->name);
-				continue;
-			}
-		}
-		if (!ARRAY_EMPTY(&excl)) {
-			/* check exclude list */
-			for (i = 0; i < ARRAY_LENGTH(&excl); i++) {
-				if (strcmp(ARRAY_ITEM(&excl, i), a->name) == 0)
-					break;
-			}
-			if (i != ARRAY_LENGTH(&excl)) {
-				log_debug("account %s excluded. skipping",
-				    a->name);
-				continue;
-			}
-		}
-
-		log_debug("processing account %s", a->name);
-
-		/* connect */
-		if (a->fetch->connect != NULL) {
-			if (a->fetch->connect(a) != 0)
-				continue;
-		}
-
-		/* process */
-		if (strcmp(cmd, "poll") == 0)
-			error = poll_account(a);
-		else if (strcmp(cmd, "fetch") == 0)
-			error = fetch_account(a);
-		if (error != 0) {
-			if (a->fetch->error != NULL)
-				a->fetch->error(a);
-			rc = 1;
-		}
-
-		/* disconnect */
-		if (a->fetch->disconnect != NULL)
-			a->fetch->disconnect(a);
+	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
+		fatal("socketpair");
+	switch (pid = fork()) {
+	case -1:
+		fatal("fork");
+	case 0:
+		close(fds[0]);
+		_exit(child(fds[1], cmd));
+	default:
+		close(fds[1]);
+		exit(parent(fds[0], pid));
 	}
-
-        log_debug("finished processing. exiting");
-
-#ifdef DEBUG
-	xmalloc_dump();
-#endif
-
-	return (rc);
-}
-
-int
-poll_account(struct account *a)
-{
-	u_int	n;
-
-	if (a->fetch->poll == NULL) {
-		log_info("%s: polling not supported", a->name);
-		return (1);
-	}
-	log_debug("%s: polling", a->name);
-
-	if (a->fetch->poll(a, &n) == POLL_ERROR)
-		return (1);
-
-	log_info("%s: %u messages found", a->name, n);
-
-	return (0);
-}
-
-int
-fetch_account(struct account *a)
-{
-	struct rule	*r;
-	struct mail	 m;
-	struct timeval	 tv;
-	double		 tim;
-	u_int	 	 n, i;
-	int		 error;
-	char		*name, *cause = NULL;
-	struct accounts	*list;
-
-	if (a->fetch->fetch == NULL) {
-		log_info("%s: fetching not supported", a->name);
-		return (1);
-	}
-	log_debug("%s: fetching", a->name);
-
-	gettimeofday(&tv, NULL);
-	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
-
-	n = 0;
-        for (;;) {
-		memset(&m, 0, sizeof m);
-		m.body = -1;
-
-		error = a->fetch->fetch(a, &m);
-		switch (error) {
-		case FETCH_ERROR:
-			cause = "fetching";
-			goto out;
-		case FETCH_OVERSIZE:
-			log_warnx("%s: message too big: %zu bytes", a->name,
-			    m.size);
-			if (!conf.del_big) {
-				cause = "fetching";
-				goto out;
-			}
-			goto delete;
-		case FETCH_COMPLETE:
-			goto out;
-		}
-		
-		log_debug("%s: got message: size=%zu, body=%zd", a->name,
-		    m.size, m.body);
-
-		i = fill_wrapped(&m);
-		log_debug2("%s: found %u wrapped lines", a->name, i);
-
-		TAILQ_FOREACH(r, &conf.rules, entry) {
-			/* check if the rule is for the current account */
-			list = r->accounts;
-			if (!ARRAY_EMPTY(list)) {
-				for (i = 0; i < ARRAY_LENGTH(list); i++) {
-					name = ARRAY_ITEM(list, i);
-					if (strcmp(name, a->name) == 0)
-						break;
-				}
-				if (i == ARRAY_LENGTH(list))
-					continue;
-			}
-				
-			/* match all the regexps */
-			if (!perform_match(a, &m, r))
-				continue;
-			log_debug("%s: matched message", a->name);
-
-			/* process all the actions */
-			if (perform_actions(a, &m, r) != 0) {
-				cause = "processing";
-				goto out;
-			}
-
-			/* if this rule is marked as stop, stop checking
-			   the rules now */
-			if (r->stop)
-				break;
-		}
-
-	delete:
-		/* delete the message */
-		if (a->fetch->delete != NULL) {
-			log_debug("%s: deleting message", a->name);
-			if (a->fetch->delete(a) != 0) {
-				cause = "deleting";
-				goto out;
-			}
-		}
-
- 		free_mail(&m);
-		n++;
-	}
-
-out:	
-	free_mail(&m);
-	if (cause != NULL)
-		log_warnx("%s: %s error. aborted", a->name, cause);
-
-	gettimeofday(&tv, NULL);
-	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
-	if (n > 0) {
-		log_info("%s: %u messages processed in %.3f seconds "
-		    "(average %.3f)", a->name, n, tim, tim / n);
-	} else {
-	        log_info("%s: %u messages processed in %.3f seconds",
-		    a->name, n, tim);
-	}
-
-	return (cause != NULL);
-}
-
-int
-perform_actions(struct account *a, struct mail *m, struct rule *r)
-{
-	struct action	*t;
-	u_int		 i;
-	int		 status;
-	uid_t		 uid;
-	gid_t		 gid;
-	pid_t		 pid;
-	
-	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		t = ARRAY_ITEM(r->actions, i);
-		if (t->deliver->deliver == NULL)
-			continue;
-		log_debug2("%s: action %s", a->name, t->name);
-		
-		set_wrapped(m, '\n');
-
-		/* figure out the user to use */
-		uid = t->uid != 0 ? t->uid : r->uid;
-		gid = t->gid != 0 ? t->gid : r->gid;
-		
-		if (uid == 0 && gid == 0) {
-			/* do the delivery without forking */
-			if (t->deliver->deliver(a, t, m) != 0)
-				return (1);
-			continue;
-		}
-		
-		pid = fork();
-		if (pid == -1) {
-			log_warn("%s: fork", a->name);
-			return (1);
-		}
-		if (pid != 0) {
-			/* parent process. wait for child */
-			log_debug2("%s: forked. child pid is %ld", a->name, 
-			    (long) pid);
-			if (waitpid(pid, &status, 0) == -1)
-				fatal("waitpid");
-			if (!WIFEXITED(status)) {
-				log_warnx("%s: child didn't exit normally",
-				    a->name);
-				return (1);
-			}
-			status = WEXITSTATUS(status);
-			if (status != 0) {
-				log_warnx("%s: child failed, exit code %d",
-				    a->name, status);
-				return (1);
-			}
-			continue;
-		}
-		
-		/* child process. change user and group */
-		log_debug("%s: using user %lu, group %lu", a->name, 
-		    (u_long) uid, (u_long) gid);
-		if (gid != 0) {
-			if (setgroups(1, &gid) != 0 || 
-			    setegid(gid) != 0 || setgid(gid) != 0) {
-				log_warn("%s: failed to change group", a->name);
-				_exit(1);
-			}
-		}
-		if (uid != 0) {
-			if (setuid(uid) != 0 || seteuid(uid) != 0) {
-				log_warn("%s: failed to change user", a->name);
-				_exit(1);
-			}
-		}
-		/* refresh user and home */
-		fill_conf(NULL);	
-		log_debug2("%s: user is: %s, home is: %s", a->name, conf.user,
-		    conf.home);
-
-		/* do the delivery */
-		if (t->deliver->deliver(a, t, m) != 0)
-			_exit(1);
-		_exit(0);
-	}
-
-	return (0);
-}
-
-int
-perform_match(struct account *a, struct mail *m, struct rule *r)
-{
-	regmatch_t	 pmatch;
-	int		 matched, result;
-	struct match	*c;
-
-	if (r->matches == NULL)
-		return (1);
-
-	set_wrapped(m, ' ');
-
-	matched = 0;
-	TAILQ_FOREACH(c, r->matches, entry) {
-		if (c->area == AREA_BODY && m->body == -1)
-			continue;
-		switch (c->area) {
-		case AREA_HEADERS:
-			pmatch.rm_so = 0;
-			if (m->body == -1)
-				pmatch.rm_eo = m->size;
-			else
-				pmatch.rm_eo = m->body;
-			break;
-		case AREA_BODY:
-			pmatch.rm_so = m->body;
-			pmatch.rm_eo = m->size;
-			break;
-		case AREA_ANY:
-			pmatch.rm_so = 0;
-			pmatch.rm_eo = m->size;
-			break;
-		}
-		
-		result = !regexec(&c->re, m->data, 0, &pmatch, REG_STARTEND);
-		log_debug2("%s: tried \"%s\": got %d", a->name, c->s, result);
-		switch (c->op) {
-		case OP_NONE:
-		case OP_OR:
-			matched = matched || result;
-			break;
-		case OP_AND:
-			matched = matched && result;
-			break;
-		}
-	}
-
-	return (matched);
 }

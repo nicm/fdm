@@ -13,7 +13,7 @@ DATE!= date +%Y%m%d-%H%M
 SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c mail.c \
       fetch-pop3.c fetch-pop3s.c fetch-stdin.c deliver-smtp.c deliver-pipe.c \
       deliver-drop.c deliver-maildir.c deliver-mbox.c deliver-write.c \
-      deliver-append.c
+      deliver-append.c child.c parent.c
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
@@ -46,7 +46,7 @@ LDFLAGS+= -pg
 LIBS= -lcrypto -lssl
 
 TARFLAGS= 
-DISTFILES= *.[chyl] Makefile ${PROG}.conf *.[1-9] README
+DISTFILES= *.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] README
 
 CLEANFILES= ${PROG} *.o y.tab.c lex.yy.c y.tab.h .depend ${PROG}-*.tar.gz \
 	*.[1-9].gz *~ *.ln ${PROG}.core

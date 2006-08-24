@@ -165,8 +165,6 @@ stdin_fetch(struct account *a, struct mail *m)
 		}
 	}
 
-	trim_from(m);
-
  	data->complete = 1;
 	xfree(lbuf);
 	return (FETCH_SUCCESS);

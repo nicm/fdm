@@ -46,7 +46,7 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 	ssize_t	 n;
 	size_t	 first, last;
 
-	path = stdreplace(t->data, a, t);
+	path = replaceinfo(t->data, a, t);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto error;

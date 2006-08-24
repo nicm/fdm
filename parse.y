@@ -33,17 +33,19 @@
 
 #include "fdm.h"
 
-extern int	yylineno;
-extern int 	yylex(void);
+int			 rules;
 
-int		yyparse(void);
-__dead void 	yyerror(const char *, ...);
-int 		yywrap(void);
+extern int		 yylineno;
+extern int 		 yylex(void);
 
-void		check_account(char *);
-struct action  *find_action(char *);
+int			 yyparse(void);
+__dead printflike1 void  yyerror(const char *, ...);
+int 			 yywrap(void);
 
-__dead void
+struct account 		*find_account(char *);
+struct action  		*find_action(char *);
+
+__dead printflike1 void
 yyerror(const char *fmt, ...)
 {
 	va_list	 ap;
@@ -64,17 +66,16 @@ yywrap(void)
         return (1);
 }
 
-void
-check_account(char *name)
+struct account *
+find_account(char *name)
 {
 	struct account	*a;
 
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
 		if (strcmp(a->name, name) == 0)
-			break;
+			return (a);
 	}
-	if (a == TAILQ_END(&conf.accounts))
-		yyerror("unknown account: %s", name);
+	return (NULL);
 }
 
 struct action *
@@ -86,7 +87,6 @@ find_action(char *name)
 		if (strcmp(t->name, name) == 0)
 			return (t);
 	}
-	yyerror("unknown action: %s", name);
 	return (NULL);
 }
 %}
@@ -94,9 +94,9 @@ find_action(char *name)
 %token SYMOPEN SYMCLOSE SYMSTAR
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKGROUP
+%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND
-%token OPTMAXSIZE OPTDELTOOBIG OPTLOCKTYPES
+%token OPTMAXSIZE OPTDELTOOBIG OPTLOCKTYPES OPTDEFUSER
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -121,7 +121,6 @@ find_action(char *name)
 	struct matches		*matches;
 	struct match		*match;
 	uid_t			 uid;
-	gid_t			 gid;
 }
 
 %token <number> NUMBER
@@ -143,7 +142,7 @@ find_action(char *name)
 %type  <matches> matches matchlist
 %type  <op> op
 %type  <uid> user
-%type  <gid> group
+%type  <uid> userval
 
 %%
 
@@ -177,6 +176,10 @@ set: TOKSET OPTMAXSIZE size
      {
 	     conf.del_big = 1;
      }
+   | TOKSET OPTDEFUSER userval
+     {
+	     conf.def_user = $3;
+     }
 
 lock: LCKFCNTL
       {
@@ -204,60 +207,38 @@ locklist: locklist lock
 		  $$ = 0;
 	  }
 
+userval: STRING
+         {
+		 struct passwd	*pw;
+		 
+		 pw = getpwnam($1);
+		 if (pw == NULL)
+			 yyerror("unknown user: %s", $1);
+		 if (pw->pw_uid == 0)
+			 yyerror("cannot change to uid 0 user");
+		 $$ = pw->pw_uid;
+		 endpwent();
+	 }
+       | NUMBER
+         {
+		 struct passwd	*pw;
+		 
+		 pw = getpwuid($1);
+		 if (pw == NULL)
+			 yyerror("unknown uid: %lu", (u_long) $1);
+		 if (pw->pw_uid == 0)
+			 yyerror("cannot change to uid 0 user");
+		 $$ = pw->pw_uid;
+		 endpwent();
+	 }
+
 user: /* empty */
       {
 	      $$ = 0;
       }
-    | TOKUSER STRING
+    | TOKUSER userval
       {
-	      struct passwd	*pw;
-	      
-	      pw = getpwnam($2);
-	      if (pw == NULL)
-		      yyerror("unknown user: %s", $2);
-	      $$ = pw->pw_uid;
-	      if ($$ == 0)
-		      yyerror("cannot change to uid 0 user");
-      }
-    | TOKUSER NUMBER
-      {
-	      struct passwd	*pw;
-	      
-	      pw = getpwuid($2);
-	      if (pw == NULL)
-		      yyerror("unknown uid: %lu", (u_long) $2);
-	      $$ = pw->pw_uid;
-	      if ($$ == 0)
-		      yyerror("cannot change to uid 0 user");
-	      endpwent();
-      }
-
-group: /* empty */
-      {
-	      $$ = 0;
-      }
-    | TOKGROUP STRING
-      {
-	      struct group	*gr;
-	      
-	      gr = getgrnam($2);
-	      if (gr == NULL)
-		      yyerror("unknown group: %s", $2);
-	      $$ = gr->gr_gid;
-	      if ($$ == 0)
-		      yyerror("cannot change to gid 0 group");
-      }
-    | TOKGROUP NUMBER
-      {
-	      struct group	*gr;
-	      
-	      gr = getgrgid($2);
-	      if (gr == NULL)
-		      yyerror("unknown gid: %lu", (u_long) $2);
-	      $$ = gr->gr_gid;
-	      if ($$ == 0)
-		      yyerror("cannot change to gid 0 group");
-	      endgrent();
+	      $$ = $2;
       }
 
 icase: TOKCASE
@@ -353,7 +334,7 @@ action: ACTPIPE command
 		error = getaddrinfo($2.host, $2.port != NULL ? $2.port : 
 		    "smtp", &hints, &data->ai);
 		if (error != 0)
-			yyerror(gai_strerror(error));
+			yyerror("%s", gai_strerror(error));
 
 		xfree($2.host);
 		if ($2.port != NULL)
@@ -364,24 +345,27 @@ action: ACTPIPE command
 		$$.deliver = &deliver_drop;
 	}
 
-define: TOKACTION STRING user group action
+define: TOKACTION STRING user action
 	{
-		struct action	*t, *u;
+		struct action	*t;
 
-		TAILQ_FOREACH(u, &conf.actions, entry) {
-			if (strcmp(u->name, $2) == 0)
-				yyerror("duplicate action: %s", $2);
-		}
+		if (strlen($2) >= MAXNAMESIZE)
+			yyerror("name too long: %s", $2);
+		if (*$2 == '\0')
+			yyerror("empty name");
+		if (find_action($2) != NULL)
+			yyerror("duplicate action: %s", $2);
 		
 		t = xmalloc(sizeof *t);
-		memcpy(t, &$5, sizeof *t);
-		t->name = $2;
+		memcpy(t, &$4, sizeof *t);
+		strlcpy(t->name, $2, sizeof t->name);
 		t->uid = $3;
-		t->gid = $4;
 		TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
 		log_debug2("added action: name=%s deliver=%s", t->name,
 		    t->deliver->name);
+
+		xfree($2);
 	}
 
 all: SYMSTAR
@@ -403,14 +387,16 @@ accounts: /* empty */
 	  {
 		  $$ = xmalloc(sizeof (struct accounts));
 		  ARRAY_INIT($$);
-		  check_account($2);
+		  if (find_account($2) == NULL)
+			  yyerror("unknown account: %s", $2);
 		  ARRAY_ADD($$, $2, sizeof (char *));
 	  }
         | TOKACCOUNT STRING
 	  {
 		  $$ = xmalloc(sizeof (struct accounts));
 		  ARRAY_INIT($$);
-		  check_account($2);
+		  if (find_account($2) == NULL)
+			  yyerror("unknown account: %s", $2);
 		  ARRAY_ADD($$, $2, sizeof (char *));
 	  }
 	| TOKACCOUNTS SYMOPEN accountslist SYMCLOSE
@@ -421,14 +407,16 @@ accounts: /* empty */
 accountslist: accountslist STRING
  	      {
 		      $$ = $1;
-		      check_account($2);
+		      if (find_account($2) == NULL)
+			      yyerror("unknown account: %s", $2);
 		      ARRAY_ADD($$, $2, sizeof (char *));
 	      }	
 	    | STRING
 	      {
 		      $$ = xmalloc(sizeof (struct accounts));
 		      ARRAY_INIT($$);
-		      check_account($1);
+		      if (find_account($1) == NULL)
+			      yyerror("unknown account: %s", $1);
 		      ARRAY_ADD($$, $1, sizeof (char *));
 	      }
 
@@ -438,7 +426,8 @@ actions:  TOKACTIONS STRING
 
 		  $$ = xmalloc(sizeof (struct actions));
 		  ARRAY_INIT($$);
-		  t = find_action($2);
+		  if ((t = find_action($2)) == NULL)
+			  yyerror("unknown action: %s", $2);
 		  ARRAY_ADD($$, t, sizeof (struct action *));
 		  free($2);
 	  }
@@ -448,7 +437,8 @@ actions:  TOKACTIONS STRING
 
 		  $$ = xmalloc(sizeof (struct actions));
 		  ARRAY_INIT($$);
-		  t = find_action($2);
+		  if ((t = find_action($2)) == NULL)
+			  yyerror("unknown action: %s", $2);
 		  ARRAY_ADD($$, t, sizeof (struct action *));
 		  free($2);
 	  }
@@ -462,7 +452,8 @@ actionslist: actionslist STRING
 		      struct action	*t;
 
 		      $$ = $1;
-		      t = find_action($2);
+		      if ((t = find_action($2)) == NULL)
+			      yyerror("unknown action: %s", $2);
 		      ARRAY_ADD($$, t, sizeof (struct action *));
 		      free($2);
 	      }	
@@ -472,7 +463,8 @@ actionslist: actionslist STRING
 
 		      $$ = xmalloc(sizeof (struct actions));
 		      ARRAY_INIT($$);
-		      t = find_action($1);
+		      if ((t = find_action($1)) == NULL)
+			      yyerror("unknown action: %s", $1);
 		      ARRAY_ADD($$, t, sizeof (struct action *));
 		      free($1);
 	      }
@@ -557,7 +549,7 @@ matches: TOKMATCH match matchlist
 		 $$ = NULL;
 	 }
 
-rule: matches accounts user group actions continue
+rule: matches accounts user actions continue
       {
 	      struct rule	*r;
 	      struct match	*c;
@@ -565,12 +557,12 @@ rule: matches accounts user group actions continue
 	      u_int		 i;
 
 	      r = xcalloc(1, sizeof *r);      
-	      r->stop = !$6;
+	      r->index = rules++;
+	      r->stop = !$5;
 	      r->accounts = $2;
 	      r->matches = $1;
 	      r->uid = $3;
-	      r->gid = $4;
-	      r->actions = $5;
+	      r->actions = $4;
 	      
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
 
@@ -606,12 +598,13 @@ rule: matches accounts user group actions continue
 		      }
 	      }
 	      *tmp2 = '\0';
-	      for (i = 0; i < ARRAY_LENGTH($5); i++) {
-		      strlcat(tmp2, ARRAY_ITEM($5, i)->name, sizeof tmp2);
+	      for (i = 0; i < ARRAY_LENGTH($4); i++) {
+		      strlcat(tmp2, ARRAY_ITEM($4, i)->name, sizeof tmp2);
 		      strlcat(tmp2, " ", sizeof tmp2);
 	      }
 			  
-	      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
+	      log_debug2("added rule: index=%u actions=%smatches=%s", r->index,
+		  tmp2, tmp);
       }
 
 poptype: TOKPOP3
@@ -629,7 +622,7 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   int		 	 error;
 		   struct addrinfo	 hints;
 		   
-		   $$ = $1; /* XXX is this okay? */
+		   $$ = $1;
 		   
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
@@ -642,7 +635,7 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   error = getaddrinfo($2.host, $2.port != NULL ? $2.port :
 		       $1.fetch->port, &hints, &data->ai);
 		   if (error != 0)
-			   yyerror(gai_strerror(error));
+			   yyerror("%s", gai_strerror(error));
 		   
 		   xfree($2.host);
 		   if ($2.port != NULL)
@@ -657,9 +650,16 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 account: TOKACCOUNT STRING fetchtype
          {
 		 struct account		*a;
+
+		 if (strlen($2) >= MAXNAMESIZE)
+			 yyerror("name too long: %s", $2);
+		 if (*$2 == '\0')
+			 yyerror("empty name");
+		 if (find_account($2) != NULL)
+			 yyerror("duplicate account: %s", $2);
 		 
 		 a = xcalloc(1, sizeof *a);
-		 a->name = $2;
+		 strlcpy(a->name, $2, sizeof a->name);
 		 a->fetch = $3.fetch;
 		 a->data = $3.data;
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);

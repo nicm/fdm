@@ -28,9 +28,12 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
-#define MAXMAILSIZE	(1 * 1024 * 1024)	/* 1 GB */
+#define MAXMAILSIZE	SSIZE_MAX
+#define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
+#define MAXNAMESIZE	32
 
 extern char	*__progname;
 
@@ -73,6 +76,13 @@ extern char	*__progname;
 	}								\
 } while (0)
 
+/* Command-line commands. */
+enum cmd {
+	CMD_NONE,
+	CMD_POLL,
+	CMD_FETCH
+};
+
 /* A single mail. */
 struct mail {
 	char	*base;
@@ -88,9 +98,26 @@ struct mail {
 	ssize_t	 body;		/* offset of body */
 };
 
+/* Privsep message types. */
+#define MSG_DELIVER 0
+#define MSG_EXIT 1
+#define MSG_DONE 2
+
+/* Privsep message. */
+struct msg {
+	int	 type;
+	int	 error;
+
+	struct mail	 mail;
+
+	/* these only work so long as they aren't moved in either process */
+	struct rule	*rule;
+	struct account	*acct;
+};
+
 /* Account entry. */
 struct account {
-	char			*name;
+	char			 name[MAXNAMESIZE];
 
 	struct fetch		*fetch;
 	void			*data;
@@ -100,10 +127,9 @@ struct account {
 
 /* Action definition. */
 struct action {
-	char			*name;
+	char			 name[MAXNAMESIZE];
 
 	uid_t			 uid;
-	gid_t			 gid;
 
 	struct deliver		*deliver;
 	void			*data;
@@ -166,10 +192,11 @@ TAILQ_HEAD(matches, match);
 
 /* Rule entry. */
 struct rule {
+	u_int			 index;
+
 	struct matches		*matches;
 
 	uid_t			 uid;
-	gid_t			 gid;
 
 	int			 stop;	/* stop matching at this rule */
 
@@ -219,11 +246,17 @@ struct conf {
 	int 			 debug;
 	int			 syslog;
 
-	char			*home;
-	char			*user;
-	char			*uid;
-	char			*group;
-	char			*gid;
+	uid_t			 child_uid;
+	char			*child_path;
+
+	struct accounts	 	 incl;
+	struct accounts		 excl;
+
+	struct {
+		char		*home;
+		char		*user;
+		char		*uid;
+	} info;
 
 	char			*conf_file;
 
@@ -231,13 +264,13 @@ struct conf {
 	int		         del_big;
 	int			 check_only;
 	u_int			 lock_types;
+	uid_t			 def_user;
 
 	TAILQ_HEAD(, account)	 accounts;
  	TAILQ_HEAD(, action)	 actions;
  	TAILQ_HEAD(, rule)	 rules;
 };
 extern struct conf		 conf;
-
 /* Shorthand for the ridiculous call to get the SSL error. */
 #define SSL_err() (ERR_error_string(ERR_get_error(), NULL))
 
@@ -382,6 +415,16 @@ size_t	 strlcpy(char *, const char *, size_t);
 size_t	 strlcat(char *, const char *, size_t);
 #endif
 
+/* fdm.c */
+int			 dropto(uid_t, char *);
+void			 fill_info(char *);
+
+/* child.c */
+int			 child(int, enum cmd);
+
+/* parent.c */
+int			 parent(int, pid_t);
+
 /* connect.c */
 int			 connectto(struct addrinfo *, char **);
 
@@ -404,7 +447,7 @@ void			 free_wrapped(struct mail *);
 #define REPL_IDX(ch) /* LINTED */ 				\
 	((ch >= 'a' || ch <= 'z') ? ch - 'a' :			\
 	((ch >= 'A' || ch <= 'z') ? 26 + ch - 'A' : -1))
-char			*stdreplace(char *, struct account *, struct action *);
+char			*replaceinfo(char *, struct account *, struct action *);
 char 			*replace(char *, char *[52]);
 
 /* io.c */
@@ -412,6 +455,7 @@ struct io		*io_create(int, SSL *, const char [2]);
 void			 io_free(struct io *);
 int			 io_update(struct io *);
 int			 io_poll(struct io *);
+int			 io_read2(struct io *, void *, size_t);
 void 			*io_read(struct io *, size_t);
 void			 io_write(struct io *, const void *, size_t);
 char 			*io_readline2(struct io *, char **, size_t *);
@@ -436,7 +480,7 @@ __dead void		 fatalx(const char *);
 /* xmalloc.c */
 #ifdef DEBUG
 void			 xmalloc_clear(void);
-void			 xmalloc_dump(void);
+void			 xmalloc_dump(char *);
 #endif
 char			*xstrdup(const char *);
 void			*xcalloc(size_t, size_t);
@@ -444,6 +488,6 @@ void			*xmalloc(size_t);
 void			*xrealloc(void *, size_t, size_t);
 void			 xfree(void *);
 int printflike2		 xasprintf(char **, const char *, ...);
-int printflike3	 	xsnprintf(char *, size_t, const char *, ...);
+int printflike3	 	 xsnprintf(char *, size_t, const char *, ...);
 
 #endif /* FDM_H */

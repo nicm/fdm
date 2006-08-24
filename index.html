@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<title>Fdm</title>
+<title>fdm</title>
 </head>
 <body>
 <p>The project page is <a href="http://sf.net/projects/fdm">here.</a></p>
@@ -50,7 +50,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
            account "stdinacct" stdin
 
      and the user's <I>~/.forward </I>file should be set to contain something like
-     (including "s):
+     (including quotations marks):
 
            "|/usr/local/bin/fdm -l -a stdinacct fetch"
 
@@ -100,11 +100,16 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>maxsize </B><I>size</I>
              This is used to set the maximum size of a mail. Mails larger than
              this limit are dropped and, if applicable, not deleted from the
-             server. The default is <I>SSIZE_MAX</I>.
+             server.
 
              The size may be specified as a plain number in bytes or with a
              suffix of `K' for kilobytes, `M' for megabytes or `G' for giga-
-             bytes.
+             bytes. The default is one gigabyte.
+
+     <B>deltoobig</B>
+             If this option is specified, fdm(1) attempts to delete messages
+             which exceed <B>maxsize</B>, and continue. If it is not specified, over-
+             size messages are a fatal error and cause fdm(1) to abort.
 
      <B>locktypes </B><I>locktype ...</I>
              This specifies the locks to be used for mbox locking. Possible
@@ -148,8 +153,9 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      The possible values for <I>action </I>are listed below. In actions for which a
      <I>command </I>or <I>path </I>is specified, the following substitutions are made before
      it is used: <I>%a </I>is replaced by the account name, <I>%h </I>by the current user's
-     home directory, <I>%t </I>by the name of the current action and <I>%u </I>by the cur-
-     rent user's login name.
+     home directory, <I>%t </I>by the name of the current action, <I>%u </I>by the current
+     user's login name, <I>%g </I>by the name of the current user's group and <I>%n </I>and
+     <I>%m </I>by the UID and GID respectively.
 
      <B>drop    </B>Discard the mail.
 

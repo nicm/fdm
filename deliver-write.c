@@ -42,7 +42,7 @@ do_write(struct account *a, struct action *t, struct mail *m, int append)
         char	*cmd;
         FILE    *f;
 
-	cmd = stdreplace(t->data, a, t);
+	cmd = replaceinfo(t->data, a, t);
         if (cmd == NULL || *cmd == '\0') {
 		if (cmd != NULL)
 			xfree(cmd);

@@ -28,18 +28,16 @@
 #include "fdm.h"
 
 char *
-stdreplace(char *src, struct account *a, struct action *t)
+replaceinfo(char *src, struct account *a, struct action *t)
 {
 	char	*map[REPL_LEN];
 
-	bzero(map, sizeof map);
+	memset(map, 0, sizeof map);
 	map[REPL_IDX('a')] = a->name;
-	map[REPL_IDX('g')] = conf.group;
-	map[REPL_IDX('h')] = conf.home;
-	map[REPL_IDX('m')] = conf.gid;
-	map[REPL_IDX('n')] = conf.uid;
+	map[REPL_IDX('h')] = conf.info.home;
+	map[REPL_IDX('n')] = conf.info.uid;
 	map[REPL_IDX('t')] = t->name;
-	map[REPL_IDX('u')] = conf.user;
+	map[REPL_IDX('u')] = conf.info.user;
 
 	return (replace(src, map));
 }

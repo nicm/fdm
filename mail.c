@@ -242,7 +242,7 @@ make_from(struct mail *m)
 		}
 	}
 	if (from == NULL) {
-		from = conf.user;
+		from = conf.info.user;
 		fromlen = strlen(from);
 	}
 

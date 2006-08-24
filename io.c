@@ -303,6 +303,21 @@ io_read(struct io *io, size_t len)
 	return (buf);
 }
 
+/* Return a specific number of bytes from the read buffer, if available. */
+int
+io_read2(struct io *io, void *buf, size_t len)
+{
+	if (io->rsize < len)
+		return (1);
+
+	memcpy(buf, io->rbase + io->roff, len);
+
+	io->rsize -= len;
+	io->roff += len;
+
+	return (0);
+}
+
 /* Write a block to the io write buffer. */
 void
 io_write(struct io *io, const void *buf, size_t len)

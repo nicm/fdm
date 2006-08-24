@@ -56,7 +56,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 
 	if (gethostname(host, sizeof host) != 0)
 		fatal("gethostname");
-	xasprintf(&from, "%s@%s", conf.user, host);
+	xasprintf(&from, "%s@%s", conf.info.user, host);
 	if (data->to == NULL)
 		to = from;
 	else

@@ -41,7 +41,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	size_t	 len;
 	int	 fd = -1, error = 0;
 
-	path = stdreplace(t->data, a, t);
+	path = replaceinfo(t->data, a, t);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto out;

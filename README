@@ -1,27 +1,53 @@
 fdm is a small program designed to fetch mail from POP3 servers, or receive
-local mail from stdin, and deliver it in various ways. It is meant at present
-to be a single, reasonably easily configured solution for single users (I
-originally wrote it to replace the horrible setup with fetchmail and procmail I
-was using at home). There are a few nods in the direction of multiuser setups
-but isn't really enough and I will probably either change it or take it out
-once I've made a decision about whether trying to do both is a bad idea. It may
-work (if a bit clunkily since it can't guess the destination user from the
-headers so they would all need to be specified in the config file) but I don't
-really recommend using the current version for this.
+local mail from stdin, and deliver it in various ways.
 
-To run fdm from cron every half hour, I use:
+There are two main ways of using fdm, single-user and multi-user:
+
+--------------------------------------------------------------------------------
+SINGLE-USER
+--------------------------------------------------------------------------------
+When fdm is run as a non-root user, it will not attempt to drop privileges and
+all mail will be delivered as the user it is run as - the "user" keyword on
+rules and actions will be ignored. It is best run from cron every so often, for
+example:
 
 */30    *       *       *       *       /usr/local/bin/fdm -l -x stdin fetch
 
-(My stdin account is called, well, "stdin".)
+Local mail can be delivered via stdin. See the fdm(1) man page for an example
+using sendmail, users of other MTAs are on their own for the moment. Man page 
+diffs and/or instructions I can format into the man page would be appreciated.
 
-Check out the fdm.conf(5) man page and the included fdm.conf file for config
-file syntax.
+The included fdm.conf is an example of a single-user configuration.
 
-For details of using it with sendmail(8) and .forward files, see the fdm(1) man
-page. Users of other MTAs are on their own. Man page diffs and/or instructions
-I can format into the man page would be appreciated.
+--------------------------------------------------------------------------------
+MULTI-USER
+--------------------------------------------------------------------------------
+When fdm is run as a root user, it will drop to user _fdm and chroot to that
+user's home directory in order to fetch mail. Mail will be delivered either
+using the user specified in the rule or action or the user specified by the
+"defuser" keyword. A config file for multiuser may look something like:
 
+	set defuser "bob"
+	account ......
+	action "default" maildir "%h/mail/inbox"
+	match "^(To:|Cc:).*jim@my.domain" user "jim" action "default"
+	match "^(To:|Cc:).*sam@my.domain" user "sam" action "default"
+	match all action "default" # the rest will use the default user
+
+Alternatively, it could be written this way:
+
+	set defuser "bob" # this is required but not used in this file
+	account ......
+	action "jim" user "jim" mbox "/var/mail/jim"
+	action "sam" user "sam" mbox "/var/mail/sam"
+	action "bob" user "bob" mbox "/var/mail/bob"
+	match "^(To:|Cc:).*jim@my.domain" action "jim"
+	match "^(To:|Cc:).*sam@my.domain" action "sam"
+	match all action "bob"
+	
+Again, it is best to fdm from cron.
+
+--------------------------------------------------------------------------------
 This is beta-quality software. There will be bugs. I use maildirs so they are
 the most tested.
 
