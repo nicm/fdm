@@ -178,7 +178,8 @@ set: TOKSET OPTMAXSIZE size
      }
    | TOKSET OPTDEFUSER userval
      {
-	     conf.def_user = $3;
+	     if (conf.def_user == 0)
+		     conf.def_user = $3;
      }
 
 lock: LCKFCNTL

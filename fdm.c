@@ -136,7 +136,8 @@ main(int argc, char **argv)
 {
         int		 opt, fds[2];
 	enum cmd         cmd = CMD_NONE;
-	char		 tmp[128];
+	char		 tmp[128], *s;
+	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
 
@@ -152,7 +153,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);  
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:f:lnvx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:f:lnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, sizeof (char *));
@@ -165,6 +166,22 @@ main(int argc, char **argv)
 			break;
 		case 'n':
 			conf.check_only = 1;
+			break;
+		case 'u':
+			pw = getpwnam(optarg);
+			if (pw == NULL) {
+				n = strtol(optarg, &s, 10);
+				if (*s != '\0')
+					usage();
+				pw = getpwuid(n);
+			}
+			if (pw != NULL) {
+				conf.def_user = pw->pw_uid;
+				endpwent();
+			} else {
+				log_warnx("unknown user: %s", optarg);
+				exit(1);
+			}
 			break;
                 case 'v':
                         conf.debug++;

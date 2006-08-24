@@ -65,14 +65,16 @@ for gigabytes. The default is one gigabyte.
 If this option is specified,
 .Xr fdm 1
 attempts to delete messages which exceed
-.Ic defusre Ar user
-This sets the default user to change to before delivering mail, if 
-.Xr fdm 1
-is running as root and no alternative user is specified as part of the command.
 .Ic maxsize ,
 and continue. If it is not specified, oversize messages are a fatal error and cause
 .Xr fdm 1
 to abort.
+.It Ic defuser Ar user
+This sets the default user to change to before delivering mail, if 
+.Xr fdm 1
+is running as root and no alternative user is specified as part of the action or rule. This option may be override with the
+.Fl u
+switch on the command line. A default user must be given if running as root.
 .It Ic locktypes Ar locktype Ar ...
 This specifies the locks to be used for mbox locking. Possible types are
 .Em fcntl ,
