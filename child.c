@@ -78,7 +78,7 @@ child(int fd, enum cmd cmd)
 	log_debug("child: started, pid %ld", (long) getpid());
 
 	if (geteuid() != 0)
-		log_warnx("child: not root user. not dropping privileges");
+		log_debug("child: not root user. not dropping privileges");
 	else {
 		log_debug("child: changing to user %lu, path %s",
 		    (u_long) conf.child_uid, conf.child_path);
