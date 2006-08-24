@@ -37,16 +37,11 @@ struct deliver deliver_mbox = { "mbox", mbox_deliver };
 int
 mbox_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-	char	*path, *map[REPL_LEN], *ptr;
+	char	*path, *ptr;
 	size_t	 len;
 	int	 fd = -1, error = 0;
 
-	bzero(map, sizeof map);
-	map[REPL_IDX('a')] = a->name;
-	map[REPL_IDX('h')] = conf.home;
-	map[REPL_IDX('t')] = t->name;
-	map[REPL_IDX('u')] = conf.user;
-	path = replace(t->data, map);
+	path = stdreplace(t->data, a, t);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto out;

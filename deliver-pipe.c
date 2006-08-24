@@ -33,16 +33,11 @@ struct deliver deliver_pipe = { "pipe", pipe_deliver };
 int
 pipe_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-        char	*cmd, *map[REPL_LEN];
+        char	*cmd;
         FILE    *f;
 	int	 error;
 
-	bzero(map, sizeof map);
-	map[REPL_IDX('a')] = a->name;
-	map[REPL_IDX('h')] = conf.home;
-	map[REPL_IDX('t')] = t->name;
-	map[REPL_IDX('u')] = conf.user;
-	cmd = replace(t->data, map);
+	cmd = stdreplace(t->data, a, t);
         if (cmd == NULL || *cmd == '\0') {
 		log_warnx("%s: empty command", a->name);
 		if (cmd != NULL)

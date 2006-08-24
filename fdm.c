@@ -20,6 +20,7 @@
 #include <sys/wait.h>
 
 #include <errno.h>
+#include <grp.h>
 #include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -66,10 +67,25 @@ void
 fill_conf(char *home)
 {
 	struct passwd	*pw;
+	struct group	*gr;
+	uid_t		 uid;
+	gid_t		 gid;
 
+	if (conf.uid != NULL) {
+		xfree(conf.uid);
+		conf.uid = NULL;
+	}
 	if (conf.user != NULL) {
 		xfree(conf.user);
 		conf.user = NULL;
+	}
+	if (conf.gid != NULL) {
+		xfree(conf.gid);
+		conf.gid = NULL;
+	}
+	if (conf.group != NULL) {
+		xfree(conf.group);
+		conf.group = NULL;
 	}
 	if (conf.home != NULL) {
 		xfree(conf.home);
@@ -79,7 +95,9 @@ fill_conf(char *home)
 	if (home != NULL && *home != '\0')
 		conf.home = xstrdup(home);
 
-	pw = getpwuid(getuid());
+	uid = getuid();
+	xasprintf(&conf.uid, "%lu", (u_long) uid);
+	pw = getpwuid(uid);
 	if (pw != NULL) {
 		if (conf.home == NULL) {
 			if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
@@ -92,8 +110,21 @@ fill_conf(char *home)
 		endpwent();
 	} 
 	if (conf.user == NULL) {
-		xasprintf(&conf.user, "%lu", (u_long) getuid());
-		log_warn("can't find name for user %lu", (u_long) getuid());
+		conf.user = xstrdup(conf.uid);
+		log_warn("can't find name for user %lu", (u_long) uid);
+	}
+
+	gid = getgid();
+	xasprintf(&conf.gid, "%lu", (u_long) gid);
+	gr = getgrgid(gid);
+	if (gr != NULL) {
+		if (gr->gr_name != NULL && *gr->gr_name != '\0')
+			conf.group = xstrdup(gr->gr_name);
+		endgrent();
+	} 
+	if (conf.group == NULL) {
+		conf.group = xstrdup(conf.gid);
+		log_warn("can't find name for group %lu", (u_long) gid);
 	}
 }
 

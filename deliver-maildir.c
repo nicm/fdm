@@ -39,19 +39,14 @@ struct deliver deliver_maildir = { "maildir", maildir_deliver };
 int
 maildir_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-	char	*path, *map[REPL_LEN], ch;
+	char	*path, ch;
 	char	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
 	char	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
 	int	 fd;
 	ssize_t	 n;
 	size_t	 first, last;
 
-	bzero(map, sizeof map);
-	map[REPL_IDX('a')] = a->name;
-	map[REPL_IDX('h')] = conf.home;
-	map[REPL_IDX('t')] = t->name;
-	map[REPL_IDX('u')] = conf.user;
-	path = replace(t->data, map);
+	path = stdreplace(t->data, a, t);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto error;

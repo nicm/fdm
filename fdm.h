@@ -221,6 +221,9 @@ struct conf {
 
 	char			*home;
 	char			*user;
+	char			*uid;
+	char			*group;
+	char			*gid;
 
 	char			*conf_file;
 
@@ -401,6 +404,7 @@ void			 free_wrapped(struct mail *);
 #define REPL_IDX(ch) /* LINTED */ 				\
 	((ch >= 'a' || ch <= 'z') ? ch - 'a' :			\
 	((ch >= 'A' || ch <= 'z') ? 26 + ch - 'A' : -1))
+char			*stdreplace(char *, struct account *, struct action *);
 char 			*replace(char *, char *[52]);
 
 /* io.c */

@@ -39,15 +39,10 @@ write_deliver(struct account *a, struct action *t, struct mail *m)
 int
 do_write(struct account *a, struct action *t, struct mail *m, int append)
 {
-        char	*cmd, *map[REPL_LEN];
+        char	*cmd;
         FILE    *f;
 
-	bzero(map, sizeof map);
-	map[REPL_IDX('a')] = a->name;
-	map[REPL_IDX('h')] = conf.home;
-	map[REPL_IDX('t')] = t->name;
-	map[REPL_IDX('u')] = conf.user;
-	cmd = replace(t->data, map);
+	cmd = stdreplace(t->data, a, t);
         if (cmd == NULL || *cmd == '\0') {
 		if (cmd != NULL)
 			xfree(cmd);
