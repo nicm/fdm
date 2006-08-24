@@ -135,7 +135,7 @@ find_action(char *name)
 %type  <area> area
 %type  <domains> domains domainslist
 %type  <fetch> poptype fetchtype
-%type  <flag> continue icase
+%type  <flag> cont icase
 %type  <locks> lock locklist
 %type  <match> match
 %type  <matches> matches matchlist
@@ -184,6 +184,8 @@ set: TOKSET OPTMAXSIZE size
      }
    | TOKSET domains
      {
+	     if (conf.domains != NULL)
+		     yyerror("cannot set domains twice");
 	     conf.domains = $2;
      }
 
@@ -470,14 +472,14 @@ actionslist: actionslist STRING
 		     free($1);
 	     }
 
-continue: /* empty */
-	  {
-		  $$ = 0;
-	  }
-	| TOKCONTINUE
-	  {
-		  $$ = 1;
-	  }
+cont: /* empty */
+      {
+	      $$ = 0;
+      }
+    | TOKCONTINUE
+      {
+	      $$ = 1;
+      }
 
 area: /* empty */
       {
@@ -550,7 +552,7 @@ matches: TOKMATCH match matchlist
 		 $$ = NULL;
 	 }
 
-rule: matches accounts user actions continue
+rule: matches accounts user actions cont
       {
 	      struct rule	*r;
 	      struct match	*c;
