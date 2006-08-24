@@ -54,7 +54,7 @@ Alternatively, it could be more limited, perhaps something like this:
 
 If you use POP3 accounts fdm is best run from cron, but it can also be set up
 to deliver mail via stdin from an MTA. Configuring this is left as an exercise
-for the reader. If you're using some MTA than can invoke fdm with the -u
+for the reader. If you're using some MTA that can invoke fdm with the -u
 option, you'd probably just need something like:
 
 	account stdin "stdin"
