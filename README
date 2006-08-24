@@ -61,7 +61,7 @@ option, you'd probably just need something like:
 	action "default" mbox "/var/mail/%u"
 	match all action "default"
 
-Since fdm will use then deliver using the default user from stdin.
+Since fdm will then deliver using the default user from stdin.
 
 Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
 
