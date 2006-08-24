@@ -50,7 +50,9 @@ Alternatively, it could be something like this:
 	match "^(To:|Cc:).*sam@my.domain" action "sam"
 	match all action "bob"
 	
-Again, it is best to run fdm from cron.
+If you use POP3 accounts fdm is best run from cron, but it can also be set up
+to deliver mail via stdin from an MTA. Configuring this is left as an exercise
+for the reader.
 
 Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
 
