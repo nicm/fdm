@@ -30,8 +30,6 @@
 
 #include "fdm.h"
 
-u_int	maildir_deliveries;
-
 int	maildir_deliver(struct account *, struct action *, struct mail *);
 
 struct deliver deliver_maildir = { "maildir", maildir_deliver };
@@ -39,12 +37,13 @@ struct deliver deliver_maildir = { "maildir", maildir_deliver };
 int
 maildir_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-	char	*path, ch;
-	char	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
-	char	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 fd;
-	ssize_t	 n;
-	size_t	 first, last;
+	static u_int	 delivered = 0;
+	char		*path, ch;
+	char	 	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
+	char	 	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
+	int	 	 fd;
+	ssize_t	 	 n;
+	size_t	 	 first, last;
 
 	path = replaceinfo(t->data, a, t);
 	if (path == NULL || *path == '\0') {
@@ -120,8 +119,7 @@ restart:
 	/* find a suitable name in tmp */
 	do {
 		if (xsnprintf(name, sizeof name, "%ld.%ld_%u.%s", 
-		    (long) time(NULL), (long) getpid(), 
-		    maildir_deliveries, host) < 0) {
+		    (long) time(NULL), (long) getpid(), delivered, host) < 0) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
 			goto error;
 		}
@@ -137,7 +135,7 @@ restart:
 			goto error;
 		}
 
-		maildir_deliveries++;
+		delivered++;
 	} while (fd == -1);
 
 	/* write the message */
