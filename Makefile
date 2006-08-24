@@ -27,7 +27,7 @@ CFLAGS+= -pg
 .endif
 CFLAGS+= -DDEBUG
 CFLAGS+= -pedantic -Wno-long-long
-CFLAGS+= -Wall -W -Wnested-externs -Wformat-security
+CFLAGS+= -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes
 CFLAGS+= -Wmissing-declarations
 CFLAGS+= -Wshadow -Wpointer-arith -Wcast-qual

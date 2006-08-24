@@ -38,7 +38,7 @@
 extern char	*__progname;
 
 #ifndef __dead
-#define __dead
+#define __dead __attribute__ ((noreturn))
 #endif
 
 #ifndef TAILQ_FIRST
@@ -452,12 +452,12 @@ extern struct deliver 	 deliver_append;
 
 #ifdef NO_STRLCPY
 /* strlcpy.c */
-size_t	 strlcpy(char *, const char *, size_t);
+size_t	 		 strlcpy(char *, const char *, size_t);
 #endif
 
 #ifdef NO_STRLCAT
 /* strlcat.c */
-size_t	 strlcat(char *, const char *, size_t);
+size_t	 		 strlcat(char *, const char *, size_t);
 #endif
 
 /* fdm.c */

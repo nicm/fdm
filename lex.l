@@ -33,8 +33,8 @@
 #include "fdm.h"
 #include "y.tab.h"
 
-extern int yylex(void);
-extern __dead void yyerror(const char *, ...);
+extern int 			yylex(void);
+extern __dead printflike1 void	yyerror(const char *, ...);
 %}
 
 %%
