@@ -52,8 +52,7 @@ It may be followed by the following options, one per command:
 .Pp
 .Bl -tag -width Ds
 .It Ic maxsize Ar size
-This is used to set the maximum size of a mail. Mails larger than this limit are dropped and, if applicable, not deleted from the server. The default is
-.Em SSIZE_MAX .
+This is used to set the maximum size of a mail. Mails larger than this limit are dropped and, if applicable, not deleted from the server.
 .Pp
 The size may be specified as a plain number in bytes or with a suffix of
 .Ql K
@@ -61,7 +60,15 @@ for kilobytes,
 .Ql M
 for megabytes or
 .Ql G
-for gigabytes.
+for gigabytes. The default is one gigabyte.
+.It Ic deltoobig
+If this option is specified,
+.Xr fdm 1
+attempts to delete messages which exceed
+.Ic maxsize ,
+and continue. If it is not specified, oversize messages are a fatal error and cause
+.Xr fdm 1
+to abort.
 .It Ic locktypes Ar locktype Ar ...
 This specifies the locks to be used for mbox locking. Possible types are
 .Em fcntl ,
@@ -151,9 +158,15 @@ is replaced by the account name,
 .Em %h
 by the current user's home directory,
 .Em %t
-by the name of the current action and
+by the name of the current action,
 .Em %u
-by the current user's login name.
+by the current user's login name,
+.Em %g
+by the name of the current user's group and
+.Em %n 
+and 
+.Em %m
+by the UID and GID respectively.
 .Bl -tag -width Ds
 .It Xo Ic drop
 .Xc

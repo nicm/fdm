@@ -29,7 +29,7 @@
 #include <openssl/err.h>
 
 #define CONFFILE	".fdm.conf"
-#define MAXMAILSIZE	SSIZE_MAX	
+#define MAXMAILSIZE	(1 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 
 extern char	*__progname;
