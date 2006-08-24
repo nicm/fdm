@@ -52,6 +52,8 @@ Alternatively, it could be something like this:
 	
 Again, it is best to run fdm from cron.
 
+Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
+
 --------------------------------------------------------------------------------
 This is beta-quality software. There will be bugs. I use maildirs so they are
 the most tested.
