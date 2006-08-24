@@ -35,9 +35,15 @@ command line). A config file for multiuser may look something like:
 	set defuser "bob"
 	account ......
 	action "default" maildir "%h/mail/inbox"
-	match "^(To:|Cc:).*jim@my.domain" user "jim" action "default"
-	match "^(To:|Cc:).*sam@my.domain" user "sam" action "default"
+	# continue is used for these two so that Cc or To headers lines with
+	# multiple users work (otherwise they would be delivered to the first)
+	match "^(To:|Cc:).*[ \t]jim@my.domain" user "jim" action "default" continue
+	match "^(To:|Cc:).*[ \t]sam@my.domain" user "sam" action "default" continue
+	# no continue here, otherwise all mail would end up at the last rule,
+	# not just unmatched
+	match "^(To:|Cc:).*[ \t]bob@my.domain" user "bob" action "default"
 	match all action "default" # the rest will use the default user
+
 
 Alternatively, it could be something like this:
 
@@ -46,9 +52,10 @@ Alternatively, it could be something like this:
 	action "jim" user "jim" mbox "/var/mail/jim"
 	action "sam" user "sam" mbox "/var/mail/sam"
 	action "bob" user "bob" mbox "/var/mail/bob"
-	match "^(To:|Cc:).*jim@my.domain" action "jim"
-	match "^(To:|Cc:).*sam@my.domain" action "sam"
-	match all action "bob"
+	match "^(To:|Cc:).*[ \t]jim@my.domain" action "jim" continue
+	match "^(To:|Cc:).*[ \t]sam@my.domain" action "sam" continue
+	match "^(To:|Cc:).*[ \t]bob@my.domain" action "bob"
+	match all action "bob" # all other mail will end up with bob
 	
 If you use POP3 accounts fdm is best run from cron, but it can also be set up
 to deliver mail via stdin from an MTA. Configuring this is left as an exercise
