@@ -21,11 +21,11 @@ LEX= lex
 YACC= yacc -d
 
 CC= cc
-CFLAGS+= -g -ggdb -std=c99
+CFLAGS+= -std=c99
 .ifdef PROFILE
 CFLAGS+= -pg
 .endif
-CFLAGS+= -DDEBUG
+#CFLAGS+= -g -ggdb -DDEBUG
 CFLAGS+= -pedantic -Wno-long-long
 CFLAGS+= -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes
