@@ -162,6 +162,7 @@ pipe return (ACTPIPE);
 pop3 return (TOKPOP3);
 pop3s return (TOKPOP3S);
 port return (TOKPORT);
+rewrite return (ACTREWRITE);
 server return (TOKSERVER);
 set return (TOKSET);
 smtp return (ACTSMTP);

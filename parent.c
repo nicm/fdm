@@ -110,7 +110,8 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 			continue;
 		}
 	
-		/* figure out the users to use */
+		/* figure out the users to use. it would be nice to call
+		   find_users as non-root :-( */
 		users = NULL;
 		if (r->find_uid) {		/* rule comes first */
 			find = 1;

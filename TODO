@@ -1,4 +1,5 @@
 1 - imap fetching
 2 - wildcards in account names
-3 - option to call shell to rewrite mail
+3 - figure out way of making rewrite work despite privsep
 4 - fiddle with filtering: make it more modular?
+5 - SMTP SSL and/or TLS
