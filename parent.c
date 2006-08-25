@@ -91,7 +91,7 @@ int
 perform_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
-	u_int		 i;
+	u_int		 i, j;
 	int		 find;
 	struct users	*users;
 	uid_t		 uid;
@@ -133,9 +133,9 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 			ARRAY_ADD(users, conf.def_user, uid_t);
 		}
 
-		for (i = 0; i < ARRAY_LENGTH(users); i++) {
+		for (j = 0; j < ARRAY_LENGTH(users); j++) {
 			/* fork and deliver */
-			uid = ARRAY_ITEM(users, i, uid_t);
+			uid = ARRAY_ITEM(users, j, uid_t);
 			if (deliverfork(uid, a, m, t) != 0) {
 				if (find)
 					xfree(users);
