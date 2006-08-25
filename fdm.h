@@ -263,8 +263,7 @@ struct fetch {
 struct deliver {
 	char	*name;
 
-	int	(*deliver)(struct account *, struct action *, struct mail *,
-		    int);
+	int	(*deliver)(struct account *, struct action *, struct mail *);
 };
 
 /* Lock types. */
