@@ -43,7 +43,7 @@ DEFS = $(shell getconf LFS_CFLAGS) -DBUILD="\"$(VERSION) ($(DATE))\""
 
 ifeq ($(shell uname),Linux)
 SRCS += strlcpy.c strlcat.c
-DEFS += -D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT
+DEFS += -D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE
 endif
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))

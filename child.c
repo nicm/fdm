@@ -85,7 +85,9 @@ child(int fd, enum cmd cmd)
 		if (dropto(conf.child_uid, conf.child_path) != 0)
 			fatal("dropto");
         }
+#ifndef NO_SETPROCTITLE
 	setproctitle("child");
+#endif
 
         log_debug("child: processing accounts");
 

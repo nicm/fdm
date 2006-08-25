@@ -37,6 +37,11 @@
 
 extern char	*__progname;
 
+/* Linux compatibility bullshit. */
+#ifndef UID_MAX
+#define UID_MAX UINT_MAX
+#endif
+
 #ifndef __dead
 #define __dead __attribute__ ((noreturn))
 #endif
@@ -60,6 +65,7 @@ extern char	*__progname;
 #define TAILQ_EMPTY(head) (TAILQ_FIRST(head) == TAILQ_END(head))
 #endif
 
+/* Array macros. */
 #define ARRAY_INIT(a) do {						\
 	(a)->num = 0;							\
 	(a)->list = NULL;      						\

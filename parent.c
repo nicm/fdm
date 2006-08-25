@@ -36,7 +36,9 @@ parent(int fd, pid_t pid)
 	io = io_create(fd, NULL, IO_LF);
 	log_debug("parent: started, pid %ld", (long) getpid());
 
+#ifndef NO_SETPROCTITLE
 	setproctitle("parent");
+#endif
 
 	do {
 		if (io_wait(io, sizeof msg) != 0) 
@@ -182,7 +184,9 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 		log_warnx("%s: can't drop privileges", a->name);
 		_exit(1);
 	}
+#ifndef NO_SETPROCTITLE
 	setproctitle("deliver[%lu]", (u_long) uid);
+#endif
 
 	/* refresh user and home */
 	fill_info(NULL);	

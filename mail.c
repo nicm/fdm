@@ -18,11 +18,11 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
-#include <sys/limits.h>
 #include <sys/stat.h>
 
 #include <ctype.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pwd.h>
 #include <string.h>
 #include <time.h>
