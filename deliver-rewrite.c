@@ -20,6 +20,7 @@
 #include <sys/wait.h>
  
 #include <errno.h>
+#include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,7 +84,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 			_exit(1);
 		}
 		
-		execl("/bin/sh", "sh", "-c", cmd, (char *) NULL);
+		execl(_PATH_BSHELL, "sh", "-c", cmd, (char *) NULL);
 		_exit(1);
 	}
 
