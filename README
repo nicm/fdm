@@ -66,8 +66,10 @@ Since fdm will then deliver using the default user from stdin.
 Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
 
 --------------------------------------------------------------------------------
-This is beta-quality software. There will be bugs. I use maildirs so they are
-the most tested.
+This is beta-quality software. There will be bugs. I use it single-user with
+maildirs so this are the most tested.
+
+Tested on OpenBSD 4.0-beta i386 and on Debian with 2.4.27-2-sparc32.
 
 Feedback, bug reports, suggestions, etc, are welcome.
 
