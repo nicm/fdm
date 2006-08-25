@@ -45,7 +45,7 @@ parent(int fd, pid_t pid)
 			fatalx("parent: io_wait error");
 		if (io_read2(io, &msg, sizeof msg) != 0)
 			fatalx("parent: io_read2 error");
-		log_debug("parent: got message type %d from child", msg.type);
+		log_debug2("parent: got message type %d from child", msg.type);
 
 		switch (msg.type) {
 		case MSG_DELIVER:
