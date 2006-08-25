@@ -50,7 +50,9 @@ Process only the specified account. This option may appear multiple times.
 .Pp
 .It Fl f Ar conffile
 Specify the configuration file location. Default is
-.Pa ~/fdm.conf .
+.Pa ~/fdm.conf
+or 
+.Pa /etc/fdm.conf .
 .Pp
 .It Fl l
 Log using
@@ -116,6 +118,8 @@ will pass it through any filtering rules as normal.
 default
 .Nm
 configuration file
+.It Pa /etc/fdm.conf
+default system-wide configuration file
 .El
 .Sh AUTHORS
 .An Nicholas Marriott Aq nicm@users.sourceforge.net
