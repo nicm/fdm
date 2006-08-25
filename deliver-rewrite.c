@@ -17,6 +17,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/wait.h>
  
 #include <errno.h>
 #include <stdio.h>
@@ -36,7 +37,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
         char		*cmd, *lbuf, *line;
 	size_t		 llen, len;
 	struct mail	 m2;
-	int	 	 in[2], out[2], error;
+	int	 	 in[2], out[2], error, status;
 	struct io	*io;
 	pid_t	 	 pid;
 
@@ -102,6 +103,8 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 
 	if (write(in[1], m->data, m->size) == -1) {
  		log_warn("%s: %s: write", a->name, cmd);
+		close(out[0]);
+		close(in[1]);
 		error = 1;
 		goto error;
 	}
@@ -113,6 +116,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 			if (error == 0)
 				break;
 			free_mail(&m2);
+			close(out[0]);
 			error = 1;
 			goto error;
 		}
@@ -136,11 +140,26 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		}
 	}
 
+	close(out[0]);
+
+	if (waitpid(pid, &status, 0) == -1)
+		fatal("waitpid");
+	if (!WIFEXITED(status)) {
+		log_warnx("%s: %s: didn't exit normally", a->name, cmd);
+		error = 1;
+		goto error;
+	}
+	error = WEXITSTATUS(status);
+	if (error != 0) {
+		log_warnx("%s: %s: failed, exit code %d", a->name, cmd, error);
+		goto error;
+	}
+
 	if (m2.size > 0) {
 		free_mail(m);
 		memcpy(m, &m2, sizeof *m);
 	} else {
- 		log_warnx("%s: %s: empty mail returned", a->name, cmd);
+		log_warnx("%s: %s: empty mail returned", a->name, cmd);
 		free_mail(&m2);
 	}
 	
@@ -148,9 +167,6 @@ error:
 	xfree(lbuf);
 
 	io_free(io);	
-
-	close(out[0]);
-	close(in[1]);
 
 	xfree(cmd);	
 	return (error);
