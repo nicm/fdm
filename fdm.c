@@ -243,8 +243,14 @@ main(int argc, char **argv)
 	log_debug("user is: %s, home is: %s", conf.info.user, conf.info.home);
 
 	/* find the config file */
-	if (conf.conf_file == NULL)
+	if (conf.conf_file == NULL) {
+		/* if no file specified, try ~ then /etc */
 		xasprintf(&conf.conf_file, "%s/%s", conf.info.home, CONFFILE);
+		if (access(conf.conf_file, R_OK) != 0) {
+			xfree(conf.conf_file);
+			conf.conf_file = xstrdup(SYSCONFFILE);
+		}
+	}
 	log_debug("loading configuration from %s", conf.conf_file);
         if (load_conf() != 0) {
                 log_warn("%s", conf.conf_file);
