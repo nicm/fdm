@@ -1,0 +1,6 @@
+@comment $Id$
+bin/fdm
+share/doc/fdm/
+share/doc/fdm/README
+@man man/man1/fdm.1
+@man man/man5/fdm.conf.5
