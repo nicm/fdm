@@ -1,7 +1,7 @@
 # $Id$
 
 .SUFFIXES: .c .o .y .l .h
-.PHONY: clean index.html
+.PHONY: clean index.html upload-index.html
 
 PROG= fdm
 VERSION= 0.1
@@ -73,6 +73,10 @@ dist:		clean
 
 depend:
 		mkdep ${CFLAGS} ${SRCS}
+
+upload-index.html:
+		scp index.html nicm@shell.sf.net:index.html
+		ssh nicm@shell.sf.net sh update-index-fdm.sh
 
 index.html:
 		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
