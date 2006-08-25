@@ -1,1 +1,4 @@
-4 - imap fetching
+1 - imap fetching
+2 - wildcards in account names
+3 - option to call shell to rewrite mail
+4 - fiddle with filtering: make it more modular?
