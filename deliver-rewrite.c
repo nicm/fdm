@@ -49,11 +49,6 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
                 return (1);
         }
 
-	if (geteuid() == 0) { /* XXX */
-		log_warnx("%s: cannot rewrite when running as root", a->name);
-		return (1);
-	}
-		
 	log_debug("%s: rewriting using %s", a->name, cmd); 
 
 	memset(&m2, 0, sizeof m2);
