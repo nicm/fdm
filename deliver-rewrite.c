@@ -157,6 +157,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	} else {
 		log_warnx("%s: %s: empty mail returned", a->name, cmd);
 		free_mail(&m2);
+		error = 1;
 	}
 	
 error:
