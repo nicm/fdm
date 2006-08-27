@@ -24,6 +24,7 @@
 
 #include <ctype.h>
 #include <fnmatch.h>
+#include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
 #include <stdio.h>
