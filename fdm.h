@@ -106,6 +106,9 @@ extern char	*__progname;
 	(c) == '^' || (c) == '{' || (c) == '}' || (c) == '~' || 	\
 	(c) == '_' || (c) == '@' || (c) == '\'')
 
+/* Account name match. */
+#define name_match(p, n) (fnmatch(p, n, 0) == 0)
+
 /* Command-line commands. */
 enum cmd {
 	CMD_NONE,

@@ -20,6 +20,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
+#include <fnmatch.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -41,7 +42,7 @@ check_incl(char *name)
 		return (0);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.incl); i++) {
-		if (strcmp(ARRAY_ITEM(&conf.incl, i, char *), name) == 0)
+		if (name_match(ARRAY_ITEM(&conf.incl, i, char *), name))
 			return (0);
 	}
 
@@ -57,7 +58,7 @@ check_excl(char *name)
 		return (0);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.excl); i++) {
-		if (strcmp(ARRAY_ITEM(&conf.excl, i, char *), name) == 0)
+		if (name_match(ARRAY_ITEM(&conf.excl, i, char *), name))
 			return (1);
 	}
 
@@ -226,7 +227,7 @@ fetch_account(struct io *io, struct account *a)
 			if (!ARRAY_EMPTY(list)) {
 				for (i = 0; i < ARRAY_LENGTH(list); i++) {
 					name = ARRAY_ITEM(list, i, char *);
-					if (strcmp(name, a->name) == 0)
+					if (name_match(name, a->name))
 						break;
 				}
 				if (i == ARRAY_LENGTH(list))
