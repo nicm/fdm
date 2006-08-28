@@ -3,3 +3,5 @@
 3b - update man page for rewrite
 4 - fiddle with filtering: make it more modular?
 5 - SMTP SSL and/or TLS
+6 - SOCKS/HTTP proxy
+7 - http (hotmail) fetching
