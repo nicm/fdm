@@ -204,6 +204,7 @@ struct match {
 	char			*s;	
 
 	regex_t			 re;
+	int			 inverted;
 	enum op			 op;
 	enum area	 	 area;
 

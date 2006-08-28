@@ -1,3 +1,4 @@
+0 - document "not" keyword
 1 - imap fetching
 2 - update man page for wildcards in account names
 3a - figure out way of making rewrite work despite privsep

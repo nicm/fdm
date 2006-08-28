@@ -98,7 +98,7 @@ find_action(char *name)
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
-%token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED
+%token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -145,7 +145,7 @@ find_action(char *name)
 %type  <area> area
 %type  <domains> domains domainslist
 %type  <fetch> poptype fetchtype
-%type  <flag> cont icase
+%type  <flag> cont icase not
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
@@ -377,6 +377,16 @@ icase: TOKCASE
 	      $$ = 1;
       }
 
+not: TOKNOT
+      {
+	      $$ = 1;
+      }
+    | /* empty */
+      {
+	      $$ = 0;
+      }
+
+
 port: TOKPORT STRING
       {
 	      $$ = $2;
@@ -605,21 +615,22 @@ op: TOKAND
 	    $$ = OP_OR;
     }
 
-match: icase STRING area
+match: not icase STRING area
        {
 	       int	 error, flags;
 	       size_t	 len;
 	       char	*buf;
 
 	       $$ = xcalloc(1, sizeof (struct match));
-	       $$->s = $2;
+	       $$->s = $3;
 	       $$->op = OP_NONE;
-	       $$->area = $3;
+	       $$->area = $4;
+	       $$->inverted = $1;
 
 	       flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-	       if ($1)
+	       if ($2)
 		       flags |= REG_ICASE;
-	       if ((error = regcomp(&$$->re, $2, flags)) != 0) {
+	       if ((error = regcomp(&$$->re, $3, flags)) != 0) {
 		       len = regerror(error, &$$->re, NULL, 0);
 		       buf = xmalloc(len);
 		       regerror(error, &$$->re, buf, len);

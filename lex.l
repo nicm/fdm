@@ -156,6 +156,7 @@ match return (TOKMATCH);
 maxsize return (TOKMAXSIZE);
 mbox return (ACTMBOX);
 none return (TOKNONE);
+not return (TOKNOT);
 or return (TOKOR);
 pass return (TOKPASS);
 pipe return (ACTPIPE);
