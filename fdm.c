@@ -140,7 +140,7 @@ __dead void
 usage(void)
 {
 	printf("usage: %s [-lnv] [-f conffile] [-u user] "
-	    "[-a account] [-x account] [fetch|poll]\n", __progname);
+	    "[-a name] [-x name] [fetch|poll]\n", __progname);
         exit(1);
 }
 

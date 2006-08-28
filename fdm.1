@@ -45,8 +45,8 @@ and delivers it based on a ruleset in the configuration file.
 .Pp
 The options are as follows:
 .Bl -tag -width "-f conffileXXX"
-.It Fl a Ar account
-Process only the specified account. This option may appear multiple times.
+.It Fl a Ar name
+Process only the specified account. This option may appear multiple times. The account name may include shell glob characters to match multiple accounts.
 .Pp
 .It Fl f Ar conffile
 Specify the configuration file location. Default is
@@ -72,10 +72,12 @@ option in the configuration file.
 .It Fl v
 Request verbose logging. This option may be specified multiple times.
 .Pp
-.It Fl x Ar account
+.It Fl x Ar name
 Exclude the named account. Multiple
 .Fl x
-options may be specified.
+options may be specified. As with
+.Fl a ,
+shell glob characters may be used.
 .Pp
 .It Ar fetch | poll
 The 

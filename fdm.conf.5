@@ -262,7 +262,8 @@ Matches only mail that has matched a previous rule and been passed on with
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
-.It Xo Op Ic case 
+.It Xo Op Ic not
+.Op Ic case 
 .Ar regexp 
 .Op Ic in Ic headers | Ic in body
 .Op Ic and | Ic or Ar ...
@@ -271,7 +272,11 @@ Specifies a list of regexps against which each mail should be matched. The regex
 .Ic in headers
 or
 .Ic in body .
-The
+If the
+.Ic not
+keyword is specified, the sense of the regexp match is inverted, so the rule will apply to mails only where the regexp does 
+.Em not
+match. The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching. Multiple regexps may be specified by chaining them with 
 .Ic and
@@ -310,7 +315,12 @@ The
 .Ar accounts
 list is used to limit rules to matching mail within a set of accounts, and the
 .Ar actions
-list specifies the actions to perform when the rule matches a mail. The actions
+list specifies the actions to perform when the rule matches a mail. The account names may include shell glob wildcards to match multiple accounts, as with
+the
+.Fl a
+and 
+.Fl x
+command line options. The actions
 are performed from left to right in the order they are specified in the rule definition.
 .Pp
 If the
