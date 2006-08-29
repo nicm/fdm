@@ -55,7 +55,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
            account "stdinacct" stdin
 
      and the user's <I>~/.forward </I>file should be set to contain something like
-     (including quotations marks):
+     (including quotation marks):
 
            "|/usr/local/bin/fdm -l -a stdinacct fetch"
 
@@ -211,10 +211,11 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>rewrite </B><I>command</I>
              Pipe the entire mail through <I>command </I>to generate a new mail. The
              modified mail is kept only within the rule the action appears, so
-             the modified mail will be used only be subsequent actions in the
-             same rule and not by actions in further rules. Also, this type of
-             action does not work when running as root (although the command
-             will be executed the mail will remain unchanged). For example:
+             it will be used only by subsequent actions in the same rule and
+             not by actions in further rules. This type of action does not
+             work when running as root (although the command will be executed
+             the mail will remain unchanged). An example of the <B>rewrite </B>action
+             is:
 
                    action "cat" pipe "cat"
                    action "rewrite" rewrite "sed 's/bob/fred/g'"
