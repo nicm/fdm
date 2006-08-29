@@ -416,6 +416,27 @@ struct pop3_data {
 #define pop3_isOK(s) (strncmp(s, "+OK", 3) == 0)
 #define pop3_isERR(s) (strncmp(s, "+ERR", 4) == 0)
 
+/* Fetch imap states. */
+enum imap_state {
+	IMAP_CONNECTING
+};
+
+/* Fetch imap data. */
+struct imap_data {
+	char			*user;
+	char			*pass;
+
+	struct server		 server;
+	int			 fd;
+
+	enum imap_state	 	 state;
+	u_int		 	 cur;
+	u_int		 	 num;
+
+        SSL_CTX			*ctx;
+	struct io		*io;
+};
+
 /* Deliver smtp states. */
 enum smtp_state {
 	SMTP_CONNECTING,
@@ -445,6 +466,16 @@ void			 pop3_error(struct account *);
 
 /* fetch-pop3s.c */
 extern struct fetch 	 fetch_pop3s;
+
+/* fetch-imap.c */
+extern struct fetch 	 fetch_imap;
+int			 imap_poll(struct account *, u_int *);
+int			 imap_fetch(struct account *, struct mail *);
+int			 imap_delete(struct account *);
+void			 imap_error(struct account *);
+
+/* fetch-imaps.c */
+extern struct fetch 	 fetch_imaps;
 
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;

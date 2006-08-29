@@ -99,6 +99,7 @@ find_action(char *name)
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
+%token TOKIMAP TOKIMAPS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -144,7 +145,7 @@ find_action(char *name)
 %type  <actions> actions actionslist
 %type  <area> area
 %type  <domains> domains domainslist
-%type  <fetch> poptype fetchtype
+%type  <fetch> poptype imaptype fetchtype
 %type  <flag> cont icase not
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
@@ -743,7 +744,31 @@ poptype: TOKPOP3
 		 $$.fetch = &fetch_pop3s;
 	 }
 
+imaptype: TOKIMAP
+          {
+		  $$.fetch = &fetch_imap;
+          }
+        | TOKIMAPS
+	  {
+		  $$.fetch = &fetch_imaps;
+	  }
+
 fetchtype: poptype server TOKUSER STRING TOKPASS STRING
+           {
+		   struct pop3_data	*data;
+		   
+		   $$ = $1;
+		   
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
+		   data->user = $4;
+		   data->pass = $6;
+		   data->server.host = $2.host;
+		   data->server.port = 
+		       $2.port != NULL ? $2.port : $1.fetch->port;
+		   data->server.ai = NULL;
+	   }
+         | imaptype server TOKUSER STRING TOKPASS STRING
            {
 		   struct pop3_data	*data;
 		   

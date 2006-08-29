@@ -149,6 +149,8 @@ flock return (LCKFLOCK);
 from-headers return (TOKFROMHEADERS);
 header return (TOKHEADER);
 headers return (TOKHEADERS);
+imap return (TOKIMAP);
+imaps return (TOKIMAPS);
 in return (TOKIN);
 locktypes return (TOKLOCKTYPES);
 maildir return (ACTMAILDIR);

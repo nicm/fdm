@@ -13,7 +13,8 @@ DATE!= date +%Y%m%d-%H%M
 SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c mail.c \
       fetch-pop3.c fetch-pop3s.c fetch-stdin.c deliver-smtp.c deliver-pipe.c \
       deliver-drop.c deliver-maildir.c deliver-mbox.c deliver-write.c \
-      deliver-append.c deliver-rewrite.c child.c parent.c
+      deliver-append.c deliver-rewrite.c child.c parent.c fetch-imap.c \
+      fetch-imaps.c
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
