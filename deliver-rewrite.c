@@ -151,14 +151,16 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		goto error;
 	}
 
-	if (m2.size > 0) {
-		free_mail(m);
-		memcpy(m, &m2, sizeof *m);
-	} else {
+	if (m2.size <= 0) {
 		log_warnx("%s: %s: empty mail returned", a->name, cmd);
 		free_mail(&m2);
 		error = 1;
+		goto error;
 	}
+	
+	/* replace the old mail */
+	free_mail(m);
+	memcpy(m, &m2, sizeof *m);
 	
 error:
 	xfree(lbuf);

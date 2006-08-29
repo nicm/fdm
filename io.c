@@ -426,8 +426,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	return (*buf);
 }
 
-/* Return a line from the read buffer. EOL is stripped and the string
-   returned is zero-terminated. */
+/* Return a line from the read buffer in a new buffer. */
 char *
 io_readline(struct io *io)
 {
