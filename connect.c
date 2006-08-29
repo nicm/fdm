@@ -51,8 +51,7 @@ connectto(struct server *srv, char **cause)
 {
 	int		 fd = -1, error = 0;
 	struct addrinfo	*ai;
-
-	*cause = "";
+	char		*fn = NULL;
 
 	if (srv->ai == NULL) {
 		if (filladdrinfo(srv, cause) != 0)
@@ -62,18 +61,21 @@ connectto(struct server *srv, char **cause)
 	for (ai = srv->ai; ai != NULL; ai = ai->ai_next) {
 		fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 		if (fd < 0) {
-			xasprintf(cause, "socket: %s", strerror(errno));
+			fn = "socket";
 			continue;
 		}
 		if (connect(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
-			xasprintf(cause, "connect: %s", strerror(errno));
 			error = errno;
 			close(fd);
 			errno = error;
 			fd = -1;
+			fn = "connect";
 			continue;
 		}
+		break;
 	}
 
+	if (fd < 0)
+		xasprintf(cause, "%s: %s", fn, strerror(errno));
 	return (fd);
 }
