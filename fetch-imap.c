@@ -312,6 +312,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					line = "too much data from server";
 					goto error;
 				}
+				m->size = off;
 
 				if (flushing)
 					res = FETCH_OVERSIZE;
