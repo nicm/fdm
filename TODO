@@ -3,3 +3,4 @@
 - SOCKS/HTTP proxy
 - http (hotmail) fetching
 - option to make an account disabled by default unless mentioned on cmd line
+- fix %d SSL messages (SSL_connect)

@@ -30,8 +30,6 @@ int	imap_connect(struct account *);
 int	imap_disconnect(struct account *);
 int	imap_tag(char *);
 int	imap_okay(char *);
-int	imap_no(char *);
-int	imap_bad(char *);
 int	do_imap(struct account *, u_int *, struct mail *, int);
 
 struct fetch	fetch_imap = { "imap", "imap",
@@ -126,24 +124,6 @@ imap_okay(char *line)
 	if (line == NULL)
 		return (0);
 	return (strncmp(line + 1, "OK ", 3) == 0);
-}
-
-int
-imap_no(char *line)
-{
-	line = strchr(line, ' ');
-	if (line == NULL)
-		return (0);
-	return (strncmp(line + 1, "NO ", 3) == 0);
-}
-
-int
-imap_bad(char *line)
-{
-	line = strchr(line, ' ');
-	if (line == NULL)
-		return (0);
-	return (strncmp(line + 1, "BAD ", 3) == 0);
 }
 
 int
