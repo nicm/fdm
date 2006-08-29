@@ -172,13 +172,17 @@ If it is omitted, the default port (143 for POP3, 993 for POP3S) is used.
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
+.Op Ic folder Ar name
 .Xc
 .It Xo Ic imaps Ic server Ar host 
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
+.Op Ic folder Ar name
 .Xc
 These define an IMAP or IMAPS account.
-The parameters are as for a POP3 or POP3 account.
+The parameters are as for a POP3 or POP3 account, aside from the additional
+.Ic folder
+option which allows the folder name to be specified (the default is to fetch from the inbox).
 .El
 .Sh ACTIONS
 The
