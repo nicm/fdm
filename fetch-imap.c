@@ -28,6 +28,10 @@
 
 int	imap_connect(struct account *);
 int	imap_disconnect(struct account *);
+int	imap_tag(char *);
+int	imap_okay(char *);
+int	imap_no(char *);
+int	imap_bad(char *);
 int	do_imap(struct account *, u_int *, struct mail *, int);
 
 struct fetch	fetch_imap = { "imap", "imap",
@@ -57,6 +61,7 @@ imap_connect(struct account *a)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	data->state = IMAP_CONNECTING;
+	data->tag = 0;
 
 	return (0);
 }
@@ -82,7 +87,8 @@ imap_error(struct account *a)
 
 	data = a->data;
 
-	/** XXX **/
+        io_writeline(data->io, "%u LOGOUT", ++data->tag);
+        io_flush(data->io);
 }
 
 int
@@ -98,12 +104,57 @@ imap_fetch(struct account *a, struct mail *m)
 }
 
 int
+imap_tag(char *line) 
+{
+	long	tag;
+
+	if (line[0] == '*' && line[1] == ' ')
+		return (-1);
+
+	errno = 0;
+	tag = strtol(line, NULL, 10);
+	if (tag == 0 && (errno == EINVAL || errno == ERANGE))
+		return (-2);
+
+	return (tag);
+}
+
+int
+imap_okay(char *line)
+{
+	line = strchr(line, ' ');
+	if (line == NULL)
+		return (0);
+	return (strncmp(line + 1, "OK ", 3) == 0);
+}
+
+int
+imap_no(char *line)
+{
+	line = strchr(line, ' ');
+	if (line == NULL)
+		return (0);
+	return (strncmp(line + 1, "NO ", 3) == 0);
+}
+
+int
+imap_bad(char *line)
+{
+	line = strchr(line, ' ');
+	if (line == NULL)
+		return (0);
+	return (strncmp(line + 1, "BAD ", 3) == 0);
+}
+
+int
 do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 {
 	struct imap_data	*data;
-	int		 	 res, flushing;
+	int		 	 v, res, flushing;
+	long			 tag;
 	char			*line, *lbuf;
-	size_t			 llen;
+	size_t			 off = 0, len, llen;
+	u_int			 u, lines = 0;
 
 	data = a->data;
 
@@ -128,8 +179,192 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 			
 			switch (data->state) {
 			case IMAP_CONNECTING:
+				if (imap_tag(line) != -1)
+					goto error;
+
+				data->state = IMAP_LOGIN;
+				io_writeline(data->io, "%u LOGIN %s %s", 
+				    ++data->tag, data->user, data->pass);
 				break;
-				/** XXX **/
+			case IMAP_LOGIN:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != data->tag)
+					goto error;
+				if (!imap_okay(line))
+					goto error;
+
+				data->state = IMAP_SELECT;
+				if (is_poll)
+					io_writeline(data->io, "%u EXAMINE "
+					    "INBOX", ++data->tag);
+				else
+					io_writeline(data->io, "%u SELECT "
+					    "INBOX", ++data->tag);
+				break;
+			case IMAP_SELECT:
+				tag = imap_tag(line);
+				if (tag != -1)
+					goto error;
+
+				v = sscanf(line, "* %u EXISTS", &data->num);
+				if (v != 1)
+					continue;
+				data->state = IMAP_SELECTWAIT;
+				break;
+			case IMAP_SELECTWAIT:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != data->tag)
+					goto error;
+				if (!imap_okay(line))
+					goto error;
+				
+				if (is_poll) {
+					*n = data->num;
+					data->state = IMAP_LOGOUT;
+					io_writeline(data->io, "%u LOGOUT",
+					    ++data->tag);
+					break;
+				}
+
+				line = strchr(line, ' ' );
+				if (line == NULL)
+					goto error;
+				line++;
+				if (strncmp(line, "OK [READ-WRITE]", 15) != 0) {
+					line = "can't open inbox read/write";
+					goto error;
+				}
+
+				if (data->num == 0) {
+					data->state = IMAP_CLOSE;
+					io_writeline(data->io, "%u CLOSE",
+					    ++data->tag);
+					break;
+				}
+
+				data->cur = 1;
+				data->state = IMAP_SIZE;
+				io_writeline(data->io, "%u FETCH %u BODY[]",
+				    ++data->tag, data->cur);
+				break;
+			case IMAP_SIZE:
+				tag = imap_tag(line);
+				if (tag != -1)
+					goto error;
+
+				if (sscanf(line, "* %u FETCH (BODY[] {%zu}",
+				    &u, &m->size) != 2)
+					goto error;
+				if (u != data->cur)
+					goto error;
+
+				if (m->size == 0) {
+					line = "zero-length size";
+					goto error;
+				}
+
+				if (m->size > conf.max_size)
+					flushing = 1;
+
+				off = lines = 0;
+				m->base = m->data = xmalloc(m->size);
+				m->space = m->size;
+				m->body = -1;
+				
+				data->state = IMAP_LINE;
+				break;
+			case IMAP_LINE:
+				len = strlen(line);
+				if (len == 0 && m->body == -1)
+					m->body = off + 1;
+				
+				if (!flushing) {
+					resize_mail(m, off + len + 1);
+					memcpy(m->data + off, line, len);
+					/* append an LF */
+					m->data[off + len] = '\n';
+				}
+				lines++;
+				off += len + 1;
+
+				if (off + lines >= m->size)
+					data->state = IMAP_LINEWAIT;
+				break;
+			case IMAP_LINEWAIT:
+				if (strcmp(line, ")") != 0)
+					goto error;
+				data->state = IMAP_LINEWAIT2;
+				break;
+			case IMAP_LINEWAIT2:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != data->tag)
+					goto error;
+				if (!imap_okay(line))
+					goto error;
+
+				if (off + lines != m->size) {
+					line = "too much data from server";
+					goto error;
+				}
+
+				if (flushing)
+					res = FETCH_OVERSIZE;
+				else
+					res = FETCH_SUCCESS;
+				
+				data->state = IMAP_DONE;
+				break;
+			case IMAP_DONE:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != data->tag)
+					goto error;
+				if (!imap_okay(line))
+					goto error;
+					
+				data->cur++;
+				if (data->cur > data->num) {
+					data->state = IMAP_CLOSE;
+					io_writeline(data->io, "%u CLOSE",
+					    ++data->tag);
+					break;
+				}
+
+				data->state = IMAP_SIZE;
+				io_writeline(data->io, "%u FETCH %u BODY[]",
+				    ++data->tag, data->cur);
+				break;
+			case IMAP_CLOSE:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != data->tag)
+					goto error;
+				if (!imap_okay(line))
+					goto error;
+
+				data->state = IMAP_LOGOUT;
+ 				io_writeline(data->io, "%u LOGOUT",
+				    ++data->tag);
+				break;
+			case IMAP_LOGOUT:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != data->tag)
+					goto error;
+				if (!imap_okay(line))
+					goto error;
+
+				res = FETCH_COMPLETE;
+				break;
 			}
 		} while (res == -1);
 	} while (res == -1);
@@ -153,7 +388,8 @@ imap_delete(struct account *a)
 
 	data = a->data;
 
-	/** XXX **/
+	io_writeline(data->io, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
+	    data->cur);
 
 	return (0);
 }

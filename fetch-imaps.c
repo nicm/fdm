@@ -77,6 +77,7 @@ imaps_connect(struct account *a)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	data->state = IMAP_CONNECTING;
+	data->tag = 0;
 
 	return (0);
 }

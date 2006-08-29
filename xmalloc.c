@@ -98,7 +98,9 @@ xmalloc_new(void *ptr, size_t size)
 {
 	struct xmalloc_block	*block;
 
+#if 0
 	log_debug3("xmalloc_new: %p %zu", ptr, size);
+#endif
 
 	if ((block = xmalloc_find(NULL)) == NULL) {
 		log_warnx("xmalloc_new: no space");
@@ -117,7 +119,9 @@ xmalloc_change(void *oldptr, void *newptr, size_t newsize)
 	struct xmalloc_block	*block;
 	ssize_t			 change;
 
+#if 0
 	log_debug3("xmalloc_change: %p -> %p %zu", oldptr, newptr, newsize);
+#endif
 
 	if ((block = xmalloc_find(oldptr)) == NULL) {
 		log_warnx("xmalloc_change: not found");
@@ -139,7 +143,9 @@ xmalloc_free(void *ptr)
 {
 	struct xmalloc_block	*block;
 
+#if 0
 	log_debug3("xmalloc_free: %p", ptr);
+#endif
 
 	if ((block = xmalloc_find(ptr)) == NULL) {
 		log_warnx("xmalloc_free: not found");

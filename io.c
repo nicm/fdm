@@ -37,6 +37,8 @@
 
 #include "fdm.h"
 
+#undef	IO_DEBUG
+
 int	io_push(struct io *);
 int	io_fill(struct io *);
 
@@ -114,9 +116,11 @@ io_poll(struct io *io)
 	if (io->wsize > 0 || io->need_wr)
 		pfd.events |= POLLOUT;
 
+#ifdef IO_DEBUG
 	log_debug3("io_poll: in: roff=%zu rsize=%zu rspace=%zu "
 	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace, 
 	    io->wsize, io->wspace);
+#endif
 
 	error = poll(&pfd, 1, INFTIM);
 	if (error == -1 && errno != EINTR)
@@ -141,9 +145,11 @@ io_poll(struct io *io)
 		}
 	}
 
+#ifdef IO_DEBUG
 	log_debug3("io_poll: out: roff=%zu rsize=%zu rspace=%zu "
 	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace, 
 	    io->wsize, io->wspace);
+#endif
 
 	return (1);
 
@@ -159,7 +165,9 @@ io_fill(struct io *io)
 {
 	ssize_t	n;
 
+#ifdef IO_DEBUG
  	log_debug3("io_fill: in");
+#endif
 
 	/* move data back to the base of the buffer */
 	if (io->roff > 0) {
@@ -207,7 +215,9 @@ io_fill(struct io *io)
 	}
 
 	if (n != -1) {
+#ifdef IO_DEBUG
 		log_debug3("io_fill: read %zd bytes", n);
+#endif
 
 		/* copy out the duplicate fd. errors are irrelevent for this */
 		if (io->dup_fd != -1 && !conf.syslog) {
@@ -219,7 +229,9 @@ io_fill(struct io *io)
 		io->rsize += n;
 	}		
 
+#ifdef IO_DEBUG
 	log_debug3("io_fill: out");
+#endif
 
 	return (1);
 }
@@ -230,7 +242,9 @@ io_push(struct io *io)
 {
 	ssize_t	n;
 
+#ifdef IO_DEBUG
  	log_debug3("io_push: in");
+#endif
 
 	/* if nothing to write, return */
 	if (io->wsize == 0)
@@ -264,7 +278,9 @@ io_push(struct io *io)
 	}
 
 	if (n != -1) {
+#ifdef IO_DEBUG
 		log_debug3("io_push: wrote %zd bytes", n);
+#endif
 
 		/* copy out the duplicate fd */
 		if (io->dup_fd != -1 && !conf.syslog) {
@@ -280,7 +296,9 @@ io_push(struct io *io)
 		io->need_wr = 0;
 	}
 
+#ifdef IO_DEBUG
 	log_debug3("io_push: out");
+#endif
 
 	return (1);
 }
@@ -329,8 +347,10 @@ io_write(struct io *io, const void *buf, size_t len)
 		io->wsize += len;
 	}
 
+#ifdef IO_DEBUG
 	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", len, io->wsize,
 	    io->wspace);
+#endif
 }
 
 /* Return a line from the read buffer. EOL is stripped and the string
@@ -344,7 +364,9 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	if (io->rsize <= 1)
 		return (NULL);
 
+#ifdef IO_DEBUG
 	log_debug3("io_readline2: in: off=%zu used=%zu", io->roff, io->rsize);
+#endif
 
 	maxlen = io->rsize > IO_MAXLINELEN ? IO_MAXLINELEN : io->rsize;
 	eollen = strlen(io->eol);
@@ -397,7 +419,9 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	io->roff += off + eollen;
 	io->rsize -= off + eollen;
 
+#ifdef IO_DEBUG
 	log_debug3("io_readline2: out: off=%zu used=%zu", io->roff, io->rsize);
+#endif
 
 	return (*buf);
 }
@@ -422,7 +446,9 @@ io_writeline(struct io *io, const char *fmt, ...)
 {
 	va_list	 ap;
 
+#ifdef IO_DEBUG
 	log_debug3("io_writeline: fmt=%s", fmt);
+#endif
 
 	va_start(ap, fmt);
 	io_vwriteline(io, fmt, ap);

@@ -418,7 +418,17 @@ struct pop3_data {
 
 /* Fetch imap states. */
 enum imap_state {
-	IMAP_CONNECTING
+	IMAP_CONNECTING,
+	IMAP_LOGIN,
+	IMAP_SELECT,
+	IMAP_SELECTWAIT,
+	IMAP_SIZE,
+	IMAP_LINE,
+	IMAP_LINEWAIT,
+	IMAP_LINEWAIT2,
+	IMAP_DONE,
+	IMAP_CLOSE,
+	IMAP_LOGOUT
 };
 
 /* Fetch imap data. */
@@ -430,6 +440,7 @@ struct imap_data {
 	int			 fd;
 
 	enum imap_state	 	 state;
+	int			 tag; /* XXX overflow */
 	u_int		 	 cur;
 	u_int		 	 num;
 
