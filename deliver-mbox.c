@@ -37,9 +37,10 @@ struct deliver deliver_mbox = { "mbox", mbox_deliver };
 int
 mbox_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-	char	*path, *ptr;
-	size_t	 len;
-	int	 fd = -1, error = 0;
+	char		*path, *ptr;
+	size_t	 	 len;
+	int	 	 fd = -1, error = 0;
+	struct stat	 sb;
 
 	path = replaceinfo(t->data, a, t);
 	if (path == NULL || *path == '\0') {
@@ -48,11 +49,39 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	}
 	log_debug("%s: saving to mbox %s", a->name, path); 
 
+	/* check permissions and ownership */
+	if (stat(path, &sb) != 0) {
+		log_warn("%s: %s: stat", a->name, path);
+		error = 1;
+		goto out;
+	}
+	if ((sb.st_mode & 
+	    (S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
+		log_warnx("%s: %s: bad permissions: %o%o%o, "
+		    "should be 600", a->name, path,
+		    (sb.st_mode & S_IRUSR ? 4 : 0) +
+		    (sb.st_mode & S_IWUSR ? 2 : 0) +
+		    (sb.st_mode & S_IXUSR ? 1 : 0),
+		    (sb.st_mode & S_IRGRP ? 4 : 0) +
+		    (sb.st_mode & S_IWGRP ? 2 : 0) +
+		    (sb.st_mode & S_IXGRP ? 1 : 0),
+		    (sb.st_mode & S_IROTH ? 4 : 0) +
+		    (sb.st_mode & S_IWOTH ? 2 : 0) +
+		    (sb.st_mode & S_IXOTH ? 1 : 0));
+		error = 1;
+		goto out;
+	}
+	if (sb.st_uid != getuid()) {
+		log_warnx("%s: %s: bad owner: %lu, should be %lu", a->name, 
+		    path, (u_long) sb.st_uid, (u_long) getuid());
+		error = 1;
+		goto out;
+	}
+
 	/* ensure an existing from line is available */
 	if (m->from == NULL)
 		make_from(m);
 
-	/* XXX dest file sanity checks: ownership? */
 	do {
 		fd = openlock(path, conf.lock_types, 
 		    O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
@@ -62,7 +91,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 				    "sleeping", a->name, path);
 				sleep(LOCKSLEEPTIME);
 			} else {
-				log_warn("%s: open(\"%s\")", a->name, path);
+				log_warn("%s: %s: open", a->name, path);
 				error = 1;
 				goto out;
 			}
