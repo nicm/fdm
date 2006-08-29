@@ -3,3 +3,4 @@
 - SOCKS/HTTP proxy
 - http (hotmail) fetching
 - fix %d SSL messages (SSL_connect)
+- sort out pop3/imap messages, don't just rely on server

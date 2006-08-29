@@ -436,6 +436,7 @@ enum imap_state {
 struct imap_data {
 	char			*user;
 	char			*pass;
+	char			*folder;
 
 	struct server		 server;
 	int			 fd;

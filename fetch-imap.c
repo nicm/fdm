@@ -132,7 +132,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	struct imap_data	*data;
 	int		 	 v, res, flushing;
 	long			 tag;
-	char			*line, *lbuf;
+	char			*line, *lbuf, *folder;
 	size_t			 off = 0, len, llen;
 	u_int			 u, lines = 0;
 
@@ -143,6 +143,10 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
+
+	folder = data->folder;
+	if (folder == NULL)
+		folder = "INBOX";
 
 	flushing = 0;
 	do {
@@ -177,11 +181,11 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 
 				data->state = IMAP_SELECT;
 				if (is_poll)
-					io_writeline(data->io, "%u EXAMINE "
-					    "INBOX", ++data->tag);
+					io_writeline(data->io, "%u EXAMINE %s",
+					    ++data->tag, folder);
 				else
-					io_writeline(data->io, "%u SELECT "
-					    "INBOX", ++data->tag);
+					io_writeline(data->io, "%u SELECT %s",
+					    ++data->tag, folder);
 				break;
 			case IMAP_SELECT:
 				tag = imap_tag(line);

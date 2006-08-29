@@ -154,7 +154,7 @@ find_action(char *name)
 %type  <number> size
 %type  <op> op
 %type  <server> server
-%type  <string> port command to
+%type  <string> port command to folder
 %type  <uid> uid
 %type  <users> users userslist
 
@@ -743,6 +743,15 @@ rule: matches accounts users actions cont
 		  tmp2, tmp);
       }
 
+folder: /* empty */
+        {
+		$$ = NULL;
+        } 
+      | TOKFOLDER STRING
+	{
+		$$ = $2;
+	}
+
 poptype: TOKPOP3
          {
 		 $$.fetch = &fetch_pop3;
@@ -776,9 +785,9 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		       $2.port != NULL ? $2.port : $1.fetch->port;
 		   data->server.ai = NULL;
 	   }
-         | imaptype server TOKUSER STRING TOKPASS STRING
+         | imaptype server TOKUSER STRING TOKPASS STRING folder
            {
-		   struct pop3_data	*data;
+		   struct imap_data	*data;
 		   
 		   $$ = $1;
 		   
@@ -786,6 +795,7 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   $$.data = data;
 		   data->user = $4;
 		   data->pass = $6;
+		   data->folder = $7;
 		   data->server.host = $2.host;
 		   data->server.port = 
 		       $2.port != NULL ? $2.port : $1.fetch->port;

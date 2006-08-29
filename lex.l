@@ -148,6 +148,7 @@ drop return (ACTDROP);
 fcntl return (LCKFCNTL);
 flock return (LCKFLOCK);
 from-headers return (TOKFROMHEADERS);
+folder return (TOKFOLDER);
 header return (TOKHEADER);
 headers return (TOKHEADERS);
 imap return (TOKIMAP);
