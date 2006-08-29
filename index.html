@@ -22,8 +22,9 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
 
      The options are as follows:
 
-     <B>-a </B><I>account      </I>Process only the specified account. This option may ap-
-                     pear multiple times.
+     <B>-a </B><I>name         </I>Process only the specified account. This option may ap-
+                     pear multiple times. The account name may include shell
+                     glob characters to match multiple accounts.
 
      <B>-f </B><I>conffile     </I>Specify the configuration file location. Default is
                      <I>~/fdm.conf</I>, or <I>/etc/fdm.conf </I>if it doesn't exist.
@@ -39,8 +40,8 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      <B>-v              </B>Request verbose logging. This option may be specified
                      multiple times.
 
-     <B>-x </B><I>account      </I>Exclude the named account. Multiple <B>-x </B>options may be
-                     specified.
+     <B>-x </B><I>name         </I>Exclude the named account. Multiple <B>-x </B>options may be
+                     specified. As with <B>-a</B>, shell glob characters may be used.
 
      <I>fetch </I>| <I>poll    </I>The <I>fetch </I>command instructs <B>fdm </B>to fetch and deliver mes-
                      sages. The <I>poll </I>command polls the accounts in the config-
@@ -207,6 +208,21 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              If <I>to </I>is specified, it is passed to the server in the RCPT TO
              command. If not, the current user and host names are used.
 
+     <B>rewrite </B><I>command</I>
+             Pipe the entire mail through <I>command </I>to generate a new mail. The
+             modified mail is kept only within the rule the action appears, so
+             the modified mail will be used only be subsequent actions in the
+             same rule and not by actions in further rules. Also, this type of
+             action does not work when running as root (although the command
+             will be executed the mail will remain unchanged). For example:
+
+                   action "cat" pipe "cat"
+                   action "rewrite" rewrite "sed 's/bob/fred/g'"
+                   # this rule will rewrite the message and then cat it
+                   match all actions { "rewrite" "cat" } continue
+                   # this rule will cat the original message
+                   match all action "cat"
+
 <B>RULES</B>
      Rules are specified using the <B>match </B>keyword. It has the following basic
      form:
@@ -225,14 +241,16 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              The opposite of <B>matched</B>: matches only mails which have matched no
              previous rules.
 
-     [<B>case</B>] <I>regexp </I>[<B>in headers </B>| <B>in body</B>] [<B>and </B>| <B>or </B><I>...</I>]
+     [<B>not</B>] [<B>case</B>] <I>regexp </I>[<B>in headers </B>| <B>in body</B>] [<B>and </B>| <B>or </B><I>...</I>]
              Specifies a list of regexps against which each mail should be
              matched. The regexp matches may be restricted to either the head-
              ers or body of the message by specifying either <B>in headers </B>or <B>in</B>
-             <B>body</B>.  The <B>case </B>keyword forces the regexp to be matched case-sen-
-             sitively: the default is case-insensitive matching. Multiple reg-
-             exps may be specified by chaining them with <B>and </B>or <B>or </B>keywords.
-             The regexps are matched from left to right.
+             <B>body</B>.  If the <B>not </B>keyword is specified, the sense of the regexp
+             match is inverted, so the rule will apply to mails only where the
+             regexp does <I>not </I>match. The <B>case </B>keyword forces the regexp to be
+             matched case-sensitively: the default is case-insensitive match-
+             ing. Multiple regexps may be specified by chaining them with <B>and</B>
+             or <B>or </B>keywords. The regexps are matched from left to right.
 
      The optional <I>users </I>argument has the same syntax as for an <B>action </B>defini-
      tion. A rule's user list overrides any lists given as part of the ac-
@@ -247,8 +265,10 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      The <I>accounts </I>list is used to limit rules to matching mail within a set of
      accounts, and the <I>actions </I>list specifies the actions to perform when the
-     rule matches a mail. The actions are performed from left to right in the
-     order they are specified in the rule definition.
+     rule matches a mail. The account names may include shell glob wildcards
+     to match multiple accounts, as with the <B>-a </B>and <B>-x </B>command line options.
+     The actions are performed from left to right in the order they are speci-
+     fied in the rule definition.
 
      If the <B>continue </B>keyword is present, evaluation will not stop if this rule
      is matched. Instead, fdm(1) will continue to match further rules after
@@ -263,7 +283,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 <B>SEE ALSO</B>
      fdm(1), re_format(7)
 
-OpenBSD 4.0                     August 21, 2006                              3
+OpenBSD 4.0                     August 21, 2006                              4
 </PRE>
 </body>
 </html>
