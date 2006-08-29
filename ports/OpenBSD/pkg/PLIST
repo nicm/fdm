@@ -2,5 +2,6 @@
 bin/fdm
 share/doc/fdm/
 share/doc/fdm/README
+share/doc/fdm/fdm.conf.sample
 @man man/man1/fdm.1
 @man man/man5/fdm.conf.5
