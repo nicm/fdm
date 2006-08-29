@@ -28,25 +28,45 @@
 #include <unistd.h>
 
 #include "fdm.h"
+
+int
+filladdrinfo(struct server *srv, char **cause)
+{
+	struct addrinfo	hints;
+	int		error;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	error = getaddrinfo(srv->host, srv->port, &hints, &srv->ai);
+	if (error != 0) {
+		*cause = xstrdup(gai_strerror(error));
+		return (1);
+	}
+	return (0);
+}
     
 int
-connectto(struct addrinfo *ai, char **cause)
+connectto(struct server *srv, char **cause)
 {
-	int	fd = -1, error = 0;
+	int		 fd = -1, error = 0;
+	struct addrinfo	*ai;
 
-	if (cause != NULL)
-		*cause = "";
+	*cause = "";
 
-	for (; ai != NULL; ai = ai->ai_next) {
+	if (srv->ai == NULL) {
+		if (filladdrinfo(srv, cause) != 0)
+			return (-1);
+	}
+
+	for (ai = srv->ai; ai != NULL; ai = ai->ai_next) {
 		fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 		if (fd < 0) {
-			if (cause != NULL)
-				*cause = "socket";
+			xasprintf(cause, "socket: %s", strerror(errno));
 			continue;
 		}
 		if (connect(fd, ai->ai_addr, ai->ai_addrlen) < 0) {
-			if (cause != NULL)
-				*cause = "connect";
+			xasprintf(cause, "connect: %s", strerror(errno));
 			error = errno;
 			close(fd);
 			errno = error;

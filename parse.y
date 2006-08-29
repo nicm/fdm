@@ -458,27 +458,16 @@ action: ACTPIPE command
       | ACTSMTP server to
 	{
 		struct smtp_data	*data;
-		int		 	 error;
-		struct addrinfo		 hints;
 
 		$$.deliver = &deliver_smtp;
 		
 		data = xcalloc(1, sizeof *data);
 		$$.data = data;
 
+		data->server.host = $2.host;
+		data->server.port = $2.port != NULL ? $2.port : "smtp";
+		data->server.ai = NULL;
 		data->to = $3;
-
-		memset(&hints, 0, sizeof hints);
-		hints.ai_family = PF_UNSPEC;
-		hints.ai_socktype = SOCK_STREAM;
-		error = getaddrinfo($2.host, $2.port != NULL ? $2.port : 
-		    "smtp", &hints, &data->ai);
-		if (error != 0)
-			yyerror("%s", gai_strerror(error));
-
-		xfree($2.host);
-		if ($2.port != NULL)
-			xfree($2.port);
 	}
       | ACTDROP
         {
@@ -757,8 +746,6 @@ poptype: TOKPOP3
 fetchtype: poptype server TOKUSER STRING TOKPASS STRING
            {
 		   struct pop3_data	*data;
-		   int		 	 error;
-		   struct addrinfo	 hints;
 		   
 		   $$ = $1;
 		   
@@ -766,18 +753,10 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   $$.data = data;
 		   data->user = $4;
 		   data->pass = $6;
-		   
-		   memset(&hints, 0, sizeof hints);
-		   hints.ai_family = PF_UNSPEC;
-		   hints.ai_socktype = SOCK_STREAM;
-		   error = getaddrinfo($2.host, $2.port != NULL ? $2.port :
-		       $1.fetch->port, &hints, &data->ai);
-		   if (error != 0)
-			   yyerror("%s", gai_strerror(error));
-		   
-		   xfree($2.host);
-		   if ($2.port != NULL)
-			   xfree($2.port);
+		   data->server.host = $2.host;
+		   data->server.port = 
+		       $2.port != NULL ? $2.port : $1.fetch->port;
+		   data->server.ai = NULL;
 	   }
 	 | TOKSTDIN
 	   {

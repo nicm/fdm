@@ -47,8 +47,9 @@ pop3s_connect(struct account *a)
 
 	data = a->data;
 
-	if ((data->fd = connectto(data->ai, &cause)) < 0) {
-		log_warn("%s: %s", a->name, cause);
+	if ((data->fd = connectto(&data->server, &cause)) < 0) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
 		return (1);
 	}
 

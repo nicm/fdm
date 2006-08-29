@@ -5,3 +5,6 @@
 5 - SMTP SSL and/or TLS
 6 - SOCKS/HTTP proxy
 7 - http (hotmail) fetching
+8 - perm checks etc on mboxes/maildirs
+9 - save (struct server: host,port,ai) all data on server, make getaddrinfo 
+    non-fatal during config load, and reattempt every time action invoked

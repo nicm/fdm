@@ -45,8 +45,9 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 
 	data = t->data;
 
-	if ((fd = connectto(data->ai, &cause)) < 0) {
-		log_warn("%s: %s", a->name, cause);
+	if ((fd = connectto(&data->server, &cause)) < 0) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
 		return (1);
 	}
 	io = io_create(fd, NULL, IO_CRLF);
