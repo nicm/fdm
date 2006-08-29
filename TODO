@@ -1,7 +1,5 @@
-1 - imap fetching
-3a - figure out way of making rewrite work despite privsep
-3b - update man page for rewrite
-4 - fiddle with filtering: make it more modular?
-5 - SMTP SSL and/or TLS
-6 - SOCKS/HTTP proxy
-7 - http (hotmail) fetching
+- imap fetching
+- figure out way of making rewrite work despite privsep
+- SMTP SSL and/or TLS
+- SOCKS/HTTP proxy
+- http (hotmail) fetching

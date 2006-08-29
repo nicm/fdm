@@ -234,6 +234,19 @@ Connect to an SMTP server and attempt to deliver the mail to it. If
 .Ar to
 is specified, it is passed to the server in the RCPT TO command. If not, the
 current user and host names are used.
+.It Xo Ic rewrite Ar command
+.Xc
+Pipe the entire mail through 
+.Ar command
+to generate a new mail. The modified mail is kept only within the rule the action appears, so the modified mail will be used only be subsequent actions in the same rule and not by actions in further rules. Also, this type of action does not work when running as root (although the command will be executed the mail will remain unchanged). For example:
+.Bd -literal -ragged -offset indent
+action "cat" pipe "cat"
+action "rewrite" rewrite "sed 's/bob/fred/g'"
+# this rule will rewrite the message and then cat it
+match all actions { "rewrite" "cat" } continue
+# this rule will cat the original message
+match all action "cat"
+.Ed
 .El
 .Sh RULES
 Rules are specified using the 
