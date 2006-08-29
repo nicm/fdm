@@ -165,6 +165,12 @@ stdin_fetch(struct account *a, struct mail *m)
 		}
 	}
 
+	if (m->size == 0) {
+		log_warnx("%s: zero-length message", a->name);
+		xfree(lbuf);
+		return (FETCH_ERROR);
+	}
+
  	data->complete = 1;
 	xfree(lbuf);
 	return (FETCH_SUCCESS);

@@ -182,7 +182,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (m->size == 0) {
-					line = "zero-length size";
+					line = "zero-length message";
 					goto error;
 				}
 
