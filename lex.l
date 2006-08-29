@@ -140,6 +140,7 @@ command return (TOKCOMMAND);
 continue return (TOKCONTINUE);
 defuser return (TOKDEFUSER);
 deltoobig return (TOKDELTOOBIG);
+disabled return (TOKDISABLED);
 domain return (TOKDOMAIN);
 domains return (TOKDOMAINS);
 dotlock return (LCKDOTLOCK);

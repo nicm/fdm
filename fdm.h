@@ -161,6 +161,7 @@ struct msg {
 struct account {
 	char			 name[MAXNAMESIZE];
 
+	int			 disabled;
 	struct fetch		*fetch;
 	void			*data;
 

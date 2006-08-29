@@ -39,14 +39,14 @@ check_incl(char *name)
 	u_int	i;
 
 	if (ARRAY_EMPTY(&conf.incl))
-		return (0);
+		return (1);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.incl); i++) {
 		if (name_match(ARRAY_ITEM(&conf.incl, i, char *), name))
-			return (0);
+			return (1);
 	}
 
-	return (1);
+	return (0);
 }
 
 int
@@ -96,15 +96,22 @@ child(int fd, enum cmd cmd)
 
 	rc = 0;
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (check_incl(a->name)) {
-			log_debug("child: account %s not included", a->name);
-			continue; 
-		}
-		if (check_excl(a->name)) {
-			log_debug("child: account %s excluded", a->name);
+		if (!check_incl(a->name)) {
+			log_debug("child: account %s is not included", a->name);
 			continue;
 		}
-		
+		if (check_excl(a->name)) {
+			log_debug("child: account %s is excluded", a->name);
+			continue;
+		}
+		/* if the account is disabled and no accounts are specified
+		   on the command line (whether or not it is included if there
+		   are is already confirmed), then skip it */
+		if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
+			log_debug("child: account %s is disabled", a->name);
+			continue;
+		}
+
 		log_debug("child: processing account %s", a->name);
 		
 		/* connect */
