@@ -2,5 +2,4 @@
 - SMTP SSL and/or TLS
 - SOCKS/HTTP proxy
 - http (hotmail) fetching
-- document imap & disabled keyword
 - fix %d SSL messages (SSL_connect)
