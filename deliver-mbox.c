@@ -50,13 +50,12 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	log_debug("%s: saving to mbox %s", a->name, path); 
 
 	/* check permissions and ownership */
-	if (stat(path, &sb) != 0) {
-		if (errno != ENOENT) {
-			log_warn("%s: %s: stat", a->name, path);
-			error = 1;
-			goto out;
-		}
-	} else {
+	errno = 0;
+	if (stat(path, &sb) != 0 && errno != ENOENT) {
+		log_warn("%s: %s: stat", a->name, path);
+		error = 1;
+		goto out;
+	} else if (errno == 0) {
 		if ((sb.st_mode & (S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|
 		    S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
 			log_warnx("%s: %s: bad permissions: %o%o%o, "
@@ -81,6 +80,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 			goto out;
 		}
 	}
+
 	/* ensure an existing from line is available */
 	if (m->from == NULL)
 		make_from(m);
