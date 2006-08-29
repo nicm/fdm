@@ -51,33 +51,36 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 
 	/* check permissions and ownership */
 	if (stat(path, &sb) != 0) {
-		log_warn("%s: %s: stat", a->name, path);
-		error = 1;
-		goto out;
+		if (errno != ENOENT) {
+			log_warn("%s: %s: stat", a->name, path);
+			error = 1;
+			goto out;
+		}
+	} else {
+		if ((sb.st_mode & (S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|
+		    S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
+			log_warnx("%s: %s: bad permissions: %o%o%o, "
+			    "should be 600", a->name, path,
+			    (sb.st_mode & S_IRUSR ? 4 : 0) +
+			    (sb.st_mode & S_IWUSR ? 2 : 0) +
+			    (sb.st_mode & S_IXUSR ? 1 : 0),
+			    (sb.st_mode & S_IRGRP ? 4 : 0) +
+			    (sb.st_mode & S_IWGRP ? 2 : 0) +
+			    (sb.st_mode & S_IXGRP ? 1 : 0),
+			    (sb.st_mode & S_IROTH ? 4 : 0) +
+			    (sb.st_mode & S_IWOTH ? 2 : 0) +
+			    (sb.st_mode & S_IXOTH ? 1 : 0));
+			error = 1;
+			goto out;
+		}
+		if (sb.st_uid != getuid()) {
+			log_warnx("%s: %s: bad owner: %lu, should be %lu", 
+			    a->name, path, 
+			    (u_long) sb.st_uid, (u_long) getuid());
+			error = 1;
+			goto out;
+		}
 	}
-	if ((sb.st_mode & 
-	    (S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
-		log_warnx("%s: %s: bad permissions: %o%o%o, "
-		    "should be 600", a->name, path,
-		    (sb.st_mode & S_IRUSR ? 4 : 0) +
-		    (sb.st_mode & S_IWUSR ? 2 : 0) +
-		    (sb.st_mode & S_IXUSR ? 1 : 0),
-		    (sb.st_mode & S_IRGRP ? 4 : 0) +
-		    (sb.st_mode & S_IWGRP ? 2 : 0) +
-		    (sb.st_mode & S_IXGRP ? 1 : 0),
-		    (sb.st_mode & S_IROTH ? 4 : 0) +
-		    (sb.st_mode & S_IWOTH ? 2 : 0) +
-		    (sb.st_mode & S_IXOTH ? 1 : 0));
-		error = 1;
-		goto out;
-	}
-	if (sb.st_uid != getuid()) {
-		log_warnx("%s: %s: bad owner: %lu, should be %lu", a->name, 
-		    path, (u_long) sb.st_uid, (u_long) getuid());
-		error = 1;
-		goto out;
-	}
-
 	/* ensure an existing from line is available */
 	if (m->from == NULL)
 		make_from(m);
