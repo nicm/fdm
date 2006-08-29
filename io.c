@@ -64,6 +64,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 
 	io->need_wr = 0;
 	io->closed = 0;
+	io->error = 0;
 
 	io->rspace = IO_BLOCKSIZE;
 	io->rbase = xmalloc(io->rspace);
@@ -105,6 +106,8 @@ io_poll(struct io *io)
 	struct pollfd	pfd;
 	int		error;
 
+	if (io->error)
+		return (-1);
 	if (io->closed)
 		return (0);
 
@@ -393,7 +396,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			   the maximum, it is an error */
 			if (io->rsize > IO_MAXLINELEN) {
 				log_warnx("io: maximum line length exceeded");
-				io->closed = 1;
+				io->error = 1;
 				return (NULL);
 			}
 			/* if the socket has closed, just return the rest */
@@ -403,6 +406,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 				(*buf)[io->rsize] = '\0';
 				io->roff += io->rsize;
 				io->rsize = 0;
+				return (*buf);
 			}
 			return (NULL);
 		}
@@ -444,10 +448,6 @@ void printflike2
 io_writeline(struct io *io, const char *fmt, ...)
 {
 	va_list	 ap;
-
-#ifdef IO_DEBUG
-	log_debug3("io_writeline: fmt=%s", fmt);
-#endif
 
 	va_start(ap, fmt);
 	io_vwriteline(io, fmt, ap);

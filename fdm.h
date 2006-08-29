@@ -363,6 +363,7 @@ struct io {
 	SSL		*ssl;
 
 	int		 closed;
+	int		 error;
 	int		 need_wr;
 
 	char		*rbase;		/* buffer start */
