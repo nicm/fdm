@@ -64,6 +64,8 @@ getproxy(char *url)
 		xfree(pr);
 		return (NULL); 
 	}
+
+	/* XXX user & pass: http://user:pass@host:port/ */
 	
 	if ((ptr = strchr(url, ':')) != NULL) {
 		xfree(pr->server.port);
@@ -114,7 +116,8 @@ httpproxy(struct server *srv, struct io *io, char **cause)
 {
 	struct servent	*sv;
 	long		 port;
-	char	      	*errstr, *line;
+	const char      *errstr;
+	char		*line;
 	int		 header;
 
 	sv = getservbyname(srv->port, NULL);
@@ -123,7 +126,7 @@ httpproxy(struct server *srv, struct io *io, char **cause)
 		if (errstr != NULL) {
 			endservent();
 			xasprintf(cause, "bad port: %s", srv->port);
-			return (NULL);
+			return (1);
 		}
 	} else
 		port = ntohs(sv->s_port);
