@@ -114,6 +114,17 @@ The default is the computer's hostname.
 This allows the headers to be examined when looking for users to be set.
 The default is to look only at the "From" and "Cc" headers.
 The headers are case-insensitive.
+.It Ic proxy Ar url
+This instructs
+.Xr fdm 1
+to proxy all connections through
+.Ar url .
+Only HTTP proxies are supported at present (URLs of the form
+.Em http://host[:port] ) ,
+and no authentication is supported.
+This option may be overridden by an
+.Em http_proxy
+variable in the environment.
 .El
 .Sh ACCOUNTS
 The

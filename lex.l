@@ -50,10 +50,11 @@ extern __dead printflike1 void	yyerror(const char *, ...);
 }
 [0-9]+[BbKkMmGg] {
 	const char	*errstr;
-        char		ch;
+        char		ch, *cp;
 
-        ch = *(yytext + strlen(yytext) - 1);
-        *(yytext + strlen(yytext) - 1) = '\0';
+	cp = yytext + strlen(yytext) - 1;
+	ch = *cp;
+	*cp = '\0';
 
         yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
 	if (errstr != NULL)

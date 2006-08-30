@@ -2,4 +2,3 @@
 - SMTP SSL and/or TLS
 - SOCKS proxying
 - http (hotmail) fetching
-- document "set proxy", http_proxy
