@@ -29,11 +29,11 @@ with:
 	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
 
 Mail will be delivered either using the user specified in the rule or action or
-the user specified by the "defuser" keyword (or with the -u switch on the
+the user specified by the "default-user" keyword (or with the -u switch on the
 command line) or the from-headers keyword may be used to try and extract the
 user from the mail headers. A config file for multiuser may look something like:
 
-	set defuser "bob"
+	set default-user "bob"
 	set headers { "to" "cc" "x-custom" }
 	set domains { "my.domain" "localhost" }
 	account ......
@@ -42,7 +42,7 @@ user from the mail headers. A config file for multiuser may look something like:
 
 Alternatively, it could be more limited, perhaps something like this:
 
-	set defuser "bob" # this is required but not used in this file
+	set default-user "bob" # this is required but not used in this file
 	account ......
 	action "jim" user "jim" mbox "/var/mail/jim"
 	action "sam" user "sam" mbox "/var/mail/sam"

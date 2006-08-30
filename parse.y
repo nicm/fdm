@@ -177,7 +177,7 @@ size: NUMBER
 set: TOKSET TOKMAXSIZE size
      {
 	     if ($3 > MAXMAILSIZE)
-		     yyerror("maxsize too large: %lld", $3);
+		     yyerror("maximum size too large: %lld", $3);
 	     conf.max_size = $3;
      }
    | TOKSET TOKLOCKTYPES locklist
