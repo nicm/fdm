@@ -136,7 +136,6 @@ and return (TOKAND);
 append return (ACTAPPEND);
 body return (TOKBODY);
 case return (TOKCASE);
-command return (TOKCOMMAND);
 continue return (TOKCONTINUE);
 defuser return (TOKDEFUSER);
 deltoobig return (TOKDELTOOBIG);

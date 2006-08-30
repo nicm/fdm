@@ -94,7 +94,7 @@ find_action(char *name)
 %}
 
 %token SYMOPEN SYMCLOSE
-%token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION TOKCOMMAND
+%token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
@@ -212,6 +212,9 @@ domains: TOKDOMAIN STRING
 	 {
 		 char	*cp;
 
+		 if (*$2 == '\0')
+			 yyerror("invalid domain");
+
 		 $$ = xmalloc(sizeof (struct domains));
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
@@ -227,6 +230,9 @@ domainslist: domainslist STRING
 	     {
 		     char	*cp;
 
+		     if (*$2 == '\0')
+			     yyerror("invalid domain");
+
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
@@ -235,6 +241,9 @@ domainslist: domainslist STRING
 	   | STRING
 	     {
 		     char	*cp;
+
+		     if (*$1 == '\0')
+			     yyerror("invalid domain");
 
 		     $$ = xmalloc(sizeof (struct domains));
 		     ARRAY_INIT($$);
@@ -246,6 +255,9 @@ domainslist: domainslist STRING
 headers: TOKHEADER STRING
 	 {
 		 char	*cp;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid header");
 
 		 $$ = xmalloc(sizeof (struct headers));
 		 ARRAY_INIT($$);
@@ -262,6 +274,9 @@ headerslist: headerslist STRING
 	     {
 		     char	*cp;
 		 
+		     if (*$2 == '\0')
+			     yyerror("invalid header");
+
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
@@ -270,6 +285,9 @@ headerslist: headerslist STRING
 	   | STRING
 	     {
 		     char	*cp;
+
+		     if (*$1 == '\0')
+			     yyerror("invalid header");
 
 		     $$ = xmalloc(sizeof (struct headers));
 		     ARRAY_INIT($$);
@@ -398,6 +416,9 @@ disabled: TOKDISABLED
 
 port: TOKPORT STRING
       {
+	      if (*$2 == '\0')
+		      yyerror("invalid port");
+
 	      $$ = $2;
       }	
     | TOKPORT NUMBER
@@ -407,23 +428,20 @@ port: TOKPORT STRING
 
 server: TOKSERVER STRING port
 	{
+		if (*$2 == '\0')
+			yyerror("invalid host");
+
 		$$.host = $2;
 		$$.port = $3;
 	}
       | TOKSERVER STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid host");
+
 		$$.host = $2;
 		$$.port = NULL;
 	}
-
-command: TOKCOMMAND STRING
-	 {
-		 $$ = $2;
-	 }
-       | STRING
-	 {
-		 $$ = $1;
-	 }
 
 to: /* empty */
     {
@@ -431,36 +449,57 @@ to: /* empty */
     } 
   | TOKTO STRING
     {
+	    if (*$2 == '\0')
+		    yyerror("invalid to");
+
 	    $$ = $2;
     }
 
-action: ACTPIPE command
+action: ACTPIPE STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid command");
+
 		$$.deliver = &deliver_pipe;
 		$$.data = $2;
 	}
-      | ACTREWRITE command
+      | ACTREWRITE STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid command");
+
 		$$.deliver = &deliver_rewrite;
 		$$.data = $2;
 	}
-      | ACTWRITE command
+      | ACTWRITE STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid path");
+
 		$$.deliver = &deliver_write;
 		$$.data = $2;
 	}
-      | ACTAPPEND command
+      | ACTAPPEND STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid path");
+
 		$$.deliver = &deliver_append;
 		$$.data = $2;
 	}
       | ACTMAILDIR STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid path");
+
 		$$.deliver = &deliver_maildir;
 		$$.data = $2;
 	}
       | ACTMBOX STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid path");
+
 		$$.deliver = &deliver_mbox;
 		$$.data = $2;
 	}
@@ -488,9 +527,9 @@ define: TOKACTION STRING users action
 		struct action	*t;
 
 		if (strlen($2) >= MAXNAMESIZE)
-			yyerror("name too long: %s", $2);
+			yyerror("action name too long: %s", $2);
 		if (*$2 == '\0')
-			yyerror("empty name");
+			yyerror("invalid action name");
 		if (find_action($2) != NULL)
 			yyerror("duplicate action: %s", $2);
 		
@@ -513,6 +552,9 @@ accounts: /* empty */
 	  }
         | TOKACCOUNT STRING
 	  {
+		  if (*$2 == '\0')
+			  yyerror("invalid account name");
+
 		  $$ = xmalloc(sizeof (struct accounts));
 		  ARRAY_INIT($$);
 		  if (find_account($2) == NULL)
@@ -526,6 +568,9 @@ accounts: /* empty */
 
 accountslist: accountslist STRING
  	      {
+		      if (*$2 == '\0')
+			      yyerror("invalid account name");
+
 		      $$ = $1;
 		      if (find_account($2) == NULL)
 			      yyerror("no matching accounts: %s", $2);
@@ -533,6 +578,9 @@ accountslist: accountslist STRING
 	      }	
 	    | STRING
 	      {
+		      if (*$1 == '\0')
+			      yyerror("invalid account name");
+
 		      $$ = xmalloc(sizeof (struct accounts));
 		      ARRAY_INIT($$);
 		      if (find_account($1) == NULL)
@@ -543,6 +591,9 @@ accountslist: accountslist STRING
 actions: TOKACTION STRING
 	 {
 		 struct action	*t;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid action name");
 		 
 		 $$ = xmalloc(sizeof (struct actions));
 		 ARRAY_INIT($$);
@@ -560,6 +611,9 @@ actionslist: actionslist STRING
 	     {
 		     struct action	*t;
 
+		     if (*$2 == '\0')
+			     yyerror("invalid action name");
+
 		     $$ = $1;
 		     if ((t = find_action($2)) == NULL)
 			     yyerror("unknown action: %s", $2);
@@ -570,6 +624,9 @@ actionslist: actionslist STRING
 	     {
 		     struct action	*t;
 		     
+		     if (*$1 == '\0')
+			     yyerror("invalid action name");
+
 		     $$ = xmalloc(sizeof (struct actions));
 		     ARRAY_INIT($$);
 		     if ((t = find_action($1)) == NULL)
@@ -618,6 +675,9 @@ match: not icase STRING area
 	       int	 error, flags;
 	       size_t	 len;
 	       char	*buf;
+
+	       if (*$3 == '\0')
+		       yyerror("invalid regexp");
 
 	       $$ = xcalloc(1, sizeof (struct match));
 	       $$->s = $3;
@@ -749,6 +809,9 @@ folder: /* empty */
         } 
       | TOKFOLDER STRING
 	{
+		if (*$2 == '\0')
+			yyerror("invalid folder");
+
 		$$ = $2;
 	}
 
@@ -776,6 +839,11 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   
 		   $$ = $1;
 		   
+		   if (*$4 == '\0')
+			   yyerror("invalid user");
+		   if (*$6 == '\0')
+			   yyerror("invalid pass");
+
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->user = $4;
@@ -790,6 +858,11 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   struct imap_data	*data;
 		   
 		   $$ = $1;
+
+		   if (*$4 == '\0')
+			   yyerror("invalid user");
+		   if (*$6 == '\0')
+			   yyerror("invalid pass");
 		   
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
@@ -812,9 +885,9 @@ account: TOKACCOUNT STRING disabled fetchtype
 		 struct account		*a;
 
 		 if (strlen($2) >= MAXNAMESIZE)
-			 yyerror("name too long: %s", $2);
+			 yyerror("account name too long: %s", $2);
 		 if (*$2 == '\0')
-			 yyerror("empty name");
+			 yyerror("invalid account name");
 		 if (find_account($2) != NULL)
 			 yyerror("duplicate account: %s", $2);
 		 
