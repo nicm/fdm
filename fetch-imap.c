@@ -166,7 +166,8 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				data->state = IMAP_LOGIN;
-				io_writeline(data->io, "%u LOGIN %s %s", 
+				io_writeline(data->io, 
+				    "%u LOGIN \"%s\" \"%s\"", 
 				    ++data->tag, data->user, data->pass);
 				break;
 			case IMAP_LOGIN:
