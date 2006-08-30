@@ -154,7 +154,7 @@ find_action(char *name)
 %type  <number> size
 %type  <op> op
 %type  <server> server
-%type  <string> port command to folder
+%type  <string> port to folder
 %type  <uid> uid
 %type  <users> users userslist
 
