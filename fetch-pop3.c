@@ -28,6 +28,10 @@
 
 int	pop3_connect(struct account *);
 int	pop3_disconnect(struct account *);
+int	pop3_poll(struct account *, u_int *);
+int	pop3_fetch(struct account *, struct mail *);
+int	pop3_delete(struct account *);
+void	pop3_error(struct account *);
 int	do_pop3(struct account *, u_int *, struct mail *, int);
 
 struct fetch	fetch_pop3 = { "pop3", "pop3",
@@ -46,13 +50,11 @@ pop3_connect(struct account *a)
 
 	data = a->data;
 
-	if ((data->fd = connectto(&data->server, &cause)) < 0) {
+	if ((data->io = connectio(&data->server, IO_CRLF, &cause)) == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (1);
 	}
-
-	data->io = io_create(data->fd, NULL, IO_CRLF);
 	if (conf.debug > 3)
 		data->io->dup_fd = STDOUT_FILENO;
 
@@ -68,9 +70,8 @@ pop3_disconnect(struct account *a)
 
 	data = a->data;
 
+	io_close(data->io);
 	io_free(data->io);
-
-	close(data->fd);
 
 	return (0);
 }

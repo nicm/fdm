@@ -114,6 +114,19 @@ struct server {
 	char		*host;
 	char		*port;
 	struct addrinfo	*ai;
+	int		 ssl;
+};
+
+/* Proxy type. */
+enum proxytype {
+	PROXY_HTTP,
+	PROXY_HTTPS
+};
+
+/* Proxy definition. */
+struct proxy {
+	enum proxytype	type;
+	struct server	server;
 };
 
 /* Command-line commands. */
@@ -139,7 +152,7 @@ struct mail {
 };
 
 /* Privsep message types. */
-enum type {
+enum msgtype {
 	MSG_DELIVER,
 	MSG_EXIT,
 	MSG_DONE
@@ -147,7 +160,7 @@ enum type {
 
 /* Privsep message. */
 struct msg {
-	enum type	 type;
+	enum msgtype	 type;
 	int	 	 error;
 
 	struct mail	 mail;
@@ -312,6 +325,8 @@ struct conf {
 	struct accounts	 	 incl;
 	struct accounts		 excl;
 
+	struct proxy		*proxy;
+
 	struct domains		*domains; /* domains to look for with users */
 	struct headers		*headers; /* headers to search for users */
 
@@ -404,13 +419,11 @@ struct pop3_data {
 	char			*pass;
 
 	struct server		 server;
-	int			 fd;
 
 	enum pop3_state	 	 state;
 	u_int		 	 cur;
 	u_int		 	 num;
 
-        SSL_CTX			*ctx;
 	struct io		*io;
 };
 
@@ -442,14 +455,12 @@ struct imap_data {
 	char			*folder;
 
 	struct server		 server;
-	int			 fd;
 
 	enum imap_state	 	 state;
 	int			 tag;
 	u_int		 	 cur;
 	u_int		 	 num;
 
-        SSL_CTX			*ctx;
 	struct io		*io;
 };
 
@@ -475,20 +486,12 @@ extern struct fetch 	 fetch_stdin;
 
 /* fetch-pop3.c */
 extern struct fetch 	 fetch_pop3;
-int			 pop3_poll(struct account *, u_int *);
-int			 pop3_fetch(struct account *, struct mail *);
-int			 pop3_delete(struct account *);
-void			 pop3_error(struct account *);
 
 /* fetch-pop3s.c */
 extern struct fetch 	 fetch_pop3s;
 
 /* fetch-imap.c */
 extern struct fetch 	 fetch_imap;
-int			 imap_poll(struct account *, u_int *);
-int			 imap_fetch(struct account *, struct mail *);
-int			 imap_delete(struct account *);
-void			 imap_error(struct account *);
 
 /* fetch-imaps.c */
 extern struct fetch 	 fetch_imaps;
@@ -539,10 +542,8 @@ int			 child(int, enum cmd);
 int			 parent(int, pid_t);
 
 /* connect.c */
-SSL_CTX			*makectx(void);
-SSL			*makessl(int, SSL_CTX *, char **);
-int			 filladdrinfo(struct server *, char **);
-int			 connectto(struct server *, char **);
+struct proxy 		*getproxy(char *);
+struct io		*connectio(struct server *, char *, char **);
 
 /* mail.c */
 void			 free_mail(struct mail *);
@@ -571,6 +572,7 @@ char 			*replace(char *, char *[52]);
 /* io.c */
 struct io		*io_create(int, SSL *, const char [2]);
 void			 io_free(struct io *);
+void			 io_close(struct io *);
 int			 io_update(struct io *, char **);
 int			 io_poll(struct io *, char **);
 int			 io_read2(struct io *, void *, size_t);

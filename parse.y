@@ -99,7 +99,7 @@ find_action(char *name)
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
-%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER
+%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -145,8 +145,8 @@ find_action(char *name)
 %type  <actions> actions actionslist
 %type  <area> area
 %type  <domains> domains domainslist
-%type  <fetch> poptype imaptype fetchtype
-%type  <flag> cont icase not disabled
+%type  <fetch> fetchtype
+%type  <flag> cont icase not disabled poptype imaptype
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
@@ -206,6 +206,13 @@ set: TOKSET TOKMAXSIZE size
 	     if (conf.headers != NULL)
 		     yyerror("cannot set headers twice");
 	     conf.headers = $2;
+     }
+   | TOKSET STRING
+     {
+	     if (conf.proxy != NULL)
+		     yyerror("cannot set proxy twice");
+	     if ((conf.proxy = getproxy($2)) == NULL)
+		     yyerror("invalid proxy");
      }
 
 domains: TOKDOMAIN STRING
@@ -817,61 +824,61 @@ folder: /* empty */
 
 poptype: TOKPOP3
          {
-		 $$.fetch = &fetch_pop3;
+		 $$ = 0;
          }
        | TOKPOP3S
 	 {	
-		 $$.fetch = &fetch_pop3s;
+		 $$ = 1;
 	 }
 
 imaptype: TOKIMAP
           {
-		  $$.fetch = &fetch_imap;
+		  $$ = 0;
           }
         | TOKIMAPS
 	  {
-		  $$.fetch = &fetch_imaps;
+		  $$ = 1;
 	  }
 
 fetchtype: poptype server TOKUSER STRING TOKPASS STRING
            {
 		   struct pop3_data	*data;
 		   
-		   $$ = $1;
-		   
 		   if (*$4 == '\0')
 			   yyerror("invalid user");
 		   if (*$6 == '\0')
 			   yyerror("invalid pass");
 
+		   $$.fetch = &fetch_pop3;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->user = $4;
 		   data->pass = $6;
+		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   data->server.port = 
-		       $2.port != NULL ? $2.port : $1.fetch->port;
+		       $2.port != NULL ? $2.port : $$.fetch->port;
 		   data->server.ai = NULL;
 	   }
          | imaptype server TOKUSER STRING TOKPASS STRING folder
            {
 		   struct imap_data	*data;
 		   
-		   $$ = $1;
-
 		   if (*$4 == '\0')
 			   yyerror("invalid user");
 		   if (*$6 == '\0')
 			   yyerror("invalid pass");
-		   
+
+		   $$.fetch = &fetch_imap;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->user = $4;
 		   data->pass = $6;
 		   data->folder = $7;
+		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   data->server.port = 
-		       $2.port != NULL ? $2.port : $1.fetch->port;
+		       $2.port != NULL ? $2.port : $$.fetch->port;
 		   data->server.ai = NULL;
 	   }
 	 | TOKSTDIN

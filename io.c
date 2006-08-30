@@ -91,6 +91,17 @@ io_free(struct io *io)
 	xfree(io);
 }
 
+/* Close io sockets. */
+void
+io_close(struct io *io)
+{
+	if (io->ssl != NULL) {
+		SSL_CTX_free(SSL_get_SSL_CTX(io->ssl));
+		SSL_free(io->ssl);
+	}
+	close(io->fd);
+}
+
 /* Poll if there is lots of data to write. */
 int
 io_update(struct io *io, char **cause)
