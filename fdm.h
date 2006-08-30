@@ -537,6 +537,8 @@ int			 child(int, enum cmd);
 int			 parent(int, pid_t);
 
 /* connect.c */
+SSL_CTX			*makectx(void);
+SSL			*makessl(int, SSL_CTX *, char **);
 int			 filladdrinfo(struct server *, char **);
 int			 connectto(struct server *, char **);
 

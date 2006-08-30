@@ -4,3 +4,4 @@
 - http (hotmail) fetching
 - fix %d SSL messages (SSL_connect)
 - sort out pop3/imap err messages, don't just rely on server
+- convert IO to return error messages?

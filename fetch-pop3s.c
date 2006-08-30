@@ -43,7 +43,6 @@ pop3s_connect(struct account *a)
 	struct pop3_data	*data;
 	SSL		        *ssl;
 	char			*cause;
-	int			 n;
 
 	data = a->data;
 
@@ -53,22 +52,10 @@ pop3s_connect(struct account *a)
 		return (1);
 	}
 
-	data->ctx = SSL_CTX_new(SSLv23_client_method());
-	SSL_CTX_set_verify(data->ctx, SSL_VERIFY_NONE, NULL);
-
-	ssl = SSL_new(data->ctx);
-	if (ssl == NULL) {
-		log_warnx("%s: SSL_new: %s", a->name, SSL_err());
-		return (1);
-	}
-	if (SSL_set_fd(ssl, data->fd) != 1) {
-		log_warnx("%s: SSL_set_fd: %s", a->name, SSL_err());
-		return (1);
-	}
-	SSL_set_connect_state(ssl);
-	if ((n = SSL_connect(ssl)) < 1) {
-		n = SSL_get_error(ssl, n);
-		log_warnx("%s: SSL_connect: %d", a->name, n);
+	data->ctx = makectx();
+	if ((ssl = makessl(data->fd, data->ctx, &cause)) == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
 		return (1);
 	}
 

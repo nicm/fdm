@@ -27,7 +27,45 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #include "fdm.h"
+
+SSL_CTX *
+makectx(void)
+{
+	SSL_CTX	*ctx;
+
+	ctx = SSL_CTX_new(SSLv23_client_method());
+	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);	
+
+	return (ctx);
+}
+
+SSL *
+makessl(int fd, SSL_CTX *ctx, char **cause)
+{
+	SSL	*ssl;
+	int	 n;
+
+	ssl = SSL_new(ctx);
+	if (ssl == NULL) {
+		xasprintf(cause, "SSL_new: %s", SSL_err());
+		return (NULL);
+	}
+	if (SSL_set_fd(ssl, fd) != 1) {
+		xasprintf(cause, "SSL_set_fd: %s", SSL_err());
+		return (NULL);
+	}
+	SSL_set_connect_state(ssl);
+	if ((n = SSL_connect(ssl)) < 1) {
+		n = SSL_get_error(ssl, n);
+		xasprintf(cause, "SSL_connect: %d: %s", n, SSL_err());
+		return (NULL);
+	}	
+	return (ssl);
+}
 
 int
 filladdrinfo(struct server *srv, char **cause)
