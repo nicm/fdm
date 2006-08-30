@@ -103,7 +103,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 {
 	struct pop3_data	*data;
 	int		 	 res, flushing;
-	char			*line, *ptr, *lbuf;
+	char			*line, *msg, *ptr, *lbuf;
 	size_t			 off = 0, len, llen;
 	u_int			 lines = 0;
 
@@ -115,10 +115,12 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
+	msg = "unexpected response";
 	flushing = 0;
 	do {
 		if (io_poll(data->io) != 1) {
-			line = "io_poll failed";
+			msg = "io_poll failed";
+			line = NULL;
 			goto error;
 		}
 
@@ -127,7 +129,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 			line = io_readline2(data->io, &lbuf, &llen);
 			if (line == NULL)
 				break;
-			
+
 			switch (data->state) {
 			case POP3_CONNECTING:
 				if (!pop3_isOK(line))
@@ -182,7 +184,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (m->size == 0) {
-					line = "zero-length message";
+					msg = "zero size";
 					goto error;
 				}
 
@@ -280,7 +282,10 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 	return (res);
 
 error:
-	log_warnx("%s: %s", a->name, line);
+	if (line != NULL)
+		log_warnx("%s: %s: %s", a->name, msg, line);
+	else
+		log_warnx("%s: %s", a->name, msg);
 
 	xfree(lbuf);
 	io_flush(data->io);

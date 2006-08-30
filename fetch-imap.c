@@ -132,7 +132,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	struct imap_data	*data;
 	int		 	 v, res, flushing;
 	long			 tag;
-	char			*line, *lbuf, *folder;
+	char			*line, *msg, *lbuf, *folder;
 	size_t			 off = 0, len, llen;
 	u_int			 u, lines = 0;
 
@@ -148,10 +148,12 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	if (folder == NULL)
 		folder = "INBOX";
 
+	msg = "unexpected response";
 	flushing = 0;
 	do {
 		if (io_poll(data->io) != 1) {
-			line = "io_poll failed";
+			msg = "io_poll failed";
+			line = NULL;
 			goto error;
 		}
 
@@ -160,7 +162,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 			line = io_readline2(data->io, &lbuf, &llen);
 			if (line == NULL)
 				break;
-			
+
 			switch (data->state) {
 			case IMAP_CONNECTING:
 				if (imap_tag(line) != -1)
@@ -219,7 +221,8 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 				line++;
 				if (strncmp(line, "OK [READ-WRITE]", 15) != 0) {
-					line = "can't open inbox read/write";
+					msg = "can't open read/write";
+					line = folder;
 					goto error;
 				}
 
@@ -243,11 +246,14 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				if (sscanf(line, "* %u FETCH (BODY[] {%zu}",
 				    &u, &m->size) != 2)
 					goto error;
-				if (u != data->cur)
+				if (u != data->cur) {
+					msg = "wrong message index";
 					goto error;
+				}
 
 				if (m->size == 0) {
-					line = "zero-length message";
+					msg = "zero-length message";
+					line = NULL;
 					goto error;
 				}
 
@@ -293,7 +299,8 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (off + lines != m->size) {
-					line = "too much data from server";
+					msg = "too much data from server";
+					line = NULL;
 					goto error;
 				}
 				m->size = off;
@@ -359,7 +366,10 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	return (res);
 
 error:
-	log_warnx("%s: %s", a->name, line);
+	if (line != NULL)
+		log_warnx("%s: %s: %s", a->name, msg, line);
+	else
+		log_warnx("%s: %s", a->name, msg);
 
 	xfree(lbuf);
 	io_flush(data->io);
