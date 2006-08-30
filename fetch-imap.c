@@ -108,11 +108,13 @@ imap_tag(char *line)
 
 	if (line[0] == '*' && line[1] == ' ')
 		return (-1);
-
+	if (line[0] == '+')
+		return (-2);
+	
 	errno = 0;
 	tag = strtol(line, NULL, 10);
 	if (tag == 0 && (errno == EINVAL || errno == ERANGE))
-		return (-2);
+		return (-3);
 
 	return (tag);
 }
@@ -165,10 +167,31 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				if (imap_tag(line) != -1)
 					goto error;
 
-				data->state = IMAP_LOGIN;
+				data->state = IMAP_USER;
 				io_writeline(data->io, 
-				    "%u LOGIN \"%s\" \"%s\"", 
-				    ++data->tag, data->user, data->pass);
+				    "%u LOGIN {%zu}", ++data->tag, 
+				    strlen(data->user));
+				break;
+			case IMAP_USER:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != -2)
+					goto error;
+
+				data->state = IMAP_PASS;
+				io_writeline(data->io, "%s {%zu}", data->user,
+				    strlen(data->pass));
+				break;
+			case IMAP_PASS:
+				tag = imap_tag(line);
+				if (tag == -1)
+					continue;
+				if (tag != -2)
+					goto error;
+
+				data->state = IMAP_LOGIN;
+				io_writeline(data->io, "%s", data->pass);
 				break;
 			case IMAP_LOGIN:
 				tag = imap_tag(line);

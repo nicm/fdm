@@ -421,6 +421,8 @@ struct pop3_data {
 /* Fetch imap states. */
 enum imap_state {
 	IMAP_CONNECTING,
+	IMAP_USER,
+	IMAP_PASS,
 	IMAP_LOGIN,
 	IMAP_SELECT,
 	IMAP_SELECTWAIT,
