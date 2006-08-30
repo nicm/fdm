@@ -32,6 +32,10 @@ int	imap_tag(char *);
 int	imap_okay(char *);
 int	do_imap(struct account *, u_int *, struct mail *, int);
 
+#define IMAP_TAG_NONE -1
+#define IMAP_TAG_CONTINUE -2
+#define IMAP_TAG_ERROR -3
+
 struct fetch	fetch_imap = { "imap", "imap",
 			       imap_connect, 
 			       imap_poll,
@@ -107,14 +111,14 @@ imap_tag(char *line)
 	long	tag;
 
 	if (line[0] == '*' && line[1] == ' ')
-		return (-1);
+		return (IMAP_TAG_NONE);
 	if (line[0] == '+')
-		return (-2);
+		return (IMAP_TAG_CONTINUE);
 	
 	errno = 0;
 	tag = strtol(line, NULL, 10);
 	if (tag == 0 && (errno == EINVAL || errno == ERANGE))
-		return (-3);
+		return (IMAP_TAG_ERROR);
 
 	return (tag);
 }
@@ -164,7 +168,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 
 			switch (data->state) {
 			case IMAP_CONNECTING:
-				if (imap_tag(line) != -1)
+				if (imap_tag(line) != IMAP_TAG_NONE)
 					goto error;
 
 				data->state = IMAP_USER;
@@ -174,9 +178,9 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_USER:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
-				if (tag != -2)
+				if (tag != IMAP_TAG_CONTINUE)
 					goto error;
 
 				data->state = IMAP_PASS;
@@ -185,9 +189,9 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_PASS:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
-				if (tag != -2)
+				if (tag != IMAP_TAG_CONTINUE)
 					goto error;
 
 				data->state = IMAP_LOGIN;
@@ -195,7 +199,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_LOGIN:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
 				if (tag != data->tag)
 					goto error;
@@ -212,7 +216,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_SELECT:
 				tag = imap_tag(line);
-				if (tag != -1)
+				if (tag != IMAP_TAG_NONE)
 					goto error;
 
 				v = sscanf(line, "* %u EXISTS", &data->num);
@@ -222,7 +226,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_SELECTWAIT:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
 				if (tag != data->tag)
 					goto error;
@@ -261,7 +265,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_SIZE:
 				tag = imap_tag(line);
-				if (tag != -1)
+				if (tag != IMAP_TAG_NONE)
 					goto error;
 
 				if (sscanf(line, "* %u FETCH (BODY[] {%zu}",
@@ -311,7 +315,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_LINEWAIT2:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
 				if (tag != data->tag)
 					goto error;
@@ -333,7 +337,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_DONE:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
 				if (tag != data->tag)
 					goto error;
@@ -354,7 +358,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_CLOSE:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
 				if (tag != data->tag)
 					goto error;
@@ -367,7 +371,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				break;
 			case IMAP_LOGOUT:
 				tag = imap_tag(line);
-				if (tag == -1)
+				if (tag == IMAP_TAG_NONE)
 					continue;
 				if (tag != data->tag)
 					goto error;
