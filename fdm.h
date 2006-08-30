@@ -533,7 +533,7 @@ size_t	 		 strlcat(char *, const char *, size_t);
 
 /* fdm.c */
 int			 dropto(uid_t, char *);
-void			 fill_info(char *);
+void			 fill_info(const char *);
 
 /* child.c */
 int			 child(int, enum cmd);
@@ -543,7 +543,7 @@ int			 parent(int, pid_t);
 
 /* connect.c */
 struct proxy 		*getproxy(char *);
-struct io		*connectio(struct server *, char *, char **);
+struct io		*connectio(struct server *, const char [2], char **);
 
 /* mail.c */
 void			 free_mail(struct mail *);

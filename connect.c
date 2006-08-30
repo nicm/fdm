@@ -43,9 +43,13 @@ getproxy(char *url)
 
 	if (strncmp(url, "http://", 7) == 0) {
 		pr->type = PROXY_HTTP;
+		pr->server.ssl = 0;
+		pr->server.port = xstrdup("http");
 		url += 7;
 	} else if (strncmp(url, "https://", 8) == 0) {
-		pr->type = PROXY_HTTPS;
+		pr->type = PROXY_HTTP;
+		pr->server.ssl = 1;
+		pr->server.port = xstrdup("https");
 		url += 9;
 	} else
 		return (NULL);
@@ -60,6 +64,7 @@ getproxy(char *url)
 	}
 	
 	if ((ptr = strchr(url, ':')) != NULL) {
+		xfree(pr->server.port);
 		*ptr++ = '\0';
 		if (*ptr == '\0') {
 			xfree(pr);
@@ -74,7 +79,7 @@ getproxy(char *url)
 }
 
 struct io *
-connectio(struct server *srv, char *eol, char **cause)
+connectio(struct server *srv, const char eol[2], char **cause)
 {
 	int		 fd = -1, error = 0, n;
 	struct addrinfo	 hints;

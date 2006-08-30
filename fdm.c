@@ -59,7 +59,7 @@ load_conf(void)
 }
 
 void
-fill_info(char *home)
+fill_info(const char *home)
 {
 	struct passwd	*pw;
 	uid_t		 uid;
@@ -242,10 +242,13 @@ main(int argc, char **argv)
 		proxy = getenv("http_proxy");
 		log_debug("proxy found: %s", proxy);
 		if (proxy != NULL && *proxy != '\0') {
+			/* getenv's return buffer is read-only */
+			proxy = xstrdup(proxy);
 			if ((conf.proxy = getproxy(proxy)) == NULL) {
 				log_warnx("invalid proxy: %s", proxy);
 				exit(1);
 			}
+			xfree(proxy);
 		}
 	}
 
