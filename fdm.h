@@ -120,7 +120,8 @@ struct server {
 /* Proxy type. */
 enum proxytype {
 	PROXY_HTTP,
-	PROXY_HTTPS
+	PROXY_HTTPS,
+	PROXY_SOCKS5
 };
 
 /* Proxy definition. */
