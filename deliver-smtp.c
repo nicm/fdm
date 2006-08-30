@@ -40,6 +40,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	long			 code;
 	struct io		*io;
 	char			*cause, *to, *from, *line, *ptr;
+	const char		*errstr;
 	enum smtp_state		 state;
 	size_t		 	 len;
 
@@ -72,8 +73,8 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 			if (line == NULL)
 				break;
 			if (isdigit((int) *line)) {
-				code = strtol(line, NULL, 10);
-				if (code < 100 || code > 999)
+				code = strtonum(line, 100, 999, &errstr);
+				if (errstr != NULL)
 					code = -1;
 			} else
 				code = -1;

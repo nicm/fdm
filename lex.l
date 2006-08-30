@@ -40,28 +40,24 @@ extern __dead printflike1 void	yyerror(const char *, ...);
 %%
 
 [0-9]+ {
-	long long	num;
+	const char	*errstr;
 
-	errno = 0;
-        num = strtoll(yytext, NULL, 10);
-	if (num == 0 && (errno == EINVAL || errno == ERANGE))
+        yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
+	if (errstr != NULL)
 		yyerror("illegal number");
-	yylval.number = num;
 
         return (NUMBER);
 }
 [0-9]+[BbKkMmGg] {
+	const char	*errstr;
         char		ch;
-	long long	num;
 
         ch = *(yytext + strlen(yytext) - 1);
         *(yytext + strlen(yytext) - 1) = '\0';
 
-	errno = 0;
-	num = strtoll(yytext, NULL, 10);
-	if (num == 0 && (errno == EINVAL || errno == ERANGE))
-		yyerror("illegal size");
-	yylval.number = num;
+        yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
+	if (errstr != NULL)
+		yyerror("illegal number");
 
         switch (ch) {
         case 'k':

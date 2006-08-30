@@ -521,6 +521,12 @@ extern struct deliver 	 deliver_append;
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
 
+#ifdef NO_STRTONUM
+/* strtonum.c */
+long long		 strtonum(const char *, long long, long long,
+			     const char **);
+#endif
+
 #ifdef NO_STRLCPY
 /* strlcpy.c */
 size_t	 		 strlcpy(char *, const char *, size_t);

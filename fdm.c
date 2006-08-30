@@ -151,7 +151,8 @@ main(int argc, char **argv)
         int		 opt, fds[2];
 	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
-	char		 tmp[512], *ptr;
+	const char	*errstr;
+	char		 tmp[512];
 	char		*proxy = NULL, *user = NULL;
 	long		 n;
 	pid_t		 pid;
@@ -218,16 +219,14 @@ main(int argc, char **argv)
 	if (user != NULL) {
 		pw = getpwnam(user);
 		if (pw == NULL) {
-			errno = 0;
-			n = strtol(user, &ptr, 10);
-			if (n != 0 || (errno != EINVAL && errno != ERANGE)) {
-				if (n < 0 || (u_long) n > UID_MAX) {
+			n = strtonum(user, 0, UID_MAX, &errstr);
+			if (errstr != NULL) {
+				if (errno == ERANGE) {
 					log_warnx("invalid uid: %s", user);
 					exit(1);
 				}
-				if (*ptr == '\0')
-					pw = getpwuid((uid_t) n);
-			}
+			} else
+				pw = getpwuid((uid_t) n);
 			if (pw == NULL) {
 				log_warnx("unknown user: %s", user);
 				exit(1);
@@ -240,8 +239,8 @@ main(int argc, char **argv)
 	/* fill proxy */
 	if (conf.proxy == NULL) {
 		proxy = getenv("http_proxy");
-		log_debug("proxy found: %s", proxy);
 		if (proxy != NULL && *proxy != '\0') {
+			log_debug("proxy found: %s", proxy);
 			/* getenv's return buffer is read-only */
 			proxy = xstrdup(proxy);
 			if ((conf.proxy = getproxy(proxy)) == NULL) {

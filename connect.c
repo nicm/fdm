@@ -114,16 +114,13 @@ httpproxy(struct server *srv, struct io *io, char **cause)
 {
 	struct servent	*sv;
 	long		 port;
-	char	      	*ptr, *line;
+	char	      	*errstr, *line;
 	int		 header;
 
 	sv = getservbyname(srv->port, NULL);
 	if (sv == NULL) {
-		errno = 0;
-		port = strtol(srv->port, &ptr, 10);
-		if (port < 0 || port > INT_MAX)
-			errno = ERANGE;
-		if (errno != 0 || ptr == NULL || *ptr != '\0') {
+		port = strtonum(srv->port, 0, INT_MAX, &errstr);
+		if (errstr != NULL) {
 			endservent();
 			xasprintf(cause, "bad port: %s", srv->port);
 			return (NULL);

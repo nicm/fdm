@@ -34,17 +34,16 @@ INSTALLMAN = install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 ### Compilation
 
 SRCS= fdm.c log.c xmalloc.c io.c replace.c connect.c mail.c \
-      fetch-pop3.c fetch-pop3s.c fetch-stdin.c deliver-smtp.c deliver-pipe.c \
+      fetch-pop3.c fetch-imap.c fetch-stdin.c deliver-smtp.c deliver-pipe.c \
       deliver-drop.c deliver-maildir.c deliver-mbox.c deliver-write.c \
-      deliver-append.c deliver-rewrite.c child.c parent.c fetch-imap.c \
-      fetch-imaps.c \
+      deliver-append.c deliver-rewrite.c child.c parent.c \
       y.tab.c lex.yy.c
 
 DEFS = $(shell getconf LFS_CFLAGS) -DBUILD="\"$(VERSION) ($(DATE))\""
 
 ifeq ($(shell uname),Linux)
-SRCS += strlcpy.c strlcat.c
-DEFS += -D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE
+SRCS += strlcpy.c strlcat.c strtonum.c
+DEFS += -D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM
 endif
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))
