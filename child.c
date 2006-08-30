@@ -147,7 +147,7 @@ child(int fd, enum cmd cmd)
 
 	msg.type = MSG_EXIT;
 	io_write(io, &msg, sizeof msg);
-	io_flush(io);
+	io_flush(io, NULL);
 
 	io_free(io);
 
@@ -270,12 +270,12 @@ fetch_account(struct io *io, struct account *a)
 			memcpy(&msg.mail, &m, sizeof msg.mail);
 			msg.mail.wrapped = NULL;
 			io_write(io, &msg, sizeof msg);
-			if (io_flush(io) != 0)
+			if (io_flush(io, NULL) != 0)
 				fatalx("child: io_flush error");
 			io_write(io, m.data, m.size);
-			if (io_flush(io) != 0)
+			if (io_flush(io, NULL) != 0)
 				fatalx("child: io_flush error");
-			if (io_wait(io, sizeof msg) != 0)
+			if (io_wait(io, sizeof msg, NULL) != 0)
 				fatalx("child: io_wait error");
 			if (io_read2(io, &msg, sizeof msg) != 0)
 				fatalx("child: io_read2 error");

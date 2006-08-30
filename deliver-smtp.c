@@ -61,9 +61,10 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 		to = data->to;
 
 	state = SMTP_CONNECTING;
+	line = cause = NULL;
 	for (;;) {
-		if (io_poll(io) != 1)
-			goto error2;
+		if (io_poll(io, &cause) != 1)
+			goto error;
 
 		done = 0;
 		while (!done) {
@@ -112,8 +113,8 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 					    ptr); /* XXX cast */
 
 					/* update if necessary */
-					if (io_update(io) != 1)
-						goto error2;
+					if (io_update(io, &cause) != 1)
+						goto error;
 
 					line_next(m, &ptr, &len);
 				}
@@ -147,11 +148,14 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	return (0);
 
 error:
-	log_warnx("%s: %s", a->name, line);
+	if (cause != NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+	} else
+		log_warnx("%s: unexpected response: %s", a->name, line);
 
-error2:
 	io_writeline(io, "QUIT");
-	io_flush(io);
+	io_flush(io, NULL);
 
 	xfree(from);
 

@@ -2,5 +2,3 @@
 - SMTP SSL and/or TLS
 - SOCKS/HTTP proxy
 - http (hotmail) fetching
-- sort out pop3/imap err messages, don't just rely on server
-- convert IO to return error messages?

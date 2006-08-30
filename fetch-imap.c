@@ -86,7 +86,7 @@ imap_error(struct account *a)
 	data = a->data;
 
         io_writeline(data->io, "%u LOGOUT", ++data->tag);
-        io_flush(data->io);
+        io_flush(data->io, NULL);
 }
 
 int
@@ -132,7 +132,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	struct imap_data	*data;
 	int		 	 v, res, flushing;
 	long			 tag;
-	char			*line, *msg, *lbuf, *folder;
+	char			*line, *cause, *lbuf, *folder;
 	size_t			 off = 0, len, llen;
 	u_int			 u, lines = 0;
 
@@ -148,14 +148,11 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	if (folder == NULL)
 		folder = "INBOX";
 
-	msg = "unexpected response";
 	flushing = 0;
+	line = cause = NULL;
 	do {
-		if (io_poll(data->io) != 1) {
-			msg = "io_poll failed";
-			line = NULL;
+		if (io_poll(data->io, &cause) != 1)
 			goto error;
-		}
 
 		res = -1;
 		do {
@@ -221,8 +218,8 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 				line++;
 				if (strncmp(line, "OK [READ-WRITE]", 15) != 0) {
-					msg = "can't open read/write";
-					line = folder;
+					xasprintf(&cause, "can't open folder "
+					    "read/write: %s", folder);
 					goto error;
 				}
 
@@ -247,13 +244,12 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				    &u, &m->size) != 2)
 					goto error;
 				if (u != data->cur) {
-					msg = "wrong message index";
+					cause = xstrdup("wrong message index");
 					goto error;
 				}
 
 				if (m->size == 0) {
-					msg = "zero-length message";
-					line = NULL;
+					cause = xstrdup("zero-length message");
 					goto error;
 				}
 
@@ -299,8 +295,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (off + lines != m->size) {
-					msg = "too much data from server";
-					line = NULL;
+					cause = xstrdup("too much data");
 					goto error;
 				}
 				m->size = off;
@@ -362,17 +357,18 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	} while (res == -1);
 
 	xfree(lbuf);
-	io_flush(data->io);
+	io_flush(data->io, NULL);
 	return (res);
 
 error:
-	if (line != NULL)
-		log_warnx("%s: %s: %s", a->name, msg, line);
-	else
-		log_warnx("%s: %s", a->name, msg);
+	if (cause != NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+	} else
+		log_warnx("%s: unexpected response: %s", a->name, line);
 
 	xfree(lbuf);
-	io_flush(data->io);
+	io_flush(data->io, NULL);
 	return (FETCH_ERROR);
 }
 

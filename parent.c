@@ -41,7 +41,7 @@ parent(int fd, pid_t pid)
 #endif
 
 	do {
-		if (io_wait(io, sizeof msg) != 0) 
+		if (io_wait(io, sizeof msg, NULL) != 0) 
 			fatalx("parent: io_wait error");
 		if (io_read2(io, &msg, sizeof msg) != 0)
 			fatalx("parent: io_read2 error");
@@ -49,7 +49,7 @@ parent(int fd, pid_t pid)
 
 		switch (msg.type) {
 		case MSG_DELIVER:
-			if (io_wait(io, msg.mail.size) != 0) 
+			if (io_wait(io, msg.mail.size, NULL) != 0) 
 				fatalx("parent: io_wait error"); 
 			msg.mail.base = io_read(io, msg.mail.size);
 			if (msg.mail.base == NULL)
@@ -63,7 +63,7 @@ parent(int fd, pid_t pid)
 			msg.type = MSG_DONE;
 			msg.error = error;
 			io_write(io, &msg, sizeof msg);
-			if (io_flush(io) != 0)
+			if (io_flush(io, NULL) != 0)
 				fatalx("parent: io_flush error");
 			break;
 		case MSG_DONE:

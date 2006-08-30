@@ -363,7 +363,7 @@ struct io {
 	SSL		*ssl;
 
 	int		 closed;
-	int		 error;
+	char		*error;
 	int		 need_wr;
 
 	char		*rbase;		/* buffer start */
@@ -569,8 +569,8 @@ char 			*replace(char *, char *[52]);
 /* io.c */
 struct io		*io_create(int, SSL *, const char [2]);
 void			 io_free(struct io *);
-int			 io_update(struct io *);
-int			 io_poll(struct io *);
+int			 io_update(struct io *, char **);
+int			 io_poll(struct io *, char **);
 int			 io_read2(struct io *, void *, size_t);
 void 			*io_read(struct io *, size_t);
 void			 io_write(struct io *, const void *, size_t);
@@ -578,8 +578,8 @@ char 			*io_readline2(struct io *, char **, size_t *);
 char 			*io_readline(struct io *);
 void printflike2	 io_writeline(struct io *, const char *, ...);
 void			 io_vwriteline(struct io *, const char *, va_list);
-int			 io_flush(struct io *);
-int			 io_wait(struct io *, size_t);
+int			 io_flush(struct io *, char **);
+int			 io_wait(struct io *, size_t, char **);
 
 /* log.c */
 void			 log_init(int);

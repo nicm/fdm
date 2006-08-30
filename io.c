@@ -64,7 +64,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 
 	io->need_wr = 0;
 	io->closed = 0;
-	io->error = 0;
+	io->error = NULL;
 
 	io->rspace = IO_BLOCKSIZE;
 	io->rbase = xmalloc(io->rspace);
@@ -84,6 +84,8 @@ io_create(int fd, SSL *ssl, const char *eol)
 void
 io_free(struct io *io)
 {
+	if (io->error != NULL)
+		xfree(io->error);
 	xfree(io->rbase);
 	xfree(io->wbase);
 	xfree(io);
@@ -91,23 +93,26 @@ io_free(struct io *io)
 
 /* Poll if there is lots of data to write. */
 int
-io_update(struct io *io)
+io_update(struct io *io, char **cause)
 {
 	if (io->wsize < IO_FLUSHSIZE)
 		return (1);
 
-	return (io_poll(io));
+	return (io_poll(io, cause));
 }
 
 /* Poll the io. */
 int
-io_poll(struct io *io)
+io_poll(struct io *io, char **cause)
 {
 	struct pollfd	pfd;
 	int		error;
 
-	if (io->error)
+	if (io->error != NULL) {
+		if (cause != NULL)
+			*cause = io->error;
 		return (-1);
+	}
 	if (io->closed)
 		return (0);
 
@@ -126,25 +131,32 @@ io_poll(struct io *io)
 #endif
 
 	error = poll(&pfd, 1, INFTIM);
-	if (error == -1 && errno != EINTR)
-		fatal("poll");
-	if (error == 0 || error == -1)
+	if (error == 0 || error == -1) {
+		if (cause != NULL)
+			xasprintf(cause, "io: poll: %s", strerror(errno));
 		return (-1);
+	}
 	
 	if (pfd.revents & POLLERR || pfd.revents & POLLNVAL)
-		goto error;
+		goto closed;
 	if (pfd.revents & POLLIN) {
 		if ((error = io_fill(io)) != 1) {
-			if (error == -1)
+			if (error == -1) {
+				if (cause != NULL)
+					*cause = io->error;
 				return (-1);
-			goto error;
+			}
+			goto closed;
 		}
 	}
 	if (pfd.revents & POLLOUT) {
 		if ((error = io_push(io)) != 1) {
-			if (error == -1)
+			if (error == -1) {
+				if (cause != NULL)
+					*cause = io->error;
 				return (-1);
-			goto error;
+			}
+			goto closed;
 		}
 	}
 
@@ -156,7 +168,7 @@ io_poll(struct io *io)
 
 	return (1);
 
-error:
+closed:
 	io->closed = 1;
 	return (1);
 }
@@ -182,7 +194,8 @@ io_fill(struct io *io)
 	if (io->rspace - io->rsize < IO_BLOCKSIZE) {
 		io->rspace += IO_BLOCKSIZE;
 		if (io->rspace > IO_MAXBUFFERLEN) {
-			log_warnx("io: maximum buffer length exceeded");
+			io->error = xstrdup("io: maximum buffer length "
+			    "exceeded");
 			return (-1);
 		}
 		io->rbase = xrealloc(io->rbase, 1, io->rspace);
@@ -195,7 +208,7 @@ io_fill(struct io *io)
 		if (n == 0)
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
-			log_warn("read");
+			xasprintf(&io->error, "io: read: %s", strerror(errno));
 			return (-1);
 		}
 	} else {
@@ -211,7 +224,8 @@ io_fill(struct io *io)
 				io->need_wr = 1;
 				break;
 			default:
-				log_warnx("SSL_read: %s", SSL_err());
+				xasprintf(&io->error, "io: SSL_read: %s", 
+				    SSL_err());
 				return (-1);
 			}
 		}
@@ -259,7 +273,7 @@ io_push(struct io *io)
 		if (n == 0)
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
-			log_warn("write");
+			xasprintf(&io->error, "io: write: %s", strerror(errno));
 			return (-1);
 		}
 	} else {
@@ -274,7 +288,8 @@ io_push(struct io *io)
 				io->need_wr = 1;
 				break;
 			default:
-				log_warnx("SSL_write: %s", SSL_err());
+				xasprintf(&io->error, "io: SSL_write: %s", 
+				    SSL_err());
 				return (-1);
 			}
 		}
@@ -312,6 +327,9 @@ io_read(struct io *io, size_t len)
 {
 	void	*buf;
 
+	if (io->error != NULL)
+		return (NULL);
+
 	if (io->rsize < len)
 		return (NULL);
 
@@ -328,6 +346,9 @@ io_read(struct io *io, size_t len)
 int
 io_read2(struct io *io, void *buf, size_t len)
 {
+	if (io->error != NULL)
+		return (1);
+
 	if (io->rsize < len)
 		return (1);
 
@@ -343,6 +364,9 @@ io_read2(struct io *io, void *buf, size_t len)
 void
 io_write(struct io *io, const void *buf, size_t len)
 {
+	if (io->error != NULL)
+		return;
+
 	if (len != 0) {
 		ENSURE_SIZE(io->wbase, io->wspace, io->wsize + len);
 		
@@ -363,6 +387,9 @@ io_readline2(struct io *io, char **buf, size_t *len)
 {
 	char	*ptr;
 	size_t	 off, maxlen, eollen;
+
+	if (io->error != NULL)
+		return (NULL);
 
 	if (io->rsize <= 1)
 		return (NULL);
@@ -395,8 +422,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			/* not found within the length searched. if that was
 			   the maximum, it is an error */
 			if (io->rsize > IO_MAXLINELEN) {
-				log_warnx("io: maximum line length exceeded");
-				io->error = 1;
+				io->error = xstrdup("io: maximum line length "
+				    "exceeded");
 				return (NULL);
 			}
 			/* if the socket has closed, just return the rest */
@@ -436,6 +463,9 @@ io_readline(struct io *io)
 {
 	size_t	 llen;
 	char	*lbuf;
+
+	if (io->error != NULL)
+		return (NULL);
 	
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
@@ -449,6 +479,9 @@ io_writeline(struct io *io, const char *fmt, ...)
 {
 	va_list	 ap;
 
+	if (io->error != NULL)
+		return;
+
 	va_start(ap, fmt);
 	io_vwriteline(io, fmt, ap);
 	va_end(ap);
@@ -461,6 +494,9 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	char 	*buf;
 	int	 len;
 
+	if (io->error != NULL)
+		return;
+
 	if ((len = vasprintf(&buf, fmt, ap)) == -1)
 		fatal("vasprintf");
 
@@ -472,10 +508,10 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 
 /* Poll until all data in the write buffer has been written to the socket. */
 int
-io_flush(struct io *io)
+io_flush(struct io *io, char **cause)
 {
 	while (io->wsize > 0) {
-		if (io_poll(io) != 1)
+		if (io_poll(io, cause) != 1)
 			return (-1);
 	}
 	
@@ -484,10 +520,10 @@ io_flush(struct io *io)
 
 /* Poll until len bytes have been read into the read buffer. */
 int
-io_wait(struct io *io, size_t len)
+io_wait(struct io *io, size_t len, char **cause)
 {
 	while (io->rsize < len) {
-		if (io_poll(io) != 1)
+		if (io_poll(io, cause) != 1)
 			return (-1);
 	}
 

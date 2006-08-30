@@ -35,7 +35,7 @@ struct deliver deliver_rewrite = { "rewrite", rewrite_deliver };
 int
 rewrite_deliver(struct account *a, struct action *t, struct mail *m) 
 {
-        char		*cmd, *lbuf, *line;
+        char		*cmd, *lbuf, *line, *cause;
 	size_t		 llen, len;
 	struct mail	 m2;
 	int	 	 in[2], out[2], error, status;
@@ -107,10 +107,11 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	close(in[1]);
 
 	for (;;) {
-		if ((error = io_poll(io)) != 1) {
+		if ((error = io_poll(io, &cause)) != 1) {
 			/* normal close (error == 0) is fine */
 			if (error == 0)
 				break;
+			log_warnx("%s: %s: %s", a->name, cmd, cause);
 			free_mail(&m2);
 			close(out[0]);
 			error = 1;

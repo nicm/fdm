@@ -95,7 +95,7 @@ stdin_delete(struct account *a)
 	lbuf = xmalloc(llen);
 
 	for (;;) {
-		if (io_poll(data->io) != 1)
+		if (io_poll(data->io, NULL) != 1)
 			break;
 
 		for (;;) {
@@ -114,7 +114,7 @@ stdin_fetch(struct account *a, struct mail *m)
 {
 	struct stdin_data	*data;
 	int		 	 error;
-	char			*line, *lbuf;
+	char			*line, *cause, *lbuf;
 	size_t			 len, llen;
 
 	data = a->data;
@@ -132,10 +132,12 @@ stdin_fetch(struct account *a, struct mail *m)
 	lbuf = xmalloc(llen);
 
 	for (;;) {
-		if ((error = io_poll(data->io)) != 1) {
+		if ((error = io_poll(data->io, &cause)) != 1) {
 			/* normal close (error == 0) is fine */
 			if (error == 0)
 				break;
+			log_warnx("%s: io_poll: %s", a->name, cause);
+			xfree(cause);
 			xfree(lbuf);
 			return (FETCH_ERROR);
 		}
