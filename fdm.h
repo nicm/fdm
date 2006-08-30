@@ -445,7 +445,7 @@ struct imap_data {
 	int			 fd;
 
 	enum imap_state	 	 state;
-	int			 tag; /* XXX overflow */
+	int			 tag;
 	u_int		 	 cur;
 	u_int		 	 num;
 

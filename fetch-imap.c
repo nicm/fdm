@@ -108,7 +108,8 @@ imap_fetch(struct account *a, struct mail *m)
 int
 imap_tag(char *line) 
 {
-	long	tag;
+	long	 tag;
+	char	*ptr;
 
 	if (line[0] == '*' && line[1] == ' ')
 		return (IMAP_TAG_NONE);
@@ -116,9 +117,11 @@ imap_tag(char *line)
 		return (IMAP_TAG_CONTINUE);
 	
 	errno = 0;
-	tag = strtol(line, NULL, 10);
+	tag = strtol(line, &ptr, 10);
 	if (tag == 0 && (errno == EINVAL || errno == ERANGE))
 		return (IMAP_TAG_ERROR);
+	if (*ptr != ' ')
+		return (IMAP_TAG_ERROR);	
 
 	return (tag);
 }
