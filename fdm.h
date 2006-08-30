@@ -125,8 +125,10 @@ enum proxytype {
 
 /* Proxy definition. */
 struct proxy {
-	enum proxytype	type;
-	struct server	server;
+	enum proxytype	 type;
+	char		*user;
+	char		*pass;
+	struct server	 server;
 };
 
 /* Command-line commands. */

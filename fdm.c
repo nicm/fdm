@@ -240,7 +240,6 @@ main(int argc, char **argv)
 	if (conf.proxy == NULL) {
 		proxy = getenv("http_proxy");
 		if (proxy != NULL && *proxy != '\0') {
-			log_debug("proxy found: %s", proxy);
 			/* getenv's return buffer is read-only */
 			proxy = xstrdup(proxy);
 			if ((conf.proxy = getproxy(proxy)) == NULL) {
@@ -248,6 +247,7 @@ main(int argc, char **argv)
 				exit(1);
 			}
 			xfree(proxy);
+			log_debug("using proxy: %s", proxy);
 		}
 	}
 
