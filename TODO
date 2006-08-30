@@ -1,4 +1,5 @@
 - figure out way of making rewrite work despite privsep
 - SMTP SSL and/or TLS
-- SOCKS/HTTP proxy
+- SOCKS proxying
 - http (hotmail) fetching
+- document "set proxy", http_proxy

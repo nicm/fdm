@@ -32,6 +32,8 @@
 
 #include "fdm.h"
 
+int	httpproxy(struct server *, struct io *, char **);
+
 struct proxy *
 getproxy(char *url)
 {
@@ -76,6 +78,91 @@ getproxy(char *url)
 	pr->server.host = xstrdup(url);
 
 	return (pr);
+}
+
+struct io *
+connectproxy(struct server *srv, struct proxy *pr, const char eol[2], 
+    char **cause)
+{
+	struct io	*io;
+
+	if (pr == NULL)
+		return (connectio(srv, eol, cause));
+
+	io = connectio(&pr->server, IO_CRLF, cause);
+	if (io == NULL)
+		return (NULL);
+
+	switch (pr->type) {
+	case PROXY_HTTP:
+		if (httpproxy(srv, io, cause) != 0) {
+			io_close(io);
+			io_free(io);
+			return (NULL);
+		}
+		break;
+	default:
+		fatalx("unknown proxy type");
+	}
+
+	io->eol = eol;
+	return (io);
+}
+
+int
+httpproxy(struct server *srv, struct io *io, char **cause)
+{
+	struct servent	*sv;
+	long		 port;
+	char	      	*ptr, *line;
+	int		 header;
+
+	sv = getservbyname(srv->port, NULL);
+	if (sv == NULL) {
+		errno = 0;
+		port = strtol(srv->port, &ptr, 10);
+		if (port < 0 || port > INT_MAX)
+			errno = ERANGE;
+		if (errno != 0 || ptr == NULL || *ptr != '\0') {
+			endservent();
+			xasprintf(cause, "bad port: %s", srv->port);
+			return (NULL);
+		}
+	} else
+		port = ntohs(sv->s_port);
+	endservent();
+
+	io_writeline(io, "CONNECT %s:%ld HTTP/1.1", srv->host, port);
+	io_writeline(io, NULL);
+
+	header = 0;
+	for (;;) {
+		if (io_poll(io, cause) != 1)
+			return (1);
+		
+		for (;;) {
+			line = io_readline(io);
+			if (line == NULL)
+				break;
+
+			if (header == 0) {
+				if (strlen(line) < 12 || 
+				    strncmp(line, "HTTP/", 5) != 0 ||
+				    strncmp(line + 8, " 200", 4) != 0) {
+					xfree(line);
+					xasprintf(cause, "unexpected data: %s",
+					    line);
+					return (1);
+				}
+				header = 1;
+			} else {
+				if (*line == '\0')
+					return (0);
+			}
+
+			xfree(line);
+		}
+	}
 }
 
 struct io *

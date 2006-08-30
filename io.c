@@ -508,13 +508,13 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	if (io->error != NULL)
 		return;
 
-	if ((len = vasprintf(&buf, fmt, ap)) == -1)
-		fatal("vasprintf");
-
-	io_write(io, buf, len);
+	if (fmt != NULL) {
+		if ((len = vasprintf(&buf, fmt, ap)) == -1)
+			fatal("vasprintf");
+		io_write(io, buf, len);
+		free(buf);
+	}
 	io_write(io, io->eol, strlen(io->eol));
-
-	free(buf);
 }
 
 /* Poll until all data in the write buffer has been written to the socket. */

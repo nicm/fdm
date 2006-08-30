@@ -50,7 +50,8 @@ pop3_connect(struct account *a)
 
 	data = a->data;
 
-	if ((data->io = connectio(&data->server, IO_CRLF, &cause)) == NULL) {
+	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
+	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (1);

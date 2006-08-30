@@ -45,7 +45,8 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 
 	data = t->data;
 
-	if ((io = connectio(&data->server, IO_CRLF, &cause)) == NULL) {
+	io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
+	if (io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (1);

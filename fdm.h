@@ -543,6 +543,8 @@ int			 parent(int, pid_t);
 
 /* connect.c */
 struct proxy 		*getproxy(char *);
+struct io 		*connectproxy(struct server *, struct proxy *,
+			     const char [2], char **);
 struct io		*connectio(struct server *, const char [2], char **);
 
 /* mail.c */
