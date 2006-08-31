@@ -40,34 +40,35 @@ int	getport(char *);
 struct proxy *
 getproxy(char *url)
 {
-	struct proxy	*pr;
-	char		*ptr, *end;
+	struct proxy		*pr;
+	char			*ptr, *end;
+	struct {
+		char		*proto;
+		enum proxytype	 type;
+		int		 ssl;
+		char		*port;
+	} *proxyent, proxylist[] = {
+		{ "http://",   PROXY_HTTP,   0, "http" },
+		{ "https://",  PROXY_HTTPS,  1, "https" },
+		{ "socks://",  PROXY_SOCKS5, 0, "socks" },
+		{ "socks://",  PROXY_SOCKS5, 0, "socks" },
+		{ NULL,	       0,	     0, NULL }
+	};
+
+	/* find proxy */
+	for (proxyent = proxylist; proxyent->proto != NULL; proxyent++) {
+		if (strncmp(url, proxyent->proto, strlen(proxyent->proto)) == 0)
+			break;
+	}
+	if (proxyent->proto == NULL)
+		return (NULL);
 
 	pr = xmalloc(sizeof *pr);
+	pr->type = proxyent->type;
+	pr->server.ssl = proxyent->ssl;
+	pr->server.port = xstrdup(proxyent->port);
 	pr->server.ai = NULL;
-
-	if (strncmp(url, "http://", 7) == 0) {
-		pr->type = PROXY_HTTP;
-		pr->server.ssl = 0;
-		pr->server.port = xstrdup("http");
-		url += 7;
-	} else if (strncmp(url, "https://", 8) == 0) {
-		pr->type = PROXY_HTTP;
-		pr->server.ssl = 1;
-		pr->server.port = xstrdup("https");
-		url += 8;
-	} else if (strncmp(url, "socks://", 8) == 0) {
-		pr->type = PROXY_SOCKS5;
-		pr->server.ssl = 0;
-		pr->server.port = xstrdup("socks");
-		url += 8;
-	} else if (strncmp(url, "socks5://", 9) == 0) {
-		pr->type = PROXY_SOCKS5;
-		pr->server.ssl = 0;
-		pr->server.port = xstrdup("socks");
-		url += 9;
-	} else
-		return (NULL);
+	url += strlen(proxyent->proto);
 
 	/* strip trailing /s */
 	ptr = url + strlen(url) - 1;
