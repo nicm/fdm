@@ -165,8 +165,8 @@ getport(char *port)
 int
 socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 {
-	int	port, method;
-	char	buf[32];
+	int	port, auth;
+	char	buf[32], *ptr;
 	size_t	len;
 
 	if ((port = getport(srv->port)) < 0) {
@@ -175,37 +175,64 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	}	
 
 	/* method selection */
-	if (pr->user != NULL && pr->pass != NULL)
-		method = 2;
-	else
-		method = 0;
+	auth = pr->user != NULL && pr->pass != NULL;
 	buf[0] = 5;
-	buf[1] = 1;
-	buf[2] = method;
-	io_write(io, buf, 3);
+	buf[1] = auth ? 2 : 1;
+	buf[2] = 0;	/* no auth */
+	buf[3] = 2;	/* user/pass auth */
+	io_write(io, buf, auth ? 4 : 3);
 	if (io_wait(io, 2, cause) != 0)
 		return (1);
 	io_read2(io, buf, 2);
-	if (buf[0] != '\005' || buf[1] != method) {
-		xasprintf(cause, "unexpected method: %d,%d", buf[0], buf[1]);
+	if (buf[0] != 5) {
+		xasprintf(cause, "bad protocol version: %d", buf[0]);
+		return (1);
+	}
+	if ((buf[1] != 0 && buf[1] != 2) || (auth == 0 && buf[1] == 2)) {
+		xasprintf(cause, "unexpected method: %d", buf[1]);
 		return (1);
 	}
 
 	/* user/pass negotiation */
-	if (method == 2) {
-		
+	if (buf[1] == 2) {
+		ptr = buf;
+		*ptr++ = 5;
+		len = strlen(pr->user);
+		*ptr++ = len;
+		memcpy(ptr, pr->user, len);
+		ptr += len;
+		len = strlen(pr->pass);
+		*ptr++ = len;
+		memcpy(ptr, pr->pass, len);
+		ptr += len;
+		io_write(io, buf, ptr - buf);
+
+		io_read2(io, buf, 2);
+		if (io_wait(io, 2, cause) != 0)
+			return (1);
+		if (buf[0] != 5) {
+			xasprintf(cause, "bad protocol version: %d", buf[0]);
+			return (1);
+		}
+		if (buf[1] != 0) {
+			xasprintf(cause, "authentication failed");
+			return (1);
+		}
 	}
 
 	/* connect request */
-	buf[0] = 5;
-	buf[1] = 1; /* connect */
-	buf[2] = 0; /* reserved */
-	buf[3] = 3; /* domain name */
+	ptr = buf;
+	*ptr++ = 5;
+	*ptr++ = 1; /* connect */
+	*ptr++ = 0; /* reserved */
+	*ptr++ = 3; /* domain name */
 	len = strlen(srv->host);
-	buf[4] = len;
-	memcpy(buf + 5, srv->host, len);
-	*((u_int16_t *) (buf + 5 + len)) = htons(port);
-	io_write(io, buf, len + 7);
+	*ptr++ = len;
+	memcpy(ptr, srv->host, len);
+	ptr += len;
+	*((u_int16_t *) ptr) = htons(port);
+	ptr += 2;
+	io_write(io, buf, ptr - buf);
 
 	/* connect response */
 	if (io_wait(io, 5, cause) != 0)
@@ -276,7 +303,7 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	int		 port, header;
 
 	if (pr->user != NULL || pr->pass != NULL) {
-		cause = xstrdup("HTTP proxy authentication is not supported");
+		xasprintf(cause, "HTTP proxy authentication is not supported");
 		return (1);
 	}
 
