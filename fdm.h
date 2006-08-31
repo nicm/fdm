@@ -267,7 +267,6 @@ struct rule {
 /* Deliver return codes. */
 #define DELIVER_SUCCESS 0
 #define DELIVER_FAILURE 1
-#define DELIVER_RELOAD 2
 
 /* Poll return codes. */
 #define POLL_SUCCESS FETCH_SUCCESS
