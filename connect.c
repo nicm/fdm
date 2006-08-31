@@ -42,7 +42,7 @@ getproxy(char *url)
 {
 	struct proxy		*pr;
 	char			*ptr, *end;
-	static const struct {
+	struct {
 		char		*proto;
 		enum proxytype	 type;
 		int		 ssl;
