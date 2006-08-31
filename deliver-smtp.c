@@ -50,7 +50,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	if (io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (1);
+		return (DELIVER_FAILURE);
 	}
 	if (conf.debug > 3)
 		io->dup_fd = STDOUT_FILENO;
@@ -146,7 +146,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	io_close(io);
 	io_free(io);
 
-	return (0);
+	return (DELIVER_SUCCESS);
 
 error:
 	if (cause != NULL) {
@@ -163,5 +163,5 @@ error:
 	io_close(io);
 	io_free(io);
 
-	return (1);
+	return (DELIVER_FAILURE);
 }

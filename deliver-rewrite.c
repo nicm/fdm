@@ -38,7 +38,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
         char		*cmd, *lbuf, *line, *cause;
 	size_t		 llen, len;
 	struct mail	 m2;
-	int	 	 in[2], out[2], error, status;
+	int	 	 in[2], out[2], error, status, res = DELIVER_FAILURE;
 	struct io	*io;
 	pid_t	 	 pid;
 
@@ -47,7 +47,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		log_warnx("%s: empty command", a->name);
 		if (cmd != NULL)
 			xfree(cmd);
-                return (1);
+                return (DELIVER_FAILURE);
         }
 
 	log_debug("%s: rewriting using %s", a->name, cmd); 
@@ -101,8 +101,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
  		log_warn("%s: %s: write", a->name, cmd);
 		close(out[0]);
 		close(in[1]);
-		error = 1;
-		goto error;
+		goto out;
 	}
 	close(in[1]);
 
@@ -114,8 +113,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 			log_warnx("%s: %s: %s", a->name, cmd, cause);
 			free_mail(&m2);
 			close(out[0]);
-			error = 1;
-			goto error;
+			goto out;
 		}
 
 		for (;;) {
@@ -143,31 +141,31 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		fatal("waitpid");
 	if (!WIFEXITED(status)) {
 		log_warnx("%s: %s: didn't exit normally", a->name, cmd);
-		error = 1;
-		goto error;
+		goto out;
 	}
 	error = WEXITSTATUS(status);
 	if (error != 0) {
 		log_warnx("%s: %s: failed, exit code %d", a->name, cmd, error);
-		goto error;
+		goto out;
 	}
 
 	if (m2.size <= 0) {
 		log_warnx("%s: %s: empty mail returned", a->name, cmd);
 		free_mail(&m2);
-		error = 1;
-		goto error;
+		goto out;
 	}
 	
 	/* replace the old mail */
 	free_mail(m);
 	memcpy(m, &m2, sizeof *m);
+
+	res = DELIVER_SUCCESS;
 	
-error:
+out:
 	xfree(lbuf);
 
 	io_free(io);	
 
 	xfree(cmd);	
-	return (error);
+	return (res);
 }

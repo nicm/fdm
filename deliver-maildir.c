@@ -41,45 +41,45 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 	char		*path, ch;
 	char	 	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
 	char	 	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 	 fd;
+	int	 	 fd, res = DELIVER_FAILURE;
 	ssize_t	 	 n;
 	size_t	 	 first, last;
 
 	path = replaceinfo(t->data, a, t);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
-		goto error;
+		goto out;
 	}
 	log_debug("%s: saving to maildir %s", a->name, path); 
 
 	/* create the maildir directories */
 	if (mkdir(path, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, path);
-		goto error;
+		goto out;
 	}
 	if (xsnprintf(name, sizeof name, "%s/cur", path) < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
-		goto error;
+		goto out;
 	}
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, name);
-		goto error;
+		goto out;
 	}
 	if (xsnprintf(name, sizeof name, "%s/new", path) < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
-		goto error;
+		goto out;
 	}
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, name);
-		goto error;
+		goto out;
 	}	
 	if (xsnprintf(name, sizeof name, "%s/tmp", path) < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
-		goto error;
+		goto out;
 	}
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, name);
-		goto error;
+		goto out;
 	}
 
 	if (gethostname(host1, sizeof host1) != 0)
@@ -121,18 +121,18 @@ restart:
 		if (xsnprintf(name, sizeof name, "%ld.%ld_%u.%s", 
 		    (long) time(NULL), (long) getpid(), delivered, host) < 0) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
-			goto error;
+			goto out;
 		}
 		
 		if (xsnprintf(src, sizeof src, "%s/tmp/%s", path, name) < 0) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
-			goto error;
+			goto out;
 		}		
 	
 		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1 && errno != EEXIST) {
 			log_warn("%s: %s: open", a->name, src);
-			goto error;
+			goto out;
 		}
 
 		delivered++;
@@ -145,7 +145,7 @@ restart:
 		log_warn("%s: write", a->name);
 		close(fd);
 		unlink(src);
-		goto error;
+		goto out;
 	}
 	close(fd);
 
@@ -153,7 +153,7 @@ restart:
 	   back to find another name in the tmp directory */
 	if (xsnprintf(dst, sizeof dst, "%s/new/%s", path, name) < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
-		goto error;
+		goto out;
 	}		
 	log_debug2("%s: linking .../%s to .../%s", a->name, 
 	    src + strlen(path) + 1, dst + strlen(path) + 1);
@@ -164,21 +164,19 @@ restart:
 			goto restart;
 		}
 		log_warn("%s: %s: link(\"%s\")", a->name, src, dst);
-		goto error;
+		goto out;
 	}
 
 	/* unlink the original tmp file */
 	log_debug2("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
 	if (unlink(src) != 0) {
 		log_warn("%s: %s: unlink", a->name, src);
-		goto error;
+		goto out;
 	}
 
-	xfree(path);
-	return (0);
-
-error:
+	res = DELIVER_SUCCESS;
+out:
 	if (path != NULL)
 		xfree(path);
-	return (1);
+	return (res);
 }

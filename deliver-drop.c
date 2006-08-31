@@ -34,5 +34,5 @@ int
 drop_deliver(unused struct account *a, unused struct action *t, 
     unused struct mail *m) 
 {
-	return (0);
+	return (DELIVER_SUCCESS);
 }

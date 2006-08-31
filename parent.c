@@ -105,7 +105,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		if (geteuid() != 0) {
 			log_debug2("%s: not root. using current user", a->name);
 			/* do the delivery without forking */
-			if (t->deliver->deliver(a, t, m) != 0)
+			if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
 				return (1);
 			continue;
 		}
@@ -136,7 +136,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 		for (j = 0; j < ARRAY_LENGTH(users); j++) {
 			/* fork and deliver */
 			uid = ARRAY_ITEM(users, j, uid_t);
-			if (deliverfork(uid, a, m, t) != 0) {
+			if (deliverfork(uid, a, m, t) != DELIVER_SUCCESS) {
 				if (find)
 					xfree(users);
 				return (1);
@@ -159,7 +159,7 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 	pid = fork();
 	if (pid == -1) {
 		log_warn("%s: fork", a->name);
-		return (1);
+		return (DELIVER_FAILURE);
 	}
 	if (pid != 0) {
 		/* parent process. wait for child */
@@ -168,22 +168,16 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 			fatal("waitpid");
 		if (!WIFEXITED(status)) {
 			log_warnx("%s: child didn't exit normally", a->name);
-			return (1);
+			return (DELIVER_FAILURE);
 		}
-		status = WEXITSTATUS(status);
-		if (status != 0) {
-			log_warnx("%s: child failed, exit code %d", a->name,
-			    status);
-			return (1);
-		}
-		return (0);
+		return (WEXITSTATUS(status));
 	}
 		
 	/* child process. change user and group */
 	log_debug("%s: delivering using user %lu", a->name, (u_long) uid);
 	if (dropto(uid, NULL) != 0) {
 		log_warnx("%s: can't drop privileges", a->name);
-		_exit(1);
+		_exit(DELIVER_FAILURE);
 	}
 #ifndef NO_SETPROCTITLE
 	setproctitle("deliver[%lu]", (u_long) uid);
@@ -195,8 +189,6 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 	    conf.info.home);
 
 	/* do the delivery */
-	if (t->deliver->deliver(a, t, m) != 0)
-		_exit(1);
-	_exit(0);
-	return (0); /* pfft */
+	_exit(t->deliver->deliver(a, t, m));
+	return (DELIVER_FAILURE); /* yuk */
 }

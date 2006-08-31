@@ -39,7 +39,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 {
 	char		*path, *ptr;
 	size_t	 	 len;
-	int	 	 fd = -1, error = 0;
+	int	 	 fd = -1, res = DELIVER_FAILURE;
 	struct stat	 sb;
 
 	path = replaceinfo(t->data, a, t);
@@ -53,7 +53,6 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	errno = 0;
 	if (stat(path, &sb) != 0 && errno != ENOENT) {
 		log_warn("%s: %s: stat", a->name, path);
-		error = 1;
 		goto out;
 	} else if (errno == 0) {
 		if ((sb.st_mode & (S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|
@@ -69,14 +68,12 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 			    (sb.st_mode & S_IROTH ? 4 : 0) +
 			    (sb.st_mode & S_IWOTH ? 2 : 0) +
 			    (sb.st_mode & S_IXOTH ? 1 : 0));
-			error = 1;
 			goto out;
 		}
 		if (sb.st_uid != getuid()) {
 			log_warnx("%s: %s: bad owner: %lu, should be %lu", 
 			    a->name, path, 
 			    (u_long) sb.st_uid, (u_long) getuid());
-			error = 1;
 			goto out;
 		}
 	}
@@ -95,7 +92,6 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 				sleep(LOCKSLEEPTIME);
 			} else {
 				log_warn("%s: %s: open", a->name, path);
-				error = 1;
 				goto out;
 			}
 		}
@@ -104,7 +100,6 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	/* write the from line */
 	if (write(fd, m->from, strlen(m->from)) == -1) {
 		log_warn("%s: %s: write", a->name, path);
-		error = 1;
 		goto out;
 	}
 
@@ -115,14 +110,12 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 		    len >= 5 && strncmp(ptr, "From ", 5) == 0) {
 			if (write(fd, ">", 1) == -1) {
 				log_warn("%s: %s: write", a->name, path);
-				error = 1;
 				goto out;
 			}
 		}
 
 		if (write(fd, ptr, len) == -1) {
 			log_warn("%s: %s: write", a->name, path);
-			error = 1;
 			goto out;
 		}
 		
@@ -131,14 +124,14 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	
 	if (write(fd, "\n\n", 2) == -1) {
 		log_warn("%s: %s: write", a->name, path);
-		error = 1;
 		goto out;
 	}
 
+	res = DELIVER_SUCCESS;
 out:
 	if (fd != -1)
 		closelock(fd, path, conf.lock_types);
 	if (path != NULL)
 		xfree(path);
-	return (error);
+	return (res);
 }
