@@ -119,9 +119,10 @@ This instructs
 .Xr fdm 1
 to proxy all connections through
 .Ar url .
-Only HTTP proxies are supported at present (URLs of the form
-.Em http://host[:port] ) ,
-and no authentication is supported.
+HTTP and SOCKS5 proxies are supported at present (URLs of the form
+.Em http://host[:port] or
+.Em socks://[user:pass@]host[:port]) .
+No authentication is supported for HTTP.
 This option may be overridden by an
 .Em http_proxy
 variable in the environment.
