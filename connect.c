@@ -179,8 +179,8 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	auth = pr->user != NULL && pr->pass != NULL;
 	buf[0] = 5;
 	buf[1] = auth ? 2 : 1;
-	buf[2] = 0;	/* no auth */
-	buf[3] = 2;	/* user/pass auth */
+	buf[2] = 0;	/* 0 = no auth */
+	buf[3] = 2;	/* 2 = user/pass auth */
 	io_write(io, buf, auth ? 4 : 3);
 	if (io_wait(io, 2, cause) != 0)
 		return (1);
@@ -224,9 +224,9 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	/* connect request */
 	ptr = buf;
 	*ptr++ = 5;
-	*ptr++ = 1; /* connect */
+	*ptr++ = 1; /* 1 = connect */
 	*ptr++ = 0; /* reserved */
-	*ptr++ = 3; /* domain name */
+	*ptr++ = 3; /* 3 = domain name */
 	len = strlen(srv->host);
 	*ptr++ = len;
 	memcpy(ptr, srv->host, len);
