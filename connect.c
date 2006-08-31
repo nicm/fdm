@@ -33,6 +33,7 @@
 #include "fdm.h"
 
 int	httpproxy(struct server *, struct io *, char **);
+int	socks5proxy(struct server *, struct io *, char **);
 
 struct proxy *
 getproxy(char *url)
@@ -123,12 +124,26 @@ connectproxy(struct server *srv, struct proxy *pr, const char eol[2],
 			return (NULL);
 		}
 		break;
+	case PROXY_SOCKS5:
+		if (socks5proxy(srv, io, cause) != 0) {
+			io_close(io);
+			io_free(io);
+			return (NULL);
+		}
+		break;
 	default:
 		fatalx("unknown proxy type");
 	}
 
 	io->eol = eol;
 	return (io);
+}
+
+int
+socks5proxy(unused struct server *srv, unused struct io *io, char **cause)
+{
+	*cause = xstrdup("not implemented yet");
+	return (1);
 }
 
 int
