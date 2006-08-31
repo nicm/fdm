@@ -275,7 +275,10 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	char		*line;
 	int		 port, header;
 
-	pr = NULL; /* XXX */
+	if (pr->user != NULL || pr->pass != NULL) {
+		cause = xstrdup("HTTP proxy authentication is not supported");
+		return (1);
+	}
 
 	if ((port = getport(srv->port)) < 0) {
 		xasprintf(cause, "bad port: %s", srv->port);
