@@ -236,21 +236,6 @@ main(int argc, char **argv)
 		endpwent();
 	}
 
-	/* fill proxy */
-	if (conf.proxy == NULL) {
-		proxy = getenv("http_proxy");
-		if (proxy != NULL && *proxy != '\0') {
-			/* getenv's return buffer is read-only */
-			proxy = xstrdup(proxy);
-			if ((conf.proxy = getproxy(proxy)) == NULL) {
-				log_warnx("invalid proxy: %s", proxy);
-				exit(1);
-			}
-			xfree(proxy);
-			log_debug("using proxy: %s", proxy);
-		}
-	}
-
 	/* start logging to syslog if necessary */
 	log_init(!conf.syslog);
 	log_debug("version is: %s " BUILD, __progname);
@@ -280,6 +265,34 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	log_debug("configuration loaded");
+
+	/* fill proxy */
+	proxy = getenv("http_proxy");
+	if (proxy != NULL && *proxy != '\0') {
+		if (conf.proxy != NULL) {
+			xfree(conf.proxy->server.host);
+			xfree(conf.proxy->server.port);
+			if (conf.proxy->user != NULL)
+				xfree(conf.proxy->user);
+			if (conf.proxy->pass != NULL)
+				xfree(conf.proxy->pass);
+		}
+
+		/* getenv's return buffer is read-only */
+		proxy = xstrdup(proxy);
+		if ((conf.proxy = getproxy(proxy)) == NULL) {
+			log_warnx("invalid proxy: %s", proxy);
+			exit(1);
+		}
+		xfree(proxy);
+	}
+
+	/* print proxy info */
+	if (conf.proxy != NULL) {
+		log_debug("using proxy: %s on %s:%s", 
+		    conf.proxy->type == PROXY_HTTP ? "HTTP" : "SOCKS5",
+		    conf.proxy->server.host, conf.proxy->server.port);
+	}
 
 	/* print some locking info */
 	*tmp = '\0';

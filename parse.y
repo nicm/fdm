@@ -192,27 +192,33 @@ set: TOKSET TOKMAXSIZE size
      }
    | TOKSET TOKDEFUSER uid
      {
-	     if (conf.def_user == 0)
-		     conf.def_user = $3;
+	     conf.def_user = $3;
      }
    | TOKSET domains
      {
-	     if (conf.domains != NULL)
+	     if (conf.domains != NULL) /* XXX free */
 		     yyerror("cannot set domains twice");
 	     conf.domains = $2;
      }
    | TOKSET headers
      {
-	     if (conf.headers != NULL)
+	     if (conf.headers != NULL) /* XXX free */
 		     yyerror("cannot set headers twice");
 	     conf.headers = $2;
      }
-   | TOKSET STRING
+   | TOKSET TOKPROXY STRING
      {
-	     if (conf.proxy != NULL)
-		     yyerror("cannot set proxy twice");
-	     if ((conf.proxy = getproxy($2)) == NULL)
+	     if (conf.proxy != NULL) {
+		     xfree(conf.proxy->server.host);
+		     xfree(conf.proxy->server.port);
+		     if (conf.proxy->user != NULL)
+			     xfree(conf.proxy->user);
+		     if (conf.proxy->pass != NULL)
+			     xfree(conf.proxy->pass);
+	     }
+	     if ((conf.proxy = getproxy($3)) == NULL)
 		     yyerror("invalid proxy");
+	     xfree($3);
      }
 
 domains: TOKDOMAIN STRING
@@ -338,6 +344,8 @@ uid: STRING
 		     yyerror("unknown user: %s", $1);
 	     $$ = pw->pw_uid;
 	     endpwent();
+
+	     xfree($1);
      }
    | NUMBER
      {

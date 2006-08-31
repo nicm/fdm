@@ -23,6 +23,7 @@
 #include <limits.h>
 #include <netdb.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -32,8 +33,9 @@
 
 #include "fdm.h"
 
-int	httpproxy(struct server *, struct io *, char **);
-int	socks5proxy(struct server *, struct io *, char **);
+int	httpproxy(struct server *, struct proxy *, struct io *, char **);
+int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
+int	getport(char *);
 
 struct proxy *
 getproxy(char *url)
@@ -118,14 +120,14 @@ connectproxy(struct server *srv, struct proxy *pr, const char eol[2],
 
 	switch (pr->type) {
 	case PROXY_HTTP:
-		if (httpproxy(srv, io, cause) != 0) {
+		if (httpproxy(srv, pr, io, cause) != 0) {
 			io_close(io);
 			io_free(io);
 			return (NULL);
 		}
 		break;
 	case PROXY_SOCKS5:
-		if (socks5proxy(srv, io, cause) != 0) {
+		if (socks5proxy(srv, pr, io, cause) != 0) {
 			io_close(io);
 			io_free(io);
 			return (NULL);
@@ -140,34 +142,147 @@ connectproxy(struct server *srv, struct proxy *pr, const char eol[2],
 }
 
 int
-socks5proxy(unused struct server *srv, unused struct io *io, char **cause)
+getport(char *port)
 {
-	*cause = xstrdup("not implemented yet");
-	return (1);
+	struct servent	*sv;
+	int	         n;
+	const char	*errstr;
+
+	sv = getservbyname(port, NULL);
+	if (sv == NULL) {
+		n = strtonum(port, 1, UINT16_MAX, &errstr);
+		if (errstr != NULL) {
+			endservent();
+			return (-1);
+		}
+	} else
+		n = ntohs(sv->s_port);
+	endservent();
+
+	return (n);
 }
 
 int
-httpproxy(struct server *srv, struct io *io, char **cause)
+socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 {
-	struct servent	*sv;
-	long		 port;
-	const char      *errstr;
+	int	port, method;
+	char	buf[32];
+	size_t	len;
+
+	if ((port = getport(srv->port)) < 0) {
+		xasprintf(cause, "bad port: %s", srv->port);
+		return (1);
+	}	
+
+	/* method selection */
+	if (pr->user != NULL && pr->pass != NULL)
+		method = 2;
+	else
+		method = 0;
+	buf[0] = 5;
+	buf[1] = 1;
+	buf[2] = method;
+	io_write(io, buf, 3);
+	if (io_wait(io, 2, cause) != 0)
+		return (1);
+	io_read2(io, buf, 2);
+	if (buf[0] != '\005' || buf[1] != method) {
+		xasprintf(cause, "unexpected method: %d,%d", buf[0], buf[1]);
+		return (1);
+	}
+
+	/* user/pass negotiation */
+	if (method == 2) {
+		
+	}
+
+	/* connect request */
+	buf[0] = 5;
+	buf[1] = 1; /* connect */
+	buf[2] = 0; /* reserved */
+	buf[3] = 3; /* domain name */
+	len = strlen(srv->host);
+	buf[4] = len;
+	memcpy(buf + 5, srv->host, len);
+	*((u_int16_t *) (buf + 5 + len)) = htons(port);
+	io_write(io, buf, len + 7);
+
+	/* connect response */
+	if (io_wait(io, 5, cause) != 0)
+		return (1);
+	io_read2(io, buf, 5);
+	if (buf[0] != 5) {
+		xasprintf(cause, "bad protocol version: %d", buf[0]);
+		return (1);
+	}
+	switch (buf[1]) {
+	case 0:
+		break;
+	case 1:
+		xasprintf(cause, "%d: server failure", buf[1]);
+		return (1);
+	case 2:
+		xasprintf(cause, "%d: connection not permitted", buf[1]);
+		return (1);
+	case 3:
+		xasprintf(cause, "%d: network unreachable", buf[1]);
+		return (1);
+	case 4:
+		xasprintf(cause, "%d: host unreachable", buf[1]);
+		return (1);
+	case 5:
+		xasprintf(cause, "%d: connection refused", buf[1]);
+		return (1);
+	case 6:
+		xasprintf(cause, "%d: TTL expired", buf[1]);
+		return (1);
+	case 7:
+		xasprintf(cause, "%d: Command not supported", buf[1]);
+		return (1);
+	case 8:
+		xasprintf(cause, "%d: Address type not supported", buf[1]);
+		return (1);
+	default:
+		xasprintf(cause, "%d: unknown failure", buf[1]);
+		return (1);
+	}
+	
+	/* flush the rest */
+	switch (buf[3]) {
+	case 1: /* IPv4 */
+		len = 5;
+		break;
+	case 3: /* IPv6 */
+		len = 17;
+		break;
+	case 4: /* host */
+		len = buf[4] + 2;
+		break;
+	default:
+		xasprintf(cause, "unknown address type: %d", buf[3]);
+		return (1);
+	}
+	if (io_wait(io, len, cause) != 0)
+		return (1);	
+	io_read2(io, buf, len);
+
+	return (0);
+}
+
+int
+httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
+{
 	char		*line;
-	int		 header;
+	int		 port, header;
 
-	sv = getservbyname(srv->port, NULL);
-	if (sv == NULL) {
-		port = strtonum(srv->port, 0, INT_MAX, &errstr);
-		if (errstr != NULL) {
-			endservent();
-			xasprintf(cause, "bad port: %s", srv->port);
-			return (1);
-		}
-	} else
-		port = ntohs(sv->s_port);
-	endservent();
+	pr = NULL; /* XXX */
 
-	io_writeline(io, "CONNECT %s:%ld HTTP/1.1", srv->host, port);
+	if ((port = getport(srv->port)) < 0) {
+		xasprintf(cause, "bad port: %s", srv->port);
+		return (1);
+	}
+
+	io_writeline(io, "CONNECT %s:%d HTTP/1.1", srv->host, port);
 	io_writeline(io, NULL);
 
 	header = 0;
