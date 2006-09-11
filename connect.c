@@ -305,8 +305,8 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 int
 httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 {
-	char		*line;
-	int		 port, header;
+	char	*line;
+	int	 port, header;
 
 	if (pr->user != NULL || pr->pass != NULL) {
 		xasprintf(cause, "HTTP proxy authentication is not supported");
