@@ -3,7 +3,7 @@
 .PHONY: clean
 
 PROG = fdm
-VERSION = 0.1
+VERSION = 0.4
 DATE=$(shell date +%Y%m%d-%H%M)
 
 ## Installation parameters

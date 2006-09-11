@@ -35,7 +35,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
                      tion file syntax and exit.
 
      <B>-u </B><I>user         </I>Specify the default user for delivery. This overrides the
-                     <B>defuser </B>option in the configuration file.
+                     <B>default-user </B>option in the configuration file.
 
      <B>-v              </B>Request verbose logging. This option may be specified
                      multiple times.
@@ -81,21 +81,21 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>fdm.conf </B>- fdm configuration file
 
 <B>DESCRIPTION</B>
-     This manual page describes the fdm(1) configuration file. It defines
+     This manual page describes the fdm(1) configuration file.  It defines
      <I>accounts </I>from which to fetch mail, a number of possible <I>actions </I>to take,
-     and <I>rules </I>connecting a regexp with an action. The file is parsed once
+     and <I>rules </I>connecting a regexp with an action.  The file is parsed once
      from top to bottom, so action and account definitions must appear before
-     they are referenced in a rule. Rules are evaluated from first to last and
-     (unless overridden by the <B>continue </B>keyword) evaluation stops at the first
-     match.
+     they are referenced in a rule.  Rules are evaluated from first to last
+     and (unless overridden by the <B>continue </B>keyword) evaluation stops at the
+     first match.
 
      The file has the following format:
 
      Empty lines and lines beginning with the `#' character are ignored.
 
-     Regexps and strings must be enclosed in double quotes. Special characters
-     in regexps and strings must be escaped. Note that this may mean double-
-     escaping in regexps.
+     Regexps and strings must be enclosed in double quotes.  Special charac-
+     ters in regexps and strings must be escaped.  Note that this may mean
+     double-escaping in regexps.
 
      Possible commands are covered in the following sections.
 
@@ -103,84 +103,102 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      Options are configured using the <B>set </B>command.  It may be followed by the
      following options, one per command:
 
-     <B>maxsize </B><I>size</I>
-             This is used to set the maximum size of a mail. Mails larger than
-             this limit are dropped and, if applicable, not deleted from the
-             server.
+     <B>maximum-size </B><I>size</I>
+             This is used to set the maximum size of a mail.  Mails larger
+             than this limit are dropped and, if applicable, not deleted from
+             the server.
 
              The size may be specified as a plain number in bytes or with a
              suffix of `K' for kilobytes, `M' for megabytes or `G' for giga-
-             bytes. The default is one gigabyte.
+             bytes.  The default is one gigabyte.
 
-     <B>deltoobig</B>
+     <B>delete-oversized</B>
              If this option is specified, fdm(1) attempts to delete messages
-             which exceed <B>maxsize</B>, and continue. If it is not specified, over-
-             size messages are a fatal error and cause fdm(1) to abort.
+             which exceed <B>maximum-size</B>, and continue.  If it is not specified,
+             oversize messages are a fatal error and cause fdm(1) to abort.
 
-     <B>defuser </B><I>user</I>
+     <B>default-user </B><I>user</I>
              This sets the default user to change to before delivering mail,
              if fdm(1) is running as root and no alternative user is specified
-             as part of the action or rule. This option may be override with
-             the <B>-u </B>switch on the command line. A default user must be given
+             as part of the action or rule.  This option may be override with
+             the <B>-u </B>switch on the command line.  A default user must be given
              if running as root.
 
-     <B>locktypes </B><I>locktype ...</I>
-             This specifies the locks to be used for mbox locking. Possible
+     <B>lock-types </B><I>type ...</I>
+             This specifies the locks to be used for mbox locking.  Possible
              types are <I>fcntl</I>, <I>flock</I>, and <I>dotlock</I>.  The <I>flock </I>and <I>fcntl </I>types
-             are mutually exclusive. The default is <I>flock</I>.
+             are mutually exclusive.  The default is <I>flock</I>.
 
      <B>domain </B><I>domain </I>| <B>domains </B>{ <I>domain ... </I>}
              This specifies the domains to be used when looking for users with
-             the <B>from-headers </B>keyword. The default is the computer's hostname.
+             the <B>from-headers </B>keyword.  The default is the computer's host-
+             name.
 
      <B>header </B><I>header </I>| <B>headers </B>{ <I>header ... </I>}
              This allows the headers to be examined when looking for users to
-             be set. The default is to look only at the "From" and "Cc" head-
-             ers. The headers are case-insensitive.
+             be set.  The default is to look only at the "From" and "Cc" head-
+             ers.  The headers are case-insensitive.
+
+     <B>proxy </B><I>url</I>
+             This instructs fdm(1) to proxy all connections through <I>url</I>.  HTTP
+             and SOCKS5 proxies are supported at present (URLs of the form
+             <I>http://host[:port] or socks://[user:pass@]host[:port])</I>.  No au-
+             thentication is supported for HTTP.  This option may be overrid-
+             den by an <I>http_proxy </I>variable in the environment.
 
 <B>ACCOUNTS</B>
      The <B>account </B>command is used to instruct fdm(1) to fetch mail from an ac-
-     count. The syntax is:
+     count.  The syntax is:
 
-     <B>account </B><I>name type </I>[<I>args</I>]
+     <B>account </B><I>name </I>[<B>disabled</B>] <I>type </I>[<I>args</I>]
 
-     The <I>name </I>argument is a string specifying a name for the account. Support-
-     ed account types and arguments are:
+     The <I>name </I>argument is a string specifying a name for the account.  The
+     <B>disabled </B>keyword instructs fdm(1) to ignore this account unless it is ex-
+     plicitly enabled with a <B>-a </B>option on the command line.  Supported account
+     types and arguments are:
 
      <B>stdin   </B>This account type reads mail from <I>stdin</I>, if it is connected to a
-             pipe. This may be used to deliver mail from sendmail(8), see
+             pipe.  This may be used to deliver mail from sendmail(8), see
              fdm(1) for details.
 
      <B>pop3 server </B><I>host </I>[<B>port </B><I>port</I>] <B>user </B><I>user <B></I>pass </B><I>pass</I>
 
      <B>pop3s server </B><I>host </I>[<B>port </B><I>port</I>] <B>user </B><I>user <B></I>pass </B><I>pass</I>
-             These statements define a POP3 or POP3S account. The <I>host</I>, <I>user</I>
-             and <I>pass </I>arguments must be strings. The port option may be either
-             a string which will be looked up in the services(5) database, or
-             a number. If it is omitted, the default port (143 for POP3, 993
-             for POP3S) is used.
+             These statements define a POP3 or POP3S account.  The <I>host</I>, <I>user</I>
+             and <I>pass </I>arguments must be strings.  The port option may be ei-
+             ther a string which will be looked up in the services(5)
+             database, or a number.  If it is omitted, the default port (143
+             for POP3, 993 for POP3S) is used.
+
+     <B>imap server </B><I>host </I>[<B>port </B><I>port</I>] <B>user </B><I>user <B></I>pass </B><I>pass </I>[<B>folder </B><I>name</I>]
+
+     <B>imaps server </B><I>host </I>[<B>port </B><I>port</I>] <B>user </B><I>user <B></I>pass </B><I>pass </I>[<B>folder </B><I>name</I>]
+             These define an IMAP or IMAPS account.  The parameters are as for
+             a POP3 or POP3 account, aside from the additional <B>folder </B>option
+             which allows the folder name to be specified (the default is to
+             fetch from the inbox).
 
 <B>ACTIONS</B>
-     The <B>action </B>command is used to define actions. These may be specified by
-     name in rules (see below) to perform some action on a mail. The syntax
+     The <B>action </B>command is used to define actions.  These may be specified by
+     name in rules (see below) to perform some action on a mail.  The syntax
      is:
 
      <B>action </B><I>name </I>[<I>users</I>] <I>action</I>
 
-     The <I>name </I>is a string defining a name for the action. The optional <I>users</I>
+     The <I>name </I>is a string defining a name for the action.  The optional <I>users</I>
      argument has the following form:
 
      <B>user </B><I>user </I>| <B>users </B>{ <I>user ... </I>} | <B>user from-headers</B>
 
      The first two options specify a user or list of users as which the mail
-     should be delivered. If <B>user from-headers </B>is specified, fdm(1) attempts
+     should be delivered.  If <B>user from-headers </B>is specified, fdm(1) attempts
      to find the users from the mail headers, using the values of the <B>headers</B>
-     and <B>domains </B>options. If no headers are specified, or fdm(1) fails to find
-     any valid users in the headers, the default user (set with <B>set defuser</B>)
-     is used. An action's user setting may be overridden in the matching rule.
-     This keyword has no effect if fdm(1) is run as non-root.
+     and <B>domains </B>options.  If no headers are specified, or fdm(1) fails to
+     find any valid users in the headers, the default user (set with <B>set</B>
+     <B>default-user</B>) is used.  An action's user setting may be overridden in the
+     matching rule.  This keyword has no effect if fdm(1) is run as non-root.
 
-     The possible values for <I>action </I>are listed below. In actions for which a
+     The possible values for <I>action </I>are listed below.  In actions for which a
      <I>command </I>or <I>path </I>is specified, the following substitutions are made before
      it is used: <I>%a </I>is replaced by the account name, <I>%h </I>by the current user's
      home directory, <I>%t </I>by the name of the current action, <I>%u </I>by the current
@@ -206,16 +224,16 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>smtp server </B><I>host </I>[<B>port </B><I>port</I>] [<B>to </B><I>to</I>]
              Connect to an SMTP server and attempt to deliver the mail to it.
              If <I>to </I>is specified, it is passed to the server in the RCPT TO
-             command. If not, the current user and host names are used.
+             command.  If not, the current user and host names are used.
 
      <B>rewrite </B><I>command</I>
-             Pipe the entire mail through <I>command </I>to generate a new mail. The
+             Pipe the entire mail through <I>command </I>to generate a new mail.  The
              modified mail is kept only within the rule the action appears, so
              it will be used only by subsequent actions in the same rule and
-             not by actions in further rules. This type of action does not
+             not by actions in further rules.  This type of action does not
              work when running as root (although the command will be executed
-             the mail will remain unchanged). An example of the <B>rewrite </B>action
-             is:
+             the mail will remain unchanged).  An example of the <B>rewrite </B>ac-
+             tion is:
 
                    action "cat" pipe "cat"
                    action "rewrite" rewrite "sed 's/bob/fred/g'"
@@ -225,7 +243,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
                    match all action "cat"
 
 <B>RULES</B>
-     Rules are specified using the <B>match </B>keyword. It has the following basic
+     Rules are specified using the <B>match </B>keyword.  It has the following basic
      form:
 
      <B>match </B><I>conditions </I>[<I>accounts</I>] [<I>users</I>] <I>actions </I>[<B>continue</B>]
@@ -244,17 +262,18 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      [<B>not</B>] [<B>case</B>] <I>regexp </I>[<B>in headers </B>| <B>in body</B>] [<B>and </B>| <B>or </B><I>...</I>]
              Specifies a list of regexps against which each mail should be
-             matched. The regexp matches may be restricted to either the head-
-             ers or body of the message by specifying either <B>in headers </B>or <B>in</B>
-             <B>body</B>.  If the <B>not </B>keyword is specified, the sense of the regexp
-             match is inverted, so the rule will apply to mails only where the
-             regexp does <I>not </I>match. The <B>case </B>keyword forces the regexp to be
-             matched case-sensitively: the default is case-insensitive match-
-             ing. Multiple regexps may be specified by chaining them with <B>and</B>
-             or <B>or </B>keywords. The regexps are matched from left to right.
+             matched.  The regexp matches may be restricted to either the
+             headers or body of the message by specifying either <B>in headers </B>or
+             <B>in body</B>.  If the <B>not </B>keyword is specified, the sense of the reg-
+             exp match is inverted, so the rule will apply to mails only where
+             the regexp does <I>not </I>match.  The <B>case </B>keyword forces the regexp to
+             be matched case-sensitively: the default is case-insensitive
+             matching.  Multiple regexps may be specified by chaining them
+             with <B>and </B>or <B>or </B>keywords.  The regexps are matched from left to
+             right.
 
      The optional <I>users </I>argument has the same syntax as for an <B>action </B>defini-
-     tion. A rule's user list overrides any users given as part of the ac-
+     tion.  A rule's user list overrides any users given as part of the ac-
      tions.
 
      Both the <I>accounts </I>and <I>actions </I>parts consist either of a single name or a
@@ -266,13 +285,13 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      The <I>accounts </I>list is used to limit rules to matching mail within a set of
      accounts, and the <I>actions </I>list specifies the actions to perform when the
-     rule matches a mail. The account names may include shell glob wildcards
+     rule matches a mail.  The account names may include shell glob wildcards
      to match multiple accounts, as with the <B>-a </B>and <B>-x </B>command line options.
      The actions are performed from left to right in the order they are speci-
      fied in the rule definition.
 
      If the <B>continue </B>keyword is present, evaluation will not stop if this rule
-     is matched. Instead, fdm(1) will continue to match further rules after
+     is matched.  Instead, fdm(1) will continue to match further rules after
      performing any actions for this rule.
 
 <B>FILES</B>
