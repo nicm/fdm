@@ -48,11 +48,11 @@ getproxy(char *url)
 		int		 ssl;
 		char		*port;
 	} *proxyent, proxylist[] = {
-		{ "http://",   PROXY_HTTP,   0, "http" },
-		{ "https://",  PROXY_HTTPS,  1, "https" },
-		{ "socks://",  PROXY_SOCKS5, 0, "socks" },
-		{ "socks://",  PROXY_SOCKS5, 0, "socks" },
-		{ NULL,	       0,	     0, NULL }
+		{ "http://",    PROXY_HTTP,   0, "http" },
+		{ "https://",   PROXY_HTTPS,  1, "https" },
+		{ "socks://",   PROXY_SOCKS5, 0, "socks" },
+		{ "socks5://",  PROXY_SOCKS5, 0, "socks" },
+		{ NULL,	        0,	     0, NULL }
 	};
 
 	/* find proxy */
