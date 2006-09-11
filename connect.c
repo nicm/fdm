@@ -52,7 +52,7 @@ getproxy(char *url)
 		{ "https://",   PROXY_HTTPS,  1, "https" },
 		{ "socks://",   PROXY_SOCKS5, 0, "socks" },
 		{ "socks5://",  PROXY_SOCKS5, 0, "socks" },
-		{ NULL,	        0,	     0, NULL }
+		{ NULL,	        0,	      0, NULL }
 	};
 
 	/* find proxy */
@@ -75,6 +75,7 @@ getproxy(char *url)
 	while (ptr > url && *ptr == '/')
 		*ptr-- = '\0';
 	if (*url == '\0') {
+		xfree(pr->server.port);
 		xfree(pr);
 		return (NULL); 
 	}
@@ -95,6 +96,10 @@ getproxy(char *url)
 		xfree(pr->server.port);
 		*ptr++ = '\0';
 		if (*ptr == '\0') {
+			if (pr->user != NULL)
+				xfree(pr->user);
+			if (pr->pass != NULL)
+				xfree(pr->pass);
 			xfree(pr);
 			return (NULL); 
 		}
@@ -265,10 +270,10 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		xasprintf(cause, "%d: TTL expired", buf[1]);
 		return (1);
 	case 7:
-		xasprintf(cause, "%d: Command not supported", buf[1]);
+		xasprintf(cause, "%d: command not supported", buf[1]);
 		return (1);
 	case 8:
-		xasprintf(cause, "%d: Address type not supported", buf[1]);
+		xasprintf(cause, "%d: address type not supported", buf[1]);
 		return (1);
 	default:
 		xasprintf(cause, "%d: unknown failure", buf[1]);
