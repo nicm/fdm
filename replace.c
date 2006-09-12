@@ -61,9 +61,10 @@ replace(char *src, char *map[REPL_LEN])
 			ch = *++ptr;
 			if (ch == '\0')
 				break;
+			rp = NULL;
 			if (REPL_IDX(ch) != -1)
 				rp = map[REPL_IDX(ch)];
-			if (REPL_IDX(ch) == -1 || rp == NULL) {
+			if (rp == NULL) {
 				ENSURE_SIZE(dst, len, off + 2);
 				dst[off++] = '%';
 				dst[off++] = ch;
