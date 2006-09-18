@@ -106,7 +106,7 @@ install:	all
 		${INSTALLMAN} ${PROG}.conf.5 ${PREFIX}/man/man5/
 
 uninstall:
-		rm -f ${PREFIX}/sbin/${PROG}
+		rm -f ${PREFIX}/bin/${PROG}
 		rm -f ${PREFIX}/man/man1/${PROG}.1
 		rm -f ${PREFIX}/man/man5/${PROG}.conf.5
 
