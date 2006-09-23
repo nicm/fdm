@@ -186,6 +186,7 @@ xcalloc(size_t nmemb, size_t size)
                 fatalx("xcalloc: nmemb * size > SIZE_MAX");
         if ((ptr = calloc(nmemb, size)) == NULL)
 		fatal("xcalloc");
+
 #ifdef DEBUG
 	xmalloc_new(ptr, nmemb * size);
 #endif

@@ -76,7 +76,7 @@ getproxy(char *url)
 	pr->user = pr->pass = NULL;
 	url += strlen(proxyent->proto);
 
-	/* strip trailing /s */
+	/* strip trailing '/' characters */
 	ptr = url + strlen(url) - 1;
 	while (ptr > url && *ptr == '/')
 		*ptr-- = '\0';
