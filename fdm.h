@@ -91,7 +91,7 @@ extern char	*__progname;
 /* Ensure buffer size. */
 #define ENSURE_SIZE(buf, len, req) do {					\
 	while ((len) <= (req)) {					\
-		(buf) = xrealloc((buf), 2, (len));			\
+		(buf) = xrealloc(buf, 2, len);				\
 		(len) *= 2;						\
 	}								\
 } while (0)
@@ -398,14 +398,14 @@ struct io {
 	size_t		 wspace;	/* total size of buffer */
 	size_t		 wsize;		/* size of data currently in buffer */
 
-	const	 char	*eol;
+	const char	*eol;
 };
 
 /* Fetch stdin data. */
 struct stdin_data {
-	struct io		*io;
+	struct io	*io;
 
-	int			 complete;
+	int		 complete;
 };
 
 /* Fetch pop3 states. */
@@ -558,8 +558,8 @@ int			 parent(int, pid_t);
 /* connect.c */
 struct proxy 		*getproxy(char *);
 struct io 		*connectproxy(struct server *, struct proxy *,
-			     const char [2], char **);
-struct io		*connectio(struct server *, const char [2], char **);
+			     const char *, char **);
+struct io		*connectio(struct server *, const char *, char **);
 
 /* mail.c */
 void			 free_mail(struct mail *);
@@ -586,7 +586,7 @@ char			*replaceinfo(char *, struct account *, struct action *);
 char 			*replace(char *, char *[52]);
 
 /* io.c */
-struct io		*io_create(int, SSL *, const char [2]);
+struct io		*io_create(int, SSL *, const char *);
 void			 io_free(struct io *);
 void			 io_close(struct io *);
 int			 io_update(struct io *, char **);

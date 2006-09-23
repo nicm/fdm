@@ -2,4 +2,4 @@
 - SMTP SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
-- "rewrite-all" "rewrite-file" or "rewrite-something" action to rewrite via a file and work always (may want to make deliver return codes #define'd a la fetch)
+- "rewrite-all" "rewrite-file" or "rewrite-something" action to rewrite via a file and work always
