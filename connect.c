@@ -41,7 +41,7 @@ struct proxy *
 getproxy(char *url)
 {
 	struct proxy		*pr;
-	char			*ptr, *end;
+	char			*ptr, *end, *saved;
 	struct {
 		char		*proto;
 		enum proxytype	 type;
@@ -55,13 +55,18 @@ getproxy(char *url)
 		{ NULL,	        0,	      0, NULL }
 	};
 
+	/* copy the url so we can mangle it */
+	saved = url = xstrdup(url);
+	
 	/* find proxy */
 	for (proxyent = proxylist; proxyent->proto != NULL; proxyent++) {
 		if (strncmp(url, proxyent->proto, strlen(proxyent->proto)) == 0)
 			break;
 	}
-	if (proxyent->proto == NULL)
+	if (proxyent->proto == NULL) {
+		xfree(saved);
 		return (NULL);
+	}
 
 	pr = xmalloc(sizeof *pr);
 	pr->type = proxyent->type;
@@ -77,6 +82,7 @@ getproxy(char *url)
 	if (*url == '\0') {
 		xfree(pr->server.port);
 		xfree(pr);
+		xfree(saved);
 		return (NULL); 
 	}
 
@@ -86,10 +92,14 @@ getproxy(char *url)
 		if (ptr != NULL && ptr < end) {
 			*ptr++ = '\0';
 			pr->user = strdup(url);
+			*end++ = '\0';
+			pr->pass = strdup(ptr);
+			url = end;
+		} else {
+			xfree(pr);
+			xfree(saved);
+			return (NULL); 			
 		}
-		*end++ = '\0';
-		pr->pass = strdup(ptr);
-		url = end;
 	}
 	
 	if ((ptr = strchr(url, ':')) != NULL) {
@@ -101,13 +111,21 @@ getproxy(char *url)
 			if (pr->pass != NULL)
 				xfree(pr->pass);
 			xfree(pr);
+			xfree(saved);
 			return (NULL); 
 		}
 		pr->server.port = xstrdup(ptr);
 	}
 
+	if (*url == '\0') {
+		xfree(pr->server.port);
+		xfree(pr);
+		xfree(saved);
+		return (NULL); 
+	}
 	pr->server.host = xstrdup(url);
-
+	
+	xfree(saved);
 	return (pr);
 }
 

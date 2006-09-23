@@ -279,12 +279,10 @@ main(int argc, char **argv)
 		}
 
 		/* getenv's return buffer is read-only */
-		proxy = xstrdup(proxy);
 		if ((conf.proxy = getproxy(proxy)) == NULL) {
 			log_warnx("invalid proxy: %s", proxy);
 			exit(1);
 		}
-		xfree(proxy);
 	}
 
 	/* print proxy info */
