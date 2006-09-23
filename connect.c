@@ -224,10 +224,18 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		ptr = buf;
 		*ptr++ = 5;
 		len = strlen(pr->user);
+		if (len > 255) {
+			xasprintf(cause, "user too long");
+			return (1);
+		}
 		*ptr++ = len;
 		memcpy(ptr, pr->user, len);
 		ptr += len;
 		len = strlen(pr->pass);
+		if (len > 255) {
+			xasprintf(cause, "pass too long");
+			return (1);
+		}
 		*ptr++ = len;
 		memcpy(ptr, pr->pass, len);
 		ptr += len;
