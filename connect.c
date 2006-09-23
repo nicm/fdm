@@ -172,7 +172,7 @@ int
 socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 {
 	int	port, auth;
-	char	buf[32], *ptr;
+	char	buf[512], *ptr;
 	size_t	len;
 
 	if ((port = getport(srv->port)) < 0) {
@@ -233,6 +233,10 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	*ptr++ = 0; /* reserved */
 	*ptr++ = 3; /* 3 = domain name */
 	len = strlen(srv->host);
+	if (len > 255) {
+		xasprintf(cause, "host too long");
+		return (1);
+	}
 	*ptr++ = len;
 	memcpy(ptr, srv->host, len);
 	ptr += len;
