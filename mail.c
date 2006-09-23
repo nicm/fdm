@@ -192,7 +192,7 @@ find_users(struct mail *m)
 	struct users	*users;
 	u_int	 	 i, j;
 	char		*hdr, *ptr, *dptr, *dom;
-	size_t	 	 len, alen, dlen;
+	size_t	 	 len, alen;
 
 	users = xmalloc(sizeof *users);
 	ARRAY_INIT(users);
@@ -221,7 +221,6 @@ find_users(struct mail *m)
 				break;
 
 			dptr = ((char *) memchr(ptr, '@', alen)) + 1;
-			dlen = alen - (dptr - ptr);
 			for (j = 0; j < ARRAY_LENGTH(conf.domains); j++) {
 				dom = ARRAY_ITEM(conf.domains, j, char *);
 				if (fnmatch(dom, dptr, FNM_CASEFOLD) != 0)
