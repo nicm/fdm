@@ -1,4 +1,4 @@
-/* $Id$ */
+#/* $Id$ */
 
 /*
  * Copyright (c) 2006 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -423,16 +423,16 @@ enum pop3_state {
 
 /* Fetch pop3 data. */
 struct pop3_data {
-	char			*user;
-	char			*pass;
+	char		*user;
+	char		*pass;
 
-	struct server		 server;
+	struct server	 server;
 
-	enum pop3_state	 	 state;
-	u_int		 	 cur;
-	u_int		 	 num;
+	enum pop3_state	 state;
+	u_int		 cur;
+	u_int		 num;
 
-	struct io		*io;
+	struct io	*io;
 };
 
 /* Fetch pop3 macros. */
@@ -485,8 +485,8 @@ enum smtp_state {
 
 /* Deliver smtp data. */
 struct smtp_data {
-	struct server		 server;
-	char			*to;
+	struct server	 server;
+	char		*to;
 };
 
 /* fetch-stdin.c */
