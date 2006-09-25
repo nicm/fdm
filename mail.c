@@ -240,6 +240,7 @@ find_users(struct mail *m)
 	}
 
 	if (ARRAY_EMPTY(users)) {
+		ARRAY_FREE(users);
 		xfree(users);
 		return (NULL);
 	}
