@@ -137,14 +137,18 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 			/* fork and deliver */
 			uid = ARRAY_ITEM(users, j, uid_t);
 			if (deliverfork(uid, a, m, t) != DELIVER_SUCCESS) {
-				if (find)
+				if (find) {
+					ARRAY_FREE(users);
 					xfree(users);
+				}
 				return (1);
 			}
 		}
 
-		if (find)
+		if (find) {
+			ARRAY_FREE(users);
 			xfree(users);
+		}
 	}
 
 	return (0);
