@@ -71,7 +71,6 @@ parent(int fd, pid_t pid)
 		case MSG_EXIT:
 			break;
 		}
-
 	} while (msg.type != MSG_EXIT);
 
 	io_free(io);
