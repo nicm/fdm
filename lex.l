@@ -44,7 +44,7 @@ extern __dead printflike1 void	yyerror(const char *, ...);
 
         yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
 	if (errstr != NULL)
-		yyerror("illegal number");
+		yyerror("number is %s", errstr);
 
         return (NUMBER);
 }
@@ -58,25 +58,25 @@ extern __dead printflike1 void	yyerror(const char *, ...);
 
         yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
 	if (errstr != NULL)
-		yyerror("illegal number");
+		yyerror("size is %s", errstr);
 
         switch (ch) {
         case 'k':
 	case 'K':
 		if (yylval.number > LLONG_MAX / 1024)
-			yyerror("size too large");
+			yyerror("size is too large");
                 yylval.number *= 1024;
                 break;
         case 'm':
 	case 'M':
 		if (yylval.number > LLONG_MAX / (1024 * 1024))
-			yyerror("size too large");
+			yyerror("size is too large");
                 yylval.number *= 1024 * 1024;
                 break;
         case 'g':
 	case 'G':
 		if (yylval.number > LLONG_MAX / (1024 * 1024 * 1024))
-			yyerror("size too large");
+			yyerror("size is too large");
                 yylval.number *= 1024 * 1024 * 1024;
                 break;
         }
