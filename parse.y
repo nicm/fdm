@@ -93,7 +93,6 @@ find_action(char *name)
 }
 %}
 
-%token SYMOPEN SYMCLOSE
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
@@ -234,7 +233,7 @@ domains: TOKDOMAIN STRING
 			 *cp = tolower((int) *cp);
 		 ARRAY_ADD($$, $2, char *);
 	 }
-       | TOKDOMAINS SYMOPEN domainslist SYMCLOSE
+       | TOKDOMAINS '{' domainslist '}'
 	 {
 		 $$ = $3;
 	 }
@@ -278,7 +277,7 @@ headers: TOKHEADER STRING
 			 *cp = tolower((int) *cp);
 		 ARRAY_ADD($$, $2, char *);
 	 }
-       | TOKHEADERS SYMOPEN headerslist SYMCLOSE
+       | TOKHEADERS '{' headerslist '}'
 	 {
 		 $$ = $3;
 	 }
@@ -382,7 +381,7 @@ users: /* empty */
 	       ARRAY_ADD($$.users, $2, uid_t);
 	       $$.find_uid = 0;
        }
-     | TOKUSERS SYMOPEN userslist SYMCLOSE
+     | TOKUSERS '{' userslist '}'
        {
 	       $$ = $3;
 	       $$.find_uid = 0;
@@ -576,7 +575,7 @@ accounts: /* empty */
 			  yyerror("no matching accounts: %s", $2);
 		  ARRAY_ADD($$, $2, char *);
 	  }
-	| TOKACCOUNTS SYMOPEN accountslist SYMCLOSE
+	| TOKACCOUNTS '{' accountslist '}'
 	  {
 		  $$ = $3;
 	  }	
@@ -617,7 +616,7 @@ actions: TOKACTION STRING
 		 ARRAY_ADD($$, t, struct action *);
 		 free($2);
 	 }
-       | TOKACTIONS SYMOPEN actionslist SYMCLOSE
+       | TOKACTIONS '{' actionslist '}'
          {
 		 $$ = $3;
 	 }
