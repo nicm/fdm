@@ -39,7 +39,7 @@
 .Sh DESCRIPTION
 The
 .Nm
-program fetches mail from a POP3 server or from 
+program fetches mail from a POP3 server or from
 .Em stdin
 and delivers it based on a ruleset in the configuration file.
 .Pp
@@ -51,8 +51,8 @@ Process only the specified account. This option may appear multiple times. The a
 .It Fl f Ar conffile
 Specify the configuration file location. Default is
 .Pa ~/fdm.conf ,
-or 
-.Pa /etc/fdm.conf 
+or
+.Pa /etc/fdm.conf
 if it doesn't exist.
 .Pp
 .It Fl l
@@ -80,29 +80,29 @@ options may be specified. As with
 shell glob characters may be used.
 .Pp
 .It Ar fetch | poll
-The 
-.Ar fetch 
+The
+.Ar fetch
 command instructs
 .Nm
-to fetch and deliver messages. The 
+to fetch and deliver messages. The
 .Ar poll
 command polls the accounts in the configuration file and reports a message count for each.
 .Pp
 .El
 .Sh LOCAL MAIL WITH SENDMAIL
 .Nm
-can be used to deliver local mail from 
+can be used to deliver local mail from
 .Xr sendmail 8
-by making use of .forward files. An account fetching mail from 
+by making use of .forward files. An account fetching mail from
 .Em stdin
-should be specified in the user's 
+should be specified in the user's
 .Pa ~/.fdm.conf
 file,
 .Bd -ragged -offset indent
 account "stdinacct" stdin
 .Ed
 .Pp
-and the user's 
+and the user's
 .Pa ~/.forward
 file should be set to contain something like (including quotation marks):
 .Bd -ragged -offset indent
@@ -112,7 +112,7 @@ file should be set to contain something like (including quotation marks):
 .Xr sendmail 8
 will then invoke
 .Nm
-to deliver mail and 
+to deliver mail and
 .Nm
 will pass it through any filtering rules as normal.
 .Sh FILES
@@ -124,9 +124,9 @@ configuration file
 .It Pa /etc/fdm.conf
 default system-wide configuration file
 .El
+.Sh SEE ALSO
+.Xr mail 1 ,
+.Xr fdm.conf 5 ,
+.Xr sendmail 8
 .Sh AUTHORS
 .An Nicholas Marriott Aq nicm@users.sourceforge.net
-.Sh SEE ALSO
-.Xr fdm.conf 5 ,
-.Xr mail 1 ,
-.Xr sendmail 8

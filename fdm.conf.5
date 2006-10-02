@@ -76,7 +76,7 @@ If it is not specified, oversize messages are a fatal error and cause
 .Xr fdm 1
 to abort.
 .It Ic default-user Ar user
-This sets the default user to change to before delivering mail, if 
+This sets the default user to change to before delivering mail, if
 .Xr fdm 1
 is running as root and no alternative user is specified as part of the action or rule.
 This option may be override with the
@@ -90,7 +90,7 @@ Possible types are
 .Em flock ,
 and
 .Em dotlock .
-The 
+The
 .Em flock
 and
 .Em fcntl
@@ -135,8 +135,8 @@ command is used to instruct
 to fetch mail from an account.
 The syntax is:
 .Bl -tag -width Ds
-.It Xo Ic account Ar name Op Ic disabled 
-.Ar type Op Ar args 
+.It Xo Ic account Ar name Op Ic disabled
+.Ar type Op Ar args
 .Xc
 .El
 .Pp
@@ -147,14 +147,14 @@ The
 .Ic disabled
 keyword instructs
 .Xr fdm 1
-to ignore this account unless it is explicitly enabled with a 
+to ignore this account unless it is explicitly enabled with a
 .Fl a
 option on the command line.
 Supported account types and arguments are:
 .Pp
 .Bl -tag -width Ds
-.It Ic stdin 
-This account type reads mail from 
+.It Ic stdin
+This account type reads mail from
 .Em stdin ,
 if it is connected to a pipe.
 This may be used to deliver mail from
@@ -166,7 +166,7 @@ for details.
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
 .Xc
-.It Xo Ic pop3s Ic server Ar host 
+.It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
 .Xc
@@ -174,7 +174,7 @@ These statements define a POP3 or POP3S account.
 The
 .Ar host ,
 .Ar user
-and 
+and
 .Ar pass
 arguments must be strings.
 The port option may be either a string which will be looked up in the
@@ -186,7 +186,7 @@ If it is omitted, the default port (143 for POP3, 993 for POP3S) is used.
 .Ic user Ar user Ic pass Ar pass
 .Op Ic folder Ar name
 .Xc
-.It Xo Ic imaps Ic server Ar host 
+.It Xo Ic imaps Ic server Ar host
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
 .Op Ic folder Ar name
@@ -215,8 +215,8 @@ The optional
 .Ar users
 argument has the following form:
 .Bl -tag -width Ds
-.It Xo Ic user Ar user | Ic users 
-.Li { 
+.It Xo Ic user Ar user | Ic users
+.Li {
 .Ar user ...
 .Li } |
 .Ic user Ic from-headers
@@ -224,26 +224,26 @@ argument has the following form:
 .El
 .Pp
 The first two options specify a user or list of users as which the mail should be delivered.
-If 
+If
 .Ic user Ic from-headers
 is specified,
 .Xr fdm 1
 attempts to find the users from the mail headers, using the values of the
 .Ic headers
-and 
+and
 .Ic domains
 options.
-If no headers are specified, or 
+If no headers are specified, or
 .Xr fdm 1
 fails to find any valid users in the headers, the default user (set with
 .Ic set Ic default-user )
 is used.
 An action's user setting may be overridden in the matching rule.
-This keyword has no effect if 
+This keyword has no effect if
 .Xr fdm 1
 is run as non-root.
 .Pp
-The possible values for 
+The possible values for
 .Ar action
 are listed below.
 In actions for which a
@@ -258,7 +258,7 @@ by the current user's home directory,
 .Em %t
 by the name of the current action,
 .Em %u
-by the current user's login name and 
+by the current user's login name and
 .Em %n
 by the UID.
 .Bl -tag -width Ds
@@ -271,7 +271,7 @@ Save the mail to the maildir specified by
 .Ar path .
 .It Xo Ic mbox Ar path
 .Xc
-Append the mail to the mbox at 
+Append the mail to the mbox at
 .Ar path .
 .It Xo Ic pipe Ar command
 .Xc
@@ -279,7 +279,7 @@ Pipe the entire mail to
 .Ar command .
 .It Xo Ic write Ar path
 .Xc
-Write the mail to 
+Write the mail to
 .Ar path .
 .It Xo Ic append Ar path
 .Xc
@@ -290,13 +290,13 @@ Append the mail to
 .Op Ic to Ar to
 .Xc
 Connect to an SMTP server and attempt to deliver the mail to it.
-If 
+If
 .Ar to
 is specified, it is passed to the server in the RCPT TO command.
 If not, the current user and host names are used.
 .It Xo Ic rewrite Ar command
 .Xc
-Pipe the entire mail through 
+Pipe the entire mail through
 .Ar command
 to generate a new mail.
 The modified mail is kept only within the rule the action appears, so it will be used only by subsequent actions in the same rule and not by actions in further rules.
@@ -314,21 +314,21 @@ match all action "cat"
 .Ed
 .El
 .Sh RULES
-Rules are specified using the 
+Rules are specified using the
 .Ic match
 keyword.
 It has the following basic form:
 .Bl -tag -width Ds
-.It Xo Ic match 
+.It Xo Ic match
 .Ar conditions
-.Op Ar accounts 
+.Op Ar accounts
 .Op Ar users
 .Ar actions
 .Op Ic continue
 .Xc
 .El
 .Pp
-The 
+The
 .Ar condition
 argument may be one of:
 .Bl -tag -width Ds
@@ -342,8 +342,8 @@ The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
 .It Xo Op Ic not
-.Op Ic case 
-.Ar regexp 
+.Op Ic case
+.Ar regexp
 .Op Ic in Ic headers | Ic in body
 .Op Ic and | Ic or Ar ...
 .Xc
@@ -354,13 +354,13 @@ or
 .Ic in body .
 If the
 .Ic not
-keyword is specified, the sense of the regexp match is inverted, so the rule will apply to mails only where the regexp does 
+keyword is specified, the sense of the regexp match is inverted, so the rule will apply to mails only where the regexp does
 .Em not
 match.
 The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
-Multiple regexps may be specified by chaining them with 
+Multiple regexps may be specified by chaining them with
 .Ic and
 or
 .Ic or
@@ -377,18 +377,18 @@ A rule's user list overrides any users given as part of the actions.
 .Pp
 Both the
 .Ar accounts
-and 
+and
 .Ar actions
 parts consist either of a single name or a list of names enclosed in braces:
 .Bl -tag -width Ds
-.It Xo Ic account Ar name | Ic accounts 
+.It Xo Ic account Ar name | Ic accounts
 .Li {
 .Ar name ...
 .Li }
 .Xc
 .El
 .Bl -tag -width Ds
-.It Xo Ic action Ar name | Ic actions 
+.It Xo Ic action Ar name | Ic actions
 .Li {
 .Ar name ...
 .Li }
@@ -403,7 +403,7 @@ list specifies the actions to perform when the rule matches a mail.
 The account names may include shell glob wildcards to match multiple accounts, as with
 the
 .Fl a
-and 
+and
 .Fl x
 command line options.
 The actions are performed from left to right in the order they are specified in the rule definition.
@@ -411,7 +411,7 @@ The actions are performed from left to right in the order they are specified in 
 If the
 .Ic continue
 keyword is present, evaluation will not stop if this rule is matched.
-Instead, 
+Instead,
 .Xr fdm 1
 will continue to match further rules after performing any actions for this rule.
 .Sh FILES
@@ -421,9 +421,8 @@ default
 .Xr fdm 1
 configuration file
 .El
-.Sh AUTHORS
-.An Nicholas Marriott Aq nicm@users.sourceforge.net
 .Sh SEE ALSO
 .Xr fdm 1 ,
 .Xr re_format 7
-.Rs
+.Sh AUTHORS
+.An Nicholas Marriott Aq nicm@users.sourceforge.net
