@@ -64,8 +64,13 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 	state = SMTP_CONNECTING;
 	line = cause = NULL;
 	for (;;) {
-		if (io_poll(io, &cause) != 1)
+		switch (io_poll(io, &cause)) {
+		case -1:
 			goto error;
+		case 0:
+			cause = xstrdup("connection unexpectedly closed");
+			goto error;
+		}
 
 		done = 0;
 		while (!done) {

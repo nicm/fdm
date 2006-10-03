@@ -120,8 +120,13 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 	flushing = 0;
 	line = cause = NULL;
 	do {
-		if (io_poll(data->io, &cause) != 1)
+		switch (io_poll(data->io, &cause)) {
+		case -1:
 			goto error;
+		case 0:
+			cause = xstrdup("connection unexpectedly closed");
+			goto error;
+		}
 		
 		res = -1;
 		do {
