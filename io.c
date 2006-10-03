@@ -143,6 +143,8 @@ io_poll(struct io *io, char **cause)
 
 	error = poll(&pfd, 1, INFTIM);
 	if (error == 0 || error == -1) {
+		if (errno == EINTR)
+			return (1);
 		if (cause != NULL)
 			xasprintf(cause, "io: poll: %s", strerror(errno));
 		return (-1);

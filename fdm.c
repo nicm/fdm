@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <grp.h>
 #include <limits.h>
 #include <pwd.h>
@@ -140,7 +141,7 @@ dropto(uid_t uid, char *path)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-lnv] [-f conffile] [-u user] "
+	printf("usage: %s [-lmnv] [-f conffile] [-u user] "
 	    "[-a name] [-x name] [fetch|poll]\n", __progname);
         exit(1);
 }
@@ -148,12 +149,12 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, fds[2];
+        int		 opt, fds[2], fd, rc;
 	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
 	const char	*errstr;
 	char		 tmp[512];
-	char		*proxy = NULL, *user = NULL;
+	char		*proxy = NULL, *user = NULL, *lock = NULL;
 	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
@@ -171,7 +172,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);  
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:f:lnu:vx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:f:mlnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, char *);
@@ -179,6 +180,9 @@ main(int argc, char **argv)
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
                         break;
+		case 'm':
+			conf.allow_many = 1;
+			break;
 		case 'l':
 			conf.syslog = 1;
 			break;
@@ -362,6 +366,23 @@ main(int argc, char **argv)
 		}			
 	}
 
+	/* check lock file */
+	if (!conf.allow_many) {
+		if (geteuid() == 0)
+			lock = xstrdup(SYSLOCKFILE);
+		else
+			xasprintf(&lock, "%s/%s", conf.info.home, LOCKFILE);
+		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		if (fd == -1 && errno == EEXIST) {
+			log_warnx("already running (%s exists)", lock);
+			exit(1);
+		} else if (fd == -1) {
+			log_warn("%s: open: ", lock);
+			exit(1);
+		}
+		close(fd);
+	}
+
 #ifdef DEBUG
 	xmalloc_clear();
 #endif
@@ -379,6 +400,9 @@ main(int argc, char **argv)
 		_exit(child(fds[1], cmd));
 	default:
 		close(fds[1]);
-		exit(parent(fds[0], pid));
+		rc = parent(fds[0], pid);
+		if (lock != NULL)
+			unlink(lock);
+		exit(rc);
 	}
 }

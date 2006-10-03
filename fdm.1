@@ -22,7 +22,7 @@
 .Nd "fetch and deliver mail"
 .Sh SYNOPSIS
 .Nm fdm
-.Op Fl lnv
+.Op Fl lmnv
 .Bk -words
 .Op Fl f Ar conffile
 .Ek
@@ -61,6 +61,9 @@ Log using
 rather than to
 .Em stderr .
 .Pp
+.It Fl m
+Ignore the lock file and run regardless of other instances of
+.Nm .
 .It Fl n
 Do not process any accounts, just verify the configuration file syntax and exit.
 .Pp
@@ -116,13 +119,17 @@ to deliver mail and
 .Nm
 will pass it through any filtering rules as normal.
 .Sh FILES
-.Bl -tag -width "~/.fdm.confXXX" -compact
+.Bl -tag -width "/var/db/fdm.lockXXX" -compact
 .It Pa ~/.fdm.conf
 default
 .Nm
 configuration file
 .It Pa /etc/fdm.conf
 default system-wide configuration file
+.It Pa ~/.fdm.lock
+default lock file
+.It Pa /var/db/fdm.lock
+lock file for root user
 .El
 .Sh SEE ALSO
 .Xr mail 1 ,

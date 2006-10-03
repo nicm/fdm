@@ -75,6 +75,10 @@ and continue.
 If it is not specified, oversize messages are a fatal error and cause
 .Xr fdm 1
 to abort.
+.It Ic allow-multiple
+If this option is specified,
+.Xr fdm 1
+does not attempt to create a lock file and allows multiple instances to run simultaneously.
 .It Ic default-user Ar user
 This sets the default user to change to before delivering mail, if
 .Xr fdm 1
@@ -415,11 +419,17 @@ Instead,
 .Xr fdm 1
 will continue to match further rules after performing any actions for this rule.
 .Sh FILES
-.Bl -tag -width "~/.fdm.confXXX" -compact
+.Bl -tag -width "/var/db/fdm.lockXXX" -compact
 .It Pa ~/.fdm.conf
 default
-.Xr fdm 1
+.Nm
 configuration file
+.It Pa /etc/fdm.conf
+default system-wide configuration file
+.It Pa ~/.fdm.lock
+default lock file
+.It Pa /var/db/fdm.lock
+lock file for root user
 .El
 .Sh SEE ALSO
 .Xr fdm 1 ,

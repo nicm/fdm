@@ -129,6 +129,7 @@ accounts return (TOKACCOUNTS);
 action return (TOKACTION);
 actions return (TOKACTIONS);
 all return (TOKALL);
+allow-multiple return (TOKALLOWMANY);
 and return (TOKAND);
 append return (ACTAPPEND);
 body return (TOKBODY);

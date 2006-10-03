@@ -31,6 +31,8 @@
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
 #define SYSCONFFILE	"/etc/fdm.conf"
+#define LOCKFILE	".fdm.lock"
+#define SYSLOCKFILE	"/var/run/fdm.lock"
 #define MAXMAILSIZE	INT_MAX
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
@@ -352,6 +354,7 @@ struct conf {
 
 	char			*conf_file;
 	int			 check_only;
+	int			 allow_many;
 
 	size_t			 max_size;
 	int		         del_big;

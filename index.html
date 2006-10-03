@@ -13,7 +13,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      <B>fdm </B>- fetch and deliver mail
 
 <B>SYNOPSIS</B>
-     <B>fdm </B>[<B>-lnv</B>] [<B>-f </B><I>conffile</I>] [<B>-u </B><I>user</I>] [<B>-a </B><I>account</I>] [<B>-x </B><I>account</I>] [<I>fetch </I>|
+     <B>fdm </B>[<B>-lmnv</B>] [<B>-f </B><I>conffile</I>] [<B>-u </B><I>user</I>] [<B>-a </B><I>account</I>] [<B>-x </B><I>account</I>] [<I>fetch </I>|
          <I>poll</I>]
 
 <B>DESCRIPTION</B>
@@ -30,6 +30,9 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
                      <I>~/fdm.conf</I>, or <I>/etc/fdm.conf </I>if it doesn't exist.
 
      <B>-l              </B>Log using syslog(3) rather than to <I>stderr</I>.
+
+     <B>-m              </B>Ignore the lock file and run regardless of other in-
+                     stances of <B>fdm</B>.
 
      <B>-n              </B>Do not process any accounts, just verify the configura-
                      tion file syntax and exit.
@@ -63,16 +66,18 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      through any filtering rules as normal.
 
 <B>FILES</B>
-     ~/.fdm.conf     default <B>fdm </B>configuration file
-     /etc/fdm.conf   default system-wide configuration file
+     ~/.fdm.conf          default <B>fdm </B>configuration file
+     /etc/fdm.conf        default system-wide configuration file
+     ~/.fdm.lock          default lock file
+     /var/db/fdm.lock     lock file for root user
+
+<B>SEE ALSO</B>
+     mail(1), fdm.conf(5), sendmail(8)
 
 <B>AUTHORS</B>
      Nicholas Marriott &lt;nicm@users.sourceforge.net&gt;
 
-<B>SEE ALSO</B>
-     mail(1), sendmail(8)
-
-OpenBSD 4.0                     August 14, 2006                              1
+OpenBSD 4.0                     August 14, 2006                              2
 </PRE>
 <PRE>
 FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
@@ -116,6 +121,10 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              If this option is specified, fdm(1) attempts to delete messages
              which exceed <B>maximum-size</B>, and continue.  If it is not specified,
              oversize messages are a fatal error and cause fdm(1) to abort.
+
+     <B>allow-multiple</B>
+             If this option is specified, fdm(1) does not attempt to create a
+             lock file and allows multiple instances to run simultaneously.
 
      <B>default-user </B><I>user</I>
              This sets the default user to change to before delivering mail,
@@ -295,13 +304,16 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      performing any actions for this rule.
 
 <B>FILES</B>
-     ~/.fdm.conf     default fdm(1) configuration file
-
-<B>AUTHORS</B>
-     Nicholas Marriott &lt;nicm@users.sourceforge.net&gt;
+     ~/.fdm.conf          default <B>fdm.conf </B>configuration file
+     /etc/fdm.conf        default system-wide configuration file
+     ~/.fdm.lock          default lock file
+     /var/db/fdm.lock     lock file for root user
 
 <B>SEE ALSO</B>
      fdm(1), re_format(7)
+
+<B>AUTHORS</B>
+     Nicholas Marriott &lt;nicm@users.sourceforge.net&gt;
 
 OpenBSD 4.0                     August 21, 2006                              4
 </PRE>
