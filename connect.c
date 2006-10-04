@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h> 
+#include <sys/socket.h>
 
 #include <errno.h>
 #include <limits.h>
@@ -57,7 +57,7 @@ getproxy(const char *xurl)
 
 	/* copy the url so we can mangle it */
 	saved = url = xstrdup(xurl);
-	
+
 	/* find proxy */
 	for (proxyent = proxylist; proxyent->proto != NULL; proxyent++) {
 		if (strncmp(url, proxyent->proto, strlen(proxyent->proto)) == 0)
@@ -84,7 +84,7 @@ getproxy(const char *xurl)
 		xfree(pr->server.port);
 		xfree(pr);
 		xfree(saved);
-		return (NULL); 
+		return (NULL);
 	}
 
 	pr->user = pr->pass = NULL;
@@ -100,10 +100,10 @@ getproxy(const char *xurl)
 			xfree(pr->server.port);
 			xfree(pr);
 			xfree(saved);
-			return (NULL); 			
+			return (NULL);
 		}
 	}
-	
+
 	if ((ptr = strchr(url, ':')) != NULL) {
 		xfree(pr->server.port);
 		*ptr++ = '\0';
@@ -114,7 +114,7 @@ getproxy(const char *xurl)
 				xfree(pr->pass);
 			xfree(pr);
 			xfree(saved);
-			return (NULL); 
+			return (NULL);
 		}
 		pr->server.port = xstrdup(ptr);
 	}
@@ -123,16 +123,16 @@ getproxy(const char *xurl)
 		xfree(pr->server.port);
 		xfree(pr);
 		xfree(saved);
-		return (NULL); 
+		return (NULL);
 	}
 	pr->server.host = xstrdup(url);
-	
+
 	xfree(saved);
 	return (pr);
 }
 
 struct io *
-connectproxy(struct server *srv, struct proxy *pr, const char *eol, 
+connectproxy(struct server *srv, struct proxy *pr, const char *eol,
     char **cause)
 {
 	struct io	*io;
@@ -198,7 +198,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	if ((port = getport(srv->port)) < 0) {
 		xasprintf(cause, "bad port: %s", srv->port);
 		return (1);
-	}	
+	}
 
 	/* method selection */
 	auth = pr->user != NULL && pr->pass != NULL;
@@ -311,7 +311,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		xasprintf(cause, "%d: unknown failure", buf[1]);
 		return (1);
 	}
-	
+
 	/* flush the rest */
 	switch (buf[3]) {
 	case 1: /* IPv4 */
@@ -328,7 +328,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		return (1);
 	}
 	if (io_wait(io, len, cause) != 0)
-		return (1);	
+		return (1);
 	io_read2(io, buf, len);
 
 	return (0);
@@ -357,14 +357,14 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	for (;;) {
 		if (io_poll(io, cause) != 1)
 			return (1);
-		
+
 		for (;;) {
 			line = io_readline(io);
 			if (line == NULL)
 				break;
 
 			if (header == 0) {
-				if (strlen(line) < 12 || 
+				if (strlen(line) < 12 ||
 				    strncmp(line, "HTTP/", 5) != 0 ||
 				    strncmp(line + 8, " 200", 4) != 0) {
 					xfree(line);
@@ -429,8 +429,8 @@ connectio(struct server *srv, const char *eol, char **cause)
 		return (io_create(fd, NULL, eol));
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);	
-	
+	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+
 	ssl = SSL_new(ctx);
 	if (ssl == NULL) {
 		close(fd);
@@ -450,7 +450,7 @@ connectio(struct server *srv, const char *eol, char **cause)
 		n = SSL_get_error(ssl, n);
 		xasprintf(cause, "SSL_connect: %d: %s", n, SSL_err());
 		return (NULL);
-	}		
+	}
 
 	return (io_create(fd, ssl, eol));
 }

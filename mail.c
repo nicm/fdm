@@ -75,7 +75,7 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 	}
 
 	fd = open(path, flags, mode);
-	
+
 	if (fd != -1 && locks & LOCK_FLOCK) {
 		if (flock(fd, LOCK_EX|LOCK_NB) != 0) {
 			if (errno == EWOULDBLOCK)
@@ -161,7 +161,7 @@ char *
 find_header(struct mail *m, char *hdr, size_t *len)
 {
 	char	*ptr, *end;
-	
+
 	*len = strlen(hdr);
 
 	end = m->data + (m->body == -1 ? m->size : (size_t) m->body);
@@ -174,7 +174,7 @@ find_header(struct mail *m, char *hdr, size_t *len)
 		if (*len > (size_t) (end - ptr))
 			return (NULL);
 	} while (strncasecmp(ptr, hdr, *len) != 0);
-		
+
 	hdr = ptr + *len;
 	ptr = memchr(hdr, '\n', end - hdr);
 	if (ptr == NULL)
@@ -204,7 +204,7 @@ find_users(struct mail *m)
 		xasprintf(&ptr, "%s: ", ARRAY_ITEM(conf.headers, i, char *));
 		hdr = find_header(m, ptr, &len);
 		free(ptr);
-		
+
 		if (hdr == NULL || len < 1)
 			continue;
 		len--;	/* lose \n */
@@ -230,13 +230,13 @@ find_users(struct mail *m)
 				if (pw != NULL)
 					ARRAY_ADD(users, pw->pw_uid, uid_t);
 				endpwent();
-				*dptr++ = '@';				   
+				*dptr++ = '@';
 				break;
 			}
 
 			len -= (ptr - hdr) + alen;
 			hdr = ptr + alen;
-		} 
+		}
 	}
 
 	if (ARRAY_EMPTY(users)) {
@@ -259,7 +259,7 @@ find_address(char *hdr, size_t len, size_t *alen)
 			off++;
 			while (off < len && hdr[off] != '"')
 				off++;
-			if (off < len) 
+			if (off < len)
 				off++;
 			break;
 		case '<':
@@ -306,7 +306,7 @@ trim_from(struct mail *m)
 
 	if (m->data == NULL || m->size < 5 || strncmp(m->data, "From ", 5) != 0)
 		return;
-	
+
 	ptr = memchr(m->data, '\n', m->size);
 	if (ptr == NULL)
 		ptr = m->data + m->size;
@@ -334,7 +334,7 @@ make_from(struct mail *m)
 	if (m->from != NULL)
 		return;
 
-	from = find_header(m, "From: ", &fromlen);    
+	from = find_header(m, "From: ", &fromlen);
  	if (fromlen > INT_MAX)
 		from = NULL;
 	if (from != NULL && fromlen > 0)
@@ -362,10 +362,10 @@ make_from(struct mail *m)
 	    (int) datelen, date);
 }
 
-/* 
+/*
  * Sometimes mail has wrapped header lines, this undoubtedly looks neat but
  * makes them a pain to match using regexps. We build a list of the newlines
- * in all the wrapped headers in m->wrapped, and can then quickly unwrap them 
+ * in all the wrapped headers in m->wrapped, and can then quickly unwrap them
  * for regexp matching and wrap them again for delivery.
  */
 u_int
@@ -379,7 +379,7 @@ fill_wrapped(struct mail *m)
 	p = 0;
 	m->wrapped = xmalloc(size);
 
-	end = m->body == -1 ? m->size : (size_t) m->body;	
+	end = m->body == -1 ? m->size : (size_t) m->body;
 	ptr = m->data;
 	for (;;) {
 		ptr = memchr(ptr, '\n', m->size);
@@ -424,7 +424,7 @@ set_wrapped(struct mail *m, char ch)
 void
 free_wrapped(struct mail *m)
 {
-	if (m->wrapped != NULL)	
+	if (m->wrapped != NULL)
 		xfree(m->wrapped);
 	m->wrapped = NULL;
 }

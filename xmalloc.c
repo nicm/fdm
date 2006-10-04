@@ -151,7 +151,7 @@ xmalloc_free(void *ptr)
 		log_warnx("xmalloc_free: not found");
 		return;
 	}
-	
+
 	xmalloc_freed += block->size;
 
 	block->ptr = NULL;
@@ -249,7 +249,7 @@ xsnprintf(char *str, size_t size, const char *fmt, ...)
 	int	i;
 
 	va_list	ap;
-	
+
 	va_start(ap, fmt);
 	i = vsnprintf(str, size, fmt, ap);
 	va_end(ap);
@@ -258,7 +258,7 @@ xsnprintf(char *str, size_t size, const char *fmt, ...)
 		i = -1;
 		errno = EINVAL;
 	}
-	
+
 	return (i);
 }
 

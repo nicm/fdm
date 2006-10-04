@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ void	pop3_error(struct account *);
 int	do_pop3(struct account *, u_int *, struct mail *, int);
 
 struct fetch	fetch_pop3 = { "pop3", "pop3",
-			       pop3_connect, 
+			       pop3_connect,
 			       pop3_poll,
 			       pop3_fetch,
 			       pop3_delete,
@@ -127,7 +127,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 			cause = xstrdup("connection unexpectedly closed");
 			goto error;
 		}
-		
+
 		res = -1;
 		do {
 			line = io_readline2(data->io, &lbuf, &llen);
@@ -159,10 +159,10 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 			case POP3_STAT:
 				if (!pop3_isOK(line))
 					goto error;
-				
+
 				if (sscanf(line, "+OK %u %*u", &data->num) != 1)
 					goto error;
-				
+
 				if (is_poll) {
 					*n = data->num;
 					data->state = POP3_QUIT;
@@ -202,14 +202,14 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				m->base = m->data = xmalloc(m->size);
 				m->space = m->size;
 				m->body = -1;
-				
+
 				data->state = POP3_RETR;
 				io_writeline(data->io, "RETR %u", data->cur);
 				break;
 			case POP3_RETR:
 				if (!pop3_isOK(line))
 					goto error;
-				
+
 				data->state = POP3_LINE;
 				break;
 			case POP3_LINE:
@@ -221,8 +221,8 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 						log_warnx("%s: server lied "
 						    "about message size: "
 						    "expected %zu, got %zu "
-						    "(%u lines)", 
-						    a->name, m->size, 
+						    "(%u lines)",
+						    a->name, m->size,
 						    off + lines, lines);
 					}
 					m->size = off;
@@ -234,33 +234,33 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 					data->state = POP3_DONE;
 					break;
 				}
-				
+
 				len = strlen(ptr);
 				if (len == 0 && m->body == -1)
 					m->body = off + 1;
-				
+
 				if (flushing) {
 					lines++;
 					off += len + 1;
 					break;
-				}						
-					
+				}
+
 				resize_mail(m, off + len + 1);
-				
+
 				if (len > 0)
 					memcpy(m->data + off, ptr, len);
 				/* append an LF */
 				m->data[off + len] = '\n';
 				lines++;
 				off += len + 1;
-				
+
 				if (off + lines > conf.max_size)
 					flushing = 1;
 				break;
 			case POP3_DONE:
 				if (!pop3_isOK(line))
 					goto error;
-				
+
 				data->cur++;
 				if (data->cur > data->num) {
 					data->state = POP3_QUIT;

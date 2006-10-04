@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -33,7 +33,7 @@ int	stdin_fetch(struct account *, struct mail *);
 int	stdin_delete(struct account *);
 
 struct fetch	fetch_stdin = { "stdin", "stdin",
-				stdin_connect, 
+				stdin_connect,
 				NULL,
 				stdin_fetch,
 				stdin_delete,
@@ -102,7 +102,7 @@ stdin_delete(struct account *a)
 			line = io_readline2(data->io, &lbuf, &llen);
 			if (line == NULL)
 				break;
-		}		
+		}
 	}
 
 	xfree(lbuf);
@@ -152,13 +152,13 @@ stdin_fetch(struct account *a, struct mail *m)
 				m->body = m->size + 1;
 
 			resize_mail(m, m->size + len + 1);
-			
+
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			/* append an LF */
 			m->data[m->size + len] = '\n';
 			m->size += len + 1;
-			
+
 			if (m->size > conf.max_size) {
 				data->complete = 1;
 				xfree(lbuf);

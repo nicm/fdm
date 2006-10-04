@@ -41,7 +41,7 @@ parent(int fd, pid_t pid)
 #endif
 
 	do {
-		if (io_wait(io, sizeof msg, NULL) != 0) 
+		if (io_wait(io, sizeof msg, NULL) != 0)
 			fatalx("parent: io_wait error");
 		if (io_read2(io, &msg, sizeof msg) != 0)
 			fatalx("parent: io_read2 error");
@@ -49,11 +49,11 @@ parent(int fd, pid_t pid)
 
 		switch (msg.type) {
 		case MSG_DELIVER:
-			if (io_wait(io, msg.mail.size, NULL) != 0) 
-				fatalx("parent: io_wait error"); 
+			if (io_wait(io, msg.mail.size, NULL) != 0)
+				fatalx("parent: io_wait error");
 			msg.mail.base = io_read(io, msg.mail.size);
 			if (msg.mail.base == NULL)
-				fatalx("parent: io_read error"); 
+				fatalx("parent: io_read error");
 			msg.mail.data = msg.mail.base;
 
 			trim_from(&msg.mail);
@@ -77,7 +77,7 @@ parent(int fd, pid_t pid)
 
 #ifdef DEBUG
 	xmalloc_dump("parent");
-#endif 
+#endif
 
 	if (waitpid(pid, &status, 0) == -1)
 		fatal("waitpid");
@@ -94,7 +94,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 	int		 find;
 	struct users	*users;
 	uid_t		 uid;
-	
+
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		t = ARRAY_ITEM(r->actions, i, struct action *);
 		if (t->deliver->deliver == NULL)
@@ -108,7 +108,7 @@ perform_actions(struct account *a, struct mail *m, struct rule *r)
 				return (1);
 			continue;
 		}
-	
+
 		/* figure out the users to use. it would be nice to call
 		   find_users as non-root :-( */
 		users = NULL;
@@ -175,7 +175,7 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 		}
 		return (WEXITSTATUS(status));
 	}
-		
+
 	/* child process. change user and group */
 	log_debug("%s: delivering using user %lu", a->name, (u_long) uid);
 	if (dropto(uid, NULL) != 0) {
@@ -187,7 +187,7 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 #endif
 
 	/* refresh user and home */
-	fill_info(NULL);	
+	fill_info(NULL);
 	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
 	    conf.info.home);
 

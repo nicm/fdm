@@ -150,7 +150,7 @@ enum cmd {
 /* A single mail. */
 struct mail {
 	char	*base;
-	
+
 	char	*data;
 	size_t	 size;		/* size of mail */
 	size_t	 space;		/* size of malloc'd area */
@@ -233,7 +233,7 @@ enum op {
 
 /* Match regexps. */
 struct match {
-	char			*s;	
+	char			*s;
 
 	regex_t			 re;
 	int			 inverted;
@@ -296,7 +296,7 @@ struct fetch {
 	int 	 (*fetch)(struct account *, struct mail *);
 	int	 (*delete)(struct account *);
 	void	 (*error)(struct account *);
-	int	 (*disconnect)(struct account *);	
+	int	 (*disconnect)(struct account *);
 };
 
 /* Deliver functions. */

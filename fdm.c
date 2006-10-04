@@ -100,7 +100,7 @@ fill_info(const char *home)
 		}
 		if (pw->pw_name != NULL && *pw->pw_name != '\0')
 			conf.info.user = xstrdup(pw->pw_name);
-	} 
+	}
 	endpwent();
 	if (conf.info.user == NULL) {
 		conf.info.user = xstrdup(conf.info.uid);
@@ -125,7 +125,7 @@ dropto(uid_t uid, char *path)
 	}
 	gid = pw->pw_gid;
 	endpwent();
-	
+
 	if (path != NULL) {
 		if (chroot(conf.child_path) != 0)
 			return (1);
@@ -170,7 +170,7 @@ main(int argc, char **argv)
 
 	log_init(1);
 
-	ARRAY_INIT(&conf.incl);  
+	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
         while ((opt = getopt(argc, argv, "a:f:mlnu:vx:")) != EOF) {
@@ -209,7 +209,7 @@ main(int argc, char **argv)
 	if (conf.check_only) {
 		if (argc != 0)
 			usage();
-	} else {		
+	} else {
 		if (argc != 1)
 			usage();
 		if (strcmp(argv[0], "poll") == 0)
@@ -292,7 +292,7 @@ main(int argc, char **argv)
 
 	/* print proxy info */
 	if (conf.proxy != NULL) {
-		log_debug("using proxy: %s on %s:%s", 
+		log_debug("using proxy: %s on %s:%s",
 		    conf.proxy->type == PROXY_HTTP ? "HTTP" : "SOCKS5",
 		    conf.proxy->server.host, conf.proxy->server.port);
 	}
@@ -336,7 +336,7 @@ main(int argc, char **argv)
 	log_debug("%s", tmp);
 
 	/* if -n, bail now, otherwise check there is something to work with */
-	if (conf.check_only) 
+	if (conf.check_only)
 		exit(0);
         if (TAILQ_EMPTY(&conf.accounts)) {
                 log_warnx("no accounts specified");
@@ -364,7 +364,7 @@ main(int argc, char **argv)
 		if (conf.def_user == 0) {
 			log_warnx("no default user specified");
 			exit(1);
-		}			
+		}
 	}
 
 	/* check lock file */

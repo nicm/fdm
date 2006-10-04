@@ -34,7 +34,7 @@ int	fetch_account(struct io *, struct account *);
 int	perform_match(struct account *, struct mail *, struct rule *);
 
 int
-check_incl(char *name) 
+check_incl(char *name)
 {
 	u_int	i;
 
@@ -50,7 +50,7 @@ check_incl(char *name)
 }
 
 int
-check_excl(char *name) 
+check_excl(char *name)
 {
 	u_int	i;
 
@@ -113,13 +113,13 @@ child(int fd, enum cmd cmd)
 		}
 
 		log_debug("child: processing account %s", a->name);
-		
+
 		/* connect */
 		if (a->fetch->connect != NULL) {
 			if (a->fetch->connect(a) != 0)
 				continue;
 		}
-		
+
 		/* process */
 		error = 0;
 		switch (cmd) {
@@ -153,7 +153,7 @@ child(int fd, enum cmd cmd)
 
 #ifdef DEBUG
 	xmalloc_dump("child");
-#endif 
+#endif
 
 	return (rc);
 }
@@ -240,7 +240,7 @@ fetch_account(struct io *io, struct account *a)
 				if (i == ARRAY_LENGTH(list))
 					continue;
 			}
-				
+
 			/* match all the regexps */
 			switch (r->type) {
 			case RULE_MATCHES:
@@ -306,7 +306,7 @@ fetch_account(struct io *io, struct account *a)
 		n++;
 	}
 
-out:	
+out:
 	free_mail(&m);
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
@@ -354,11 +354,11 @@ perform_match(struct account *a, struct mail *m, struct rule *r)
 			pmatch.rm_eo = m->size;
 			break;
 		}
-		
+
 		result = !regexec(&c->re, m->data, 0, &pmatch, REG_STARTEND);
 		if (c->inverted)
 			result = !result;
-		log_debug2("%s: tried %s\"%s\": got %d", a->name, 
+		log_debug2("%s: tried %s\"%s\": got %d", a->name,
 		    c->inverted ? "!" : "", c->s, result);
 		switch (c->op) {
 		case OP_NONE:

@@ -49,7 +49,7 @@ log_init(int n_debug)
 }
 
 void printflike2
-logit(int pri, const char *fmt, ...) 
+logit(int pri, const char *fmt, ...)
 {
 	va_list	ap;
 

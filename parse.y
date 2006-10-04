@@ -253,7 +253,7 @@ domainslist: domainslist STRING
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, char *);
-	     }	
+	     }
 	   | STRING
 	     {
 		     char	*cp;
@@ -289,7 +289,7 @@ headers: TOKHEADER STRING
 headerslist: headerslist STRING
 	     {
 		     char	*cp;
-		 
+
 		     if (*$2 == '\0')
 			     yyerror("invalid header");
 
@@ -297,7 +297,7 @@ headerslist: headerslist STRING
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, char *);
-	     }	
+	     }
 	   | STRING
 	     {
 		     char	*cp;
@@ -323,7 +323,7 @@ lock: LCKFCNTL
     | LCKDOTLOCK
       {
 	      $$ |= LOCK_DOTLOCK;
-      }	
+      }
 
 locklist: locklist lock
 	  {
@@ -341,7 +341,7 @@ locklist: locklist lock
 uid: STRING
      {
 	     struct passwd	*pw;
-	     
+
 	     pw = getpwnam($1);
 	     if (pw == NULL)
 		     yyerror("unknown user: %s", $1);
@@ -353,9 +353,9 @@ uid: STRING
    | NUMBER
      {
 	     struct passwd	*pw;
-	     
+
 	     if ($1 > UID_MAX)
-		     yyerror("invalid uid: %llu", $1); 
+		     yyerror("invalid uid: %llu", $1);
 	     pw = getpwuid($1);
 	     if (pw == NULL)
 		     yyerror("unknown uid: %llu", $1);
@@ -395,7 +395,7 @@ userslist: userslist uid
 	   {
 		   $$ = $1;
 		   ARRAY_ADD($$.users, $2, uid_t);
-	   }	
+	   }
 	 | uid
 	   {
 		   $$.users = xmalloc(sizeof (struct users));
@@ -438,7 +438,7 @@ port: TOKPORT STRING
 		      yyerror("invalid port");
 
 	      $$ = $2;
-      }	
+      }
     | TOKPORT NUMBER
       {
 	      xasprintf(&$$, "%lld", $2);
@@ -464,7 +464,7 @@ server: TOKSERVER STRING port
 to: /* empty */
     {
 	    $$ = NULL;
-    } 
+    }
   | TOKTO STRING
     {
 	    if (*$2 == '\0')
@@ -526,7 +526,7 @@ action: ACTPIPE STRING
 		struct smtp_data	*data;
 
 		$$.deliver = &deliver_smtp;
-		
+
 		data = xcalloc(1, sizeof *data);
 		$$.data = data;
 
@@ -550,7 +550,7 @@ define: TOKACTION STRING users action
 			yyerror("invalid action name");
 		if (find_action($2) != NULL)
 			yyerror("duplicate action: %s", $2);
-		
+
 		t = xmalloc(sizeof *t);
 		memcpy(t, &$4, sizeof *t);
 		strlcpy(t->name, $2, sizeof t->name);
@@ -582,7 +582,7 @@ accounts: /* empty */
 	| TOKACCOUNTS '{' accountslist '}'
 	  {
 		  $$ = $3;
-	  }	
+	  }
 
 accountslist: accountslist STRING
  	      {
@@ -593,7 +593,7 @@ accountslist: accountslist STRING
 		      if (find_account($2) == NULL)
 			      yyerror("no matching accounts: %s", $2);
 		      ARRAY_ADD($$, $2, char *);
-	      }	
+	      }
 	    | STRING
 	      {
 		      if (*$1 == '\0')
@@ -612,7 +612,7 @@ actions: TOKACTION STRING
 
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
-		 
+
 		 $$ = xmalloc(sizeof (struct actions));
 		 ARRAY_INIT($$);
 		 if ((t = find_action($2)) == NULL)
@@ -637,11 +637,11 @@ actionslist: actionslist STRING
 			     yyerror("unknown action: %s", $2);
 		     ARRAY_ADD($$, t, struct action *);
 		     free($2);
-	     }	
+	     }
 	   | STRING
 	     {
 		     struct action	*t;
-		     
+
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
 
@@ -767,7 +767,7 @@ rule: matches accounts users actions cont
 	      char		 tmp[1024], tmp2[1024];
 	      u_int		 i;
 
-	      r = xcalloc(1, sizeof *r);      
+	      r = xcalloc(1, sizeof *r);
 	      r->index = rules++;
 	      r->stop = !$5;
 	      r->accounts = $2;
@@ -776,7 +776,7 @@ rule: matches accounts users actions cont
 	      r->users = $3.users;
 	      r->find_uid = $3.find_uid;
 	      r->actions = $4;
-	      
+
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
 
 	      if (r->matches == NULL)
@@ -816,7 +816,7 @@ rule: matches accounts users actions cont
 			  sizeof tmp2);
 		      strlcat(tmp2, " ", sizeof tmp2);
 	      }
-			  
+
 	      log_debug2("added rule: index=%u actions=%smatches=%s", r->index,
 		  tmp2, tmp);
       }
@@ -824,7 +824,7 @@ rule: matches accounts users actions cont
 folder: /* empty */
         {
 		$$ = NULL;
-        } 
+        }
       | TOKFOLDER STRING
 	{
 		if (*$2 == '\0')
@@ -838,7 +838,7 @@ poptype: TOKPOP3
 		 $$ = 0;
          }
        | TOKPOP3S
-	 {	
+	 {
 		 $$ = 1;
 	 }
 
@@ -854,7 +854,7 @@ imaptype: TOKIMAP
 fetchtype: poptype server TOKUSER STRING TOKPASS STRING
            {
 		   struct pop3_data	*data;
-		   
+
 		   if (*$4 == '\0')
 			   yyerror("invalid user");
 		   if (*$6 == '\0')
@@ -867,14 +867,14 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   data->pass = $6;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
-		   data->server.port = 
+		   data->server.port =
 		       $2.port != NULL ? $2.port : $$.fetch->port;
 		   data->server.ai = NULL;
 	   }
          | imaptype server TOKUSER STRING TOKPASS STRING folder
            {
 		   struct imap_data	*data;
-		   
+
 		   if (*$4 == '\0')
 			   yyerror("invalid user");
 		   if (*$6 == '\0')
@@ -888,7 +888,7 @@ fetchtype: poptype server TOKUSER STRING TOKPASS STRING
 		   data->folder = $7;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
-		   data->server.port = 
+		   data->server.port =
 		       $2.port != NULL ? $2.port : $$.fetch->port;
 		   data->server.ai = NULL;
 	   }
@@ -908,7 +908,7 @@ account: TOKACCOUNT STRING disabled fetchtype
 			 yyerror("invalid account name");
 		 if (find_account($2) != NULL)
 			 yyerror("duplicate account: %s", $2);
-		 
+
 		 a = xcalloc(1, sizeof *a);
 		 strlcpy(a->name, $2, sizeof a->name);
 		 a->disabled = $3;

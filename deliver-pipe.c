@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@ int	pipe_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_pipe = { "pipe", pipe_deliver };
 
 int
-pipe_deliver(struct account *a, struct action *t, struct mail *m) 
+pipe_deliver(struct account *a, struct action *t, struct mail *m)
 {
         char	*cmd;
         FILE    *f;
@@ -45,7 +45,7 @@ pipe_deliver(struct account *a, struct action *t, struct mail *m)
                 return (DELIVER_FAILURE);
         }
 
-	log_debug("%s: piping to %s", a->name, cmd); 
+	log_debug("%s: piping to %s", a->name, cmd);
         f = popen(cmd, "w");
         if (f == NULL) {
 		log_warn("%s: %s: popen", a->name, cmd);
@@ -64,6 +64,6 @@ pipe_deliver(struct account *a, struct action *t, struct mail *m)
 		return (DELIVER_FAILURE);
 	}
 
-	xfree(cmd);	
+	xfree(cmd);
 	return (DELIVER_SUCCESS);
 }

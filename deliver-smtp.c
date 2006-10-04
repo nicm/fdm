@@ -19,7 +19,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 
-#include <ctype.h> 
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@ int	smtp_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_smtp = { "smtp", smtp_deliver };
 
 int
-smtp_deliver(struct account *a, struct action *t, struct mail *m) 
+smtp_deliver(struct account *a, struct action *t, struct mail *m)
 {
 	struct smtp_data	*data;
 	int		 	 done;
@@ -113,7 +113,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 				if (code != 354)
 					goto error;
 				line_init(m, &ptr, &len);
-				while (ptr != NULL) { 
+				while (ptr != NULL) {
 					/* write without \n */
 					io_writeline(io, "%.*s", (int) len - 1,
 					    ptr); /* XXX cast */
@@ -141,7 +141,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 			}
 
 			xfree(line);
-		}		
+		}
 		if (done)
 			break;
 	}

@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@ int	do_imap(struct account *, u_int *, struct mail *, int);
 #define IMAP_TAG_ERROR -3
 
 struct fetch	fetch_imap = { "imap", "imap",
-			       imap_connect, 
+			       imap_connect,
 			       imap_poll,
 			       imap_fetch,
 			       imap_delete,
@@ -109,7 +109,7 @@ imap_fetch(struct account *a, struct mail *m)
 }
 
 int
-imap_tag(char *line) 
+imap_tag(char *line)
 {
 	long	 	 tag;
 	const char	*errstr;
@@ -180,8 +180,8 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				data->state = IMAP_USER;
-				io_writeline(data->io, 
-				    "%u LOGIN {%zu}", ++data->tag, 
+				io_writeline(data->io,
+				    "%u LOGIN {%zu}", ++data->tag,
 				    strlen(data->user));
 				break;
 			case IMAP_USER:
@@ -240,7 +240,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 				if (!imap_okay(line))
 					goto error;
-				
+
 				if (is_poll) {
 					*n = data->num;
 					data->state = IMAP_LOGOUT;
@@ -296,14 +296,14 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				m->base = m->data = xmalloc(m->size);
 				m->space = m->size;
 				m->body = -1;
-				
+
 				data->state = IMAP_LINE;
 				break;
 			case IMAP_LINE:
 				len = strlen(line);
 				if (len == 0 && m->body == -1)
 					m->body = off + 1;
-				
+
 				if (!flushing) {
 					resize_mail(m, off + len + 1);
 					memcpy(m->data + off, line, len);
@@ -340,7 +340,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					res = FETCH_OVERSIZE;
 				else
 					res = FETCH_SUCCESS;
-				
+
 				data->state = IMAP_DONE;
 				break;
 			case IMAP_DONE:
@@ -351,7 +351,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 				if (!imap_okay(line))
 					goto error;
-					
+
 				data->cur++;
 				if (data->cur > data->num) {
 					data->state = IMAP_CLOSE;

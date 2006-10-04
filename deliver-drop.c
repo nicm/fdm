@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +31,8 @@ int	drop_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_drop = { "drop", drop_deliver };
 
 int
-drop_deliver(unused struct account *a, unused struct action *t, 
-    unused struct mail *m) 
+drop_deliver(unused struct account *a, unused struct action *t,
+    unused struct mail *m)
 {
 	return (DELIVER_SUCCESS);
 }

@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,9 +51,9 @@ do_write(struct account *a, struct action *t, struct mail *m, int append)
         }
 
 	if (append)
-		log_debug("%s: appending to %s", a->name, cmd); 
+		log_debug("%s: appending to %s", a->name, cmd);
 	else
-		log_debug("%s: writing to %s", a->name, cmd); 
+		log_debug("%s: writing to %s", a->name, cmd);
         f = fopen(cmd, append ? "a" : "w");
         if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, cmd);
@@ -67,6 +67,6 @@ do_write(struct account *a, struct action *t, struct mail *m, int append)
 	}
 	fclose(f);
 
-	xfree(cmd);	
+	xfree(cmd);
 	return (DELIVER_SUCCESS);
 }

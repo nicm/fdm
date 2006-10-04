@@ -137,7 +137,7 @@ io_poll(struct io *io, char **cause)
 
 #ifdef IO_DEBUG
 	log_debug3("io_poll: in: roff=%zu rsize=%zu rspace=%zu "
-	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace, 
+	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace,
 	    io->wsize, io->wspace);
 #endif
 
@@ -149,7 +149,7 @@ io_poll(struct io *io, char **cause)
 			xasprintf(cause, "io: poll: %s", strerror(errno));
 		return (-1);
 	}
-	
+
 	if (pfd.revents & POLLERR || pfd.revents & POLLNVAL)
 		goto closed;
 	if (pfd.revents & POLLIN) {
@@ -175,7 +175,7 @@ io_poll(struct io *io, char **cause)
 
 #ifdef IO_DEBUG
 	log_debug3("io_poll: out: roff=%zu rsize=%zu rspace=%zu "
-	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace, 
+	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace,
 	    io->wsize, io->wspace);
 #endif
 
@@ -237,7 +237,7 @@ io_fill(struct io *io)
 				io->need_wr = 1;
 				break;
 			default:
-				xasprintf(&io->error, "io: SSL_read: %s", 
+				xasprintf(&io->error, "io: SSL_read: %s",
 				    SSL_err());
 				return (-1);
 			}
@@ -257,7 +257,7 @@ io_fill(struct io *io)
 
 		/* increase the fill marker */
 		io->rsize += n;
-	}		
+	}
 
 #ifdef IO_DEBUG
 	log_debug3("io_fill: out");
@@ -268,7 +268,7 @@ io_fill(struct io *io)
 
 /* Empty write buffer. */
 int
-io_push(struct io *io) 
+io_push(struct io *io)
 {
 	ssize_t	n;
 
@@ -301,7 +301,7 @@ io_push(struct io *io)
 				io->need_wr = 1;
 				break;
 			default:
-				xasprintf(&io->error, "io: SSL_write: %s", 
+				xasprintf(&io->error, "io: SSL_write: %s",
 				    SSL_err());
 				return (-1);
 			}
@@ -382,7 +382,7 @@ io_write(struct io *io, const void *buf, size_t len)
 
 	if (len != 0) {
 		ENSURE_SIZE(io->wbase, io->wspace, io->wsize + len);
-		
+
 		memcpy(io->wbase + io->wsize, buf, len);
 		io->wsize += len;
 	}
@@ -420,8 +420,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 		ptr = memchr(ptr, *io->eol, maxlen);
 
 		if (ptr != NULL) {
-			off = (ptr - io->rbase) - io->roff; 
-			
+			off = (ptr - io->rbase) - io->roff;
+
 			if (off + eollen > maxlen) {
 				/* if there isn't enough space for the rest of
 				   the EOL, this isn't it */
@@ -430,7 +430,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 				/* the strings match, so this is it */
 				break;
 			}
-		} 
+		}
 		if (ptr == NULL) {
 			/* not found within the length searched. if that was
 			   the maximum, it is an error */
@@ -479,7 +479,7 @@ io_readline(struct io *io)
 
 	if (io->error != NULL)
 		return (NULL);
-	
+
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
@@ -527,7 +527,7 @@ io_flush(struct io *io, char **cause)
 		if (io_poll(io, cause) != 1)
 			return (-1);
 	}
-	
+
 	return (0);
 }
 

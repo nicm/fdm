@@ -35,7 +35,7 @@ int	maildir_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_maildir = { "maildir", maildir_deliver };
 
 int
-maildir_deliver(struct account *a, struct action *t, struct mail *m) 
+maildir_deliver(struct account *a, struct action *t, struct mail *m)
 {
 	static u_int	 delivered = 0;
 	char		*path, ch;
@@ -50,7 +50,7 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 		log_warnx("%s: empty path", a->name);
 		goto out;
 	}
-	log_debug("%s: saving to maildir %s", a->name, path); 
+	log_debug("%s: saving to maildir %s", a->name, path);
 
 	/* create the maildir directories */
 	if (mkdir(path, S_IRWXU) != 0 && errno != EEXIST) {
@@ -72,7 +72,7 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, name);
 		goto out;
-	}	
+	}
 	if (xsnprintf(name, sizeof name, "%s/tmp", path) < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
 		goto out;
@@ -85,14 +85,14 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 	if (gethostname(host1, sizeof host1) != 0)
 		fatal("gethostname");
 
-	/* replace '/' with "\057" and ':' with "\072". this is a bit 
+	/* replace '/' with "\057" and ':' with "\072". this is a bit
 	   inefficient but sod it */
 	last = strcspn(host1, "/:");
 	if (host1[last] == '\0')
 		host = host1;
 	else {
 		*host2 = '\0';
-		
+
 		first = 0;
 		do {
 			ch = host1[first + last];
@@ -118,17 +118,17 @@ maildir_deliver(struct account *a, struct action *t, struct mail *m)
 restart:
 	/* find a suitable name in tmp */
 	do {
-		if (xsnprintf(name, sizeof name, "%ld.%ld_%u.%s", 
+		if (xsnprintf(name, sizeof name, "%ld.%ld_%u.%s",
 		    (long) time(NULL), (long) getpid(), delivered, host) < 0) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
 			goto out;
 		}
-		
+
 		if (xsnprintf(src, sizeof src, "%s/tmp/%s", path, name) < 0) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
 			goto out;
-		}		
-	
+		}
+
 		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1 && errno != EEXIST) {
 			log_warn("%s: %s: open", a->name, src);
@@ -154,8 +154,8 @@ restart:
 	if (xsnprintf(dst, sizeof dst, "%s/new/%s", path, name) < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
 		goto out;
-	}		
-	log_debug2("%s: linking .../%s to .../%s", a->name, 
+	}
+	log_debug2("%s: linking .../%s to .../%s", a->name,
 	    src + strlen(path) + 1, dst + strlen(path) + 1);
 	if (link(src, dst) != 0) {
 		unlink(src);

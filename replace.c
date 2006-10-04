@@ -17,7 +17,7 @@
  */
 
 #include <sys/types.h>
- 
+
 #include <string.h>
 
 #include "fdm.h"
@@ -36,7 +36,7 @@ replaceinfo(char *src, struct account *a, struct action *t)
 
 	return (replace(src, map));
 }
-    
+
 char *
 replace(char *src, char *map[REPL_LEN])
 {
@@ -80,7 +80,7 @@ replace(char *src, char *map[REPL_LEN])
 			break;
 		}
 	}
-	
+
 out:
 	ENSURE_SIZE(dst, len, off + 1);
 	dst[off] = '\0';

@@ -35,7 +35,7 @@ int	mbox_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_mbox = { "mbox", mbox_deliver };
 
 int
-mbox_deliver(struct account *a, struct action *t, struct mail *m) 
+mbox_deliver(struct account *a, struct action *t, struct mail *m)
 {
 	char		*path, *ptr;
 	size_t	 	 len;
@@ -47,7 +47,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 		log_warnx("%s: empty path", a->name);
 		goto out;
 	}
-	log_debug("%s: saving to mbox %s", a->name, path); 
+	log_debug("%s: saving to mbox %s", a->name, path);
 
 	/* check permissions and ownership */
 	errno = 0;
@@ -71,8 +71,8 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 			goto out;
 		}
 		if (sb.st_uid != getuid()) {
-			log_warnx("%s: %s: bad owner: %lu, should be %lu", 
-			    a->name, path, 
+			log_warnx("%s: %s: bad owner: %lu, should be %lu",
+			    a->name, path,
 			    (u_long) sb.st_uid, (u_long) getuid());
 			goto out;
 		}
@@ -83,7 +83,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 		make_from(m);
 
 	do {
-		fd = openlock(path, conf.lock_types, 
+		fd = openlock(path, conf.lock_types,
 		    O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
 		if (fd == -1) {
 			if (errno == EAGAIN) {
@@ -106,7 +106,7 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	/* write the mail */
 	line_init(m, &ptr, &len);
 	while (ptr != NULL) {
-		if (ptr != m->data && 
+		if (ptr != m->data &&
 		    len >= 5 && strncmp(ptr, "From ", 5) == 0) {
 			if (write(fd, ">", 1) == -1) {
 				log_warn("%s: %s: write", a->name, path);
@@ -118,10 +118,10 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 			log_warn("%s: %s: write", a->name, path);
 			goto out;
 		}
-		
+
 		line_next(m, &ptr, &len);
 	}
-	
+
 	if (write(fd, "\n\n", 2) == -1) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;

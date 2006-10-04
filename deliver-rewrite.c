@@ -18,7 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
- 
+
 #include <errno.h>
 #include <paths.h>
 #include <stdio.h>
@@ -33,7 +33,7 @@ int	rewrite_deliver(struct account *, struct action *, struct mail *);
 struct deliver deliver_rewrite = { "rewrite", rewrite_deliver };
 
 int
-rewrite_deliver(struct account *a, struct action *t, struct mail *m) 
+rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 {
         char		*cmd, *lbuf, *line, *cause;
 	size_t		 llen, len;
@@ -50,14 +50,14 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
                 return (DELIVER_FAILURE);
         }
 
-	log_debug("%s: rewriting using %s", a->name, cmd); 
+	log_debug("%s: rewriting using %s", a->name, cmd);
 
 	memset(&m2, 0, sizeof m2);
 	m2.space = IO_BLOCKSIZE;
 	m2.base = m2.data = xmalloc(m2.space);
 	m2.size = 0;
 	m2.body = -1;
-	
+
 	if (pipe(in) != 0)	/* child's stdin */
 		fatal("pipe");
 	if (pipe(out) != 0)	/* child's stdout and stderr */
@@ -83,7 +83,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 			log_warn("%s: %s: dup2(stderr)", a->name, cmd);
 			_exit(1);
 		}
-		
+
 		execl(_PATH_BSHELL, "sh", "-c", cmd, (char *) NULL);
 		_exit(1);
 	}
@@ -126,7 +126,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 				m2.body = m2.size + 1;
 
 			resize_mail(&m2, m2.size + len + 1);
-			
+
 			if (len > 0)
 				memcpy(m2.data + m2.size, line, len);
 			/* append an LF */
@@ -154,18 +154,18 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		free_mail(&m2);
 		goto out;
 	}
-	
+
 	/* replace the old mail */
 	free_mail(m);
 	memcpy(m, &m2, sizeof *m);
 
 	res = DELIVER_SUCCESS;
-	
+
 out:
 	xfree(lbuf);
 
-	io_free(io);	
+	io_free(io);
 
-	xfree(cmd);	
+	xfree(cmd);
 	return (res);
 }
