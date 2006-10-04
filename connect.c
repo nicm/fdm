@@ -38,10 +38,10 @@ int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
 int	getport(char *);
 
 struct proxy *
-getproxy(char *url)
+getproxy(const char *xurl)
 {
 	struct proxy		*pr;
-	char			*ptr, *end, *saved;
+	char			*ptr, *end, *saved, *url;
 	struct {
 		char		*proto;
 		enum proxytype	 type;
@@ -56,7 +56,7 @@ getproxy(char *url)
 	};
 
 	/* copy the url so we can mangle it */
-	saved = url = xstrdup(url);
+	saved = url = xstrdup(xurl);
 	
 	/* find proxy */
 	for (proxyent = proxylist; proxyent->proto != NULL; proxyent++) {

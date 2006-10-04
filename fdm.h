@@ -565,7 +565,7 @@ int			 child(int, enum cmd);
 int			 parent(int, pid_t);
 
 /* connect.c */
-struct proxy 		*getproxy(char *);
+struct proxy 		*getproxy(const char *);
 struct io 		*connectproxy(struct server *, struct proxy *,
 			     const char *, char **);
 struct io		*connectio(struct server *, const char *, char **);

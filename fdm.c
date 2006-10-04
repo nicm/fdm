@@ -154,7 +154,8 @@ main(int argc, char **argv)
 	enum cmd         cmd = CMD_NONE;
 	const char	*errstr;
 	char		 tmp[512];
-	char		*proxy = NULL, *user = NULL, *lock = NULL;
+	const char	*proxy = NULL;
+	char		*user = NULL, *lock = NULL;
 	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
