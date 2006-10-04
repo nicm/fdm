@@ -39,34 +39,34 @@ write_deliver(struct account *a, struct action *t, struct mail *m)
 int
 do_write(struct account *a, struct action *t, struct mail *m, int append)
 {
-        char	*cmd;
+        char	*path;
         FILE    *f;
 
-	cmd = replaceinfo(t->data, a, t);
-        if (cmd == NULL || *cmd == '\0') {
-		if (cmd != NULL)
-			xfree(cmd);
+	path = replaceinfo(t->data, a, t);
+        if (path == NULL || *path == '\0') {
+		if (path != NULL)
+			xfree(path);
 		log_warnx("%s: empty command", a->name);
                 return (DELIVER_FAILURE);
         }
 
 	if (append)
-		log_debug("%s: appending to %s", a->name, cmd);
+		log_debug("%s: appending to %s", a->name, path);
 	else
-		log_debug("%s: writing to %s", a->name, cmd);
-        f = fopen(cmd, append ? "a" : "w");
+		log_debug("%s: writing to %s", a->name, path);
+        f = fopen(path, append ? "a" : "w");
         if (f == NULL) {
-		log_warn("%s: %s: fopen", a->name, cmd);
-		xfree(cmd);
+		log_warn("%s: %s: fopen", a->name, path);
+		xfree(path);
 		return (DELIVER_FAILURE);
 	}
 	if (fwrite(m->data, m->size, 1, f) != 1) {
-		log_warn("%s: %s: fwrite", a->name, cmd);
-		xfree(cmd);
+		log_warn("%s: %s: fwrite", a->name, path);
+		xfree(path);
 		return (DELIVER_FAILURE);
 	}
 	fclose(f);
 
-	xfree(cmd);
+	xfree(path);
 	return (DELIVER_SUCCESS);
 }
