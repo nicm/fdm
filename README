@@ -14,7 +14,7 @@ example:
 */30    *       *       *       *       /usr/local/bin/fdm -l -x stdin fetch
 
 Local mail can be delivered via stdin. See the fdm(1) man page for an example
-using sendmail, users of other MTAs are on their own for the moment. Man page 
+using sendmail, users of other MTAs are on their own for the moment. Man page
 diffs and/or instructions I can format into the man page would be appreciated.
 
 The included fdm.conf is an example of a single-user configuration.
