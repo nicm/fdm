@@ -42,6 +42,9 @@
 int	io_push(struct io *);
 int	io_fill(struct io *);
 
+#define IO_NEED_FILL 0x1
+#define IO_NEED_PUSH 0x2
+
 /* Create a struct io for the specified socket and SSL descriptors. */
 struct io *
 io_create(int fd, SSL *ssl, const char *eol)
@@ -60,8 +63,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
 		fatal("fcntl");
 
-	io->need_wr = 0; /* i don't think this flag is actually needed,
-			    it doesn't really change anything */
+	io->need = 0;
 	io->closed = 0;
 	io->error = NULL;
 
@@ -131,7 +133,7 @@ io_poll(struct io *io, char **cause)
 	else
 		pfd.fd = io->fd;
 	pfd.events = POLLIN;
-	if (io->wsize > 0 || io->need_wr)
+	if (io->wsize > 0 || io->need != 0)
 		pfd.events |= POLLOUT;
 
 #ifdef IO_DEBUG
@@ -148,41 +150,46 @@ io_poll(struct io *io, char **cause)
 			xasprintf(cause, "io: poll: %s", strerror(errno));
 		return (-1);
 	}
-
-	if (pfd.revents & POLLERR || pfd.revents & POLLNVAL)
-		goto closed;
-	if (pfd.revents & POLLIN) {
-		if ((error = io_fill(io)) != 1) {
-			if (error == -1) {
-				if (cause != NULL)
-					*cause = io->error;
-				return (-1);
-			}
-			goto closed;
-		}
+	if (pfd.revents & POLLERR || pfd.revents & POLLNVAL) {
+		io->closed = 1;
+		return (1);
 	}
+	
+	if (io->need != 0) {
+		/* if a repeated read/write is necessary, the socket must
+		   be ready for both reading and writing */
+		if (pfd.revents & POLLOUT && pfd.revents & POLLIN) {
+			if (io->need & IO_NEED_FILL) {
+				if ((error = io_fill(io)) != 1)
+					goto error;
+			}
+			if (io->need & IO_NEED_PUSH) {
+				if ((error = io_push(io)) != 1)
+					goto error;
+			}
+		}
+		return (1);
+	}
+
+	/* otherwise try to read and write */
 	if (pfd.revents & POLLOUT) {
-		if ((error = io_push(io)) != 1) {
-			if (error == -1) {
-				if (cause != NULL)
-					*cause = io->error;
-				return (-1);
-			}
-			goto closed;
-		}
+		if ((error = io_push(io)) != 1)
+			goto error;
 	}
-
-#ifdef IO_DEBUG
-	log_debug3("io_poll: out: roff=%zu rsize=%zu rspace=%zu "
-	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace,
-	    io->wsize, io->wspace);
-#endif
-
+	if (pfd.revents & POLLIN) {
+		if ((error = io_fill(io)) != 1)
+			goto error;
+	}
 	return (1);
 
-closed:
-	io->closed = 1;
-	return (1);
+error:
+	if (error == 0) {
+		io->closed = 1;
+		return (1);
+	}
+	if (cause != NULL)
+		*cause = io->error;
+	return (-1);
 }
 
 /* Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,
@@ -231,9 +238,12 @@ io_fill(struct io *io)
 		if (n < 0) {
 			switch (SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
+				/* a repeat is certain (poll on the socket
+				   will still return data ready) so this can
+				   be ignored */
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				io->need_wr = 1;
+				io->need |= IO_NEED_FILL;
 				break;
 			default:
 				xasprintf(&io->error, "io: SSL_read: %s",
@@ -256,6 +266,9 @@ io_fill(struct io *io)
 
 		/* increase the fill marker */
 		io->rsize += n;
+
+		/* reset the need flags */
+		io->need &= ~IO_NEED_FILL;
 	}
 
 #ifdef IO_DEBUG
@@ -295,9 +308,11 @@ io_push(struct io *io)
 		if (n < 0) {
 			switch (SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
+				io->need |= IO_NEED_PUSH;
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				io->need_wr = 1;
+				/* a repeat is certain (io->wsize is still != 0)
+				   so this can be ignored */
 				break;
 			default:
 				xasprintf(&io->error, "io: SSL_write: %s",
@@ -322,8 +337,8 @@ io_push(struct io *io)
 		memmove(io->wbase, io->wbase + n, io->wsize - n);
 		io->wsize -= n;
 
-		/* reset the need-write flag */
-		io->need_wr = 0;
+		/* reset the need flags */
+		io->need &= ~IO_NEED_PUSH;
 	}
 
 #ifdef IO_DEBUG

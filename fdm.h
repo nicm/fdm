@@ -396,7 +396,7 @@ struct io {
 
 	int		 closed;
 	char		*error;
-	int		 need_wr;
+	int		 need;
 
 	char		*rbase;		/* buffer start */
 	size_t		 rspace;	/* total size of buffer */
