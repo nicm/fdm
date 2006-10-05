@@ -192,7 +192,7 @@ int
 socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 {
 	int	port, auth;
-	char	buf[512], *ptr;
+	char	buf[1024], *ptr;
 	size_t	len;
 
 	if ((port = getport(srv->port)) < 0) {
