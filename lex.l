@@ -157,6 +157,7 @@ imap return (TOKIMAP);
 imaps return (TOKIMAPS);
 in return (TOKIN);
 include return (TOKINCLUDE);
+lock-file return (TOKLOCKFILE);
 maildir return (ACTMAILDIR);
 match return (TOKMATCH);
 matched return (TOKMATCHED);

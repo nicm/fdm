@@ -353,6 +353,7 @@ struct conf {
 	} info;
 
 	char			*conf_file;
+	char			*lock_file;
 	int			 check_only;
 	int			 allow_many;
 

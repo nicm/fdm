@@ -133,6 +133,7 @@ find_action(char *name)
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
+%token TOKLOCKFILE
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -249,6 +250,15 @@ set: TOKSET TOKMAXSIZE size
 	     if ($3 & LOCK_FCNTL && $3 & LOCK_FLOCK)
 		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
+     }
+   | TOKSET TOKLOCKFILE STRING
+     {
+	     if (*$3 == '\0')
+		     yyerror("invalid lock file");
+
+	     if (conf.lock_file != NULL)
+		     xfree(conf.lock_file);
+	     conf.lock_file = $3;
      }
    | TOKSET TOKDELTOOBIG
      {

@@ -368,17 +368,20 @@ main(int argc, char **argv)
 	}
 
 	/* check lock file */
-	if (!conf.allow_many) {
+	lock = conf.lock_file;
+	if (lock == NULL) {
 		if (geteuid() == 0)
 			lock = xstrdup(SYSLOCKFILE);
 		else
 			xasprintf(&lock, "%s/%s", conf.info.home, LOCKFILE);
+	}
+	if (!conf.allow_many) {
 		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1 && errno == EEXIST) {
 			log_warnx("already running (%s exists)", lock);
 			exit(1);
 		} else if (fd == -1) {
-			log_warn("%s: open: ", lock);
+			log_warn("%s: open", lock);
 			exit(1);
 		}
 		close(fd);
@@ -402,7 +405,7 @@ main(int argc, char **argv)
 	default:
 		close(fds[1]);
 		rc = parent(fds[0], pid);
-		if (lock != NULL)
+		if (conf.allow_many)
 			unlink(lock);
 		exit(rc);
 	}

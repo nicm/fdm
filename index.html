@@ -126,6 +126,10 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              If this option is specified, fdm(1) does not attempt to create a
              lock file and allows multiple instances to run simultaneously.
 
+     <B>lock-file </B><I>path</I>
+             This sets an alternative lock file. The default is <I>~/.fdm.lock</I>
+             for non-root users and <I>/var/db/fdm.lock </I>for root.
+
      <B>default-user </B><I>user</I>
              This sets the default user to change to before delivering mail,
              if fdm(1) is running as root and no alternative user is specified

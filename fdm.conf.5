@@ -79,6 +79,12 @@ to abort.
 If this option is specified,
 .Xr fdm 1
 does not attempt to create a lock file and allows multiple instances to run simultaneously.
+.It Ic lock-file Ar path
+This sets an alternative lock file. The default is
+.Pa ~/.fdm.lock
+for non-root users and
+.Pa /var/db/fdm.lock
+for root.
 .It Ic default-user Ar user
 This sets the default user to change to before delivering mail, if
 .Xr fdm 1
