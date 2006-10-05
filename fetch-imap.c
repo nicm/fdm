@@ -249,7 +249,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					break;
 				}
 
-				line = strchr(line, ' ' );
+				line = strchr(line, ' ');
 				if (line == NULL)
 					goto error;
 				line++;
