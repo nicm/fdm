@@ -131,6 +131,15 @@ This option may be overridden by an
 .Em http_proxy
 variable in the environment.
 .El
+.Sh INCLUDING FILES
+Further configuration files may be including using the
+.Ic include
+command:
+.Bl -tag -width Ds
+.It Ic include Ar path
+.El
+.Pp
+The file to include is searched for first as an absolute path and then relative to the directory containing the main configuration file.
 .Sh ACCOUNTS
 The
 .Ic account

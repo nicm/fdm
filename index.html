@@ -17,8 +17,8 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
          <I>poll</I>]
 
 <B>DESCRIPTION</B>
-     The <B>fdm </B>program fetches mail from a POP3 server or from <I>stdin </I>and deliv-
-     ers it based on a ruleset in the configuration file.
+     The <B>fdm </B>program fetches mail from a POP3 or IMAP server or from <I>stdin </I>and
+     delivers it based on a ruleset in the configuration file.
 
      The options are as follows:
 
@@ -154,6 +154,14 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              <I>http://host[:port] or socks://[user:pass@]host[:port])</I>.  No au-
              thentication is supported for HTTP.  This option may be overrid-
              den by an <I>http_proxy </I>variable in the environment.
+
+<B>INCLUDING FILES</B>
+     Further configuration files may be including using the <B>include </B>command:
+
+     <B>include </B><I>path</I>
+
+     The file to include is searched for first as an absolute path and then
+     relative to the directory containing the main configuration file.
 
 <B>ACCOUNTS</B>
      The <B>account </B>command is used to instruct fdm(1) to fetch mail from an ac-
