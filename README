@@ -1,5 +1,5 @@
-fdm is a small program designed to fetch mail from POP3 servers, or receive
-local mail from stdin, and deliver it in various ways.
+fdm is a small program designed to fetch mail from POP3 or IMAP servers, or
+receive local mail from stdin, and deliver it in various ways.
 
 There are two main ways of using fdm, single-user and multiuser:
 
@@ -73,10 +73,8 @@ Tested on OpenBSD 4.0-beta i386 and on Debian with 2.4.27-2-sparc32.
 
 Feedback, bug reports, suggestions, etc, are welcome.
 
-I usually prefer to use the address below but with their customary efficiency
-SF.net seem to be only permitting some mail to actually get through (or they
-changed something and didn't tell us), so I can also be reached at:
-nicm123@gmail.com
+I usually prefer to use the address below but if for some reason it doesn't
+work, I can also be reached at: nicm123@gmail.com
 
 Nicholas Marriott
 nicm@users.sourceforge.net
