@@ -405,7 +405,7 @@ main(int argc, char **argv)
 	default:
 		close(fds[1]);
 		rc = parent(fds[0], pid);
-		if (conf.allow_many)
+		if (!conf.allow_many)
 			unlink(lock);
 		exit(rc);
 	}
