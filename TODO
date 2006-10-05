@@ -5,3 +5,4 @@
 - "rewrite-all" "rewrite-file" or "rewrite-something" action to rewrite via a file and work always
 - lock-file option to allow multiple files
 - statistics
+- filter based on attachment size, quantity, type?
