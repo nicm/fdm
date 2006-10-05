@@ -1,7 +1,7 @@
 # $Id$
 
 .SUFFIXES: .c .o .y .l .h
-.PHONY: clean index.html upload-index.html
+.PHONY: clean update-index.html upload-index.html
 
 PROG= fdm
 VERSION= 0.4
@@ -85,7 +85,7 @@ upload-index.html:
 		scp index.html nicm@shell.sf.net:index.html
 		ssh nicm@shell.sf.net sh update-index-fdm.sh
 
-index.html:
+update-index.html:
 		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
 		nroff -mdoc fdm.1|m2h -u > fdm.1.html
 		awk ' \

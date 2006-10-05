@@ -82,8 +82,8 @@ extern char	*__progname;
 #define ARRAY_LENGTH(a) ((a)->num)
 #define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
 #define ARRAY_FREE(a) do {						\
-	if (a->list != NULL) {						\
-		xfree(a->list);						\
+	if ((a)->list != NULL) {					\
+		xfree((a)->list);					\
 		ARRAY_INIT(a);						\
 	}								\
 } while (0)

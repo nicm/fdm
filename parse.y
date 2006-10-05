@@ -24,6 +24,7 @@
 
 #include <ctype.h>
 #include <fnmatch.h>
+#include <libgen.h>
 #include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
@@ -36,9 +37,21 @@
 #include "fdm.h"
 
 int			 rules;
+struct saved {
+	FILE		*yyin;
+	int		 yylineno;
+	char		*curfile;
+};
+struct {
+	struct saved   **list;
+	u_int		 num;
+} stack;
+char			*curfile;
 
+extern FILE		*yyin;
 extern int		 yylineno;
 extern int 		 yylex(void);
+extern void		 yyrestart(FILE *);
 
 int			 yyparse(void);
 __dead printflike1 void  yyerror(const char *, ...);
@@ -51,9 +64,10 @@ __dead printflike1 void
 yyerror(const char *fmt, ...)
 {
 	va_list	 ap;
-	char	*s;
+	char	*s, *file;
 
-	xasprintf(&s, "%s: %s at line %d", conf.conf_file, fmt, yylineno);
+	file = curfile == NULL ? conf.conf_file : curfile;
+	xasprintf(&s, "%s: %s at line %d", file, fmt, yylineno);
 
 	va_start(ap, fmt);
 	vlog(LOG_CRIT, s, ap);
@@ -65,7 +79,27 @@ yyerror(const char *fmt, ...)
 int
 yywrap(void)
 {
-        return (1);
+	struct saved	*old;
+	char		*file;
+
+	file = curfile == NULL ? conf.conf_file : curfile;
+	log_debug2("finished file %s", file);
+
+	if (ARRAY_EMPTY(&stack)) {
+		ARRAY_FREE(&stack);
+		return (1);
+	}
+	
+	old = ARRAY_ITEM(&stack, ARRAY_LENGTH(&stack) - 1, struct saved *);
+	yyin = old->yyin;
+	yyrestart(yyin);
+	yylineno = old->yylineno;
+	xfree(curfile);
+	curfile = old->curfile;
+	xfree(old);
+	stack.num--; /* XXX */
+
+        return (0);
 }
 
 struct account *
@@ -98,7 +132,7 @@ find_action(char *name)
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
-%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY
+%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -162,10 +196,41 @@ find_action(char *name)
 /* Rules */
 
 cmds: /* empty */
+    | cmds include
     | cmds set
     | cmds account
     | cmds define
     | cmds rule
+
+include: TOKINCLUDE STRING
+	 {
+		 char		*path;
+		 struct saved	*old;
+
+		 old = xmalloc(sizeof *old);
+		 old->yyin = yyin;
+		 old->yylineno = yylineno;
+		 old->curfile = curfile;
+		 ARRAY_ADD(&stack, old, struct saved *);
+
+		 yyin = fopen($2, "r");
+		 if (yyin == NULL) {
+			 xasprintf(&path, "%s/%s", dirname(conf.conf_file), $2);
+			 if (access(path, R_OK) != 0)
+				 yyerror("%s: %s", $2, strerror(errno));
+			 yyin = fopen(path, "r");
+			 if (yyin == NULL)
+				 yyerror("%s: %s", path, strerror(errno));
+			 log_debug2("including file %s", path);
+			 curfile = path;
+			 xfree($2);
+		 } else {
+			 log_debug2("including file %s", $2);
+			 curfile = $2;
+		 }
+		 yyrestart(yyin);
+		 yylineno = 0;
+	 }
 
 size: NUMBER
     | SIZE

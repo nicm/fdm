@@ -6,3 +6,4 @@
 - lock-file option to allow multiple files
 - statistics
 - filter based on attachment size, quantity, type?
+- add more examples to the man page

@@ -35,6 +35,9 @@
 
 extern int 			yylex(void);
 extern __dead printflike1 void	yyerror(const char *, ...);
+
+/* Use a one-byte buffer so flushing it on include doesn't do any harm. */
+#define YY_READ_BUF_SIZE 1
 %}
 
 %%
@@ -124,6 +127,10 @@ extern __dead printflike1 void	yyerror(const char *, ...);
 
         return (STRING);
 }
+(default-user|defuser) return (TOKDEFUSER);
+(delete-oversized|deltoobig) return (TOKDELTOOBIG);
+(lock-types|locktypes) return (TOKLOCKTYPES);
+(maximum-size|maxsize) return (TOKMAXSIZE);
 account	return (TOKACCOUNT);
 accounts return (TOKACCOUNTS);
 action return (TOKACTION);
@@ -135,8 +142,6 @@ append return (ACTAPPEND);
 body return (TOKBODY);
 case return (TOKCASE);
 continue return (TOKCONTINUE);
-(default-user|defuser) return (TOKDEFUSER);
-(delete-oversized|deltoobig) return (TOKDELTOOBIG);
 disabled return (TOKDISABLED);
 domain return (TOKDOMAIN);
 domains return (TOKDOMAINS);
@@ -151,11 +156,10 @@ headers return (TOKHEADERS);
 imap return (TOKIMAP);
 imaps return (TOKIMAPS);
 in return (TOKIN);
-(lock-types|locktypes) return (TOKLOCKTYPES);
+include return (TOKINCLUDE);
 maildir return (ACTMAILDIR);
 match return (TOKMATCH);
 matched return (TOKMATCHED);
-(maximum-size|maxsize) return (TOKMAXSIZE);
 mbox return (ACTMBOX);
 none return (TOKNONE);
 not return (TOKNOT);
