@@ -208,6 +208,9 @@ include: TOKINCLUDE STRING
 		 char		*path;
 		 struct saved	*old;
 
+		 if (*$2 == '\0')
+			 yyerror("invalid include file");
+		 
 		 old = xmalloc(sizeof *old);
 		 old->yyin = yyin;
 		 old->yylineno = yylineno;
