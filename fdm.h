@@ -69,6 +69,11 @@ extern char	*__progname;
 #endif
 
 /* Array macros. */
+#define ARRAY_DECLARE(n, c)						\
+	struct n {							\
+		c	*list;						\
+		u_int	 num;						\
+	}
 #define ARRAY_INIT(a) do {						\
 	(a)->num = 0;							\
 	(a)->list = NULL;      						\
@@ -77,6 +82,24 @@ extern char	*__progname;
 	(a)->list = xrealloc((a)->list, (a)->num + 1, sizeof (c));	\
 	((c *) (a)->list)[(a)->num] = s;				\
 	(a)->num++;							\
+} while (0)
+#define ARRAY_REMOVE(a, i, c) do {					\
+	if ((i) < 0 || (i) >= (a)->num) {				\
+		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
+		    i, __FILE__, __LINE__);				\
+		exit(1);						\
+	}								\
+	if (i < (a)->num - 1) {						\
+		size_t	 size = sizeof (c);				\
+		c 	*ptr = (a)->list + (i) * size;			\
+		memmove(ptr, ptr + size, size * ((a)->num - (i) - 1)); 	\
+	}								\
+	(a)->num--;							\
+        if ((a)->num == 0) {						\
+		xfree((a)->list);					\
+		(a)->list = NULL;					\
+	} else								\
+		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
 } while (0)
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
@@ -206,16 +229,10 @@ struct action {
 };
 
 /* Accounts array. */
-struct accounts {
-	char	**list;
-	u_int	  num;
-};
+ARRAY_DECLARE(accounts, char *);
 
 /* Actions array. */
-struct actions {
-	struct action	**list;
-	u_int	  	  num;
-};
+ARRAY_DECLARE(actions, struct action *);
 
 /* Match areas. */
 enum area {
@@ -312,22 +329,13 @@ struct deliver {
 #define LOCK_DOTLOCK 0x4
 
 /* Domains array. */
-struct domains {
-	char	**list;
-	u_int	  num;
-};
+ARRAY_DECLARE(domains, char *);
 
 /* Headers array. */
-struct headers {
-	char	**list;
-	u_int	  num;
-};
+ARRAY_DECLARE(headers, char *);
 
 /* Users array. */
-struct users {
-	char	**list;
-	u_int	  num;
-};
+ARRAY_DECLARE(users, char *);
 
 /* Configuration settings. */
 struct conf {

@@ -97,7 +97,7 @@ yywrap(void)
 	xfree(curfile);
 	curfile = old->curfile;
 	xfree(old);
-	stack.num--; /* XXX */
+	ARRAY_REMOVE(&stack, ARRAY_LENGTH(&stack) - 1, struct saved *);
 
         return (0);
 }
