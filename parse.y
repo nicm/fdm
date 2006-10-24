@@ -42,10 +42,7 @@ struct saved {
 	int		 yylineno;
 	char		*curfile;
 };
-struct {
-	struct saved   **list;
-	u_int		 num;
-} stack;
+ARRAY_DECLARE(, struct saved *) stack;
 char			*curfile;
 
 extern FILE		*yyin;
