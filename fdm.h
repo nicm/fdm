@@ -84,7 +84,7 @@ extern char	*__progname;
 	(a)->num++;							\
 } while (0)
 #define ARRAY_REMOVE(a, i, c) do {					\
-	if ((i) >= (a)->num) {						\
+	if (((u_int) (i)) >= (a)->num) {				\
 		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
 		    i, __FILE__, __LINE__);				\
 		exit(1);						\
