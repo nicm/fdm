@@ -344,19 +344,11 @@ make_from(struct mail *m)
 		fromlen = strlen(from);
 	}
 
-	date = find_header(m, "Date: ", &datelen);
- 	if (datelen > INT_MAX)
-		date = NULL;
-	if (date != NULL && datelen > 0) {
-		while (isblank((int) *date)) {
-			date++;
-			datelen--;
-		}
-	} else {
-		t = time(NULL);
-		date = ctime(&t);
-		datelen = strlen(date);
-	}
+	/* the date header is RFC822 but mbox headers use ctime(3). just fake
+	   it up for now. XXX parse date header? */
+	t = time(NULL);
+	date = ctime(&t);
+	datelen = strlen(date);
 
 	xasprintf(&m->from, "From %.*s %.*s", (int) fromlen, from,
 	    (int) datelen, date);
