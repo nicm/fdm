@@ -114,9 +114,8 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 					goto error;
 				line_init(m, &ptr, &len);
 				while (ptr != NULL) {
-					/* write without \n */
-					io_writeline(io, "%.*s", (int) len - 1,
-					    ptr); /* XXX cast */
+					io_write(io, ptr, len - 1);
+					io_writeline(io, NULL);
 
 					/* update if necessary */
 					if (io_update(io, &cause) != 1)
