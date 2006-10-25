@@ -274,14 +274,28 @@ set: TOKSET TOKMAXSIZE size
      }
    | TOKSET domains
      {
-	     if (conf.domains != NULL) /* XXX free */
-		     yyerror("cannot set domains twice");
+	     u_int	i;
+
+	     if (conf.domains != NULL) {
+		     for (i = 0; i < ARRAY_LENGTH(conf.domains); i++)
+			     xfree(ARRAY_ITEM(conf.domains, i, void *));
+		     ARRAY_FREE(conf.domains);
+		     xfree(conf.domains);
+	     }
+		     
 	     conf.domains = $2;
      }
    | TOKSET headers
      {
-	     if (conf.headers != NULL) /* XXX free */
-		     yyerror("cannot set headers twice");
+	     u_int	i;
+
+	     if (conf.headers != NULL) {
+		     for (i = 0; i < ARRAY_LENGTH(conf.headers); i++)
+			     xfree(ARRAY_ITEM(conf.headers, i, void *));
+		     ARRAY_FREE(conf.headers);
+		     xfree(conf.headers);
+	     }
+
 	     conf.headers = $2;
      }
    | TOKSET TOKPROXY STRING
