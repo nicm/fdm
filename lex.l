@@ -129,9 +129,8 @@ extern struct macro		*find_macro(char *);
 			if (ch == 0 || ch == EOF)
 				yyerror("unterminated string");
 			if (ch != '{') {
-				*(yylval.string + pos) = name[0];
-				pos++;
-				ENSURE_SIZE(yylval.string, len, pos);
+				unput(ch);
+				ch = name[0];
 				break;
 			}
 			
