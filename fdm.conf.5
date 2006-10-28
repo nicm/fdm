@@ -146,6 +146,22 @@ command:
 .El
 .Pp
 The file to include is searched for first as an absolute path and then relative to the directory containing the main configuration file.
+.Sh MACROS
+Macros may be defined using the following syntax:
+.Bl -tag -width Ds
+.It Xo Ar $name Ic = Ar string                                                   .Xc
+.It Xo Ar %name Ic = Ar number
+.Xc
+.El
+.Pp
+Macros are prefixed with $ to indicate a string value and % to indicate a numeri\
+c value.
+Once defined, a macro may be used in any place a string or number is expected. M\
+acros may be embedded in strings by surrounding their name (after the $ or %) wi\
+th {}s, like so:
+.Bd -ragged -offset indent                                                       
+"abc ${mymacro} %{anothermacro} def"                                             
+.Ed
 .Sh ACCOUNTS
 The
 .Ic account
