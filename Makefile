@@ -4,7 +4,7 @@
 .PHONY: clean update-index.html upload-index.html
 
 PROG= fdm
-VERSION= 0.5
+VERSION= 0.6
 
 OS!= uname
 REL!= uname -r
