@@ -8,3 +8,4 @@
 - filter based on mail size
 - add more examples to the man page
 - daemon mode
+- per-action history

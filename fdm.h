@@ -1,4 +1,4 @@
-#/* $Id$ */
+/* $Id$ */
 
 /*
  * Copyright (c) 2006 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -33,6 +33,8 @@
 #define SYSCONFFILE	"/etc/fdm.conf"
 #define LOCKFILE	".fdm.lock"
 #define SYSLOCKFILE	"/var/run/fdm.lock"
+#define HISTFILE	".fdm.hist"
+#define SYSHISTFILE	"/var/db/fdm.hist"
 #define MAXMAILSIZE	INT_MAX
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
@@ -170,6 +172,23 @@ TAILQ_HEAD(macros, macro);
 	((c) >= '0' && (c) <= '9') ||					\
 	(c) == '_' || (c) == '-')
 
+/* Command-line commands. */
+enum cmd {
+	CMD_NONE = 0,
+	CMD_POLL,
+	CMD_FETCH
+};
+
+/* History data. */
+struct hist {
+	time_t		 	 since;
+	u_int			 runs;
+
+	u_int		 	 mails;
+	unsigned long long	 bytes;
+};
+
+
 /* Server description. */
 struct server {
 	char		*host;
@@ -191,13 +210,6 @@ struct proxy {
 	char		*user;
 	char		*pass;
 	struct server	 server;
-};
-
-/* Command-line commands. */
-enum cmd {
-	CMD_NONE,
-	CMD_POLL,
-	CMD_FETCH
 };
 
 /* A single mail. */
@@ -241,6 +253,8 @@ struct account {
 	int			 disabled;
 	struct fetch		*fetch;
 	void			*data;
+
+	struct hist		 hist;
 
 	TAILQ_ENTRY(account)	 entry;
 };
@@ -391,8 +405,11 @@ struct conf {
 	} info;
 
 	char			*conf_file;
+	char			*hist_file;
 	char			*lock_file;
 	int			 check_only;
+	int			 show_hist;
+	int			 clear_hist;
 	int			 allow_many;
 
 	size_t			 max_size;
@@ -595,10 +612,12 @@ size_t	 		 strlcat(char *, const char *, size_t);
 
 /* fdm.c */
 int			 dropto(uid_t, char *);
+int			 check_incl(char *);
+int		         check_excl(char *);
 void			 fill_info(const char *);
 
 /* child.c */
-int			 child(int, enum cmd);
+int			 child(int, enum cmd, FILE *);
 
 /* parent.c */
 int			 parent(int, pid_t);
@@ -632,6 +651,11 @@ void			 free_wrapped(struct mail *);
 	((ch >= 'A' || ch <= 'z') ? 26 + ch - 'A' : -1))
 char			*replaceinfo(char *, struct account *, struct action *);
 char 			*replace(char *, char *[52]);
+
+/* history.c */
+int		 	 save_hist(FILE *);
+int		 	 load_hist(FILE *);
+void			 dump_hist(void);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *);

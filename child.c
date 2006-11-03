@@ -27,46 +27,12 @@
 
 #include "fdm.h"
 
-int	check_incl(char *);
-int	check_excl(char *);
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	perform_match(struct account *, struct mail *, struct rule *);
 
 int
-check_incl(char *name)
-{
-	u_int	i;
-
-	if (ARRAY_EMPTY(&conf.incl))
-		return (1);
-
-	for (i = 0; i < ARRAY_LENGTH(&conf.incl); i++) {
-		if (name_match(ARRAY_ITEM(&conf.incl, i, char *), name))
-			return (1);
-	}
-
-	return (0);
-}
-
-int
-check_excl(char *name)
-{
-	u_int	i;
-
-	if (ARRAY_EMPTY(&conf.excl))
-		return (0);
-
-	for (i = 0; i < ARRAY_LENGTH(&conf.excl); i++) {
-		if (name_match(ARRAY_ITEM(&conf.excl, i, char *), name))
-			return (1);
-	}
-
-	return (0);
-}
-
-int
-child(int fd, enum cmd cmd)
+child(int fd, enum cmd cmd, FILE *histf)
 {
 	struct io	*io;
 	struct msg	 msg;
@@ -76,6 +42,14 @@ child(int fd, enum cmd cmd)
 #ifdef DEBUG
 	xmalloc_clear();
 #endif
+
+	/* load history */
+	log_debug2("child: loading history");
+	if (histf != NULL && load_hist(histf) != 0)
+		log_warnx("child: error loading history");
+
+        SSL_library_init();
+        SSL_load_error_strings();
 
 	io = io_create(fd, NULL, IO_LF);
 	log_debug("child: started, pid %ld", (long) getpid());
@@ -143,6 +117,14 @@ child(int fd, enum cmd cmd)
 			a->fetch->disconnect(a);
 	}
 
+	/* save history */
+	log_debug2("child: saving history");
+	if (histf != NULL) {
+		if (save_hist(histf) != 0)
+			log_warnx("child: error saving history");
+		fclose(histf);
+	}
+
         log_debug("child: finished processing. exiting");
 
 	msg.type = MSG_EXIT;
@@ -195,6 +177,11 @@ fetch_account(struct io *io, struct account *a)
 		return (1);
 	}
 	log_debug("%s: fetching", a->name);
+
+	/* update history */
+	a->hist.runs++;
+	if (a->hist.since == 0)
+		a->hist.since = time(NULL);  
 
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
@@ -293,6 +280,10 @@ fetch_account(struct io *io, struct account *a)
 		}
 
 	delete:
+		/* update history */
+		a->hist.mails++;
+		a->hist.bytes += m.size;
+
 		/* delete the message */
 		if (a->fetch->delete != NULL) {
 			log_debug("%s: deleting message", a->name);
@@ -311,7 +302,8 @@ out:
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
 
-	gettimeofday(&tv, NULL);
+	if (gettimeofday(&tv, NULL) != 0)
+		fatal("gettimeofday");
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
 	if (n > 0) {
 		log_info("%s: %u messages processed in %.3f seconds "

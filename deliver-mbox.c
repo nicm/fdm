@@ -36,8 +36,8 @@ struct deliver deliver_mbox = { "mbox", mbox_deliver };
 int
 mbox_deliver(struct account *a, struct action *t, struct mail *m)
 {
-	char		*path, *ptr;
-	size_t	 	 len;
+	char		*path, *ptr, *ptr2;
+	size_t	 	 len, len2;
 	int	 	 fd = -1, res = DELIVER_FAILURE;
 	struct stat	 sb;
 
@@ -105,11 +105,22 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 	/* write the mail */
 	line_init(m, &ptr, &len);
 	while (ptr != NULL) {
-		if (ptr != m->data &&
-		    len >= 5 && strncmp(ptr, "From ", 5) == 0) {
-			if (write(fd, ">", 1) == -1) {
-				log_warn("%s: %s: write", a->name, path);
-				goto out;
+		if (ptr != m->data) {
+			/* skip >s */
+			ptr2 = ptr; 
+			len2 = len;
+			while (*ptr2 == '>' && len2 > 0) {
+				ptr2++;
+				len2--;
+			}
+			if (len2 >= 5 && strncmp(ptr2, "From ", 5) == 0) {
+				log_debug2("%s: quoting from line: %.*s",
+				    a->name, (int) len - 1, ptr);
+				if (write(fd, ">", 1) == -1) {
+					log_warn("%s: %s: write", a->name,
+					    path);
+					goto out;
+				}
 			}
 		}
 
@@ -120,10 +131,16 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 
 		line_next(m, &ptr, &len);
 	}
-
-	if (write(fd, "\n\n", 2) == -1) {
-		log_warn("%s: %s: write", a->name, path);
-		goto out;
+	if (m->data[m->size - 1] == '\n') {
+		if (write(fd, "\n", 1) == -1) {
+			log_warn("%s: %s: write", a->name, path);
+			goto out;
+		}
+	} else {
+		if (write(fd, "\n\n", 2) == -1) {
+			log_warn("%s: %s: write", a->name, path);
+			goto out;
+		}
 	}
 
 	res = DELIVER_SUCCESS;

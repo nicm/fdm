@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <grp.h>
 #include <limits.h>
 #include <pwd.h>
@@ -137,10 +138,42 @@ dropto(uid_t uid, char *path)
 	return (0);
 }
 
+int
+check_incl(char *name)
+{
+	u_int	i;
+
+	if (ARRAY_EMPTY(&conf.incl))
+		return (1);
+
+	for (i = 0; i < ARRAY_LENGTH(&conf.incl); i++) {
+		if (name_match(ARRAY_ITEM(&conf.incl, i, char *), name))
+			return (1);
+	}
+
+	return (0);
+}
+
+int
+check_excl(char *name)
+{
+	u_int	i;
+
+	if (ARRAY_EMPTY(&conf.excl))
+		return (0);
+
+	for (i = 0; i < ARRAY_LENGTH(&conf.excl); i++) {
+		if (name_match(ARRAY_ITEM(&conf.excl, i, char *), name))
+			return (1);
+	}
+
+	return (0);
+}
+
 __dead void
 usage(void)
 {
-	printf("usage: %s [-lmnv] [-f conffile] [-u user] "
+	printf("usage: %s [-lmnv] [-f conffile] [-h show|clear] [-u user] "
 	    "[-a name] [-x name] [fetch|poll]\n", __progname);
         exit(1);
 }
@@ -148,17 +181,18 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, fds[2], fd, rc;
+        int		 opt, fds[2], lockfd, rc;
 	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
 	const char	*errstr;
 	char		 tmp[512];
 	const char	*proxy = NULL;
-	char		*user = NULL, *lock = NULL;
+	char		*user = NULL, *lock = NULL, *hist = NULL;
 	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
 	struct stat	 sb;
+	FILE		*histf = NULL;
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -172,7 +206,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:f:mlnu:vx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:f:h:mlnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, char *);
@@ -180,11 +214,19 @@ main(int argc, char **argv)
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
                         break;
-		case 'm':
-			conf.allow_many = 1;
+		case 'h':
+			if (strncmp(optarg, "show", strlen(optarg)) == 0)
+				conf.show_hist = 1;
+			else if (strncmp(optarg, "clear", strlen(optarg)) == 0)
+				conf.clear_hist = 1;
+			else
+				usage();
 			break;
 		case 'l':
 			conf.syslog = 1;
+			break;
+		case 'm':
+			conf.allow_many = 1;
 			break;
 		case 'n':
 			conf.check_only = 1;
@@ -205,7 +247,7 @@ main(int argc, char **argv)
         }
 	argc -= optind;
 	argv += optind;
-	if (conf.check_only) {
+	if (conf.check_only || conf.show_hist || conf.clear_hist) {
 		if (argc != 0)
 			usage();
 	} else {
@@ -269,6 +311,45 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	log_debug("configuration loaded");
+
+	/* find history file */
+	hist = conf.hist_file;
+	if (hist == NULL) {
+		if (geteuid() == 0)
+			hist = xstrdup(SYSHISTFILE);
+		else
+			xasprintf(&hist, "%s/%s", conf.info.home, HISTFILE);
+	}
+	log_debug2("history file is: %s", hist);
+	if (*hist != '\0' && (histf = fopen(hist, "r+")) == NULL) {
+		if ((histf = fopen(hist, "w+")) == NULL)
+			log_warn("%s", hist);
+	}
+
+	/* show or clear history if necessary */
+	if (conf.show_hist) {
+		if (histf == NULL)
+			exit(1);
+
+		if (load_hist(histf) != 0) {
+			log_warnx("error loading history");
+			exit(1);
+		}
+		fclose(histf);
+
+		dump_hist();
+		
+		exit(0);
+	} else if (conf.clear_hist) {
+		if (save_hist(histf) != 0) {
+			log_warnx("error saving history");
+			exit(1);
+		}
+		fclose(histf);
+		
+		log_info("history cleared");
+		exit(0);
+	}
 
 	/* fill proxy */
 	proxy = getenv("http_proxy");
@@ -367,31 +448,28 @@ main(int argc, char **argv)
 	}
 
 	/* check lock file */
-	lock = conf.lock_file;
+ 	lock = conf.lock_file;
 	if (lock == NULL) {
 		if (geteuid() == 0)
 			lock = xstrdup(SYSLOCKFILE);
 		else
 			xasprintf(&lock, "%s/%s", conf.info.home, LOCKFILE);
 	}
-	if (!conf.allow_many) {
-		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
-		if (fd == -1 && errno == EEXIST) {
+	if (*lock != '\0' && !conf.allow_many) {
+		lockfd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		if (lockfd == -1 && errno == EEXIST) {
 			log_warnx("already running (%s exists)", lock);
 			exit(1);
-		} else if (fd == -1) {
+		} else if (lockfd == -1) {
 			log_warn("%s: open", lock);
 			exit(1);
 		}
-		close(fd);
+		close(lockfd);
 	}
-
+	    
 #ifdef DEBUG
 	xmalloc_clear();
 #endif
-
-        SSL_library_init();
-        SSL_load_error_strings();
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 		fatal("socketpair");
@@ -400,8 +478,10 @@ main(int argc, char **argv)
 		fatal("fork");
 	case 0:
 		close(fds[0]);
-		_exit(child(fds[1], cmd));
+		_exit(child(fds[1], cmd, histf));
 	default:
+		if (histf != NULL)
+			fclose(histf);
 		close(fds[1]);
 		rc = parent(fds[0], pid);
 		if (!conf.allow_many)

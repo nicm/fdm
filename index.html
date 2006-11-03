@@ -60,7 +60,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      and the user's <I>~/.forward </I>file should be set to contain something like
      (including quotation marks):
 
-           "|/usr/local/bin/fdm -l -a stdinacct fetch"
+           "|/usr/local/bin/fdm -ml -a stdinacct fetch"
 
      sendmail(8) will then invoke <B>fdm </B>to deliver mail and <B>fdm </B>will pass it
      through any filtering rules as normal.
@@ -166,6 +166,20 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      The file to include is searched for first as an absolute path and then
      relative to the directory containing the main configuration file.
+
+<B>MACROS</B>
+     Macros may be defined using the following syntax:
+
+     <I>$name <B></I>= </B><I>string</I>
+
+     <I>%name <B></I>= </B><I>number</I>
+
+     Macros are prefixed with $ to indicate a string value and % to indicate a
+     numeric value.  Once defined, a macro may be used in any place a string
+     or number is expected. Macros may be embedded in strings by surrounding
+     their name (after the $ or %) with {}s, like so:
+
+           "abc ${mymacro} %{anothermacro} def"
 
 <B>ACCOUNTS</B>
      The <B>account </B>command is used to instruct fdm(1) to fetch mail from an ac-
