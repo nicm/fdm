@@ -121,4 +121,6 @@ dump_hist(void)
 		printf("%-24s%-26.26s%8u%8u%12llu\n",
 		    a->name, since, a->hist.runs, a->hist.mails, a->hist.bytes);
 	}
+
+	fflush(stdout);
 }
