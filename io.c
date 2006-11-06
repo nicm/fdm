@@ -122,7 +122,7 @@ io_poll(struct io *io, char **cause)
 
 	if (io->error != NULL) {
 		if (cause != NULL)
-			*cause = io->error;
+			*cause = xstrdup(io->error);
 		return (-1);
 	}
 	if (io->closed)
@@ -188,7 +188,7 @@ error:
 		return (1);
 	}
 	if (cause != NULL)
-		*cause = io->error;
+		*cause = xstrdup(io->error);
 	return (-1);
 }
 
@@ -213,6 +213,8 @@ io_fill(struct io *io)
 	if (io->rspace - io->rsize < IO_BLOCKSIZE) {
 		io->rspace += IO_BLOCKSIZE;
 		if (io->rspace > IO_MAXBUFFERLEN) {
+			if (io->error != NULL)
+				xfree(io->error);
 			io->error = xstrdup("io: maximum buffer length "
 			    "exceeded");
 			return (-1);
@@ -227,6 +229,8 @@ io_fill(struct io *io)
 		if (n == 0)
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
+			if (io->error != NULL)
+				xfree(io->error);
 			xasprintf(&io->error, "io: read: %s", strerror(errno));
 			return (-1);
 		}
@@ -246,6 +250,8 @@ io_fill(struct io *io)
 				io->need |= IO_NEED_FILL;
 				break;
 			default:
+				if (io->error != NULL)
+					xfree(io->error);
 				xasprintf(&io->error, "io: SSL_read: %s",
 				    SSL_err());
 				return (-1);
@@ -298,6 +304,8 @@ io_push(struct io *io)
 		if (n == 0)
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
+			if (io->error != NULL)
+				xfree(io->error);
 			xasprintf(&io->error, "io: write: %s", strerror(errno));
 			return (-1);
 		}
@@ -315,6 +323,8 @@ io_push(struct io *io)
 				   so this can be ignored */
 				break;
 			default:
+				if (io->error != NULL)
+					xfree(io->error)
 				xasprintf(&io->error, "io: SSL_write: %s",
 				    SSL_err());
 				return (-1);
@@ -449,6 +459,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			/* not found within the length searched. if that was
 			   the maximum, it is an error */
 			if (io->rsize > IO_MAXLINELEN) {
+				if (io->error != NULL)
+					xfree(io->error);
 				io->error = xstrdup("io: maximum line length "
 				    "exceeded");
 				return (NULL);
