@@ -184,6 +184,7 @@ main(int argc, char **argv)
         int		 opt, fds[2], lockfd, rc;
 	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
+	enum histcmd	 histcmd = HISTCMD_NONE;
 	const char	*errstr;
 	char		 tmp[512];
 	const char	*proxy = NULL;
@@ -216,9 +217,9 @@ main(int argc, char **argv)
                         break;
 		case 'h':
 			if (strncmp(optarg, "show", strlen(optarg)) == 0)
-				conf.show_hist = 1;
+				histcmd = HISTCMD_SHOW;
 			else if (strncmp(optarg, "clear", strlen(optarg)) == 0)
-				conf.clear_hist = 1;
+				histcmd = HISTCMD_CLEAR;
 			else
 				usage();
 			break;
@@ -247,7 +248,7 @@ main(int argc, char **argv)
         }
 	argc -= optind;
 	argv += optind;
-	if (conf.check_only || conf.show_hist || conf.clear_hist) {
+	if (conf.check_only || histcmd != HISTCMD_NONE) {
 		if (argc != 0)
 			usage();
 	} else {
@@ -312,7 +313,7 @@ main(int argc, char **argv)
 	}
 	log_debug("configuration loaded");
 
-	/* find history file */
+	/* find history file and open it */
 	hist = conf.hist_file;
 	if (hist == NULL) {
 		if (geteuid() == 0)
@@ -327,35 +328,12 @@ main(int argc, char **argv)
 				log_warn("%s", hist);
 		}
 	} else
-		log_debug2("history file is disabled");
+		log_debug2("history is disabled");
+	conf.hist_file = hist;
 
-	/* show or clear history if necessary */
-	if (conf.show_hist) {
-		if (histf == NULL)
-			exit(1);
-
-		if (load_hist(histf) != 0) {
-			log_warnx("error loading history");
-			exit(1);
-		}
-		fclose(histf);
-
-		dump_hist();
-		
-		exit(0);
-	} else if (conf.clear_hist) {
-		if (histf == NULL)
-			exit(1);
-
-		if (save_hist(histf) != 0) {
-			log_warnx("error saving history");
-			exit(1);
-		}
-		fclose(histf);
-		
-		log_info("history cleared");
-		exit(0);
-	}
+	/* do history command if specified */
+	if (histcmd != HISTCMD_NONE)
+		exit(do_hist(histcmd, histf));
 
 	/* fill proxy */
 	proxy = getenv("http_proxy");
@@ -397,6 +375,7 @@ main(int argc, char **argv)
 	}
 	log_debug("locking using: %s", tmp);
 
+	/* initialise and print headers and domains */
 	if (conf.headers == NULL) {
 		conf.headers = xmalloc(sizeof (struct headers));
 		ARRAY_INIT(conf.headers);
@@ -454,7 +433,7 @@ main(int argc, char **argv)
 	}
 
 	/* check lock file */
- 	lock = conf.lock_file;
+	lock = conf.lock_file;
 	if (lock == NULL) {
 		if (geteuid() == 0)
 			lock = xstrdup(SYSLOCKFILE);
@@ -472,6 +451,7 @@ main(int argc, char **argv)
 		}
 		close(lockfd);
 	}
+	conf.lock_file = lock;
 	    
 #ifdef DEBUG
 	xmalloc_clear();
@@ -491,7 +471,7 @@ main(int argc, char **argv)
 		close(fds[1]);
 		rc = parent(fds[0], pid);
 		if (!conf.allow_many)
-			unlink(lock);
+			unlink(conf.lock_file);
 		exit(rc);
 	}
 }

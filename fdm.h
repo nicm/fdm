@@ -176,6 +176,13 @@ enum cmd {
 	CMD_FETCH
 };
 
+/* History commands. */
+enum histcmd {
+	HISTCMD_NONE = 0,
+	HISTCMD_CLEAR,
+	HISTCMD_SHOW
+};
+
 /* History data. */
 struct hist {
 	time_t		 	 since;
@@ -404,8 +411,6 @@ struct conf {
 	char			*hist_file;
 	char			*lock_file;
 	int			 check_only;
-	int			 show_hist;
-	int			 clear_hist;
 	int			 allow_many;
 
 	size_t			 max_size;
@@ -649,6 +654,7 @@ char			*replaceinfo(char *, struct account *, struct action *);
 char 			*replace(char *, char *[52]);
 
 /* history.c */
+int			 do_hist(enum histcmd, FILE *); 
 int		 	 save_hist(FILE *);
 int		 	 load_hist(FILE *);
 void			 dump_hist(void);
