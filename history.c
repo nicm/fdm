@@ -29,7 +29,8 @@ int
 load_hist(FILE *f)
 {
 	struct account	*a;
-	char		 name[MAXNAMESIZE], fmt[32], ch;
+	char		 name[MAXNAMESIZE], fmt[32];
+	int 		 ch;
 	size_t		 len;
 
 	if (fseeko(f, 0, SEEK_SET) != 0)

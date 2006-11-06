@@ -60,7 +60,8 @@ void
 xmalloc_dump(char *hdr)
 {
  	u_int	i;
-	size_t	len, off;
+	int	off, off2;
+	size_t	len;
 	char	tmp[4096];
 
 	log_debug("%s: allocated=%zu, freed=%zu", hdr, xmalloc_allocated,
@@ -70,11 +71,15 @@ xmalloc_dump(char *hdr)
 		return;
 
 	len = 1024;
-	off = xsnprintf(tmp, len, "%s: ", hdr);
+	if ((off = xsnprintf(tmp, len, "%s: ", hdr)) < 0)
+		fatal("xsnprintf");
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
 		if (xmalloc_array[i].ptr != NULL) {
-			off += xsnprintf(tmp + off, len - off, "[%p %zu] ",
+			off2 = xsnprintf(tmp + off, len - off, "[%p %zu] ",
 			    xmalloc_array[i].ptr, xmalloc_array[i].size);
+			if (off2 < 0)
+				fatal("xsnprintf");
+			off += off2;
 		}
 	}
 	tmp[off - 1] = '\0';

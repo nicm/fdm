@@ -149,7 +149,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		goto out;
 	}
 
-	if (m2.size <= 0) {
+	if (m2.size == 0) {
 		log_warnx("%s: %s: empty mail returned", a->name, cmd);
 		free_mail(&m2);
 		goto out;
