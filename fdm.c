@@ -470,7 +470,7 @@ main(int argc, char **argv)
 			fclose(histf);
 		close(fds[1]);
 		rc = parent(fds[0], pid);
-		if (!conf.allow_many)
+		if (*conf.lock_file != '\0' && !conf.allow_many)
 			unlink(conf.lock_file);
 		exit(rc);
 	}
