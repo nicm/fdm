@@ -131,16 +131,10 @@ mbox_deliver(struct account *a, struct action *t, struct mail *m)
 
 		line_next(m, &ptr, &len);
 	}
-	if (m->data[m->size - 1] == '\n') {
-		if (write(fd, "\n", 1) == -1) {
-			log_warn("%s: %s: write", a->name, path);
-			goto out;
-		}
-	} else {
-		if (write(fd, "\n\n", 2) == -1) {
-			log_warn("%s: %s: write", a->name, path);
-			goto out;
-		}
+	len = m->data[m->size - 1] == '\n' ? 1 : 2;
+	if (write(fd, "\n\n", len) == -1) {
+		log_warn("%s: %s: write", a->name, path);
+		goto out;
 	}
 
 	res = DELIVER_SUCCESS;

@@ -44,9 +44,11 @@ child(int fd, enum cmd cmd, FILE *histf)
 #endif
 
 	/* load history */
-	log_debug2("child: loading history");
-	if (histf != NULL && load_hist(histf) != 0)
-		log_warnx("child: error loading history");
+	if (histf != NULL) {
+		log_debug2("child: loading history");
+		if (load_hist(histf) != 0)
+			log_warnx("child: error loading history");
+	}
 
         SSL_library_init();
         SSL_load_error_strings();
@@ -118,8 +120,8 @@ child(int fd, enum cmd cmd, FILE *histf)
 	}
 
 	/* save history */
-	log_debug2("child: saving history");
 	if (histf != NULL) {
+		log_debug2("child: saving history");
 		if (save_hist(histf) != 0)
 			log_warnx("child: error saving history");
 		fclose(histf);

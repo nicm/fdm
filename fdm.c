@@ -320,11 +320,14 @@ main(int argc, char **argv)
 		else
 			xasprintf(&hist, "%s/%s", conf.info.home, HISTFILE);
 	}
-	log_debug2("history file is: %s", hist);
-	if (*hist != '\0' && (histf = fopen(hist, "r+")) == NULL) {
-		if ((histf = fopen(hist, "w+")) == NULL)
-			log_warn("%s", hist);
-	}
+	if (*hist != '\0') {
+		log_debug2("history file is: %s", hist);
+		if ((histf = fopen(hist, "r+")) == NULL) {
+			if ((histf = fopen(hist, "w+")) == NULL)
+				log_warn("%s", hist);
+		}
+	} else
+		log_debug2("history file is disabled");
 
 	/* show or clear history if necessary */
 	if (conf.show_hist) {
@@ -341,6 +344,9 @@ main(int argc, char **argv)
 		
 		exit(0);
 	} else if (conf.clear_hist) {
+		if (histf == NULL)
+			exit(1);
+
 		if (save_hist(histf) != 0) {
 			log_warnx("error saving history");
 			exit(1);

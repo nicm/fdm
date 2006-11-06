@@ -53,6 +53,7 @@ load_hist(FILE *f)
 				break;
 		}
 		if (a == TAILQ_END(&conf.accounts)) {
+			/* skip the rest */
 			do {
 				ch = fgetc(f);
 			} while (ch != EOF && ch != '\n');
