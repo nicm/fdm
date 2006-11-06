@@ -324,7 +324,7 @@ io_push(struct io *io)
 				break;
 			default:
 				if (io->error != NULL)
-					xfree(io->error)
+					xfree(io->error);
 				xasprintf(&io->error, "io: SSL_write: %s",
 				    SSL_err());
 				return (-1);
