@@ -151,8 +151,10 @@ poll_account(unused struct io *io, struct account *a)
 	}
 	log_debug("%s: polling", a->name);
 
-	if (a->fetch->poll(a, &n) == POLL_ERROR)
+	if (a->fetch->poll(a, &n) == POLL_ERROR) {
+		log_warnx("%s: polling error. aborted", a->name);
 		return (1);
+	}
 
 	log_info("%s: %u messages found", a->name, n);
 
