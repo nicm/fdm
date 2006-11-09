@@ -60,7 +60,7 @@ stdin_connect(struct account *a)
 	}
 
 	data->io = io_create(STDIN_FILENO, NULL, IO_LF);
-	if (conf.debug > 3)
+	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	data->complete = 0;

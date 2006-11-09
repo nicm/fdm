@@ -51,7 +51,7 @@ smtp_deliver(struct account *a, struct action *t, struct mail *m)
 		xfree(cause);
 		return (DELIVER_FAILURE);
 	}
-	if (conf.debug > 3)
+	if (conf.debug > 3 && !conf.syslog)
 		io->dup_fd = STDOUT_FILENO;
 
 	xasprintf(&from, "%s@%s", conf.info.user, conf.info.host);

@@ -56,7 +56,7 @@ pop3_connect(struct account *a)
 		xfree(cause);
 		return (1);
 	}
-	if (conf.debug > 3)
+	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	data->state = POP3_CONNECTING;
