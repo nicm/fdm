@@ -107,14 +107,23 @@ extern char	*__progname;
 	} else								\
 		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
 } while (0)
+#define ARRAY_CONCAT(a, b, c) {						\
+	size_t	size = sizeof (c);					\
+	(a)->list = xrealloc((a)->list, (a)->num + (b)->num, size);	\
+	memcpy((a)->list + (a)->num, (b)->list, (b)->num * size);  	\
+	(a)->num += (b)->num;						\
+} while (0)
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
 #define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
 #define ARRAY_FREE(a) do {						\
-	if ((a)->list != NULL) {					\
+	if ((a)->list != NULL)						\
 		xfree((a)->list);					\
-		ARRAY_INIT(a);						\
-	}								\
+	ARRAY_INIT(a);							\
+} while (0)
+#define ARRAY_FREEALL(a) do {						\
+	ARRAY_FREE(a);							\
+	xfree(a);							\
 } while (0)
 
 /* Definition to shut gcc up about unused arguments in a few cases. */
