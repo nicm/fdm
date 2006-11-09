@@ -128,6 +128,11 @@ xmalloc_change(void *oldptr, void *newptr, size_t newsize)
 	log_debug3("xmalloc_change: %p -> %p %zu", oldptr, newptr, newsize);
 #endif
 
+        if (oldptr == NULL) {
+                xmalloc_new(newptr, newsize);
+                return;
+        }
+
 	if ((block = xmalloc_find(oldptr)) == NULL) {
 		log_warnx("xmalloc_change: not found");
 		abort();
