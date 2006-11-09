@@ -53,7 +53,7 @@ do_hist(enum histcmd cmd, FILE *f)
 		}
 		fclose(f);
 		
-		log_info("history cleared");
+		printf("history cleared\n");
 		break;
 	}
 
