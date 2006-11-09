@@ -29,7 +29,7 @@ CFLAGS+= -g -ggdb -DDEBUG
 CFLAGS+= -pedantic -Wno-long-long
 CFLAGS+= -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes
-CFLAGS+= -Wmissing-declarations
+CFLAGS+= -Wmissing-declarations -Wwrite-strings
 CFLAGS+= -Wshadow -Wpointer-arith -Wcast-qual
 CFLAGS+= -Wsign-compare -Wredundant-decls
 CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""

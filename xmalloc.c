@@ -173,10 +173,6 @@ xstrdup(const char *s)
 	len = strlen(s) + 1;
 	ptr = xmalloc(len);
 
-#ifdef DEBUG
-	xmalloc_new(ptr, len);
-#endif
-
         return (strncpy(ptr, s, len));
 }
 
