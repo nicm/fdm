@@ -31,12 +31,16 @@
 #ifdef DEBUG
 size_t	xmalloc_allocated;
 size_t	xmalloc_freed;
+size_t	xmalloc_peak;
+u_int	xmalloc_frees;
+u_int	xmalloc_mallocs;
+u_int	xmalloc_reallocs;
 
 struct xmalloc_block {
 	void	*ptr;
 	size_t	 size;
 };
-#define XMALLOC_SLOTS 1024
+#define XMALLOC_SLOTS 8192
 struct xmalloc_block	 xmalloc_array[XMALLOC_SLOTS];
 
 struct xmalloc_block	*xmalloc_find(void *);
@@ -59,24 +63,51 @@ xmalloc_clear(void)
 void
 xmalloc_dump(char *hdr)
 {
- 	u_int	i;
-	int	off, off2;
-	size_t	len;
-	char	tmp[4096];
-
-	log_debug("%s: allocated=%zu, freed=%zu", hdr, xmalloc_allocated,
-	    xmalloc_freed);
+ 	u_int	 		 i, j, n = 0;
+	int	 		 off, off2;
+	size_t	 		 len;
+	char	 		 tmp[4096];
+	struct xmalloc_block	*p;
+	
+	log_debug("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zd", hdr,
+	    xmalloc_allocated, xmalloc_freed,
+	    xmalloc_allocated - xmalloc_freed, xmalloc_peak);
+	log_debug("%s: mallocs=%u, reallocs=%u, frees=%u", hdr,
+	    xmalloc_mallocs, xmalloc_reallocs, xmalloc_frees);
 
 	if (xmalloc_allocated == xmalloc_freed)
 		return;
 
-	len = 1024;
+	len = sizeof tmp;
 	if ((off = xsnprintf(tmp, len, "%s: ", hdr)) < 0)
 		fatal("xsnprintf");
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xmalloc_array[i].ptr != NULL) {
-			off2 = xsnprintf(tmp + off, len - off, "[%p %zu] ",
-			    xmalloc_array[i].ptr, xmalloc_array[i].size);
+		n++;
+		if (n > 64)
+			break;
+
+		p = &xmalloc_array[i];
+		if (p->ptr != NULL) {
+			off2 = xsnprintf(tmp + off, len - off, "[%p %zu:",
+			    p->ptr, p->size);
+			if (off2 < 0)
+				fatal("xsnprintf");
+			off += off2;
+
+			for (j = 0; j < (p->size > 8 ? 8 : p->size); j++) {
+				if (((char *) p->ptr)[j] > 31) {
+					off2 = xsnprintf(tmp + off, len - off,
+					    "%c", ((char *) p->ptr)[j]);
+				} else {
+					off2 = xsnprintf(tmp + off, len - off,
+					    "\\%03o", ((char *) p->ptr)[j]);
+				}
+				if (off2 < 0)
+					fatal("xsnprintf");
+				off += off2;
+			}
+
+			off2 = xsnprintf(tmp + off, len - off, "] ");
 			if (off2 < 0)
 				fatal("xsnprintf");
 			off += off2;
@@ -90,6 +121,10 @@ struct xmalloc_block *
 xmalloc_find(void *ptr)
 {
 	u_int	i;
+
+	/* XXX */
+	if (xmalloc_allocated - xmalloc_freed > xmalloc_peak)
+		xmalloc_peak = xmalloc_allocated - xmalloc_freed;
 
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
 		if (xmalloc_array[i].ptr == ptr)
@@ -128,11 +163,11 @@ xmalloc_change(void *oldptr, void *newptr, size_t newsize)
 	log_debug3("xmalloc_change: %p -> %p %zu", oldptr, newptr, newsize);
 #endif
 
-        if (oldptr == NULL) {
-                xmalloc_new(newptr, newsize);
-                return;
-        }
-
+	if (oldptr == NULL) {
+		xmalloc_new(newptr, newsize);
+		return;
+	}
+		
 	if ((block = xmalloc_find(oldptr)) == NULL) {
 		log_warnx("xmalloc_change: not found");
 		abort();
@@ -156,9 +191,8 @@ xmalloc_free(void *ptr)
 #if 0
 	log_debug3("xmalloc_free: %p", ptr);
 #endif
-
 	if ((block = xmalloc_find(ptr)) == NULL) {
-		log_warnx("xmalloc_free: not found");
+		log_warnx("xmalloc_free: not found (%p)", ptr);
 		return;
 	}
 
@@ -194,6 +228,7 @@ xcalloc(size_t nmemb, size_t size)
 		fatal("xcalloc");
 
 #ifdef DEBUG
+	xmalloc_mallocs++;
 	xmalloc_new(ptr, nmemb * size);
 #endif
 
@@ -211,6 +246,7 @@ xmalloc(size_t size)
 		fatal("xmalloc");
 
 #ifdef DEBUG
+	xmalloc_mallocs++;
 	xmalloc_new(ptr, size);
 #endif
 
@@ -231,6 +267,7 @@ xrealloc(void *oldptr, size_t nmemb, size_t size)
 		fatal("xrealloc");
 
 #ifdef DEBUG
+	xmalloc_reallocs++;
 	xmalloc_change(oldptr, newptr, newsize);
 #endif
 
@@ -245,6 +282,7 @@ xfree(void *ptr)
 	free(ptr);
 
 #ifdef DEBUG
+	xmalloc_frees++;
 	xmalloc_free(ptr);
 #endif
 }
@@ -282,6 +320,7 @@ xasprintf(char **ret, const char *fmt, ...)
                 fatal("xasprintf");
 
 #ifdef DEBUG
+	xmalloc_mallocs++;
 	xmalloc_new(*ret, i + 1);
 #endif
 
