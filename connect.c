@@ -43,10 +43,10 @@ getproxy(const char *xurl)
 	struct proxy		*pr;
 	char			*ptr, *end, *saved, *url;
 	struct {
-		char		*proto;
+		const char	*proto;
 		enum proxytype	 type;
 		int		 ssl;
-		char		*port;
+		const char	*port;
 	} *proxyent, proxylist[] = {
 		{ "http://",    PROXY_HTTP,   0, "http" },
 		{ "https://",   PROXY_HTTPS,  1, "https" },
@@ -389,7 +389,7 @@ connectio(struct server *srv, const char *eol, char **cause)
 	int		 fd = -1, error = 0, n;
 	struct addrinfo	 hints;
 	struct addrinfo	*ai;
-	char		*fn = NULL;
+	const char	*fn = NULL;
 	SSL_CTX		*ctx;
 	SSL		*ssl;
 

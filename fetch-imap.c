@@ -154,8 +154,6 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	lbuf = xmalloc(llen);
 
 	folder = data->folder;
-	if (folder == NULL)
-		folder = "INBOX";
 
 	flushing = 0;
 	line = cause = NULL;

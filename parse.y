@@ -763,7 +763,7 @@ action: ACTPIPE str
 		$$.data = data;
 
 		data->server.host = $2.host;
-		data->server.port = $2.port != NULL ? $2.port : "smtp";
+		data->server.port = $2.port != NULL ? $2.port : xstrdup("smtp");
 		data->server.ai = NULL;
 		data->to = $3;
 	}
@@ -1100,7 +1100,7 @@ fetchtype: poptype server TOKUSER str TOKPASS str
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   data->server.port =
-		       $2.port != NULL ? $2.port : $$.fetch->port;
+		       $2.port != NULL ? $2.port : xstrdup($$.fetch->port);
 		   data->server.ai = NULL;
 	   }
          | imaptype server TOKUSER str TOKPASS str folder
@@ -1111,17 +1111,19 @@ fetchtype: poptype server TOKUSER str TOKPASS str
 			   yyerror("invalid user");
 		   if (*$6 == '\0')
 			   yyerror("invalid pass");
+		   if ($7 != NULL && *$7 == '\0')
+			   yyerror("invalid folder");
 
 		   $$.fetch = &fetch_imap;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->user = $4;
 		   data->pass = $6;
-		   data->folder = $7;
+		   data->folder = $7 == NULL ? xstrdup("INBOX") : $7;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   data->server.port =
-		       $2.port != NULL ? $2.port : $$.fetch->port;
+		       $2.port != NULL ? $2.port : xstrdup($$.fetch->port);
 		   data->server.ai = NULL;
 	   }
 	 | TOKSTDIN

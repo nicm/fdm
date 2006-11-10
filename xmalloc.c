@@ -61,7 +61,7 @@ xmalloc_clear(void)
 }
 
 void
-xmalloc_dump(char *hdr)
+xmalloc_dump(const char *hdr)
 {
  	u_int	 		 i, j, n = 0;
 	int	 		 off, off2;

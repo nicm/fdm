@@ -158,9 +158,9 @@ line_next(struct mail *m, char **line, size_t *len)
 }
 
 char *
-find_header(struct mail *m, char *hdr, size_t *len)
+find_header(struct mail *m, const char *hdr, size_t *len)
 {
-	char	*ptr, *end;
+	char	*ptr, *end, *out;
 
 	*len = strlen(hdr);
 
@@ -175,14 +175,14 @@ find_header(struct mail *m, char *hdr, size_t *len)
 			return (NULL);
 	} while (strncasecmp(ptr, hdr, *len) != 0);
 
-	hdr = ptr + *len;
-	ptr = memchr(hdr, '\n', end - hdr);
+	out = ptr + *len;
+	ptr = memchr(out, '\n', end - out);
 	if (ptr == NULL)
 		*len = end - hdr;
 	else
 		*len = (ptr - hdr) + 1;
 
-	return (hdr);
+	return (out);
 }
 
 struct users *

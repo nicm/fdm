@@ -173,7 +173,8 @@ fetch_account(struct io *io, struct account *a)
 	double		 tim;
 	u_int	 	 n, i;
 	int		 error, matched;
-	char		*name, *cause = NULL;
+	char		*name;
+	const char	*cause = NULL;
 	struct accounts	*list;
 
 	if (a->fetch->fetch == NULL) {

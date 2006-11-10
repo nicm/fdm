@@ -361,22 +361,23 @@ struct rule {
 
 /* Fetch functions. */
 struct fetch {
-	char	*name;
-	char	*port;
+	const char	*name;
+	const char	*port;
 
-	int	 (*connect)(struct account *);
-	int 	 (*poll)(struct account *, u_int *);
-	int 	 (*fetch)(struct account *, struct mail *);
-	int	 (*delete)(struct account *);
-	void	 (*error)(struct account *);
-	int	 (*disconnect)(struct account *);
+	int	 	 (*connect)(struct account *);
+	int 		 (*poll)(struct account *, u_int *);
+	int	 	 (*fetch)(struct account *, struct mail *);
+	int		 (*delete)(struct account *);
+	void		 (*error)(struct account *);
+	int		 (*disconnect)(struct account *);
 };
 
 /* Deliver functions. */
 struct deliver {
-	char	*name;
+	const char	*name;
 
-	int	(*deliver)(struct account *, struct action *, struct mail *);
+	int	 	 (*deliver)(struct account *, struct action *, 
+			     struct mail *);
 };
 
 /* Lock types. */
@@ -645,7 +646,7 @@ int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
-char 			*find_header(struct mail *, char *, size_t *);
+char 			*find_header(struct mail *, const char *, size_t *);
 struct users		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
@@ -699,7 +700,7 @@ __dead void		 fatalx(const char *);
 /* xmalloc.c */
 #ifdef DEBUG
 void			 xmalloc_clear(void);
-void			 xmalloc_dump(char *);
+void			 xmalloc_dump(const char *);
 #endif
 char			*xstrdup(const char *);
 void			*xcalloc(size_t, size_t);
