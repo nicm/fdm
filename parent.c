@@ -178,7 +178,7 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 
 	/* child process. change user and group */
 	log_debug("%s: delivering using user %lu", a->name, (u_long) uid);
-	if (dropto(uid, NULL) != 0) {
+	if (dropto(uid) != 0) {
 		log_warnx("%s: can't drop privileges", a->name);
 		_exit(DELIVER_FAILURE);
 	}

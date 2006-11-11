@@ -10,3 +10,4 @@
 - daemon mode
 - per-action history
 - update man pages for history if kept
+- redo chrooting properly (resolver needs to be in parent)

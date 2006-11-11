@@ -399,8 +399,7 @@ struct conf {
 	int 			 debug;
 	int			 syslog;
 
-	uid_t			 child_uid;
-	char			*child_path;
+	uid_t			 uid;
 
 	struct accounts	 	 incl;
 	struct accounts		 excl;
@@ -622,7 +621,7 @@ size_t	 		 strlcat(char *, const char *, size_t);
 #endif
 
 /* fdm.c */
-int			 dropto(uid_t, char *);
+int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);
 void			 fill_info(const char *);

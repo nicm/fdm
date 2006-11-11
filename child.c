@@ -59,9 +59,8 @@ child(int fd, enum cmd cmd, FILE *histf)
 	if (geteuid() != 0)
 		log_debug("child: not root user. not dropping privileges");
 	else {
-		log_debug("child: changing to user %lu, path %s",
-		    (u_long) conf.child_uid, conf.child_path);
-		if (dropto(conf.child_uid, conf.child_path) != 0)
+		log_debug("child: changing to user %lu", (u_long) conf.uid);
+		if (dropto(conf.uid) != 0)
 			fatal("dropto");
         }
 #ifndef NO_SETPROCTITLE
