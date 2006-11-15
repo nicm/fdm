@@ -161,7 +161,7 @@ extern struct macro		*find_macro(char *);
 				s = macro->value.string;
 			slen = strlen(s);
 
-			ENSURE_SIZE(yylval.string, len, pos + slen + 1);
+			ENSURE_FOR(yylval.string, len, pos, slen + 1);
 			memcpy(yylval.string + pos, s, slen);
 			pos += slen;
 

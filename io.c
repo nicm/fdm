@@ -405,7 +405,7 @@ io_write(struct io *io, const void *buf, size_t len)
 		return;
 
 	if (len != 0) {
-		ENSURE_SIZE(io->wbase, io->wspace, io->wsize + len);
+		ENSURE_FOR(io->wbase, io->wspace, io->wsize, len);
 
 		memcpy(io->wbase + io->wsize, buf, len);
 		io->wsize += len;
@@ -467,7 +467,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			}
 			/* if the socket has closed, just return the rest */
 			if (io->closed) {
-				ENSURE_SIZE(*buf, *len, io->rsize + 1);
+				ENSURE_FOR(*buf, *len, io->rsize, 1);
 				memcpy(*buf, io->rbase + io->roff, io->rsize);
 				(*buf)[io->rsize] = '\0';
 				io->roff += io->rsize;
@@ -481,7 +481,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	}
 
 	/* copy the line */
-	ENSURE_SIZE(*buf, *len, off + 1);
+	ENSURE_FOR(*buf, *len, off, 1);
 	memcpy(*buf, io->rbase + io->roff, off);
 	(*buf)[off] = '\0';
 

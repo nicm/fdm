@@ -55,7 +55,7 @@ replace(char *src, char *map[REPL_LEN])
 		case '%':
 			ch = *++ptr;
 			if (ch == '\0') {
-				ENSURE_SIZE(dst, len, off + 1);
+				ENSURE_FOR(dst, len, off, 1);
 				dst[off++] = '%';
 				goto out;
 			}
@@ -63,26 +63,26 @@ replace(char *src, char *map[REPL_LEN])
 			if (REPL_IDX(ch) != -1)
 				rp = map[REPL_IDX(ch)];
 			if (rp == NULL) {
-				ENSURE_SIZE(dst, len, off + 2);
+				ENSURE_FOR(dst, len, off, 2);
 				dst[off++] = '%';
 				dst[off++] = ch;
 				break;
 			}
 
 			rl = strlen(rp);
-			ENSURE_SIZE(dst, len, off + rl);
+			ENSURE_FOR(dst, len, off, rl);
 			memcpy(dst + off, rp, rl);
 			off += rl;
 			break;
 		default:
-			ENSURE_SIZE(dst, len, off + 1);
+			ENSURE_FOR(dst, len, off, 1);
 			dst[off++] = *ptr;
 			break;
 		}
 	}
 
 out:
-	ENSURE_SIZE(dst, len, off + 1);
+	ENSURE_FOR(dst, len, off, 1);
 	dst[off] = '\0';
 
 	return (dst);
