@@ -358,8 +358,8 @@ u_int
 fill_wrapped(struct mail *m)
 {
 	char		*ptr;
-	size_t	 	 off, end;
-	u_int		 size, p;
+	size_t	 	 off, end, size;
+	u_int		 p;
 
 	size = 128 * sizeof (size_t);
 	p = 0;
@@ -381,7 +381,7 @@ fill_wrapped(struct mail *m)
 			continue;
 
 		/* save the position */
-		ENSURE_SIZE(m->wrapped, size, (p + 2) * sizeof (size_t));
+		ENSURE_SIZE2(m->wrapped, size, p + 2, sizeof (size_t));
 		m->wrapped[p] = off - 1;
 		p++;
 		m->wrapped[p] = 0;

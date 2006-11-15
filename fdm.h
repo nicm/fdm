@@ -135,11 +135,17 @@ extern char	*__progname;
 #define printflike3 __attribute__ ((format (printf, 3, 4)))
 
 /* Ensure buffer size. */
-#define ENSURE_SIZE(buf, len, req) do {					\
-	while ((len) <= (req)) {					\
-		(buf) = xrealloc(buf, 2, len);				\
-		(len) *= 2;						\
-	}								\
+#define ENSURE_SIZE(buf, len, size) do {				\
+	(buf) = ensure_size(buf, &(len), 1, size);			\
+} while (0)
+#define ENSURE_SIZE2(buf, len, nmemb, size) do {			\
+	(buf) = ensure_size(buf, &(len), nmemb, size);			\
+} while (0)
+#define ENSURE_FOR(buf, len, size) do {					\
+	(buf) = ensure_for(buf, &(len), 1, size);			\
+} while (0)
+#define ENSURE_FOR2(buf, len, nmemb, size) do {				\
+	(buf) = ensure_for(buf, &(len), nmemb, size);			\
 } while (0)
 
 /* Valid email address chars. */
@@ -701,6 +707,8 @@ __dead void		 fatalx(const char *);
 void			 xmalloc_clear(void);
 void			 xmalloc_dump(const char *);
 #endif
+void			*ensure_size(void *, size_t *, size_t, size_t);
+void			*ensure_for(void *, size_t *, size_t, size_t);
 char			*xstrdup(const char *);
 void			*xcalloc(size_t, size_t);
 void			*xmalloc(size_t);
