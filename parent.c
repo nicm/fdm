@@ -198,5 +198,5 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 
 	/* do the delivery */
 	_exit(t->deliver->deliver(a, t, m));
-	return (DELIVER_FAILURE); /* yuk */
+	return (DELIVER_FAILURE);
 }

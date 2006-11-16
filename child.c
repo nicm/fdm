@@ -321,7 +321,7 @@ do_expr(struct account *a, struct mail *m, struct rule *r)
 		}
 
 		s = ei->match->desc(ei);
-		log_debug("%s: tried %s%s:%s, got %d", a->name, 
+		log_debug2("%s: tried %s%s:%s, got %d", a->name, 
 		    ei->inverted ? "not " : "", ei->match->name, s, cres);
 		xfree(s);
 	}
