@@ -283,31 +283,30 @@ enum area {
 	AREA_ANY
 };
 
-/* Match operators. */
-enum op {
+/* Expression operators. */
+enum exprop {
 	OP_NONE,
 	OP_AND,
 	OP_OR
 };
 
-/* Match regexps. */
-struct match {
-	char			*s;
+/* Expression item. */
+struct expritem {
+	struct match		*match;
+	void			*data;
 
-	regex_t			 re;
+	enum exprop		 op;
 	int			 inverted;
-	enum op			 op;
-	enum area	 	 area;
 
-	TAILQ_ENTRY(match)	 entry;
+	TAILQ_ENTRY(expritem)	 entry;
 };
 
-/* Match struct. */
-TAILQ_HEAD(matches, match);
+/* Expression strut. */
+TAILQ_HEAD(expr, expritem);
 
 /* Rule types. */
 enum ruletype {
-	RULE_MATCHES,
+	RULE_EXPRESSION,
 	RULE_ALL,
 	RULE_MATCHED,
 	RULE_UNMATCHED
@@ -315,10 +314,8 @@ enum ruletype {
 
 /* Rule entry. */
 struct rule {
-	u_int			 index;
-
-	struct matches		*matches;
 	enum ruletype		 type;
+	struct expr		*expr;
 
 	struct users		*users;
 	int			 find_uid;	/* find uids from headers */
@@ -329,6 +326,23 @@ struct rule {
 	struct accounts		*accounts;
 
 	TAILQ_ENTRY(rule)	 entry;
+};
+
+/* Match functions. */
+struct match {
+	const char		*name;
+
+	int			 (*match)(struct account *, struct mail *, 
+			    	      struct expritem *);
+	char 			*(*desc)(struct expritem *);
+};
+
+/* Match regexp data. */
+struct regexp_data {
+	char			*s;
+
+	regex_t			 re;
+	enum area	 	 area;
 };
 
 /* Deliver return codes. */
@@ -548,6 +562,9 @@ struct smtp_data {
 	struct server	 server;
 	char		*to;
 };
+
+/* match-regexp.c */
+extern struct match	 match_regexp;
 
 /* fetch-stdin.c */
 extern struct fetch 	 fetch_stdin;

@@ -18,12 +18,6 @@
 
 #include <sys/types.h>
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "fdm.h"
 
 int	drop_deliver(struct account *, struct action *, struct mail *);

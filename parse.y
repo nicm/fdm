@@ -38,7 +38,6 @@
 
 struct macros			 macros = TAILQ_HEAD_INITIALIZER(macros);
 
-int			 	 rules;
 struct saved {
 	FILE			*yyin;
 	int		 	 yylineno;
@@ -173,18 +172,19 @@ find_macro(char *name)
 		char		*host;
 		char		*port;
 	} server;
+	struct {
+		struct expr	*expr;
+		enum ruletype	 type;
+	} match;
 	enum area	 	 area;
-	enum op			 op;
 	struct accounts		*accounts;
 	struct action	 	 action;
 	struct actions		*actions;
 	struct domains		*domains;
 	struct headers	 	*headers;
-	struct match		*match;
-	struct {
-		struct matches	*matches;
-		int		 type;
-	} matches;
+	enum exprop		 exprop;
+	struct expritem		*expritem;
+	struct expr		*expr;
 	uid_t			 uid;
 	struct {
 		struct users	*users;
@@ -200,14 +200,15 @@ find_macro(char *name)
 %type  <actions> actions actionslist
 %type  <area> area
 %type  <domains> domains domainslist
+%type  <expr> expr exprlist
+%type  <expritem> expritem
+%type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled poptype imaptype
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
-%type  <matches> matches matchlist
 %type  <number> size num
-%type  <op> op
 %type  <server> server
 %type  <string> port to folder str
 %type  <uid> uid
@@ -457,7 +458,7 @@ domains: TOKDOMAIN str
 		 if (*$2 == '\0')
 			 yyerror("invalid domain");
 
-		 $$ = xmalloc(sizeof (struct domains));
+		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((int) *cp);
@@ -487,7 +488,7 @@ domainslist: domainslist str
 		     if (*$1 == '\0')
 			     yyerror("invalid domain");
 
-		     $$ = xmalloc(sizeof (struct domains));
+		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
@@ -501,7 +502,7 @@ headers: TOKHEADER str
 		 if (*$2 == '\0')
 			 yyerror("invalid header");
 
-		 $$ = xmalloc(sizeof (struct headers));
+		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((int) *cp);
@@ -531,7 +532,7 @@ headerslist: headerslist str
 		     if (*$1 == '\0')
 			     yyerror("invalid header");
 
-		     $$ = xmalloc(sizeof (struct headers));
+		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((int) *cp);
@@ -606,7 +607,7 @@ users: /* empty */
        }
      | TOKUSER uid
        {
-	       $$.users = xmalloc(sizeof (struct users));
+	       $$.users = xmalloc(sizeof *$$.users);
 	       ARRAY_INIT($$.users);
 	       ARRAY_ADD($$.users, $2, uid_t);
 	       $$.find_uid = 0;
@@ -624,7 +625,7 @@ userslist: userslist uid
 	   }
 	 | uid
 	   {
-		   $$.users = xmalloc(sizeof (struct users));
+		   $$.users = xmalloc(sizeof *$$.users);
 		   ARRAY_INIT($$.users);
 		   ARRAY_ADD($$.users, $1, uid_t);
 	   }
@@ -799,7 +800,7 @@ accounts: /* empty */
 		  if (*$2 == '\0')
 			  yyerror("invalid account name");
 
-		  $$ = xmalloc(sizeof (struct accounts));
+		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
 		  if (find_account($2) == NULL)
 			  yyerror("no matching accounts: %s", $2);
@@ -825,7 +826,7 @@ accountslist: accountslist str
 		      if (*$1 == '\0')
 			      yyerror("invalid account name");
 
-		      $$ = xmalloc(sizeof (struct accounts));
+		      $$ = xmalloc(sizeof *$$);
 		      ARRAY_INIT($$);
 		      if (find_account($1) == NULL)
 			      yyerror("no matching accounts: %s", $1);
@@ -839,7 +840,7 @@ actions: TOKACTION str
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
 
-		 $$ = xmalloc(sizeof (struct actions));
+		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
 		 if ((t = find_action($2)) == NULL)
 			 yyerror("unknown action: %s", $2);
@@ -871,7 +872,7 @@ actionslist: actionslist str
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
 
-		     $$ = xmalloc(sizeof (struct actions));
+		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
 		     if ((t = find_action($1)) == NULL)
 			     yyerror("unknown action: %s", $1);
@@ -905,99 +906,107 @@ area: /* empty */
 	      $$ = AREA_BODY;
       }
 
-op: TOKAND
-    {
-	    $$ = OP_AND;
-    }
-  | TOKOR
-    {
-	    $$ = OP_OR;
-    }
+exprop: TOKAND
+	{
+		$$ = OP_AND;
+        }
+      | TOKOR
+	{
+		$$ = OP_OR;
+	}
 
-match: not icase str area
+expritem: not icase str area
+          {
+		  struct regexp_data	*data;
+		  int	 		 error, flags;
+		  size_t	 	 len;
+		  char			*buf;
+		  
+		  if (*$3 == '\0')
+			  yyerror("invalid regexp");
+		  
+		  $$ = xcalloc(1, sizeof *$$);
+		  $$->match = &match_regexp;
+		  
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+		  
+		  data->s = $3;
+		  data->area = $4;
+		  
+		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
+		  if ($2)
+			  flags |= REG_ICASE;
+		  if ((error = regcomp(&data->re, $3, flags)) != 0) {
+			  len = regerror(error, &data->re, NULL, 0);
+			  buf = xmalloc(len);
+			  regerror(error, &data->re, buf, len);
+			  yyerror("%s", buf);
+		  }
+	  }
+
+exprlist: exprlist exprop expritem
+	  {
+		  $$ = $1;
+
+		  $3->op = $2;
+		  TAILQ_INSERT_TAIL($$, $3, entry);
+	  }
+        | exprop expritem
+	  {
+		  $$ = xmalloc(sizeof *$$);
+		  TAILQ_INIT($$);
+
+		  $2->op = $1;
+		  TAILQ_INSERT_HEAD($$, $2, entry);
+	  }
+
+expr: expritem
+      {
+	      $$ = xmalloc(sizeof *$$);
+	      TAILQ_INIT($$);
+
+	      TAILQ_INSERT_HEAD($$, $1, entry);
+      }
+    | expritem exprlist
+      {
+	      $$ = $2;
+
+	      TAILQ_INSERT_HEAD($$, $1, entry);
+      }
+
+match: TOKMATCH expr
        {
-	       int	 error, flags;
-	       size_t	 len;
-	       char	*buf;
-
-	       if (*$3 == '\0')
-		       yyerror("invalid regexp");
-
-	       $$ = xcalloc(1, sizeof (struct match));
-	       $$->s = $3;
-	       $$->op = OP_NONE;
-	       $$->area = $4;
-	       $$->inverted = $1;
-
-	       flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-	       if ($2)
-		       flags |= REG_ICASE;
-	       if ((error = regcomp(&$$->re, $3, flags)) != 0) {
-		       len = regerror(error, &$$->re, NULL, 0);
-		       buf = xmalloc(len);
-		       regerror(error, &$$->re, buf, len);
-		       yyerror("%s", buf);
-	       }
+	       $$.expr = $2;
+	       $$.type = RULE_EXPRESSION;
+       }
+     | TOKMATCH TOKALL
+       {
+	       $$.expr = NULL;
+	       $$.type = RULE_ALL;
+       }
+     | TOKMATCH TOKMATCHED
+       {
+	       $$.expr = NULL;
+	       $$.type = RULE_MATCHED;
+       }
+     | TOKMATCH TOKUNMATCHED
+       {
+	       $$.expr = NULL;
+	       $$.type = RULE_UNMATCHED;
        }
 
-matchlist: matchlist op match
-	   {
-		   $$ = $1;
-		   $3->op = $2;
-		   TAILQ_INSERT_TAIL($$.matches, $3, entry);
-		   $$.type = RULE_MATCHES;
-	   }
-         | op match
-	   {
-		   $$.matches = xcalloc(1, sizeof (struct matches));
-		   $2->op = $1;
-		   TAILQ_INSERT_HEAD($$.matches, $2, entry);
-		   $$.type = RULE_MATCHES;
-	   }
-
-matches: TOKMATCH match matchlist
-         {
-		 if ($3.matches != NULL)
-			 $$ = $3;
-		 else
-			 $$.matches = xcalloc(1, sizeof (struct matches));
-		 TAILQ_INSERT_HEAD($$.matches, $2, entry);
-		 $$.type = RULE_MATCHES;
-	 }
-       | TOKMATCH match
-         {
-		 $$.matches = xcalloc(1, sizeof (struct matches));
-		 TAILQ_INSERT_HEAD($$.matches, $2, entry);
-		 $$.type = RULE_MATCHES;
-	 }
-       | TOKMATCH TOKALL
-	 {
-		 $$.matches = NULL;
-		 $$.type = RULE_ALL;
-	 }
-       | TOKMATCH TOKMATCHED
-	 {
-		 $$.matches = NULL;
-		 $$.type = RULE_MATCHED;
-	 }
-       | TOKMATCH TOKUNMATCHED
-	 {
-		 $$.matches = NULL;
-		 $$.type = RULE_UNMATCHED;
-	 }
-
-rule: matches accounts users actions cont
+rule: match accounts users actions cont
       {
 	      struct rule	*r;
-	      struct match	*c;
-	      char		 tmp[1024], tmp2[1024];
+	      struct expritem	*ei;
+	      char		 tmp[1024], tmp2[1024], *s;
 	      u_int		 i;
 
 	      r = xcalloc(1, sizeof *r);
-	      r->index = rules++;
 	      r->stop = !$5;
 	      r->accounts = $2;
-	      r->matches = $1.matches;
+	      r->expr = $1.expr;
 	      r->type = $1.type;
 	      r->users = $3.users;
 	      r->find_uid = $3.find_uid;
@@ -1005,36 +1014,39 @@ rule: matches accounts users actions cont
 
 	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
 
-	      if (r->matches == NULL)
+	      switch (r->type) {
+ 	      case RULE_ALL:
 		      xsnprintf(tmp, sizeof tmp, "all");
-	      else {
+		      break;
+ 	      case RULE_MATCHED:
+		      xsnprintf(tmp, sizeof tmp, "matched");
+		      break;
+ 	      case RULE_UNMATCHED:
+		      xsnprintf(tmp, sizeof tmp, "unmatched");
+		      break;
+	      case RULE_EXPRESSION:
 		      *tmp = '\0';
-		      TAILQ_FOREACH(c, r->matches, entry) {
-			      switch (c->op) {
+		      TAILQ_FOREACH(ei, r->expr, entry) {
+			      switch (ei->op) {
 			      case OP_AND:
-				      strlcat(tmp, "and \"", sizeof tmp);
+				      strlcat(tmp, "and ", sizeof tmp);
 				      break;
 			      case OP_OR:
-				      strlcat(tmp, "or \"", sizeof tmp);
+				      strlcat(tmp, "or ", sizeof tmp);
 				      break;
 			      case OP_NONE:
-				      strlcat(tmp, "\"", sizeof tmp);
 				      break;
 			      }
-			      strlcat(tmp, c->s, sizeof tmp);
-			      strlcat(tmp, "\" ", sizeof tmp);
-			      switch (c->area) {
-			      case AREA_BODY:
-				      strlcat(tmp, "in body ", sizeof tmp);
-				      break;
-			      case AREA_HEADERS:
-				      strlcat(tmp, "in headers ", sizeof tmp);
-				      break;
-			      case AREA_ANY:
-				      strlcat(tmp, "in any ", sizeof tmp);
-				      break;
-			      }
+			      if (ei->inverted)
+				      strlcat(tmp, "not ", sizeof tmp);
+			      strlcat(tmp, ei->match->name, sizeof tmp);
+			      strlcat(tmp, ":", sizeof tmp);
+			      s = ei->match->desc(ei);
+			      strlcat(tmp, s, sizeof tmp);
+			      xfree(s);
+			      strlcat(tmp, " ", sizeof tmp);
 		      }
+		      break;
 	      }
 	      *tmp2 = '\0';
 	      for (i = 0; i < ARRAY_LENGTH($4); i++) {
@@ -1043,8 +1055,7 @@ rule: matches accounts users actions cont
 		      strlcat(tmp2, " ", sizeof tmp2);
 	      }
 
-	      log_debug2("added rule: index=%u actions=%smatches=%s", r->index,
-		  tmp2, tmp);
+	      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
       }
 
 folder: /* empty */
@@ -1122,8 +1133,11 @@ fetchtype: poptype server TOKUSER str TOKPASS str
 	   }
 	 | TOKSTDIN
 	   {
+		   struct stdin_data	*data;
+
 		   $$.fetch = &fetch_stdin;
-		   $$.data = xmalloc(sizeof (struct stdin_data));
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
 	   }
 
 account: TOKACCOUNT str disabled fetchtype

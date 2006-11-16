@@ -29,7 +29,7 @@
 
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
-int	perform_match(struct account *, struct mail *, struct rule *);
+int	do_expr(struct account *, struct mail *, struct rule *);
 
 int
 child(int fd, enum cmd cmd)
@@ -214,8 +214,13 @@ fetch_account(struct io *io, struct account *a)
 
 			/* match all the regexps */
 			switch (r->type) {
-			case RULE_MATCHES:
-				if (!perform_match(a, &m, r))
+			case RULE_EXPRESSION:
+				if ((error = do_expr(a, &m, r)) == -1) {
+					cause = "matching";
+					goto out;
+				}
+				/* continue if no match */
+				if (!error)
 					continue;
 				break;
 			case RULE_ALL:
@@ -257,8 +262,7 @@ fetch_account(struct io *io, struct account *a)
 				goto out;
 			}
 
-			/* if this rule is marked as stop, stop checking
-			   the rules now */
+			/* if this rule is marked as stop, stop checking now */
 			if (r->stop)
 				break;
 		}
@@ -297,51 +301,36 @@ out:
 }
 
 int
-perform_match(struct account *a, struct mail *m, struct rule *r)
+do_expr(struct account *a, struct mail *m, struct rule *r)
 {
-	regmatch_t	 pmatch;
-	int		 matched, result;
-	struct match	*c;
+	int		 fres, cres;
+	struct expritem	*ei;
+	char		*s;
 
 	set_wrapped(m, ' ');
 
-	matched = 0;
-	TAILQ_FOREACH(c, r->matches, entry) {
-		if (c->area == AREA_BODY && m->body == -1)
-			continue;
-		switch (c->area) {
-		case AREA_HEADERS:
-			pmatch.rm_so = 0;
-			if (m->body == -1)
-				pmatch.rm_eo = m->size;
-			else
-				pmatch.rm_eo = m->body;
-			break;
-		case AREA_BODY:
-			pmatch.rm_so = m->body;
-			pmatch.rm_eo = m->size;
-			break;
-		case AREA_ANY:
-			pmatch.rm_so = 0;
-			pmatch.rm_eo = m->size;
-			break;
-		}
-
-		result = !regexec(&c->re, m->data, 0, &pmatch, REG_STARTEND);
-		if (c->inverted)
-			result = !result;
-		log_debug2("%s: tried %s\"%s\": got %d", a->name,
-		    c->inverted ? "!" : "", c->s, result);
-		switch (c->op) {
+	fres = 0;
+	TAILQ_FOREACH(ei, r->expr, entry) {
+		cres = ei->match->match(a, m, ei);
+		if (cres == -1)
+			return (-1);
+		if (ei->inverted)
+			cres = !cres;
+		switch (ei->op) {
 		case OP_NONE:
 		case OP_OR:
-			matched = matched || result;
+			fres = fres || cres;
 			break;
 		case OP_AND:
-			matched = matched && result;
+			fres = fres && cres;
 			break;
 		}
+
+		s = ei->match->desc(ei);
+		log_debug("%s: tried %s%s:%s, got %d", a->name, 
+		    ei->inverted ? "not " : "", ei->match->name, s, cres);
+		xfree(s);
 	}
 
-	return (matched);
+	return (fres);
 }
