@@ -234,16 +234,24 @@ enum msgtype {
 	MSG_DONE
 };
 
-/* Privsep message. */
-struct msg {
-	enum msgtype	 type;
+/* Privsaep message data. */
+struct msgdata {
 	int	 	 error;
-
 	struct mail	 mail;
-
+	
 	/* these only work so long as they aren't moved in either process */
 	struct rule	*rule;
-	struct account	*acct;
+	struct account	*account;
+};
+
+/* Privsep message. */
+struct msg {
+	u_int		 n;
+
+	enum msgtype	 type;
+	size_t		 size;
+
+	struct msgdata	 data;
 };
 
 /* Account entry. */
@@ -627,6 +635,12 @@ int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);
 void			 fill_info(const char *);
+
+/* privsep.c */
+int			 privsep_send(struct io *, struct msg *, void *,
+			     size_t);
+int			 privsep_recv(struct io *, struct msg *, void **buf,
+			     size_t *);
 
 /* child.c */
 int			 child(int, enum cmd);

@@ -114,8 +114,8 @@ child(int fd, enum cmd cmd)
         log_debug("child: finished processing. exiting");
 
 	msg.type = MSG_EXIT;
-	io_write(io, &msg, sizeof msg);
-	io_flush(io, NULL);
+	if (privsep_send(io, &msg, NULL, 0) != 0)
+		fatalx("parent: privsep_send error");
 
 	io_free(io);
 
@@ -241,23 +241,17 @@ fetch_account(struct io *io, struct account *a)
 
 			/* pass up to the parent for delivery */
 			msg.type = MSG_DELIVER;
-			msg.rule = r;
-			msg.acct = a;
-			memcpy(&msg.mail, &m, sizeof msg.mail);
-			msg.mail.wrapped = NULL;
-			io_write(io, &msg, sizeof msg);
-			if (io_flush(io, NULL) != 0)
-				fatalx("child: io_flush error");
-			io_write(io, m.data, m.size);
-			if (io_flush(io, NULL) != 0)
-				fatalx("child: io_flush error");
-			if (io_wait(io, sizeof msg, NULL) != 0)
-				fatalx("child: io_wait error");
-			if (io_read2(io, &msg, sizeof msg) != 0)
-				fatalx("child: io_read2 error");
+			msg.data.rule = r;
+			msg.data.account = a;
+			memcpy(&msg.data.mail, &m, sizeof msg.data.mail);
+			msg.data.mail.wrapped = NULL;
+			if (privsep_send(io, &msg, m.data, m.size) != 0)
+				fatalx("child: privsep_send error");
+			if (privsep_recv(io, &msg, NULL, 0) != 0)
+				fatalx("child: privsep_recv error");
 			if (msg.type != MSG_DONE)
 				fatalx("child: unexpected message");
-			if (msg.error != 0) {
+			if (msg.data.error != 0) {
 				cause = "delivery";
 				goto out;
 			}

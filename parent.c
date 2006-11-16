@@ -23,7 +23,7 @@
 
 #include "fdm.h"
 
-int	perform_actions(struct account *, struct mail *, struct rule *);
+int	do_actions(struct account *, struct mail *, struct rule *);
 int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
 int
@@ -31,7 +31,10 @@ parent(int fd, pid_t pid)
 {
 	struct io	*io;
 	struct msg	 msg;
+	struct mail	*m;
 	int		 status, error;
+	void		*buf;
+	size_t		 len;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -44,35 +47,33 @@ parent(int fd, pid_t pid)
 	setproctitle("parent");
 #endif
 
+	m = &msg.data.mail;
 	do {
-		if (io_wait(io, sizeof msg, NULL) != 0)
-			fatalx("parent: io_wait error");
-		if (io_read2(io, &msg, sizeof msg) != 0)
-			fatalx("parent: io_read2 error");
-		log_debug2("parent: got message type %d from child", msg.type);
+		if (privsep_recv(io, &msg, &buf, &len) != 0)
+			fatalx("parent: privsep_recv error");
+		log_debug2("parent: got message type %d", msg.type);
 
 		switch (msg.type) {
 		case MSG_DELIVER:
-			if (io_wait(io, msg.mail.size, NULL) != 0)
-				fatalx("parent: io_wait error");
-			msg.mail.base = io_read(io, msg.mail.size);
-			if (msg.mail.base == NULL)
-				fatalx("parent: io_read error");
-			msg.mail.data = msg.mail.base;
+			if (buf == NULL || len != m->size)
+				fatalx("parent: bad mail");
+			m->base = buf;
+			m->data = m->base;
 
-			trim_from(&msg.mail);
-			error = perform_actions(msg.acct, &msg.mail, msg.rule);
-			free_mail(&msg.mail);
+			trim_from(m);
+			error = do_actions(msg.data.account, m, msg.data.rule);
+			free_mail(m);
 
 			msg.type = MSG_DONE;
-			msg.error = error;
-			io_write(io, &msg, sizeof msg);
-			if (io_flush(io, NULL) != 0)
-				fatalx("parent: io_flush error");
+			msg.data.error = error;
+			if (privsep_send(io, &msg, NULL, 0) != 0)
+				fatalx("parent: privsep_send error");
 			break;
 		case MSG_DONE:
 			fatalx("parent: unexpected message");
 		case MSG_EXIT:
+			if (buf != NULL || len != 0)
+				fatalx("parent: invalid message");
 			break;
 		}
 	} while (msg.type != MSG_EXIT);
@@ -91,7 +92,7 @@ parent(int fd, pid_t pid)
 }
 
 int
-perform_actions(struct account *a, struct mail *m, struct rule *r)
+do_actions(struct account *a, struct mail *m, struct rule *r)
 {
 	struct action	*t;
 	u_int		 i, j;
