@@ -33,6 +33,10 @@ parent(int fd, pid_t pid)
 	struct msg	 msg;
 	int		 status, error;
 
+#ifdef DEBUG
+	xmalloc_clear();
+#endif
+
 	io = io_create(fd, NULL, IO_LF);
 	log_debug("parent: started, pid %ld", (long) getpid());
 

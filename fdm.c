@@ -168,8 +168,8 @@ check_excl(char *name)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-lmnv] [-f conffile] [-h show|clear] [-u user] "
-	    "[-a name] [-x name] [fetch|poll]\n", __progname);
+	printf("usage: %s [-lmnv] [-f conffile] [-u user] [-a name] [-x name] "
+	    "[fetch|poll]\n", __progname);
         exit(1);
 }
 
@@ -179,16 +179,14 @@ main(int argc, char **argv)
         int		 opt, fds[2], lockfd, rc;
 	u_int		 i;
 	enum cmd         cmd = CMD_NONE;
-	enum histcmd	 histcmd = HISTCMD_NONE;
 	const char	*errstr;
 	char		 tmp[512];
 	const char	*proxy = NULL;
-	char		*user = NULL, *lock = NULL, *hist = NULL;
+	char		*user = NULL, *lock = NULL;
 	long		 n;
 	pid_t		 pid;
 	struct passwd	*pw;
 	struct stat	 sb;
-	FILE		*histf = NULL;
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -202,7 +200,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:f:h:mlnu:vx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:f:mlnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, char *);
@@ -210,14 +208,6 @@ main(int argc, char **argv)
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
                         break;
-		case 'h':
-			if (strncmp(optarg, "show", strlen(optarg)) == 0)
-				histcmd = HISTCMD_SHOW;
-			else if (strncmp(optarg, "clear", strlen(optarg)) == 0)
-				histcmd = HISTCMD_CLEAR;
-			else
-				usage();
-			break;
 		case 'l':
 			conf.syslog = 1;
 			break;
@@ -243,7 +233,7 @@ main(int argc, char **argv)
         }
 	argc -= optind;
 	argv += optind;
-	if (conf.check_only || histcmd != HISTCMD_NONE) {
+	if (conf.check_only) {
 		if (argc != 0)
 			usage();
 	} else {
@@ -307,28 +297,6 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	log_debug("configuration loaded");
-
-	/* find history file and open it */
-	hist = conf.hist_file;
-	if (hist == NULL) {
-		if (geteuid() == 0)
-			hist = xstrdup(SYSHISTFILE);
-		else
-			xasprintf(&hist, "%s/%s", conf.info.home, HISTFILE);
-	}
-	if (*hist != '\0') {
-		log_debug2("history file is: %s", hist);
-		if ((histf = fopen(hist, "r+")) == NULL) {
-			if ((histf = fopen(hist, "w+")) == NULL)
-				log_warn("%s", hist);
-		}
-	} else
-		log_debug2("history is disabled");
-	conf.hist_file = hist;
-
-	/* do history command if specified */
-	if (histcmd != HISTCMD_NONE)
-		exit(do_hist(histcmd, histf));
 
 	/* fill proxy */
 	proxy = getenv("http_proxy");
@@ -443,10 +411,6 @@ main(int argc, char **argv)
 	}
 	conf.lock_file = lock;
 	    
-#ifdef DEBUG
-	xmalloc_clear();
-#endif
-
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 		fatal("socketpair");
 	switch (pid = fork()) {
@@ -454,10 +418,8 @@ main(int argc, char **argv)
 		fatal("fork");
 	case 0:
 		close(fds[0]);
-		_exit(child(fds[1], cmd, histf));
+		_exit(child(fds[1], cmd));
 	default:
-		if (histf != NULL)
-			fclose(histf);
 		close(fds[1]);
 		rc = parent(fds[0], pid);
 		if (*conf.lock_file != '\0' && !conf.allow_many)

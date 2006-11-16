@@ -224,7 +224,6 @@ folder return (TOKFOLDER);
 from-headers return (TOKFROMHEADERS);
 header return (TOKHEADER);
 headers return (TOKHEADERS);
-history-file return (TOKHISTFILE);
 imap return (TOKIMAP);
 imaps return (TOKIMAPS);
 in return (TOKIN);

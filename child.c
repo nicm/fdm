@@ -32,7 +32,7 @@ int	fetch_account(struct io *, struct account *);
 int	perform_match(struct account *, struct mail *, struct rule *);
 
 int
-child(int fd, enum cmd cmd, FILE *histf)
+child(int fd, enum cmd cmd)
 {
 	struct io	*io;
 	struct msg	 msg;
@@ -42,13 +42,6 @@ child(int fd, enum cmd cmd, FILE *histf)
 #ifdef DEBUG
 	xmalloc_clear();
 #endif
-
-	/* load history */
-	if (histf != NULL) {
-		log_debug2("child: loading history");
-		if (load_hist(histf) != 0)
-			log_warnx("child: error loading history");
-	}
 
         SSL_library_init();
         SSL_load_error_strings();
@@ -118,14 +111,6 @@ child(int fd, enum cmd cmd, FILE *histf)
 			a->fetch->disconnect(a);
 	}
 
-	/* save history */
-	if (histf != NULL) {
-		log_debug2("child: saving history");
-		if (save_hist(histf) != 0)
-			log_warnx("child: error saving history");
-		fclose(histf);
-	}
-
         log_debug("child: finished processing. exiting");
 
 	msg.type = MSG_EXIT;
@@ -181,11 +166,6 @@ fetch_account(struct io *io, struct account *a)
 		return (1);
 	}
 	log_debug("%s: fetching", a->name);
-
-	/* update history */
-	a->hist.runs++;
-	if (a->hist.since == 0)
-		a->hist.since = time(NULL);  
 
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
@@ -284,10 +264,6 @@ fetch_account(struct io *io, struct account *a)
 		}
 
 	delete:
-		/* update history */
-		a->hist.mails++;
-		a->hist.bytes += m.size;
-
 		/* delete the message */
 		if (a->fetch->delete != NULL) {
 			log_debug("%s: deleting message", a->name);
