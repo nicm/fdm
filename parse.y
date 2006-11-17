@@ -966,7 +966,7 @@ expritem: not icase strv area
 			  len = regerror(error, &data->re, NULL, 0);
 			  buf = xmalloc(len);
 			  regerror(error, &data->re, buf, len);
-			  yyerror("%s", buf);
+			  yyerror("%s: %s", $3, buf);
 		  }
 	  }
         | not COMMAND TOKRETURNS '(' retrc ',' retre ')'
@@ -1002,7 +1002,7 @@ expritem: not icase strv area
 				  len = regerror(error, &data->re, NULL, 0);
 				  buf = xmalloc(len);
 				  regerror(error, &data->re, buf, len);
-				  yyerror("%s", buf);
+				  yyerror("%s: %s", $7, buf);
 			  }
 		  }
 

@@ -33,6 +33,7 @@ command_match(struct account *a, struct mail *m, struct expritem *ei)
 	data = ei->data;
 
 	/** **/
+	/** cmd user??? -- rule user? specified? current? **/
 	
 	return (0);
 }
