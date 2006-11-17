@@ -347,10 +347,20 @@ struct match {
 
 /* Match regexp data. */
 struct regexp_data {
-	char			*s;
-
+	char			*re_s;
 	regex_t			 re;
+
 	enum area	 	 area;
+};
+
+/* Match command data. */
+struct command_data {
+	char			*cmd;
+	int			 pipe;		/* pipe mail to command */
+
+	char			*re_s;		/* NULL to not check */
+	regex_t			 re;
+	int			 ret;		/* -1 to not check */
 };
 
 /* Deliver return codes. */
@@ -571,6 +581,9 @@ struct smtp_data {
 	char		*to;
 };
 
+/* match-command.c */
+extern struct match	 match_command;
+ 
 /* match-regexp.c */
 extern struct match	 match_regexp;
 

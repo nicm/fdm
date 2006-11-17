@@ -59,7 +59,7 @@ regexp_match(struct account *a, struct mail *m, struct expritem *ei)
 	
 	res = regexec(&data->re, m->data, 0, &pmatch, REG_STARTEND);
 	if (res != 0 && res != REG_NOMATCH) {
-		log_warnx("%s: %s: regexec failed", a->name, data->s);
+		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
 		return (-1);
 	}
 
@@ -87,6 +87,6 @@ regexp_desc(struct expritem *ei)
 		break;
 	}
 
-	xasprintf(&s, "\"%s\" in %s", data->s, area);
+	xasprintf(&s, "\"%s\" in %s", data->re_s, area);
 	return (s);
 }

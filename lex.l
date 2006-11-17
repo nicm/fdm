@@ -39,8 +39,11 @@ extern __dead printflike1 void	 yyerror(const char *, ...);
 extern struct macros		 macros;
 extern struct macro		*find_macro(char *);
 
+char 				*read_str(char);
+
 /* Use a one-byte buffer so flushing it on include doesn't do any harm. */
 #define YY_READ_BUF_SIZE 1
+
 %}
 
 %%
@@ -90,13 +93,106 @@ extern struct macro		*find_macro(char *);
         return (SIZE);
 }
 \" {
+	yylval.string = read_str('"');
+        return (STRING);
+}
+\` {
+	yylval.string = read_str('`');
+        return (COMMAND);
+}
+\$[A-Za-z][A-Za-z0-9_]* {
+        yylval.string = xstrdup(yytext);
+	return (STRMACRO);
+}
+\$\{[A-Za-z][A-Za-z0-9_]*\} {
+        yylval.string = xstrdup(yytext);
+	return (STRMACROB);
+}
+\%[A-Za-z][A-Za-z0-9_]* {
+        yylval.string = xstrdup(yytext);
+	return (NUMMACRO);
+}
+\%\{[A-Za-z][A-Za-z0-9_]*\} {
+        yylval.string = xstrdup(yytext);
+	return (NUMMACROB);
+}
+(default-user|defuser) return (TOKDEFUSER);
+(delete-oversized|deltoobig) return (TOKDELTOOBIG);
+(lock-types|locktypes) return (TOKLOCKTYPES);
+(maximum-size|maxsize) return (TOKMAXSIZE);
+account	return (TOKACCOUNT);
+accounts return (TOKACCOUNTS);
+action return (TOKACTION);
+actions return (TOKACTIONS);
+all return (TOKALL);
+allow-multiple return (TOKALLOWMANY);
+and return (TOKAND);
+append return (ACTAPPEND);
+body return (TOKBODY);
+case return (TOKCASE);
+continue return (TOKCONTINUE);
+disabled return (TOKDISABLED);
+domain return (TOKDOMAIN);
+domains return (TOKDOMAINS);
+dotlock return (LCKDOTLOCK);
+drop return (ACTDROP);
+fcntl return (LCKFCNTL);
+flock return (LCKFLOCK);
+folder return (TOKFOLDER);
+from-headers return (TOKFROMHEADERS);
+header return (TOKHEADER);
+headers return (TOKHEADERS);
+imap return (TOKIMAP);
+imaps return (TOKIMAPS);
+in return (TOKIN);
+include return (TOKINCLUDE);
+lock-file return (TOKLOCKFILE);
+maildir return (ACTMAILDIR);
+match return (TOKMATCH);
+matched return (TOKMATCHED);
+mbox return (ACTMBOX);
+none return (TOKNONE);
+not return (TOKNOT);
+or return (TOKOR);
+pass return (TOKPASS);
+pipe return (ACTPIPE);
+pop3 return (TOKPOP3);
+pop3s return (TOKPOP3S);
+port return (TOKPORT);
+proxy return (TOKPROXY);
+returns return (TOKRETURNS);
+rewrite return (ACTREWRITE);
+server return (TOKSERVER);
+set return (TOKSET);
+smtp return (ACTSMTP);
+stdin return (TOKSTDIN);
+to return (TOKTO);
+unmatched return (TOKUNMATCHED);
+user return (TOKUSER);
+users return (TOKUSERS);
+write return (ACTWRITE);
+\{ return ('{');
+\} return ('}');
+\( return ('(');
+\) return (')');
+\, return (',');
+= return ('=');
+\#.*\n /* ignore comments */;
+\n /* ignore end of line */;
+[ \t]+ /* ignore whitespace */;
+
+%%
+
+char *
+read_str(char endc)
+{
 	int		 done = 0, ch, valid;
 	size_t		 pos = 0, len, off, slen;
-	char	         name[MAXNAMESIZE], *s;
+	char	         name[MAXNAMESIZE], *s, *buf;
 	struct macro	*macro;
 
 	len = 24;
-        yylval.string = xmalloc(len + 1);
+        buf = xmalloc(len + 1);
 
         while (!done) {
                 switch (ch = input()) {
@@ -161,101 +257,25 @@ extern struct macro		*find_macro(char *);
 				s = macro->value.string;
 			slen = strlen(s);
 
-			ENSURE_FOR(yylval.string, len, pos, slen + 1);
-			memcpy(yylval.string + pos, s, slen);
+			ENSURE_FOR(buf, len, pos, slen + 1);
+			memcpy(buf + pos, s, slen);
 			pos += slen;
 
 			if (macro->type == MACRO_NUMBER)
 				xfree(s);
 			continue;
-                case '"':
+                }
+		if (ch == endc) {
                         done = 1;
                         continue;
-                }
+		}
 
-                *(yylval.string + pos) = ch;
+                buf[pos] = ch;
                 pos++;
-                ENSURE_SIZE(yylval.string, len, pos);
+                ENSURE_SIZE(buf, len, pos);
         }
 
-        *(yylval.string + pos) = '\0';
+        buf[pos] = '\0';
 
-        return (STRING);
+	return (buf);
 }
-\$[A-Za-z][A-Za-z0-9_]* {
-        yylval.string = xstrdup(yytext);
-	return (STRMACRO);
-}
-\$\{[A-Za-z][A-Za-z0-9_]*\} {
-        yylval.string = xstrdup(yytext);
-	return (STRMACROB);
-}
-\%[A-Za-z][A-Za-z0-9_]* {
-        yylval.string = xstrdup(yytext);
-	return (NUMMACRO);
-}
-\%\{[A-Za-z][A-Za-z0-9_]*\} {
-        yylval.string = xstrdup(yytext);
-	return (NUMMACROB);
-}
-(default-user|defuser) return (TOKDEFUSER);
-(delete-oversized|deltoobig) return (TOKDELTOOBIG);
-(lock-types|locktypes) return (TOKLOCKTYPES);
-(maximum-size|maxsize) return (TOKMAXSIZE);
-account	return (TOKACCOUNT);
-accounts return (TOKACCOUNTS);
-action return (TOKACTION);
-actions return (TOKACTIONS);
-all return (TOKALL);
-allow-multiple return (TOKALLOWMANY);
-and return (TOKAND);
-append return (ACTAPPEND);
-body return (TOKBODY);
-case return (TOKCASE);
-continue return (TOKCONTINUE);
-disabled return (TOKDISABLED);
-domain return (TOKDOMAIN);
-domains return (TOKDOMAINS);
-dotlock return (LCKDOTLOCK);
-drop return (ACTDROP);
-fcntl return (LCKFCNTL);
-flock return (LCKFLOCK);
-folder return (TOKFOLDER);
-from-headers return (TOKFROMHEADERS);
-header return (TOKHEADER);
-headers return (TOKHEADERS);
-imap return (TOKIMAP);
-imaps return (TOKIMAPS);
-in return (TOKIN);
-include return (TOKINCLUDE);
-lock-file return (TOKLOCKFILE);
-maildir return (ACTMAILDIR);
-match return (TOKMATCH);
-matched return (TOKMATCHED);
-mbox return (ACTMBOX);
-none return (TOKNONE);
-not return (TOKNOT);
-or return (TOKOR);
-pass return (TOKPASS);
-pipe return (ACTPIPE);
-pop3 return (TOKPOP3);
-pop3s return (TOKPOP3S);
-port return (TOKPORT);
-proxy return (TOKPROXY);
-rewrite return (ACTREWRITE);
-server return (TOKSERVER);
-set return (TOKSET);
-smtp return (ACTSMTP);
-stdin return (TOKSTDIN);
-to return (TOKTO);
-unmatched return (TOKUNMATCHED);
-user return (TOKUSER);
-users return (TOKUSERS);
-write return (ACTWRITE);
-\{ return ('{');
-\} return ('}');
-= return ('=');
-\#.*\n /* ignore comments */;
-\n /* ignore end of line */;
-[ \t]+ /* ignore whitespace */;
-%%

@@ -154,7 +154,7 @@ find_macro(char *name)
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
-%token TOKLOCKFILE
+%token TOKLOCKFILE TOKRETURNS
 %token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -193,7 +193,7 @@ find_macro(char *name)
 }
 
 %token <number> NUMBER SIZE
-%token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
+%token <string> COMMAND STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
 %type  <accounts> accounts accountslist
 %type  <action> action
@@ -208,9 +208,9 @@ find_macro(char *name)
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
-%type  <number> size num
+%type  <number> size numv retrc
 %type  <server> server
-%type  <string> port to folder str
+%type  <string> port to folder strv retre
 %type  <uid> uid
 %type  <users> users userslist
 
@@ -226,93 +226,93 @@ cmds: /* empty */
     | cmds rule
     | cmds set
 
-str: STRING
-     {
-	     $$ = $1;
-     }
-   | STRMACRO
-     {
-	     struct macro	*macro;
+strv: STRING
+      {
+	      $$ = $1;
+      }
+    | STRMACRO
+      {
+	      struct macro	*macro;
+	      
+	      if (strlen($1) > MAXNAMESIZE)
+		      yyerror("macro name too long: %s", $1);
+	      
+	      if ((macro = find_macro($1)) == NULL)
+		      yyerror("undefined macro: %s", $1);
+	      if (macro->type != MACRO_STRING)
+		      yyerror("string macro expected: %s", $1);
+	      
+	      $$ = xstrdup(macro->value.string);
+	      
+	      xfree($1);
+      }
+    | STRMACROB
+      {
+	      struct macro	*macro;
+	      char 		 name[MAXNAMESIZE];
+	      
+	      if (strlen($1) > MAXNAMESIZE + 2)
+		      yyerror("macro name too long: %s", $1);
+	      
+	      name[0] = $1[0];
+	      name[1] = '\0';
+	      strlcat(name, $1 + 2, MAXNAMESIZE);
+	      name[strlen(name) - 1] = '\0';
+	      
+	      if ((macro = find_macro(name)) == NULL)
+		      yyerror("undefined macro: %s", name);
+	      if (macro->type != MACRO_STRING)
+		      yyerror("string macro expected: %s", name);
+	      
+	      $$ = xstrdup(macro->value.string);
+	      
+	      xfree($1);
+      }
 
-	     if (strlen($1) > MAXNAMESIZE)
-		     yyerror("macro name too long: %s", $1);
+numv: NUMBER
+      {
+	      $$ = $1;
+      }
+    | NUMMACRO
+      {
+	      struct macro	*macro;
+	      
+	      if (strlen($1) > MAXNAMESIZE)
+		      yyerror("macro name too long: %s", $1);
+	      
+	      if ((macro = find_macro($1)) == NULL)
+		      yyerror("undefined macro: %s", $1);
+	      if (macro->type != MACRO_NUMBER)
+		      yyerror("number macro expected: %s", $1);
+	      
+	      $$ = macro->value.number;
+	      
+	      xfree($1);
+      }
+    | NUMMACROB
+      {
+	      struct macro	*macro;
+	      char 		 name[MAXNAMESIZE];
+	      
+	      if (strlen($1) > MAXNAMESIZE + 2)
+		      yyerror("macro name too long: %s", $1);
+	      
+	      name[0] = $1[0];
+	      name[1] = '\0';
+	      strlcat(name, $1 + 2, MAXNAMESIZE);
+	      name[strlen(name) - 1] = '\0';
+	      
+	      if ((macro = find_macro(name)) == NULL)
+		      yyerror("undefined macro: %s", name);
+	      if (macro->type != MACRO_NUMBER)
+		      yyerror("number macro expected: %s", name);
+	      
+	      $$ = macro->value.number;
+	      
+	      xfree($1);
+      }
 
-	     if ((macro = find_macro($1)) == NULL)
-		     yyerror("undefined macro: %s", $1);
-	     if (macro->type != MACRO_STRING)
-		     yyerror("string macro expected: %s", $1);
-
-	     $$ = xstrdup(macro->value.string);
-
-	     xfree($1);
-     }
-   | STRMACROB
-     {
-	     struct macro	*macro;
-	     char 		 name[MAXNAMESIZE];
-
-	     if (strlen($1) > MAXNAMESIZE + 2)
-		     yyerror("macro name too long: %s", $1);
-
-	     name[0] = $1[0];
-	     name[1] = '\0';
-	     strlcat(name, $1 + 2, MAXNAMESIZE);
-	     name[strlen(name) - 1] = '\0';
-
-	     if ((macro = find_macro(name)) == NULL)
-		     yyerror("undefined macro: %s", name);
-	     if (macro->type != MACRO_STRING)
-		     yyerror("string macro expected: %s", name);
-
-	     $$ = xstrdup(macro->value.string);
-
-	     xfree($1);
-     }
-
-num: NUMBER
-     {
-	     $$ = $1;
-     }
-   | NUMMACRO
-     {
-	     struct macro	*macro;
-
-	     if (strlen($1) > MAXNAMESIZE)
-		     yyerror("macro name too long: %s", $1);
-
-	     if ((macro = find_macro($1)) == NULL)
-		     yyerror("undefined macro: %s", $1);
-	     if (macro->type != MACRO_NUMBER)
-		     yyerror("number macro expected: %s", $1);
-
-	     $$ = macro->value.number;
-
-	     xfree($1);
-     }
-   | NUMMACROB
-     {
-	     struct macro	*macro;
-	     char 		 name[MAXNAMESIZE];
-
-	     if (strlen($1) > MAXNAMESIZE + 2)
-		     yyerror("macro name too long: %s", $1);
-
-	     name[0] = $1[0];
-	     name[1] = '\0';
-	     strlcat(name, $1 + 2, MAXNAMESIZE);
-	     name[strlen(name) - 1] = '\0';
-
-	     if ((macro = find_macro(name)) == NULL)
-		     yyerror("undefined macro: %s", name);
-	     if (macro->type != MACRO_NUMBER)
-		     yyerror("number macro expected: %s", name);
-
-	     $$ = macro->value.number;
-
-	     xfree($1);
-     }
-
-include: TOKINCLUDE str
+include: TOKINCLUDE strv
 	 {
 		 char		*path;
 		 struct saved	*old;
@@ -343,7 +343,7 @@ include: TOKINCLUDE str
 		 yylineno = 0;
 	 }
 
-size: num
+size: numv
     | SIZE
       {
 	      $$ = $1;
@@ -361,7 +361,7 @@ set: TOKSET TOKMAXSIZE size
 		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
      }
-   | TOKSET TOKLOCKFILE str
+   | TOKSET TOKLOCKFILE strv
      {
 	     if (conf.lock_file != NULL)
 		     xfree(conf.lock_file);
@@ -405,7 +405,7 @@ set: TOKSET TOKMAXSIZE size
 
 	     conf.headers = $2;
      }
-   | TOKSET TOKPROXY str
+   | TOKSET TOKPROXY strv
      {
 	     if (conf.proxy != NULL) {
 		     xfree(conf.proxy->server.host);
@@ -451,7 +451,7 @@ defmacro: STRMACRO '=' STRING
 	     xfree($1);
 	  }
 
-domains: TOKDOMAIN str
+domains: TOKDOMAIN strv
 	 {
 		 char	*cp;
 
@@ -469,7 +469,7 @@ domains: TOKDOMAIN str
 		 $$ = $3;
 	 }
 
-domainslist: domainslist str
+domainslist: domainslist strv
 	     {
 		     char	*cp;
 
@@ -481,7 +481,7 @@ domainslist: domainslist str
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, char *);
 	     }
-	   | str
+	   | strv
 	     {
 		     char	*cp;
 
@@ -495,7 +495,7 @@ domainslist: domainslist str
 		     ARRAY_ADD($$, $1, char *);
 	     }
 
-headers: TOKHEADER str
+headers: TOKHEADER strv
 	 {
 		 char	*cp;
 
@@ -513,7 +513,7 @@ headers: TOKHEADER str
 		 $$ = $3;
 	 }
 
-headerslist: headerslist str
+headerslist: headerslist strv
 	     {
 		     char	*cp;
 
@@ -525,7 +525,7 @@ headerslist: headerslist str
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, char *);
 	     }
-	   | str
+	   | strv
 	     {
 		     char	*cp;
 
@@ -565,7 +565,7 @@ locklist: locklist lock
 		  $$ = 0;
 	  }
 
-uid: str
+uid: strv
      {
 	     struct passwd	*pw;
 
@@ -577,7 +577,7 @@ uid: str
 
 	     xfree($1);
      }
-   | num
+   | numv
      {
 	     struct passwd	*pw;
 
@@ -659,19 +659,19 @@ disabled: TOKDISABLED
 		  $$ = 0;
 	  }
 
-port: TOKPORT str
+port: TOKPORT strv
       {
 	      if (*$2 == '\0')
 		      yyerror("invalid port");
 
 	      $$ = $2;
       }
-    | TOKPORT num
+    | TOKPORT numv
       {
 	      xasprintf(&$$, "%lld", $2);
       }
 
-server: TOKSERVER str port
+server: TOKSERVER strv port
 	{
 		if (*$2 == '\0')
 			yyerror("invalid host");
@@ -679,7 +679,7 @@ server: TOKSERVER str port
 		$$.host = $2;
 		$$.port = $3;
 	}
-      | TOKSERVER str
+      | TOKSERVER strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid host");
@@ -692,7 +692,7 @@ to: /* empty */
     {
 	    $$ = NULL;
     }
-  | TOKTO str
+  | TOKTO strv
     {
 	    if (*$2 == '\0')
 		    yyerror("invalid to");
@@ -700,7 +700,7 @@ to: /* empty */
 	    $$ = $2;
     }
 
-action: ACTPIPE str
+action: ACTPIPE strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid command");
@@ -708,7 +708,7 @@ action: ACTPIPE str
 		$$.deliver = &deliver_pipe;
 		$$.data = $2;
 	}
-      | ACTREWRITE str
+      | ACTREWRITE strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid command");
@@ -716,7 +716,7 @@ action: ACTPIPE str
 		$$.deliver = &deliver_rewrite;
 		$$.data = $2;
 	}
-      | ACTWRITE str
+      | ACTWRITE strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -724,7 +724,7 @@ action: ACTPIPE str
 		$$.deliver = &deliver_write;
 		$$.data = $2;
 	}
-      | ACTAPPEND str
+      | ACTAPPEND strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -732,7 +732,7 @@ action: ACTPIPE str
 		$$.deliver = &deliver_append;
 		$$.data = $2;
 	}
-      | ACTMAILDIR str
+      | ACTMAILDIR strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -740,7 +740,7 @@ action: ACTPIPE str
 		$$.deliver = &deliver_maildir;
 		$$.data = $2;
 	}
-      | ACTMBOX str
+      | ACTMBOX strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -767,7 +767,7 @@ action: ACTPIPE str
 		$$.deliver = &deliver_drop;
 	}
 
-defaction: TOKACTION str users action
+defaction: TOKACTION strv users action
 	 {
 		 struct action	*t;
 
@@ -795,7 +795,7 @@ accounts: /* empty */
 	  {
 		  $$ = NULL;
 	  }
-        | TOKACCOUNT str
+        | TOKACCOUNT strv
 	  {
 		  if (*$2 == '\0')
 			  yyerror("invalid account name");
@@ -811,7 +811,7 @@ accounts: /* empty */
 		  $$ = $3;
 	  }
 
-accountslist: accountslist str
+accountslist: accountslist strv
  	      {
 		      if (*$2 == '\0')
 			      yyerror("invalid account name");
@@ -821,7 +821,7 @@ accountslist: accountslist str
 			      yyerror("no matching accounts: %s", $2);
 		      ARRAY_ADD($$, $2, char *);
 	      }
-	    | str
+	    | strv
 	      {
 		      if (*$1 == '\0')
 			      yyerror("invalid account name");
@@ -833,7 +833,7 @@ accountslist: accountslist str
 		      ARRAY_ADD($$, $1, char *);
 	      }
 
-actions: TOKACTION str
+actions: TOKACTION strv
 	 {
 		 struct action	*t;
 
@@ -852,7 +852,7 @@ actions: TOKACTION str
 		 $$ = $3;
 	 }
 
-actionslist: actionslist str
+actionslist: actionslist strv
 	     {
 		     struct action	*t;
 
@@ -865,7 +865,7 @@ actionslist: actionslist str
 		     ARRAY_ADD($$, t, struct action *);
 		     free($2);
 	     }
-	   | str
+	   | strv
 	     {
 		     struct action	*t;
 
@@ -906,6 +906,30 @@ area: /* empty */
 	      $$ = AREA_BODY;
       }
 
+retrc: numv
+       {
+	       if ($1 < 0 || $1 > 255)
+		       yyerror("invalid return code");
+
+	       $$ = $1;
+       }
+     | /* empty */
+       {
+	       $$ = -1;
+       }
+
+retre: strv
+       {
+	       if (*$1 == '\0')
+		       yyerror("invalid regexp");
+
+	       $$ = $1;
+       }
+     | /* empty */
+       {
+	       $$ = NULL;
+       }
+
 exprop: TOKAND
 	{
 		$$ = OP_AND;
@@ -915,7 +939,7 @@ exprop: TOKAND
 		$$ = OP_OR;
 	}
 
-expritem: not icase str area
+expritem: not icase strv area
           {
 		  struct regexp_data	*data;
 		  int	 		 error, flags;
@@ -927,11 +951,12 @@ expritem: not icase str area
 		  
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_regexp;
+		  $$->inverted = $1;
 		  
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 		  
-		  data->s = $3;
+		  data->re_s = $3;
 		  data->area = $4;
 		  
 		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
@@ -943,6 +968,44 @@ expritem: not icase str area
 			  regerror(error, &data->re, buf, len);
 			  yyerror("%s", buf);
 		  }
+	  }
+        | not COMMAND TOKRETURNS '(' retrc ',' retre ')'
+	  {
+		  struct command_data	*data;
+		  int	 		 error, flags;
+		  size_t	 	 len;
+		  char			*buf;
+		  
+		  if (*$2 == '\0' || ($2[0] == '|' && $2[1] == '\0'))
+			  yyerror("invalid command");
+		  
+		  $$ = xcalloc(1, sizeof *$$);
+		  $$->match = &match_command;
+		  $$->inverted = $1;
+		  
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+		  
+		  if (*$2 == '|') {
+			  data->pipe = 1;
+			  data->cmd = xstrdup($2 + 1);
+			  xfree($2);
+		  } else
+			  data->cmd = $2;
+
+		  data->re_s = $7;
+		  data->ret = $5;
+		  
+		  if ($7 != NULL) {
+			  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
+			  if ((error = regcomp(&data->re, $7, flags)) != 0) {
+				  len = regerror(error, &data->re, NULL, 0);
+				  buf = xmalloc(len);
+				  regerror(error, &data->re, buf, len);
+				  yyerror("%s", buf);
+			  }
+		  }
+
 	  }
 
 exprlist: exprlist exprop expritem
@@ -1063,7 +1126,7 @@ folder: /* empty */
         {
 		$$ = NULL;
         }
-      | TOKFOLDER str
+      | TOKFOLDER strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid folder");
@@ -1089,7 +1152,7 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
-fetchtype: poptype server TOKUSER str TOKPASS str
+fetchtype: poptype server TOKUSER strv TOKPASS strv
            {
 		   struct pop3_data	*data;
 
@@ -1109,7 +1172,7 @@ fetchtype: poptype server TOKUSER str TOKPASS str
 		       $2.port != NULL ? $2.port : xstrdup($$.fetch->port);
 		   data->server.ai = NULL;
 	   }
-         | imaptype server TOKUSER str TOKPASS str folder
+         | imaptype server TOKUSER strv TOKPASS strv folder
            {
 		   struct imap_data	*data;
 
@@ -1141,7 +1204,7 @@ fetchtype: poptype server TOKUSER str TOKPASS str
 		   $$.data = data;
 	   }
 
-account: TOKACCOUNT str disabled fetchtype
+account: TOKACCOUNT strv disabled fetchtype
          {
 		 struct account		*a;
 

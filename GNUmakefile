@@ -36,8 +36,8 @@ INSTALLMAN = install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 SRCS= fdm.c log.c xmalloc.c io.c replace.c connect.c mail.c \
       fetch-pop3.c fetch-imap.c fetch-stdin.c deliver-smtp.c deliver-pipe.c \
       deliver-drop.c deliver-maildir.c deliver-mbox.c deliver-write.c \
-      deliver-append.c deliver-rewrite.c match-regexp.c child.c parent.c \
-      privsep.c \
+      deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
+      child.c parent.c privsep.c \
       y.tab.c lex.yy.c
 
 DEFS = $(shell getconf LFS_CFLAGS) -DBUILD="\"$(VERSION) ($(DATE))\""
