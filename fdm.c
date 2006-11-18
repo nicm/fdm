@@ -239,9 +239,9 @@ main(int argc, char **argv)
 	} else {
 		if (argc != 1)
 			usage();
-		if (strcmp(argv[0], "poll") == 0)
+		if (strncmp(argv[0], "poll", strlen(argv[0])) == 0)
 			cmd = CMD_POLL;
-		else if (strcmp(argv[0], "fetch") == 0)
+		else if (strncmp(argv[0], "fetch", strlen(argv[0])) == 0)
 			cmd = CMD_FETCH;
 		else
 			usage();
