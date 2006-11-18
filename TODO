@@ -16,3 +16,4 @@
 - move str* into compat/
 - make rewrite work again, properly this time
 - audit man pages for clarity
+- add _desc for fetch/deliver too

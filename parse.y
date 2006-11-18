@@ -857,7 +857,7 @@ actions: TOKACTION TOKNONE
 		 if ((t = find_action($2)) == NULL)
 			 yyerror("unknown action: %s", $2);
 		 ARRAY_ADD($$, t, struct action *);
-		 free($2);
+		 xfree($2);
 	 }
        | TOKACTIONS '{' actionslist '}'
          {
@@ -875,7 +875,7 @@ actionslist: actionslist strv
 		     if ((t = find_action($2)) == NULL)
 			     yyerror("unknown action: %s", $2);
 		     ARRAY_ADD($$, t, struct action *);
-		     free($2);
+		     xfree($2);
 	     }
 	   | strv
 	     {
@@ -889,7 +889,7 @@ actionslist: actionslist strv
 		     if ((t = find_action($1)) == NULL)
 			     yyerror("unknown action: %s", $1);
 		     ARRAY_ADD($$, t, struct action *);
-		     free($1);
+		     xfree($1);
 	     }
 
 cont: /* empty */

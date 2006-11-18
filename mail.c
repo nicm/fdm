@@ -201,7 +201,7 @@ find_users(struct mail *m)
 
 		xasprintf(&ptr, "%s: ", ARRAY_ITEM(conf.headers, i, char *));
 		hdr = find_header(m, ptr, &len);
-		free(ptr);
+		xfree(ptr);
 
 		if (hdr == NULL || len < 1)
 			continue;
