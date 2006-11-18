@@ -178,9 +178,9 @@ find_header(struct mail *m, const char *hdr, size_t *len)
 	out = ptr + *len;
 	ptr = memchr(out, '\n', end - out);
 	if (ptr == NULL)
-		*len = end - hdr;
+		*len = end - out;
 	else
-		*len = (ptr - hdr) + 1;
+		*len = (ptr - out) + 1;
 
 	return (out);
 }
