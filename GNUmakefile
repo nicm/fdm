@@ -43,7 +43,7 @@ SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c mail.c \
 DEFS = -DBUILD="\"$(VERSION) ($(DATE))\""
 
 ifeq ($(shell uname),Linux)
-SRCS += compat/strlcpy.c compat/strlcat.c compat/strtonum.c
+SRCS += strlcpy.c strlcat.c strtonum.c
 DEFS += $(shell getconf LFS_CFLAGS) \
 	-D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM
 endif

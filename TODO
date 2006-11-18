@@ -14,3 +14,4 @@
 	match `|cmd ...` returns (return code, stdout as regexp)
   log stderr, allow 2>&1 if not required
 - document tags
+- move str* into compat/
