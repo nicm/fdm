@@ -63,6 +63,9 @@ parent(int fd, pid_t pid)
 			m->base = buf;
 			m->data = m->base;
 
+			ARRAY_INIT(&m->tags);
+			m->wrapped = NULL;
+
 			trim_from(m);
 			uid = data->uid;
 			error = do_action(data->account, data->action, m, uid);
@@ -98,17 +101,6 @@ parent(int fd, pid_t pid)
 int
 do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 {
-	if (geteuid() == 0) {
-		if (dropto(uid) != 0)
-			return (1);
-	}
-
-	return (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS);
-}
-
-int
-deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
-{
 	int	status;
 	pid_t	pid;
 
@@ -131,10 +123,13 @@ deliverfork(uid_t uid, struct account *a, struct mail *m, struct action *t)
 
 	/* child process. change user and group */
 	log_debug("%s: delivering using user %lu", a->name, (u_long) uid);
-	if (dropto(uid) != 0) {
-		log_warnx("%s: can't drop privileges", a->name);
-		_exit(DELIVER_FAILURE);
-	}
+	if (uid != geteuid()) {
+		if (dropto(uid) != 0) {
+			log_warnx("%s: can't drop privileges", a->name);
+			_exit(DELIVER_FAILURE);
+		}
+	} else
+		log_debug("%s: user already %lu", a->name, (u_long) uid);
 #ifndef NO_SETPROCTITLE
 	setproctitle("deliver[%lu]", (u_long) uid);
 #endif

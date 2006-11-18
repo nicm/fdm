@@ -167,6 +167,7 @@ set return (TOKSET);
 smtp return (TOKSMTP);
 stdin return (TOKSTDIN);
 tag return (TOKTAG);
+tagged return (TOKTAGGED);
 to return (TOKTO);
 unmatched return (TOKUNMATCHED);
 user return (TOKUSER);

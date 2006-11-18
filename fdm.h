@@ -212,21 +212,24 @@ struct proxy {
 	struct server	 server;
 };
 
+/* Tags array. */
+ARRAY_DECLARE(tags, char *);
+
 /* A single mail. */
 struct mail {
-	char	*tag;
+	struct tags	 tags;
 
-	char	*base;
+	char		*base;
 
-	char	*data;
-	size_t	 size;		/* size of mail */
-	size_t	 space;		/* size of malloc'd area */
+	char		*data;
+	size_t	 	 size;		/* size of mail */
+	size_t	 	 space;		/* size of malloc'd area */
 
-	char	*from;		/* from line */
+	char		*from;		/* from line */
 
-	size_t	*wrapped;	/* list of wrapped lines */
+	size_t		*wrapped;	/* list of wrapped lines */
 
-	ssize_t	 body;		/* offset of body */
+	ssize_t	 	 body;		/* offset of body */
 };
 
 /* Privsep message types. */
@@ -333,6 +336,8 @@ struct rule {
 
 	int			 stop;		/* stop matching at this rule */
 
+	char			*tag;
+
 	struct actions		*actions;
 	struct accounts		*accounts;
 
@@ -348,8 +353,8 @@ struct match {
 	char 			*(*desc)(struct expritem *);
 };
 
-/* Match tag data. */
-struct tag_data {
+/* Match tagged data. */
+struct tagged_data {
 	char			*tag;
 };
 
@@ -590,8 +595,8 @@ struct smtp_data {
 	char		*to;
 };
 
-/* match-tag.c */
-extern struct match	 match_tag;
+/* match-tagged.c */
+extern struct match	 match_tagged;
 
 /* match-command.c */
 extern struct match	 match_command;
@@ -638,9 +643,6 @@ extern struct deliver 	 deliver_append;
 
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
-
-/* deliver-tag.c */
-extern struct deliver 	 deliver_tag;
 
 #ifdef NO_STRTONUM
 /* strtonum.c */

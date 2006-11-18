@@ -155,10 +155,8 @@ find_macro(char *name)
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
-%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG
+%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
-
-%token TOKTAG TOKTAG
 
 %union
 {
@@ -192,6 +190,7 @@ find_macro(char *name)
 		struct users	*users;
 		int		 find_uid;
 	} users;
+	struct rule		*rule;
 }
 
 %token <number> NUMBER SIZE
@@ -211,6 +210,7 @@ find_macro(char *name)
 %type  <locks> lock locklist
 %type  <match> match
 %type  <number> size numv retrc
+%type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
 %type  <uid> uid
@@ -774,21 +774,6 @@ action: TOKPIPE strv
         {
 		$$.deliver = &deliver_drop;
 	}
-      | TOKTAG strv
-        {
-		struct tag_data		*data;
-
-		if (*$2 == '\0')
-			yyerror("invalid tag");
-
-		$$.deliver = &deliver_tag;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->tag = $2;
-	}
-
 
 defaction: TOKACTION strv users action
 	   {
@@ -802,17 +787,17 @@ defaction: TOKACTION strv users action
 			 yyerror("duplicate action: %s", $2);
 		   
 		   t = xmalloc(sizeof *t);
-		 memcpy(t, &$4, sizeof *t);
-		 strlcpy(t->name, $2, sizeof t->name);
-		 t->users = $3.users;
-		 t->find_uid = $3.find_uid;
-		 TAILQ_INSERT_TAIL(&conf.actions, t, entry);
-		 
-		 log_debug2("added action: name=%s deliver=%s", t->name,
-		     t->deliver->name);
-		 
-		 xfree($2);
-	 }
+		   memcpy(t, &$4, sizeof *t);
+		   strlcpy(t->name, $2, sizeof t->name);
+		   t->users = $3.users;
+		   t->find_uid = $3.find_uid;
+		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
+		   
+		   log_debug2("added action: name=%s deliver=%s", t->name,
+		       t->deliver->name);
+		   
+		   xfree($2);
+	   }
 
 accounts: /* empty */
 	  {
@@ -856,7 +841,11 @@ accountslist: accountslist strv
 		      ARRAY_ADD($$, $1, char *);
 	      }
 
-actions: TOKACTION strv
+actions: TOKACTION TOKNONE
+	 {
+		 $$ = NULL;
+	 }
+       | TOKACTION strv
 	 {
 		 struct action	*t;
 
@@ -1003,7 +992,7 @@ expritem: not icase strv area
 			  yyerror("invalid command");
 		  
 		  $$ = xcalloc(1, sizeof *$$);
-		  $$->match = &match_tag;
+		  $$->match = &match_command;
 		  $$->inverted = $1;
 		  
 		  data = xcalloc(1, sizeof *data);
@@ -1030,16 +1019,16 @@ expritem: not icase strv area
 		  }
 
 	  }
-	| not TOKTAG strv
+	| not TOKTAGGED strv
 	  {
-		  struct tag_data	*data;
+		  struct tagged_data	*data;
 		  
 		  if (*$3 == '\0')
 			  yyerror("invalid tag");
 		  
 		  $$ = xcalloc(1, sizeof *$$);
 
-		  $$->match = &match_tag;
+		  $$->match = &match_tagged;
 		  $$->inverted = $1;
 		  
 		  data = xcalloc(1, sizeof *data);
@@ -1099,25 +1088,39 @@ match: TOKMATCH expr
 	       $$.type = RULE_UNMATCHED;
        }
 
-rule: match accounts users actions cont
+perform: TOKTAG strv
+	 {
+		 if (*$2 == '\0')
+			 yyerror("invalid tag");
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->actions = NULL;
+		 $$->tag = $2;
+		 $$->stop = 0;
+	 }
+       | actions cont
+	 {
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->actions = $1;
+		 $$->tag = NULL;
+		 $$->stop = !$2;
+	 }
+
+rule: match accounts users perform
       {
-	      struct rule	*r;
 	      struct expritem	*ei;
 	      char		 tmp[1024], tmp2[1024], *s;
 	      u_int		 i;
 
-	      r = xcalloc(1, sizeof *r);
-	      r->stop = !$5;
-	      r->accounts = $2;
-	      r->expr = $1.expr;
-	      r->type = $1.type;
-	      r->users = $3.users;
-	      r->find_uid = $3.find_uid;
-	      r->actions = $4;
+	      $4->accounts = $2;
+	      $4->expr = $1.expr;
+	      $4->type = $1.type;
+	      $4->users = $3.users;
+	      $4->find_uid = $3.find_uid;
 
-	      TAILQ_INSERT_TAIL(&conf.rules, r, entry);
+	      TAILQ_INSERT_TAIL(&conf.rules, $4, entry);
 
-	      switch (r->type) {
+	      switch ($4->type) {
  	      case RULE_ALL:
 		      xsnprintf(tmp, sizeof tmp, "all");
 		      break;
@@ -1129,7 +1132,7 @@ rule: match accounts users actions cont
 		      break;
 	      case RULE_EXPRESSION:
 		      *tmp = '\0';
-		      TAILQ_FOREACH(ei, r->expr, entry) {
+		      TAILQ_FOREACH(ei, $4->expr, entry) {
 			      s = ei->match->desc(ei);
 			      switch (ei->op) {
 			      case OP_AND:
@@ -1152,14 +1155,17 @@ rule: match accounts users actions cont
 		      }
 		      break;
 	      }
-	      *tmp2 = '\0';
-	      for (i = 0; i < ARRAY_LENGTH($4); i++) {
-		      strlcat(tmp2, ARRAY_ITEM($4, i, struct action *)->name,
-			  sizeof tmp2);
-		      strlcat(tmp2, " ", sizeof tmp2);
-	      }
+	      if ($4->actions != NULL) {
+		      *tmp2 = '\0';
+		      for (i = 0; i < ARRAY_LENGTH($4->actions); i++) {
+			      strlcat(tmp2, ARRAY_ITEM($4->actions, i, 
+				  struct action *)->name, sizeof tmp2);
+			      strlcat(tmp2, " ", sizeof tmp2);
+		      }
+		      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
+	      } else
+		      log_debug2("added rule: tag=%s matches=%s", $4->tag, tmp);
 
-	      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
       }
 
 folder: /* empty */

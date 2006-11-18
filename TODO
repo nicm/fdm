@@ -13,5 +13,4 @@
 	match `cmd ...` returns (return code, stdout as regexp)
 	match `|cmd ...` returns (return code, stdout as regexp)
   log stderr, allow 2>&1 if not required
-- tags.. nested rules
--- move delivery iteration into child
+- document tags

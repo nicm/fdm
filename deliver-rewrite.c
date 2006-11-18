@@ -42,6 +42,8 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	struct io	*io;
 	pid_t	 	 pid;
 
+	fatalx("rewrite is currently broken");
+
 	cmd = replaceinfo(t->data, a, t);
         if (cmd == NULL || *cmd == '\0') {
 		log_warnx("%s: empty command", a->name);

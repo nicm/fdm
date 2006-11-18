@@ -18,22 +18,37 @@
 
 #include <sys/types.h>
 
+#include <string.h>
+
 #include "fdm.h"
 
-int	tag_deliver(struct account *, struct action *, struct mail *);
+int	tagged_match(struct account *, struct mail *, struct expritem *);
+char   *tagged_desc(struct expritem *);
 
-struct deliver deliver_tag = { "tag", 0, tag_deliver };
+struct match match_tagged = { "tagged", tagged_match, tagged_desc };
 
 int
-tag_deliver(unused struct account *a, unused struct action *t, struct mail *m)
+tagged_match(unused struct account *a, struct mail *m, struct expritem *ei)
 {
-	struct tag_data	*data;
+	struct tagged_data	*data;
+	u_int			 i;
 
-	data = t->data;
+	data = ei->data;
+	
+	for (i = 0; i < ARRAY_LENGTH(&m->tags); i++) {
+		if (strcmp(data->tag, ARRAY_ITEM(&m->tags, i, char *)) == 0)
+			return (1);
+	}
+	
+	return (0);
+}
 
-	if (m->tag != NULL)
-		xfree(m->tag);
-	m->tag = xstrdup(data->tag);
+char *
+tagged_desc(struct expritem *ei)
+{
+	struct tagged_data	*data;
 
-	return (DELIVER_SUCCESS);
+	data = ei->data;
+
+	return (xstrdup(data->tag));
 }

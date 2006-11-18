@@ -34,6 +34,8 @@
 void
 free_mail(struct mail *m)
 {
+	if (!ARRAY_EMPTY(&m->tags))
+		ARRAY_FREE(&m->tags);
 	free_wrapped(m);
 	if (m->from != NULL) {
 		xfree(m->from);
