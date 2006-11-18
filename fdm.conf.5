@@ -332,9 +332,7 @@ If not, the current user and host names are used.
 .Xc
 Pipe the entire mail through
 .Ar command
-to generate a new mail.
-The modified mail is kept only within the rule the action appears, so it will be used only by subsequent actions in the same rule and not by actions in further rules.
-This type of action does not work when running as root (although the command will be executed the mail will remain unchanged).
+to generate a new mail and use that mail for any following actions or rules.
 An example of the
 .Ic rewrite
 action is:
