@@ -1116,13 +1116,13 @@ rule: match accounts perform
 	      char		 tmp[1024], tmp2[1024], *s;
 	      u_int		 i;
 
-	      $4->accounts = $2;
-	      $4->expr = $1.expr;
-	      $4->type = $1.type;
+	      $3->accounts = $2;
+	      $3->expr = $1.expr;
+	      $3->type = $1.type;
 
-	      TAILQ_INSERT_TAIL(&conf.rules, $4, entry);
+	      TAILQ_INSERT_TAIL(&conf.rules, $3, entry);
 
-	      switch ($4->type) {
+	      switch ($3->type) {
  	      case RULE_ALL:
 		      xsnprintf(tmp, sizeof tmp, "all");
 		      break;
@@ -1134,7 +1134,7 @@ rule: match accounts perform
 		      break;
 	      case RULE_EXPRESSION:
 		      *tmp = '\0';
-		      TAILQ_FOREACH(ei, $4->expr, entry) {
+		      TAILQ_FOREACH(ei, $3->expr, entry) {
 			      s = ei->match->desc(ei);
 			      switch (ei->op) {
 			      case OP_AND:
@@ -1157,16 +1157,16 @@ rule: match accounts perform
 		      }
 		      break;
 	      }
-	      if ($4->actions != NULL) {
+	      if ($3->actions != NULL) {
 		      *tmp2 = '\0';
-		      for (i = 0; i < ARRAY_LENGTH($4->actions); i++) {
-			      strlcat(tmp2, ARRAY_ITEM($4->actions, i, 
+		      for (i = 0; i < ARRAY_LENGTH($3->actions); i++) {
+			      strlcat(tmp2, ARRAY_ITEM($3->actions, i, 
 				  struct action *)->name, sizeof tmp2);
 			      strlcat(tmp2, " ", sizeof tmp2);
 		      }
 		      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
 	      } else
-		      log_debug2("added rule: tag=%s matches=%s", $4->tag, tmp);
+		      log_debug2("added rule: tag=%s matches=%s", $3->tag, tmp);
 
       }
 
