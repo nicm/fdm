@@ -312,8 +312,6 @@ trim_from(struct mail *m)
 	ptr = memchr(m->data, '\n', m->size);
 	if (ptr == NULL)
 		ptr = m->data + m->size;
-	else
-		ptr++;
 	len = ptr - m->data;
 
 	m->from = xmalloc(len + 1);
