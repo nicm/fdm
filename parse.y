@@ -1097,16 +1097,20 @@ perform: TOKTAG strv
 		 $$->actions = NULL;
 		 $$->tag = $2;
 		 $$->stop = 0;
+		 $$->users = NULL;
+		 $$->find_uid = NULL;
 	 }
-       | actions cont
+       | users actions cont
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
-		 $$->actions = $1;
+		 $$->actions = $2;
 		 $$->tag = NULL;
-		 $$->stop = !$2;
+		 $$->stop = !$3;
+		 $$->users = $1.users;
+		 $$->find_uid = $1.find_uid;
 	 }
 
-rule: match accounts users perform
+rule: match accounts perform
       {
 	      struct expritem	*ei;
 	      char		 tmp[1024], tmp2[1024], *s;
@@ -1115,8 +1119,6 @@ rule: match accounts users perform
 	      $4->accounts = $2;
 	      $4->expr = $1.expr;
 	      $4->type = $1.type;
-	      $4->users = $3.users;
-	      $4->find_uid = $3.find_uid;
 
 	      TAILQ_INSERT_TAIL(&conf.rules, $4, entry);
 

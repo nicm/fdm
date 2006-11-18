@@ -349,7 +349,7 @@ match all action "cat"
 Rules are specified using the
 .Ic match
 keyword.
-It has the following basic form:
+It has one of the following basic forms:
 .Bl -tag -width Ds
 .It Xo Ic match
 .Ar conditions
@@ -357,6 +357,11 @@ It has the following basic form:
 .Op Ar users
 .Ar actions
 .Op Ic continue
+.Xc
+.It Xo Ic match
+.Ar conditions
+.Op Ar accounts
+.Ic tag Ar string
 .Xc
 .El
 .Pp
@@ -373,6 +378,11 @@ Matches only mail that has matched a previous rule and been passed on with
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
+.It Xo Ic tagged Ar string
+.Op Ic and | Ic or Ar ...
+.Xc
+Matches mails tagged with 
+.Ar string .
 .It Xo Op Ic not
 .Op Ic case
 .Ar regexp
@@ -392,17 +402,30 @@ match.
 The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
-Multiple regexps may be specified by chaining them with
+.El
+.Pp
+Aside from the
+.Ic all ,
+.Ic matched
+and
+.Ic unmatched 
+conditions, multiple conditions may be chained together using the
 .Ic and
 or
 .Ic or
 keywords.
-The regexps are matched from left to right.
-.El
+The conditions are tested from left to right.
+
+The first form of the command specifies a number of actions to take when a mail matches the rule.
+The second form tags the mail with 
+.Ar string ,
+which may be matched using the
+.Ic tagged
+condition in later rules. A mail may be tagged with any number of different strings by different rules.
 .Pp
 The optional
 .Ar users
-argument has the same syntax as for an
+argument to the first form has the same syntax as for an
 .Ic action
 definition.
 A rule's user list overrides any users given as part of the actions.
