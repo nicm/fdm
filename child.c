@@ -155,7 +155,7 @@ fetch_account(struct io *io, struct account *a)
 	struct mail	 m;
 	struct timeval	 tv;
 	double		 tim;
-	u_int	 	 n, i;
+	u_int	 	 i, n, l;
 	int		 error, matched;
 	char		*name;
  	const char	*cause = NULL;
@@ -203,8 +203,8 @@ fetch_account(struct io *io, struct account *a)
 		log_debug("%s: got message: size=%zu, body=%zd", a->name,
 		    m.size, m.body);
 
-		i = fill_wrapped(&m);
-		log_debug2("%s: found %u wrapped lines", a->name, i);
+		l = fill_wrapped(&m);
+		log_debug2("%s: found %u wrapped lines", a->name, l);
 
 		matched = 0;
 		TAILQ_FOREACH(r, &conf.rules, entry) {
@@ -339,7 +339,7 @@ do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
 
 	struct action	*t;
 	struct mail	*md;
-	u_int		 i, j;
+	u_int		 i, j, l;
 	int		 find;
 	struct users	*users;
 	struct msg	 msg;
@@ -414,9 +414,9 @@ do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
 				log_debug("%s: received modified mail, size "
 				    "now %zu bytes", a->name, m->size);
 
-				i = fill_wrapped(m);
+				l = fill_wrapped(m);
 				log_debug2("%s: found %u wrapped lines", 
-				    a->name, i);
+				    a->name, l);
 			}
 		}
 
