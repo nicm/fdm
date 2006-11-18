@@ -20,13 +20,20 @@
 
 #include "fdm.h"
 
-int	drop_deliver(struct account *, struct action *, struct mail *);
+int	tag_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_drop = { "drop", 0, drop_deliver };
+struct deliver deliver_tag = { "tag", 0, tag_deliver };
 
 int
-drop_deliver(unused struct account *a, unused struct action *t,
-    unused struct mail *m)
+tag_deliver(unused struct account *a, unused struct action *t, struct mail *m)
 {
+	struct tag_data	*data;
+
+	data = t->data;
+
+	if (m->tag != NULL)
+		xfree(m->tag);
+	m->tag = xstrdup(data->tag);
+
 	return (DELIVER_SUCCESS);
 }

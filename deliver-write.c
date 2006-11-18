@@ -28,7 +28,7 @@
 
 int	write_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_write = { "write", write_deliver };
+struct deliver deliver_write = { "write", 1, write_deliver };
 
 int
 write_deliver(struct account *a, struct action *t, struct mail *m)

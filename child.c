@@ -30,6 +30,7 @@
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct account *, struct mail *, struct rule *);
+int	do_deliver(struct io *, struct account *, struct mail *, struct rule *);
 
 int
 child(int fd, enum cmd cmd)
@@ -150,7 +151,6 @@ poll_account(unused struct io *io, struct account *a)
 int
 fetch_account(struct io *io, struct account *a)
 {
-	struct msg	 msg;
 	struct rule	*r;
 	struct mail	 m;
 	struct timeval	 tv;
@@ -158,7 +158,7 @@ fetch_account(struct io *io, struct account *a)
 	u_int	 	 n, i;
 	int		 error, matched;
 	char		*name;
-	const char	*cause = NULL;
+ 	const char	*cause = NULL;
 	struct accounts	*list;
 
 	if (a->fetch->fetch == NULL) {
@@ -239,22 +239,12 @@ fetch_account(struct io *io, struct account *a)
 
 			set_wrapped(&m, '\n');
 
-			/* pass up to the parent for delivery */
-			msg.type = MSG_DELIVER;
-			msg.data.rule = r;
-			msg.data.account = a;
-			memcpy(&msg.data.mail, &m, sizeof msg.data.mail);
-			msg.data.mail.wrapped = NULL;
-			if (privsep_send(io, &msg, m.data, m.size) != 0)
-				fatalx("child: privsep_send error");
-			if (privsep_recv(io, &msg, NULL, 0) != 0)
-				fatalx("child: privsep_recv error");
-			if (msg.type != MSG_DONE)
-				fatalx("child: unexpected message");
-			if (msg.data.error != 0) {
+			/* handle delivery */
+			if (do_deliver(io, a, &m, r) != 0) {
 				cause = "delivery";
 				goto out;
 			}
+				
 
 			/* if this rule is marked as stop, stop checking now */
 			if (r->stop)
@@ -327,4 +317,72 @@ do_expr(struct account *a, struct mail *m, struct rule *r)
 	}
 
 	return (fres);
+}
+
+int
+do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
+{
+
+	struct action	*t;
+	u_int		 i, j;
+	int		 find;
+	struct users	*users;
+	struct msg	 msg;
+
+	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
+		t = ARRAY_ITEM(r->actions, i, struct action *);
+		if (t->deliver->deliver == NULL)
+			continue;
+		log_debug2("%s: action %s", a->name, t->name);
+
+		if (!t->deliver->to_parent) {
+			if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
+				return (1);
+			continue;
+		}
+
+		/* figure out the users to use */
+		users = NULL;
+		if (r->find_uid) {		/* rule comes first */
+			find = 1;
+			users = find_users(m);
+		} else if (r->users != NULL) {
+			find = 0;
+			users = r->users;
+		} else if (t->find_uid) {
+			find = 1;
+			users = find_users(m);
+		} else if (t->users != NULL) {	/* then action */
+			find = 0;
+			users = t->users;
+		}
+		if (users == NULL) {
+			find = 1;
+			users = xmalloc(sizeof *users);
+			ARRAY_INIT(users);
+			ARRAY_ADD(users, conf.def_user, uid_t);
+		}
+
+		for (j = 0; j < ARRAY_LENGTH(users); j++) {
+			msg.type = MSG_ACTION;
+			msg.data.account = a;
+			msg.data.action = t;
+			msg.data.uid = ARRAY_ITEM(users, j, uid_t);
+			memcpy(&msg.data.mail, m, sizeof msg.data.mail);
+			msg.data.mail.wrapped = NULL;
+			if (privsep_send(io, &msg, m->data, m->size) != 0)
+				fatalx("child: privsep_send error");
+			if (privsep_recv(io, &msg, NULL, 0) != 0)
+				fatalx("child: privsep_recv error");
+			if (msg.type != MSG_DONE)
+				fatalx("child: unexpected message");
+			if (msg.data.error != 0)
+				return (1);
+		}
+
+		if (find)
+			ARRAY_FREEALL(users);
+	}
+
+	return (0);
 }

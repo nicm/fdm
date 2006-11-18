@@ -23,7 +23,7 @@
 
 #include "fdm.h"
 
-int	do_actions(struct account *, struct mail *, struct rule *);
+int	do_action(struct account *, struct action *, struct mail *, uid_t);
 int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
 int
@@ -35,6 +35,8 @@ parent(int fd, pid_t pid)
 	int		 status, error;
 	void		*buf;
 	size_t		 len;
+	struct msgdata	*data;
+	uid_t		 uid;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -47,21 +49,23 @@ parent(int fd, pid_t pid)
 	setproctitle("parent");
 #endif
 
-	m = &msg.data.mail;
+	data = &msg.data;
+	m = &data->mail;
 	do {
 		if (privsep_recv(io, &msg, &buf, &len) != 0)
 			fatalx("parent: privsep_recv error");
 		log_debug2("parent: got message type %d", msg.type);
 
 		switch (msg.type) {
-		case MSG_DELIVER:
+		case MSG_ACTION:
 			if (buf == NULL || len != m->size)
 				fatalx("parent: bad mail");
 			m->base = buf;
 			m->data = m->base;
 
 			trim_from(m);
-			error = do_actions(msg.data.account, m, msg.data.rule);
+			uid = data->uid;
+			error = do_action(data->account, data->action, m, uid);
 			free_mail(m);
 
 			msg.type = MSG_DONE;
@@ -92,70 +96,14 @@ parent(int fd, pid_t pid)
 }
 
 int
-do_actions(struct account *a, struct mail *m, struct rule *r)
+do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 {
-	struct action	*t;
-	u_int		 i, j;
-	int		 find;
-	struct users	*users;
-	uid_t		 uid;
-
-	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		t = ARRAY_ITEM(r->actions, i, struct action *);
-		if (t->deliver->deliver == NULL)
-			continue;
-		log_debug2("%s: action %s", a->name, t->name);
-
-		if (geteuid() != 0) {
-			log_debug2("%s: not root. using current user", a->name);
-			/* do the delivery without forking */
-			if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
-				return (1);
-			continue;
-		}
-
-		/* figure out the users to use. it would be nice to call
-		   find_users as non-root :-( */
-		users = NULL;
-		if (r->find_uid) {		/* rule comes first */
-			find = 1;
-			users = find_users(m);
-		} else if (r->users != NULL) {
-			find = 0;
-			users = r->users;
-		} else if (t->find_uid) {
-			find = 1;
-			users = find_users(m);
-		} else if (t->users != NULL) {	/* then action */
-			find = 0;
-			users = t->users;
-		}
-		if (users == NULL) {
-			find = 1;
-			users = xmalloc(sizeof *users);
-			ARRAY_INIT(users);
-			ARRAY_ADD(users, conf.def_user, uid_t);
-		}
-
-		for (j = 0; j < ARRAY_LENGTH(users); j++) {
-			/* fork and deliver */
-			uid = ARRAY_ITEM(users, j, uid_t);
-			if (deliverfork(uid, a, m, t) != DELIVER_SUCCESS) {
-				if (find) {
-					ARRAY_FREE(users);
-					xfree(users);
-				}
-				return (1);
-			}
-		}
-
-		if (find) {
-			ARRAY_FREE(users);
-			xfree(users);
-		}
+	if (geteuid() == 0) {
+		if (dropto(uid) != 0)
+			return (1);
 	}
 
-	return (0);
+	return (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS);
 }
 
 int

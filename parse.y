@@ -154,9 +154,11 @@ find_macro(char *name)
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
-%token TOKLOCKFILE TOKRETURNS
-%token ACTPIPE ACTSMTP ACTDROP ACTMAILDIR ACTMBOX ACTWRITE ACTAPPEND ACTREWRITE
+%token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
+%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
+
+%token TOKTAG TOKTAG
 
 %union
 {
@@ -700,55 +702,61 @@ to: /* empty */
 	    $$ = $2;
     }
 
-action: ACTPIPE strv
+action: TOKPIPE strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid command");
 
 		$$.deliver = &deliver_pipe;
+
 		$$.data = $2;
 	}
-      | ACTREWRITE strv
+      | TOKREWRITE strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid command");
 
 		$$.deliver = &deliver_rewrite;
+
 		$$.data = $2;
 	}
-      | ACTWRITE strv
+      | TOKWRITE strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
 
 		$$.deliver = &deliver_write;
+
 		$$.data = $2;
 	}
-      | ACTAPPEND strv
+      | TOKAPPEND strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
 
 		$$.deliver = &deliver_append;
+
 		$$.data = $2;
 	}
-      | ACTMAILDIR strv
+      | TOKMAILDIR strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
 
 		$$.deliver = &deliver_maildir;
+
 		$$.data = $2;
 	}
-      | ACTMBOX strv
+      | TOKMBOX strv
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
 
 		$$.deliver = &deliver_mbox;
+
 		$$.data = $2;
 	}
-      | ACTSMTP server to
+      | TOKSMTP server to
 	{
 		struct smtp_data	*data;
 
@@ -762,23 +770,38 @@ action: ACTPIPE strv
 		data->server.ai = NULL;
 		data->to = $3;
 	}
-      | ACTDROP
+      | TOKDROP
         {
 		$$.deliver = &deliver_drop;
 	}
+      | TOKTAG strv
+        {
+		struct tag_data		*data;
+
+		if (*$2 == '\0')
+			yyerror("invalid tag");
+
+		$$.deliver = &deliver_tag;
+
+		data = xcalloc(1, sizeof *data);
+		$$.data = data;
+
+		data->tag = $2;
+	}
+
 
 defaction: TOKACTION strv users action
-	 {
-		 struct action	*t;
-
-		 if (strlen($2) >= MAXNAMESIZE)
-			 yyerror("action name too long: %s", $2);
-		 if (*$2 == '\0')
-			 yyerror("invalid action name");
-		 if (find_action($2) != NULL)
+	   {
+		   struct action	*t;
+		   
+		   if (strlen($2) >= MAXNAMESIZE)
+			   yyerror("action name too long: %s", $2);
+		   if (*$2 == '\0')
+			   yyerror("invalid action name");
+		   if (find_action($2) != NULL)
 			 yyerror("duplicate action: %s", $2);
-		 
-		 t = xmalloc(sizeof *t);
+		   
+		   t = xmalloc(sizeof *t);
 		 memcpy(t, &$4, sizeof *t);
 		 strlcpy(t->name, $2, sizeof t->name);
 		 t->users = $3.users;
@@ -980,7 +1003,7 @@ expritem: not icase strv area
 			  yyerror("invalid command");
 		  
 		  $$ = xcalloc(1, sizeof *$$);
-		  $$->match = &match_command;
+		  $$->match = &match_tag;
 		  $$->inverted = $1;
 		  
 		  data = xcalloc(1, sizeof *data);
@@ -1006,6 +1029,23 @@ expritem: not icase strv area
 			  }
 		  }
 
+	  }
+	| not TOKTAG strv
+	  {
+		  struct tag_data	*data;
+		  
+		  if (*$3 == '\0')
+			  yyerror("invalid tag");
+		  
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_tag;
+		  $$->inverted = $1;
+		  
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+		  
+		  data->tag = $3;
 	  }
 
 exprlist: exprlist exprop expritem

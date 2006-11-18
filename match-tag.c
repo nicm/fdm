@@ -18,15 +18,34 @@
 
 #include <sys/types.h>
 
+#include <string.h>
+
 #include "fdm.h"
 
-int	drop_deliver(struct account *, struct action *, struct mail *);
+int	tag_match(struct account *, struct mail *, struct expritem *);
+char   *tag_desc(struct expritem *);
 
-struct deliver deliver_drop = { "drop", 0, drop_deliver };
+struct match match_tag = { "tag", tag_match, tag_desc };
 
 int
-drop_deliver(unused struct account *a, unused struct action *t,
-    unused struct mail *m)
+tag_match(unused struct account *a, struct mail *m, struct expritem *ei)
 {
-	return (DELIVER_SUCCESS);
+	struct tag_data	*data;
+
+	data = ei->data;
+
+	if (data->tag == NULL)
+		return (0);
+
+	return (strcmp(data->tag, m->tag) == 0);
+}
+
+char *
+tag_desc(struct expritem *ei)
+{
+	struct tag_data	*data;
+
+	data = ei->data;
+
+	return (xstrdup(data->tag));
 }

@@ -31,7 +31,7 @@
 
 int	mbox_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_mbox = { "mbox", mbox_deliver };
+struct deliver deliver_mbox = { "mbox", 1, mbox_deliver };
 
 int
 mbox_deliver(struct account *a, struct action *t, struct mail *m)

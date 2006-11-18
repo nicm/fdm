@@ -28,7 +28,7 @@
 
 int	pipe_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_pipe = { "pipe", pipe_deliver };
+struct deliver deliver_pipe = { "pipe", 1, pipe_deliver };
 
 int
 pipe_deliver(struct account *a, struct action *t, struct mail *m)

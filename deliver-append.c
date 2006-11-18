@@ -28,7 +28,7 @@
 
 int	append_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_append = { "append", append_deliver };
+struct deliver deliver_append = { "append", 1, append_deliver };
 
 int
 append_deliver(struct account *a, struct action *t, struct mail *m)

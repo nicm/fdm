@@ -40,11 +40,12 @@ SRCS= fdm.c log.c xmalloc.c io.c replace.c connect.c mail.c \
       child.c parent.c privsep.c \
       y.tab.c lex.yy.c
 
-DEFS = $(shell getconf LFS_CFLAGS) -DBUILD="\"$(VERSION) ($(DATE))\""
+DEFS = -DBUILD="\"$(VERSION) ($(DATE))\""
 
 ifeq ($(shell uname),Linux)
-SRCS += strlcpy.c strlcat.c strtonum.c
-DEFS += -D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM
+SRCS += compat/strlcpy.c compat/strlcat.c compat/strtonum.c
+DEFS += $(shell getconf LFS_CFLAGS) \
+	-D_GNU_SOURCE -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM
 endif
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))

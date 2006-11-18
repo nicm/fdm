@@ -30,7 +30,7 @@
 
 int	rewrite_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_rewrite = { "rewrite", rewrite_deliver };
+struct deliver deliver_rewrite = { "rewrite", 1, rewrite_deliver };
 
 int
 rewrite_deliver(struct account *a, struct action *t, struct mail *m)

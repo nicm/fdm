@@ -32,7 +32,8 @@ command_match(struct account *a, struct mail *m, struct expritem *ei)
 
 	data = ei->data;
 
-	/** **/
+	/* We are called as the child so execs need to break the fourth 
+	   wall */
 	/** cmd user??? -- rule user? specified? current? **/
 	
 	return (0);

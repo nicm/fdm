@@ -214,6 +214,8 @@ struct proxy {
 
 /* A single mail. */
 struct mail {
+	char	*tag;
+
 	char	*base;
 
 	char	*data;
@@ -229,7 +231,7 @@ struct mail {
 
 /* Privsep message types. */
 enum msgtype {
-	MSG_DELIVER,
+	MSG_ACTION,
 	MSG_EXIT,
 	MSG_DONE
 };
@@ -240,8 +242,9 @@ struct msgdata {
 	struct mail	 mail;
 	
 	/* these only work so long as they aren't moved in either process */
-	struct rule	*rule;
 	struct account	*account;
+	struct action	*action;
+	uid_t		 uid;
 };
 
 /* Privsep message. */
@@ -345,6 +348,11 @@ struct match {
 	char 			*(*desc)(struct expritem *);
 };
 
+/* Match tag data. */
+struct tag_data {
+	char			*tag;
+};
+
 /* Match regexp data. */
 struct regexp_data {
 	char			*re_s;
@@ -393,6 +401,7 @@ struct fetch {
 /* Deliver functions. */
 struct deliver {
 	const char	*name;
+	int		 to_parent;
 
 	int	 	 (*deliver)(struct account *, struct action *, 
 			     struct mail *);
@@ -581,6 +590,9 @@ struct smtp_data {
 	char		*to;
 };
 
+/* match-tag.c */
+extern struct match	 match_tag;
+
 /* match-command.c */
 extern struct match	 match_command;
  
@@ -626,6 +638,9 @@ extern struct deliver 	 deliver_append;
 
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
+
+/* deliver-tag.c */
+extern struct deliver 	 deliver_tag;
 
 #ifdef NO_STRTONUM
 /* strtonum.c */
