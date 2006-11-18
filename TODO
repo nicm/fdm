@@ -2,7 +2,6 @@
 - SMTP SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
-- "rewrite-all" "rewrite-file" or "rewrite-something" action to rewrite via a file and work always
 - filter based on attachment size, quantity, type?
 - filter based on mail size
 - add more examples to the man page
@@ -15,3 +14,5 @@
   log stderr, allow 2>&1 if not required
 - document tags
 - move str* into compat/
+- make rewrite work again, properly this time
+- audit man pages for clarity

@@ -225,8 +225,6 @@ struct mail {
 	size_t	 	 size;		/* size of mail */
 	size_t	 	 space;		/* size of malloc'd area */
 
-	char		*from;		/* from line */
-
 	size_t		*wrapped;	/* list of wrapped lines */
 
 	ssize_t	 	 body;		/* offset of body */
@@ -403,10 +401,18 @@ struct fetch {
 	int		 (*disconnect)(struct account *);
 };
 
+/* Delivery types. */
+enum delivertype {
+	DELIVER_INCHILD,	/* do not pass up to parent */
+	DELIVER_ASUSER,		/* do pass up to parent to drop privs */
+	DELIVER_WRBACK		/* modifies mail: pass up to parent and expect
+				   a new mail back */
+};
+
 /* Deliver functions. */
 struct deliver {
 	const char	*name;
-	int		 to_parent;
+	enum delivertype type;
 
 	int	 	 (*deliver)(struct account *, struct action *, 
 			     struct mail *);
@@ -695,7 +701,7 @@ char 			*find_header(struct mail *, const char *, size_t *);
 struct users		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
-void			 make_from(struct mail *);
+char 		        *make_from(struct mail *);
 u_int			 fill_wrapped(struct mail *);
 void			 set_wrapped(struct mail *, char);
 void			 free_wrapped(struct mail *);

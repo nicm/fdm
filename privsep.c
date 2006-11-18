@@ -21,14 +21,9 @@
 
 #include "fdm.h"
 
-u_int	nrecv = 0;
-u_int	nsend = 0;
-
 int
 privsep_send(struct io *io, struct msg *msg, void *buf, size_t len)
 {
-	msg->n = nsend++;
-
 	if (buf != NULL && len > 0)
 		msg->size = len;
 	else
@@ -60,16 +55,16 @@ privsep_recv(struct io *io, struct msg *msg, void **buf, size_t *len)
 	if (io_read2(io, msg, sizeof *msg) != 0)
 		return (1);
 
-	if (msg->n != nrecv)
-		return (1);
-	nrecv++;
-
 	if (msg->size == 0)
 		return (0);
 	if (buf == NULL || len == NULL)
 		return (1);
 
 	*len = msg->size;
+	if (*len == 0) {
+		*buf = NULL;
+		return (0);
+	}
 	if (io_wait(io, *len, NULL) != 0)
 		return (1);
 	if ((*buf = io_read(io, *len)) == NULL)

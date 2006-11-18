@@ -91,7 +91,7 @@ xmalloc_dump(const char *hdr)
 			off2 = xsnprintf(tmp + off, len - off, "[%p %zu:",
 			    p->ptr, p->size);
 			if (off2 < 0)
-				fatal("xsnprintf");
+				break;
 			off += off2;
 
 			for (j = 0; j < (p->size > 8 ? 8 : p->size); j++) {
@@ -103,13 +103,13 @@ xmalloc_dump(const char *hdr)
 					    "\\%03o", ((char *) p->ptr)[j]);
 				}
 				if (off2 < 0)
-					fatal("xsnprintf");
+					break;
 				off += off2;
 			}
 
 			off2 = xsnprintf(tmp + off, len - off, "] ");
 			if (off2 < 0)
-				fatal("xsnprintf");
+				break;
 			off += off2;
 		}
 	}

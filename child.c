@@ -193,6 +193,13 @@ fetch_account(struct io *io, struct account *a)
 			goto out;
 		}
 
+		trim_from(&m);
+		if (m.size == 0) {
+			free_mail(&m);
+			log_warnx("%s: got empty message. ignored", a->name);
+			continue;
+		}
+			
 		log_debug("%s: got message: size=%zu, body=%zd", a->name,
 		    m.size, m.body);
 
@@ -331,10 +338,13 @@ do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
 {
 
 	struct action	*t;
+	struct mail	*md;
 	u_int		 i, j;
 	int		 find;
 	struct users	*users;
 	struct msg	 msg;
+	void		*buf;
+	size_t		 len;
 
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		t = ARRAY_ITEM(r->actions, i, struct action *);
@@ -342,7 +352,7 @@ do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
 			continue;
 		log_debug2("%s: action %s", a->name, t->name);
 
-		if (!t->deliver->to_parent) {
+		if (t->deliver->type == DELIVER_INCHILD) {
 			if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
 				return (1);
 			continue;
@@ -376,15 +386,38 @@ do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
 			msg.data.action = t;
 			msg.data.uid = ARRAY_ITEM(users, j, uid_t);
 			memcpy(&msg.data.mail, m, sizeof msg.data.mail);
-			msg.data.mail.wrapped = NULL;
 			if (privsep_send(io, &msg, m->data, m->size) != 0)
 				fatalx("child: privsep_send error");
-			if (privsep_recv(io, &msg, NULL, 0) != 0)
+			if (privsep_recv(io, &msg, &buf, &len) != 0)
 				fatalx("child: privsep_recv error");
 			if (msg.type != MSG_DONE)
 				fatalx("child: unexpected message");
 			if (msg.data.error != 0)
 				return (1);
+			if (t->deliver->type != DELIVER_WRBACK) {
+				if (buf != NULL || len != 0)
+					fatalx("child: unexpected data");
+			} else {
+				md = &msg.data.mail;
+				if (buf == NULL || len != md->size || len == 0)
+					fatalx("child: bad mail");
+
+				/* free the old mail, but keep the tags */
+				free_wrapped(m);
+				xfree(m->base);
+
+				/* copy the new mail in */
+				m->base = buf;
+				m->data = m->base;
+				m->body = md->body;
+
+				log_debug("%s: received modified mail, size "
+				    "now %zu bytes", a->name, m->size);
+
+				i = fill_wrapped(m);
+				log_debug2("%s: found %u wrapped lines", 
+				    a->name, i);
+			}
 		}
 
 		if (find)

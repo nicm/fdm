@@ -30,7 +30,7 @@
 
 int	rewrite_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_rewrite = { "rewrite", 1, rewrite_deliver };
+struct deliver deliver_rewrite = { "rewrite", DELIVER_WRBACK, rewrite_deliver };
 
 int
 rewrite_deliver(struct account *a, struct action *t, struct mail *m)
@@ -41,8 +41,6 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	int	 	 in[2], out[2], error, status, res = DELIVER_FAILURE;
 	struct io	*io;
 	pid_t	 	 pid;
-
-	fatalx("rewrite is currently broken");
 
 	cmd = replaceinfo(t->data, a, t);
         if (cmd == NULL || *cmd == '\0') {

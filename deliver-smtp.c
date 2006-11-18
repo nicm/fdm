@@ -29,7 +29,7 @@
 
 int	smtp_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_smtp = { "smtp", 1, smtp_deliver };
+struct deliver deliver_smtp = { "smtp", DELIVER_ASUSER, smtp_deliver };
 
 int
 smtp_deliver(struct account *a, struct action *t, struct mail *m)

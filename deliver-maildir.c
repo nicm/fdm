@@ -31,7 +31,7 @@
 
 int	maildir_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_maildir = { "maildir", 1, maildir_deliver };
+struct deliver deliver_maildir = { "maildir", DELIVER_ASUSER, maildir_deliver };
 
 int
 maildir_deliver(struct account *a, struct action *t, struct mail *m)

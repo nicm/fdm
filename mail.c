@@ -37,10 +37,6 @@ free_mail(struct mail *m)
 	if (!ARRAY_EMPTY(&m->tags))
 		ARRAY_FREE(&m->tags);
 	free_wrapped(m);
-	if (m->from != NULL) {
-		xfree(m->from);
-		m->from = NULL;
-	}
 	if (m->base != NULL) {
 		xfree(m->base);
 		m->base = NULL;
@@ -304,19 +300,15 @@ trim_from(struct mail *m)
 	char	*ptr;
 	size_t	 len;
 
-	m->from = NULL;
-
 	if (m->data == NULL || m->size < 5 || strncmp(m->data, "From ", 5) != 0)
 		return;
 
 	ptr = memchr(m->data, '\n', m->size);
 	if (ptr == NULL)
 		ptr = m->data + m->size;
+	else
+		ptr++;
 	len = ptr - m->data;
-
-	m->from = xmalloc(len + 1);
-	memcpy(m->from, m->data, len);
-	m->from[len] = '\0';
 
 	m->size -= len;
 	m->data += len;
@@ -324,15 +316,12 @@ trim_from(struct mail *m)
 		m->body -= len;
 }
 
-void
+char *
 make_from(struct mail *m)
 {
 	time_t	 t;
-	char	*from = NULL;
+	char	*s, *from = NULL;
 	size_t	 fromlen = 0;
-
-	if (m->from != NULL)
-		return;
 
 	from = find_header(m, "From: ", &fromlen);
  	if (fromlen > INT_MAX)
@@ -345,7 +334,8 @@ make_from(struct mail *m)
 	}
 
 	t = time(NULL);
-	xasprintf(&m->from, "From %.*s %.24s", (int) fromlen, from, ctime(&t));
+	xasprintf(&s, "From %.*s %.24s", (int) fromlen, from, ctime(&t));
+	return (s);
 }
 
 /*

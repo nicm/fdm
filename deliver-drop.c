@@ -22,7 +22,7 @@
 
 int	drop_deliver(struct account *, struct action *, struct mail *);
 
-struct deliver deliver_drop = { "drop", 0, drop_deliver };
+struct deliver deliver_drop = { "drop", DELIVER_INCHILD, drop_deliver };
 
 int
 drop_deliver(unused struct account *a, unused struct action *t,

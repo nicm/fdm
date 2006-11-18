@@ -17,8 +17,12 @@
  */
 
 #include <sys/types.h>
+
+#include <sys/socket.h>
 #include <sys/wait.h>
 
+#include <fcntl.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "fdm.h"
@@ -33,6 +37,9 @@ parent(int fd, pid_t pid)
 	struct msg	 msg;
 	struct mail	*m;
 	int		 status, error;
+#ifdef DEBUG
+	int		 fd2;
+#endif
 	void		*buf;
 	size_t		 len;
 	struct msgdata	*data;
@@ -40,6 +47,10 @@ parent(int fd, pid_t pid)
 
 #ifdef DEBUG
 	xmalloc_clear();
+
+	fd2 = open("/dev/null", O_RDONLY, 0);
+	close(fd2);
+	log_debug2("parent: last fd on entry %d", fd);
 #endif
 
 	io = io_create(fd, NULL, IO_LF);
@@ -58,23 +69,31 @@ parent(int fd, pid_t pid)
 
 		switch (msg.type) {
 		case MSG_ACTION:
-			if (buf == NULL || len != m->size)
+			if (buf == NULL || len != m->size || len == 0)
 				fatalx("parent: bad mail");
+
 			m->base = buf;
 			m->data = m->base;
 
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
 
-			trim_from(m);
 			uid = data->uid;
 			error = do_action(data->account, data->action, m, uid);
-			free_mail(m);
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
-			if (privsep_send(io, &msg, NULL, 0) != 0)
-				fatalx("parent: privsep_send error");
+
+			if (data->action->deliver->type == DELIVER_WRBACK) {
+				if (privsep_send(io, 
+				    &msg, m->data, m->size) != 0)
+					fatalx("parent: privsep_send error");
+			} else {
+				if (privsep_send(io, &msg, NULL, 0) != 0)
+					fatalx("parent: privsep_send error");
+			}
+
+			free_mail(m);
 			break;
 		case MSG_DONE:
 			fatalx("parent: unexpected message");
@@ -85,10 +104,15 @@ parent(int fd, pid_t pid)
 		}
 	} while (msg.type != MSG_EXIT);
 
+	io_close(io);
 	io_free(io);
 
 #ifdef DEBUG
 	xmalloc_dump("parent");
+
+	fd = open("/dev/null", O_RDONLY, 0);
+	close(fd);
+	log_debug2("parent: last fd on exit %d", fd);
 #endif
 
 	if (waitpid(pid, &status, 0) == -1)
@@ -101,25 +125,81 @@ parent(int fd, pid_t pid)
 int
 do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 {
-	int	status;
-	pid_t	pid;
+	int		 res;
+	pid_t		 pid;
+	int		 fds[2];
+	struct io	*io;
+	struct msg	 msg;
+	struct mail	*md;
+	void		*buf;
+	size_t		 len;
 
+	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
+		fatal("socketpair");
 	pid = fork();
 	if (pid == -1) {
+		close(fds[0]);
+		close(fds[1]);
 		log_warn("%s: fork", a->name);
 		return (DELIVER_FAILURE);
 	}
 	if (pid != 0) {
-		/* parent process. wait for child */
+		/* create privsep io */
+		close(fds[1]);
+		io = io_create(fds[0], NULL, IO_LF);
+
+ 		/* parent process. wait for child */
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
-		if (waitpid(pid, &status, 0) == -1)
+
+		do {
+			if (privsep_recv(io, &msg, &buf, &len) != 0)
+				fatalx("parent2: privsep_recv error");
+			log_debug2("parent2: got message type %d", msg.type);
+
+			switch (msg.type) {
+			case MSG_DONE:
+				break;
+			default:
+				fatalx("parent2: unexpected message");
+			}
+		} while (msg.type != MSG_DONE);
+
+		/* reread mail if necessary */
+		if (t->deliver->type == DELIVER_WRBACK) {
+			md = &msg.data.mail;
+			if (buf == NULL || len != md->size || len == 0)
+				fatalx("parent2: bad mail");
+
+			log_debug2("%s: got new mail from delivery, size %zu", 
+			    a->name, m->size);
+
+			free_mail(m);
+			memcpy(m, md, sizeof *m);
+			m->base = buf;
+			m->data = m->base;
+		}
+
+		/* free the io */
+		io_close(io);
+		io_free(io);
+			
+		if (waitpid(pid, &res, 0) == -1)
 			fatal("waitpid");
-		if (!WIFEXITED(status)) {
+		if (!WIFEXITED(res)) {
 			log_warnx("%s: child didn't exit normally", a->name);
 			return (DELIVER_FAILURE);
 		}
-		return (WEXITSTATUS(status));
+		res = WEXITSTATUS(res);
+		if (res != 0) {
+			log_warnx("%s: child returned %d", a->name, res);
+			return (DELIVER_FAILURE);
+		}
+		return (msg.data.error);
 	}
+
+	/* create privsep io */
+ 	close(fds[0]);
+	io = io_create(fds[1], NULL, IO_LF);
 
 	/* child process. change user and group */
 	log_debug("%s: delivering using user %lu", a->name, (u_long) uid);
@@ -140,6 +220,24 @@ do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	    conf.info.home);
 
 	/* do the delivery */
-	_exit(t->deliver->deliver(a, t, m));
+	msg.data.error = t->deliver->deliver(a, t, m);
+
+	/* inform parent we're done */
+	msg.type = MSG_DONE;
+	if (t->deliver->type == DELIVER_WRBACK) {
+		log_debug2("%s: sending new mail to parent, size %zu", a->name,
+		    m->size);
+		memcpy(&msg.data.mail, m, sizeof msg.data.mail);
+		if (privsep_send(io, &msg, m->data, m->size) != 0)
+			fatalx("deliver: privsep_send error");
+	} else {
+		if (privsep_send(io, &msg, NULL, 0) != 0)
+			fatalx("deliver: privsep_send error");
+	}
+
+	io_close(io);
+	io_free(io);
+
+	_exit(0);
 	return (DELIVER_FAILURE);
 }
