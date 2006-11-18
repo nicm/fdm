@@ -17,3 +17,9 @@
 - make rewrite work again, properly this time
 - audit man pages for clarity
 - add _desc for fetch/deliver too
+- nested rules?
+	match "abc" {
+		match "def" ...
+	}
+  parse seperately or do a parser-munge into tag/tagged or into some form of
+  goto, rather than recursion?
