@@ -339,9 +339,9 @@ action is:
 .Bd -literal -ragged -offset indent
 action "cat" pipe "cat"
 action "rewrite" rewrite "sed 's/bob/fred/g'"
-# this rule will rewrite the message and then cat it
-match all actions { "rewrite" "cat" } continue
-# this rule will cat the original message
+# this rule will rewrite the message
+match all action "rewrite" continue
+# this rule will cat the rewritten message
 match all action "cat"
 .Ed
 .El
