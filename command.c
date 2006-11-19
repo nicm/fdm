@@ -151,6 +151,14 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 	struct io	*io, *ios[2];
 	int		 status, res;
 
+	*out = *err = NULL;
+	if (cmd->io_out != NULL)
+		*out = io_readline(cmd->io_out);
+	if (cmd->io_err != NULL)
+		*err = io_readline(cmd->io_err);
+	if (*out != NULL || *err != NULL)
+		return (0);
+
 	if (cmd->io_err != NULL || cmd->io_out != NULL) {
 		ios[0] = cmd->io_err;
 		ios[1] = cmd->io_out;
@@ -177,9 +185,8 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 		return (0);
 
 	res = waitpid(cmd->pid, &status, WNOHANG);
-	if (res == 0 || (res == -1 && errno == ECHILD)) {
+	if (res == 0 || (res == -1 && errno == ECHILD))
 		return (0);
-	}
 	if (res == -1) {
 		xasprintf(cause, "waitpid: %s", strerror(errno));
 		return (1);

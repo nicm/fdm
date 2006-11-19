@@ -337,6 +337,7 @@ do_cmd(struct account *a, struct command_data *data, struct mail *m, uid_t uid)
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);
+		xfree(s);
 		_exit(MATCH_ERROR);
 	}
 
@@ -347,15 +348,18 @@ do_cmd(struct account *a, struct command_data *data, struct mail *m, uid_t uid)
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			xfree(cause);
 			cmd_free(cmd);
+			xfree(s);
 			_exit(MATCH_ERROR);
 		}
        		if (status == 0) {
 			if (err != NULL) {
 				log_warnx("%s: %s: %s", a->name, s, err);
+
 				xfree(err);
 			}
 			if (out != NULL) {
 				log_debug3("%s: %s: out: %s", a->name, s, out);
+
 				switch (regexec(&data->re, out, 0, NULL, 0)) {
 				case 0:
 					found = 1;
@@ -366,8 +370,10 @@ do_cmd(struct account *a, struct command_data *data, struct mail *m, uid_t uid)
 					log_warnx("%s: %s: %s: regexec failed", 
 					    a->name, s, data->re_s);
 					cmd_free(cmd);
+					xfree(s);
 					_exit(MATCH_ERROR);
 				}
+
 				xfree(out);
 			}
 		}
@@ -376,6 +382,7 @@ do_cmd(struct account *a, struct command_data *data, struct mail *m, uid_t uid)
 
 	log_debug2("%s: %s: returned %d, found %d", a->name, s, status, found);
 	cmd_free(cmd);
+	xfree(s);
 
 	status = data->ret == status;
 	if (data->ret != -1 && data->re_s != NULL)

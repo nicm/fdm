@@ -21,8 +21,6 @@
   parse seperately or do a parser-munge into tag/tagged or into some form of
   goto, rather than recursion?
 - allow matched/unmatched to be part of expressions
-- handle stderr better (log it) on rewrite
 - handle child signals everywhere (grep WIFEXITED)
-- switch rewrite etc to using cmd_*
 - document command stuff
 
