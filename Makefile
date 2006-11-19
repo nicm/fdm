@@ -50,7 +50,7 @@ LIBS= -lcrypto -lssl
 DISTFILES= *.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] README
 
 CLEANFILES= ${PROG} *.o y.tab.c lex.yy.c y.tab.h .depend ${PROG}-*.tar.gz \
-	*.[1-9].gz *~ *.ln ${PROG}.core
+	*~ *.ln ${PROG}.core
 
 .c.o:
 		${CC} ${CFLAGS} ${INCDIRS} -c ${.IMPSRC} -o ${.TARGET}

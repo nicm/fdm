@@ -1,4 +1,3 @@
-- figure out way of making rewrite work despite privsep
 - SMTP SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
@@ -12,9 +11,7 @@
 	match `cmd ...` returns (return code, stdout as regexp)
 	match `|cmd ...` returns (return code, stdout as regexp)
   log stderr, allow 2>&1 if not required
-- document tags
 - move str* into compat/
-- make rewrite work again, properly this time
 - audit man pages for clarity
 - add _desc for fetch/deliver too
 - nested rules?
@@ -23,3 +20,4 @@
 	}
   parse seperately or do a parser-munge into tag/tagged or into some form of
   goto, rather than recursion?
+- allow matched/unmatched to be part of expressions
