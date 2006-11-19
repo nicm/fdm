@@ -138,6 +138,8 @@ parent(int fd, pid_t pid)
 
 	if (waitpid(pid, &status, 0) == -1)
 		fatal("waitpid");
+	if (WIFSIGNALED(status))
+		return (1);
 	if (!WIFEXITED(status))
 		return (1);
 	return (WEXITSTATUS(status));
@@ -146,7 +148,7 @@ parent(int fd, pid_t pid)
 int
 do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 {
-	int		 res;
+	int		 status;
 	pid_t		 pid;
 	int		 fds[2];
 	struct io	*io;
@@ -204,15 +206,20 @@ do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		io_close(io);
 		io_free(io);
 			
-		if (waitpid(pid, &res, 0) == -1)
+		if (waitpid(pid, &status, 0) == -1)
 			fatal("waitpid");
-		if (!WIFEXITED(res)) {
+		if (WIFSIGNALED(status)) {	
+			log_warnx("%s: child got signal: %d", a->name,
+			    WTERMSIG(status));
+			return (DELIVER_FAILURE);
+		}
+		if (!WIFEXITED(status)) {
 			log_warnx("%s: child didn't exit normally", a->name);
 			return (DELIVER_FAILURE);
 		}
-		res = WEXITSTATUS(res);
-		if (res != 0) {
-			log_warnx("%s: child returned %d", a->name, res);
+		status = WEXITSTATUS(status);
+		if (status != 0) {
+			log_warnx("%s: child returned %d", a->name, status);
 			return (DELIVER_FAILURE);
 		}
 		return (msg.data.error);
