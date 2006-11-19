@@ -1110,7 +1110,7 @@ perform: TOKTAG strv
 		 $$->tag = $2;
 		 $$->stop = 0;
 		 $$->users = NULL;
-		 $$->find_uid = NULL;
+		 $$->find_uid = 0;
 	 }
        | users actions cont
 	 {
