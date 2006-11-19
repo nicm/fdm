@@ -23,18 +23,15 @@ LEX= lex
 YACC= yacc -d
 
 CC= cc
-CFLAGS+= -std=c99
+CFLAGS+= -std=c99 -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE
 CFLAGS+= -pg
 .endif
 CFLAGS+= -g -ggdb -DDEBUG
-CFLAGS+= -pedantic -Wno-long-long
-CFLAGS+= -Wall -W -Wnested-externs -Wformat=2
-CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes
-CFLAGS+= -Wmissing-declarations -Wwrite-strings
-CFLAGS+= -Wshadow -Wpointer-arith -Wcast-qual
-CFLAGS+= -Wsign-compare -Wredundant-decls
-CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
+CFLAGS+= -pedantic -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
+CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
+CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CFLAGS+= -Wredundant-decls
 
 PREFIX?= /usr/local
 INSTALLBIN= install -g bin -o root -m 555
@@ -47,11 +44,11 @@ LDFLAGS+= -pg
 .endif
 LIBS= -lcrypto -lssl
 
-DISTFILES= *.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] README \
-	   compat/*.[chyl]
+DISTFILES= *.[chyl] compat/*.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] \
+	   README
 
-CLEANFILES= ${PROG} *.o y.tab.c lex.yy.c y.tab.h .depend ${PROG}-*.tar.gz \
-	*~ *.ln ${PROG}.core
+CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
+	    ${PROG}-*.tar.gz *~ *.ln ${PROG}.core 
 
 .c.o:
 		${CC} ${CFLAGS} ${INCDIRS} -c ${.IMPSRC} -o ${.TARGET}
