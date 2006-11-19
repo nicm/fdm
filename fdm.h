@@ -421,6 +421,10 @@ extern struct conf		 conf;
 /* Amount to poll after in io_update. */
 #define IO_FLUSHSIZE (8 * IO_BLOCKSIZE)
 
+/* IO buffer size macros. */
+#define IO_RDSIZE(io) (io->rsize)
+#define IO_WRSIZE(io) (io->wsize)
+
 /* IO structure. */
 struct io {
 	int		 fd;
@@ -446,10 +450,6 @@ struct io {
 /* Command data. */
 struct cmd {
 	pid_t	 	 pid;
-
-	int	 	 in[2];
-	int	 	 out[2];
-	int	 	 err[2];
 
 	struct io	*io_out;
 	struct io	*io_err;

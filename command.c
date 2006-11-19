@@ -32,22 +32,24 @@ struct cmd *
 cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 {
 	struct cmd	*cmd;
+	int	 	 fd_in[2], fd_out[2], fd_err[2];
 
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
-	cmd->in[0] = cmd->in[1] = -1;
-	cmd->out[0] = cmd->out[1] = -1;
-	cmd->err[0] = cmd->err[1] = -1;
+
+	fd_in[0] = fd_in[1] = -1;
+	fd_out[0] = fd_out[1] = -1;
+	fd_err[0] = fd_err[1] = -1;
 
 	/* open child's stdin */
 	if (in) {
-		if (pipe(cmd->in) != 0) {	
+		if (pipe(fd_in) != 0) {	
 			xasprintf(cause, "pipe: %s", strerror(errno));
 			goto error;
 		}
 	} else {
-		cmd->in[0] = open(_PATH_DEVNULL, O_RDONLY, 0);
-		if (cmd->in[0] < 0) {
+		fd_in[0] = open(_PATH_DEVNULL, O_RDONLY, 0);
+		if (fd_in[0] < 0) {
 			xasprintf(cause, "open: %s", strerror(errno));
 			goto error;
 		}
@@ -55,20 +57,20 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 
 	/* open child's stdout */
 	if (out) {
-		if (pipe(cmd->out) != 0) {		
+		if (pipe(fd_out) != 0) {		
 			xasprintf(cause, "pipe: %s", strerror(errno));
 			goto error;
 		}
 	} else {
-		cmd->out[1] = open(_PATH_DEVNULL, O_WRONLY, 0);
-		if (cmd->out[1] < 0) {
+		fd_out[1] = open(_PATH_DEVNULL, O_WRONLY, 0);
+		if (fd_out[1] < 0) {
 			xasprintf(cause, "open: %s", strerror(errno));
 			goto error;
 		}
 	}
 
 	/* open child's stderr */
-	if (pipe(cmd->err) != 0) {		
+	if (pipe(fd_err) != 0) {		
 		xasprintf(cause, "pipe: %s", strerror(errno));
 		goto error;
 	}
@@ -80,17 +82,17 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 		goto error;
 	case 0:
 		/* child */
-		if (cmd->in[1] != -1)
-			close(cmd->in[1]);
-		if (cmd->out[0] != -1)
-			close(cmd->out[0]);
-		close(cmd->err[0]);
+		if (fd_in[1] != -1)
+			close(fd_in[1]);
+		if (fd_out[0] != -1)
+			close(fd_out[0]);
+		close(fd_err[0]);
 		
-		if (dup2(cmd->in[0], STDIN_FILENO) == -1)
+		if (dup2(fd_in[0], STDIN_FILENO) == -1)
 			fatal("dup2(stdin)");
-		if (dup2(cmd->out[1], STDOUT_FILENO) == -1)
+		if (dup2(fd_out[1], STDOUT_FILENO) == -1)
 			fatal("dup2(stdout)");
-		if (dup2(cmd->err[1], STDERR_FILENO) == -1)
+		if (dup2(fd_err[1], STDERR_FILENO) == -1)
 			fatal("dup2(stderr)");
 		
 		execl(_PATH_BSHELL, "sh", "-c", s, (char *) NULL);
@@ -98,29 +100,29 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 	}
 
 	/* parent */
-	close(cmd->in[0]);
-	cmd->in[0] = -1;
-	close(cmd->out[1]);
-	cmd->out[1] = -1;
-	close(cmd->err[1]);
-	cmd->err[1] = -1;
+	close(fd_in[0]);
+	fd_in[0] = -1;
+	close(fd_out[1]);
+	fd_out[1] = -1;
+	close(fd_err[1]);
+	fd_err[1] = -1;
 
 	/* write the data */
-	if (cmd->in[1] != -1 && buf != NULL && len > 0) {
-		if (write(cmd->in[1], buf, len) == -1) {
+	if (fd_in[1] != -1 && buf != NULL && len > 0) {
+		if (write(fd_in[1], buf, len) == -1) {
 			xasprintf(cause, "write: %s", strerror(errno));
 			goto error;
 		}
-		close(cmd->in[1]);
-		cmd->in[1] = -1;
+		close(fd_in[1]);
+		fd_in[1] = -1;
 	}
 
 	/* create ios  */
-	if (cmd->out[0] != -1)
-		cmd->io_out = io_create(cmd->out[0], NULL, IO_LF);
+	if (fd_out[0] != -1)
+		cmd->io_out = io_create(fd_out[0], NULL, IO_LF);
 	else
 		cmd->io_out = NULL;
-	cmd->io_err = io_create(cmd->err[0], NULL, IO_LF);
+	cmd->io_err = io_create(fd_err[0], NULL, IO_LF);
 
 	return (cmd);
 
@@ -128,18 +130,18 @@ error:
 	if (cmd->pid != -1)
 		kill(cmd->pid, SIGTERM);
 
-	if (cmd->in[0] != -1)
-		close(cmd->in[0]);
-	if (cmd->in[1] != -1)
-		close(cmd->in[1]);
-	if (cmd->out[0] != -1)
-		  close(cmd->out[0]);
-	if (cmd->out[1] != -1)
-		close(cmd->out[1]);
-	if (cmd->err[0] != -1)
-		close(cmd->err[0]);
-	if (cmd->err[1] != -1)
-		close(cmd->err[1]);
+	if (fd_in[0] != -1)
+		close(fd_in[0]);
+	if (fd_in[1] != -1)
+		close(fd_in[1]);
+	if (fd_out[0] != -1)
+		  close(fd_out[0]);
+	if (fd_out[1] != -1)
+		close(fd_out[1]);
+	if (fd_err[0] != -1)
+		close(fd_err[0]);
+	if (fd_err[1] != -1)
+		close(fd_err[1]);
 
 	xfree(cmd);
 	return (NULL);
@@ -151,6 +153,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 	struct io	*io, *ios[2];
 	int		 status, res;
 
+restart:
 	*out = *err = NULL;
 	if (cmd->io_out != NULL)
 		*out = io_readline(cmd->io_out);
@@ -176,13 +179,10 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 		}
 	}
 
-	*out = *err = NULL;
-	if (cmd->io_out != NULL)
-		*out = io_readline(cmd->io_out);
-	if (cmd->io_err != NULL)
-		*err = io_readline(cmd->io_err);
-	if (*out != NULL || *err != NULL)
-		return (0);
+	if (cmd->io_out != NULL && IO_RDSIZE(cmd->io_out) > 0)
+		goto restart;
+	if (cmd->io_err != NULL && IO_RDSIZE(cmd->io_err) > 0)
+		goto restart;
 
 	res = waitpid(cmd->pid, &status, WNOHANG);
 	if (res == 0 || (res == -1 && errno == ECHILD))
