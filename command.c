@@ -149,16 +149,7 @@ int
 cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 {
 	struct io	*io, *ios[2];
-	int		 status;
-
-restart:
-	*out = *err = NULL;
-	if (cmd->io_out != NULL)
-		*out = io_readline(cmd->io_out);
-	if (cmd->io_err != NULL)
-		*err = io_readline(cmd->io_err);
-	if (*out != NULL || *err != NULL)
-		return (0);
+	int		 status, res;
 
 	if (cmd->io_err != NULL || cmd->io_out != NULL) {
 		ios[0] = cmd->io_err;
@@ -175,12 +166,21 @@ restart:
 			io_free(io);
 			return (0);
 		}
-		goto restart;
 	}
 
-	if (waitpid(cmd->pid, &status, WNOHANG) == -1) {
-		if (errno == ECHILD)
-			return (0);
+	*out = *err = NULL;
+	if (cmd->io_out != NULL)
+		*out = io_readline(cmd->io_out);
+	if (cmd->io_err != NULL)
+		*err = io_readline(cmd->io_err);
+	if (*out != NULL || *err != NULL)
+		return (0);
+
+	res = waitpid(cmd->pid, &status, WNOHANG);
+	if (res == 0 || (res == -1 && errno == ECHILD)) {
+		return (0);
+	}
+	if (res == -1) {
 		xasprintf(cause, "waitpid: %s", strerror(errno));
 		return (1);
 	}
