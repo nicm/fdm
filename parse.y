@@ -213,7 +213,7 @@ find_macro(char *name)
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
-%type  <uid> uid
+%type  <uid> uid user
 %type  <users> users userslist
 
 %%
@@ -591,6 +591,15 @@ uid: strv
 	     $$ = pw->pw_uid;
 	     endpwent();
      }
+
+user: /* empty */
+      {
+	      $$ = 0;
+      }
+    | TOKUSER uid
+      {
+	      $$ = $2;
+      }
 
 users: /* empty */
        {
@@ -981,7 +990,7 @@ expritem: not icase strv area
 			  yyerror("%s: %s", $3, buf);
 		  }
 	  }
-        | not COMMAND TOKRETURNS '(' retrc ',' retre ')'
+        | not COMMAND user TOKRETURNS '(' retrc ',' retre ')'
 	  {
 		  struct command_data	*data;
 		  int	 		 error, flags;
@@ -990,7 +999,9 @@ expritem: not icase strv area
 		  
 		  if (*$2 == '\0' || ($2[0] == '|' && $2[1] == '\0'))
 			  yyerror("invalid command");
-		  
+		  if ($6 == -1 && $8 == NULL)
+			  yyerror("return code or regexp must be specified");
+
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_command;
 		  $$->inverted = $1;
@@ -998,6 +1009,7 @@ expritem: not icase strv area
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 		  
+		  data->uid = $3;
 		  if (*$2 == '|') {
 			  data->pipe = 1;
 			  data->cmd = xstrdup($2 + 1);
@@ -1005,16 +1017,16 @@ expritem: not icase strv area
 		  } else
 			  data->cmd = $2;
 
-		  data->re_s = $7;
-		  data->ret = $5;
+		  data->ret = $6;
+		  data->re_s = $8;
 		  
-		  if ($7 != NULL) {
+		  if ($8 != NULL) {
 			  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-			  if ((error = regcomp(&data->re, $7, flags)) != 0) {
+			  if ((error = regcomp(&data->re, $8, flags)) != 0) {
 				  len = regerror(error, &data->re, NULL, 0);
 				  buf = xmalloc(len);
 				  regerror(error, &data->re, buf, len);
-				  yyerror("%s: %s", $7, buf);
+				  yyerror("%s: %s", $8, buf);
 			  }
 		  }
 

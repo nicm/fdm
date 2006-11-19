@@ -18,25 +18,40 @@
 
 #include <sys/types.h>
 
+#include <string.h>
+
 #include "fdm.h"
 
-int	command_match(struct account *, struct mail *, struct expritem *);
+int	command_match(struct io *, struct account *, struct mail *, 
+	    struct expritem *);
 char   *command_desc(struct expritem *);
 
 struct match match_command = { "command", command_match, command_desc };
 
 int
-command_match(struct account *a, struct mail *m, struct expritem *ei)
+command_match(struct io *io, struct account *a, struct mail *m, 
+    struct expritem *ei)
 {
 	struct command_data	*data;
+	struct msg		 msg;
 
 	data = ei->data;
 
-	/* We are called as the child so execs need to break the fourth 
-	   wall */
-	/** cmd user??? -- rule user? specified? current? **/
+	/* we are called as the child so to change uid this needs to be dond
+	   largely in the parent */
+	msg.type = MSG_COMMAND;
+	msg.data.account = a;
+	msg.data.cmddata = data;
+	msg.data.uid = data->uid;
+	memcpy(&msg.data.mail, m, sizeof msg.data.mail);
+	if (privsep_send(io, &msg, m->data, m->size) != 0)
+		fatalx("child: privsep_send error");
+	if (privsep_recv(io, &msg, NULL, 0) != 0)
+		fatalx("child: privsep_recv error");
+	if (msg.type != MSG_DONE)
+		fatalx("child: unexpected message");
 	
-	return (0);
+	return (msg.data.error);
 }
 
 char *

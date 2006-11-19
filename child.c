@@ -29,11 +29,11 @@
 
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
-int	do_expr(struct account *, struct mail *, struct rule *);
+int	do_expr(struct io *, struct account *, struct mail *, struct rule *);
 int	do_deliver(struct io *, struct account *, struct mail *, struct rule *);
 
 int
-child(int fd, enum cmd cmd)
+child(int fd, enum fdmop op)
 {
 	struct io	*io;
 	struct msg	 msg;
@@ -91,11 +91,11 @@ child(int fd, enum cmd cmd)
 
 		/* process */
 		error = 0;
-		switch (cmd) {
-		case CMD_POLL:
+		switch (op) {
+		case FDMOP_POLL:
 			error = poll_account(io, a);
 			break;
-		case CMD_FETCH:
+		case FDMOP_FETCH:
 			error = fetch_account(io, a);
 			break;
 		default:
@@ -223,7 +223,7 @@ fetch_account(struct io *io, struct account *a)
 			/* match all the regexps */
 			switch (r->type) {
 			case RULE_EXPRESSION:
-				if ((error = do_expr(a, &m, r)) == -1) {
+				if ((error = do_expr(io, a, &m, r)) == -1) {
 					cause = "matching";
 					goto out;
 				}
@@ -299,7 +299,7 @@ out:
 }
 
 int
-do_expr(struct account *a, struct mail *m, struct rule *r)
+do_expr(struct io *io, struct account *a, struct mail *m, struct rule *r)
 {
 	int		 fres, cres;
 	struct expritem	*ei;
@@ -309,9 +309,10 @@ do_expr(struct account *a, struct mail *m, struct rule *r)
 
 	fres = 0;
 	TAILQ_FOREACH(ei, r->expr, entry) {
-		cres = ei->match->match(a, m, ei);
-		if (cres == -1)
+		cres = ei->match->match(io, a, m, ei);
+		if (cres == MATCH_ERROR)
 			return (-1);
+		cres = cres == MATCH_TRUE;
 		if (ei->inverted)
 			cres = !cres;
 		switch (ei->op) {

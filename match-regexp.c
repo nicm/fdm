@@ -22,13 +22,15 @@
 
 #include "fdm.h"
 
-int	regexp_match(struct account *, struct mail *, struct expritem *);
+int	regexp_match(struct io *, struct account *, struct mail *, 
+	    struct expritem *);
 char   *regexp_desc(struct expritem *);
 
 struct match match_regexp = { "regexp", regexp_match, regexp_desc };
 
 int
-regexp_match(struct account *a, struct mail *m, struct expritem *ei)
+regexp_match(unused struct io *io, struct account *a, struct mail *m, 
+    struct expritem *ei)
 {
 	struct regexp_data	*data;
 	regmatch_t	 	 pmatch;
@@ -37,7 +39,7 @@ regexp_match(struct account *a, struct mail *m, struct expritem *ei)
 	data = ei->data;
 	
 	if (data->area == AREA_BODY && m->body == -1)
-		return (0);
+		return (MATCH_FALSE);
 
 	switch (data->area) {
 	case AREA_HEADERS:
@@ -60,10 +62,10 @@ regexp_match(struct account *a, struct mail *m, struct expritem *ei)
 	res = regexec(&data->re, m->data, 0, &pmatch, REG_STARTEND);
 	if (res != 0 && res != REG_NOMATCH) {
 		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
-		return (-1);
+		return (MATCH_ERROR);
 	}
 
-	return (res == 0);
+	return (res == 0 ? MATCH_TRUE : MATCH_FALSE);
 }
 
 char *

@@ -28,6 +28,7 @@
 #include "fdm.h"
 
 int	do_action(struct account *, struct action *, struct mail *, uid_t);
+int	do_cmd(struct account *, struct command_data *, struct mail *, uid_t);
 int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
 int
@@ -92,6 +93,26 @@ parent(int fd, pid_t pid)
 				if (privsep_send(io, &msg, NULL, 0) != 0)
 					fatalx("parent: privsep_send error");
 			}
+
+			free_mail(m);
+			break;
+		case MSG_COMMAND:
+			if (buf == NULL || len != m->size || len == 0)
+				fatalx("parent: bad mail");
+
+			m->base = buf;
+			m->data = m->base;
+
+			ARRAY_INIT(&m->tags);
+			m->wrapped = NULL;
+
+			uid = data->uid;
+			error = do_cmd(data->account, data->cmddata, m, uid);
+
+			msg.type = MSG_DONE;
+			msg.data.error = error;
+			if (privsep_send(io, &msg, NULL, 0) != 0)
+				fatalx("parent: privsep_send error");
 
 			free_mail(m);
 			break;
@@ -240,4 +261,128 @@ do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 
 	_exit(0);
 	return (DELIVER_FAILURE);
+}
+
+int
+do_cmd(struct account *a, struct command_data *data, struct mail *m, uid_t uid)
+{
+	int		 status, found;
+	pid_t		 pid;
+	char		*s, *cause, *out, *err;
+	struct cmd	*cmd;
+
+	pid = fork();
+	if (pid == -1) {
+		log_warn("%s: fork", a->name);
+		return (MATCH_ERROR);
+	}
+	if (pid != 0) {
+ 		/* parent process. wait for child */
+		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
+
+		if (waitpid(pid, &status, 0) == -1) {
+			log_warn("%s: waitpid", a->name);
+			return (MATCH_ERROR);
+		}
+		if (WIFSIGNALED(status)) {	
+			log_warnx("%s: child got signal: %d", a->name,
+			    WTERMSIG(status));
+			return (MATCH_ERROR);	
+		}
+		if (!WIFEXITED(status)) {
+			log_warnx("%s: child didn't exit normally", a->name);
+			return (MATCH_ERROR);
+		}
+		status = WEXITSTATUS(status);
+		switch (status) {
+		case MATCH_FALSE:
+		case MATCH_TRUE:
+		case MATCH_ERROR:
+			return (status);
+		default:
+			return (MATCH_ERROR);
+		}
+	}
+
+	/* child process. change user and group */
+	log_debug("%s: trying to run command \"%s\" as uid %lu", a->name,
+	    data->cmd, (u_long) uid);
+	if (geteuid() == 0) {
+		if (dropto(uid) != 0) {
+			log_warnx("%s: can't drop privileges", a->name);
+			_exit(MATCH_ERROR);
+		}
+	} else
+		log_debug("%s: not root. using current user", a->name);
+#ifndef NO_SETPROCTITLE
+	setproctitle("command[%lu]", (u_long) uid);
+#endif
+
+	/* refresh user and home */
+	fill_info(NULL);
+	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
+	    conf.info.home);
+
+	/* sort out the command */
+	s = replaceinfo(data->cmd, a, NULL);
+        if (s == NULL || *s == '\0') {
+		log_warnx("%s: empty command", a->name);
+		_exit(MATCH_ERROR);
+        }	
+
+	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, data->ret,
+	    data->re_s == NULL ? "none" : data->re_s);
+	cmd = cmd_start(s, data->pipe, data->re_s != NULL, m->data, m->size,
+	    &cause);
+	if (cmd == NULL) {
+		log_warnx("%s: %s: %s", a->name, s, cause);
+		xfree(cause);
+		_exit(MATCH_ERROR);
+	}
+
+	found = 0;
+	do {
+		status = cmd_poll(cmd, &out, &err, &cause);
+		if (status > 0) {
+			log_warnx("%s: %s: %s", a->name, s, cause);
+			xfree(cause);
+			cmd_free(cmd);
+			_exit(MATCH_ERROR);
+		}
+       		if (status == 0) {
+			if (err != NULL) {
+				log_warnx("%s: %s: %s", a->name, s, err);
+				xfree(err);
+			}
+			if (out != NULL) {
+				log_debug3("%s: %s: out: %s", a->name, s, out);
+				switch (regexec(&data->re, out, 0, NULL, 0)) {
+				case 0:
+					found = 1;
+					break;
+				case REG_NOMATCH:
+					break;
+				default:
+					log_warnx("%s: %s: %s: regexec failed", 
+					    a->name, s, data->re_s);
+					cmd_free(cmd);
+					_exit(MATCH_ERROR);
+				}
+				xfree(out);
+			}
+		}
+	} while (status >= 0);
+	status = -1 - status;
+
+	log_debug2("%s: %s: returned %d, found %d", a->name, s, status, found);
+	cmd_free(cmd);
+
+	status = data->ret == status;
+	if (data->ret != -1 && data->re_s != NULL)
+		_exit((found && status) ? MATCH_TRUE : MATCH_FALSE);
+	else if (data->ret != -1 && data->re_s == NULL)
+		_exit(status ? MATCH_TRUE : MATCH_FALSE);
+	else if (data->ret == -1 && data->re_s != NULL)
+		_exit(found ? MATCH_TRUE : MATCH_FALSE);
+	return (MATCH_ERROR);
 }

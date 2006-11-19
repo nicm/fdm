@@ -18,17 +18,20 @@
 
 #include <sys/types.h>
 
+#include <fnmatch.h>
 #include <string.h>
 
 #include "fdm.h"
 
-int	tagged_match(struct account *, struct mail *, struct expritem *);
+int	tagged_match(struct io *, struct account *, struct mail *,
+	    struct expritem *);
 char   *tagged_desc(struct expritem *);
 
 struct match match_tagged = { "tagged", tagged_match, tagged_desc };
 
 int
-tagged_match(unused struct account *a, struct mail *m, struct expritem *ei)
+tagged_match(unused struct io *io, unused struct account *a, struct mail *m,
+    struct expritem *ei)
 {
 	struct tagged_data	*data;
 	u_int			 i;
@@ -36,11 +39,11 @@ tagged_match(unused struct account *a, struct mail *m, struct expritem *ei)
 	data = ei->data;
 	
 	for (i = 0; i < ARRAY_LENGTH(&m->tags); i++) {
-		if (strcmp(data->tag, ARRAY_ITEM(&m->tags, i, char *)) == 0)
-			return (1);
+		if (tag_match(data->tag, ARRAY_ITEM(&m->tags, i, char *)))
+			return (MATCH_TRUE);
 	}
 	
-	return (0);
+	return (MATCH_FALSE);
 }
 
 char *

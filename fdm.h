@@ -159,6 +159,9 @@ extern char	*__progname;
 /* Account name match. */
 #define name_match(p, n) (fnmatch(p, n, 0) == 0)
 
+/* Tag match. */
+#define tag_match(p, t) (fnmatch(p, t, 0) == 0)
+
 /* Macros in configuration file. */
 struct macro {
 	char			 name[MAXNAMESIZE];
@@ -183,10 +186,10 @@ TAILQ_HEAD(macros, macro);
 	((c) >= '0' && (c) <= '9') || (c) == '_' || (c) == '-')
 
 /* Command-line commands. */
-enum cmd {
-	CMD_NONE = 0,
-	CMD_POLL,
-	CMD_FETCH
+enum fdmop {
+	FDMOP_NONE = 0,
+	FDMOP_POLL,
+	FDMOP_FETCH
 };
 
 /* Server description. */
@@ -234,18 +237,21 @@ struct mail {
 enum msgtype {
 	MSG_ACTION,
 	MSG_EXIT,
-	MSG_DONE
+	MSG_DONE,
+	MSG_COMMAND
 };
 
 /* Privsaep message data. */
 struct msgdata {
-	int	 	 error;
-	struct mail	 mail;
+	int	 	 	 error;
+	struct mail	 	 mail;
 	
 	/* these only work so long as they aren't moved in either process */
-	struct account	*account;
-	struct action	*action;
-	uid_t		 uid;
+	struct account		*account;
+	struct action		*action;
+	struct command_data	*cmddata;
+ 
+	uid_t		 	 uid;
 };
 
 /* Privsep message. */
@@ -340,82 +346,6 @@ struct rule {
 	struct accounts		*accounts;
 
 	TAILQ_ENTRY(rule)	 entry;
-};
-
-/* Match functions. */
-struct match {
-	const char		*name;
-
-	int			 (*match)(struct account *, struct mail *, 
-			    	      struct expritem *);
-	char 			*(*desc)(struct expritem *);
-};
-
-/* Match tagged data. */
-struct tagged_data {
-	char			*tag;
-};
-
-/* Match regexp data. */
-struct regexp_data {
-	char			*re_s;
-	regex_t			 re;
-
-	enum area	 	 area;
-};
-
-/* Match command data. */
-struct command_data {
-	char			*cmd;
-	int			 pipe;		/* pipe mail to command */
-
-	char			*re_s;		/* NULL to not check */
-	regex_t			 re;
-	int			 ret;		/* -1 to not check */
-};
-
-/* Deliver return codes. */
-#define DELIVER_SUCCESS 0
-#define DELIVER_FAILURE 1
-
-/* Poll return codes. */
-#define POLL_SUCCESS FETCH_SUCCESS
-#define POLL_ERROR FETCH_ERROR
-
-/* Fetch return codes. */
-#define FETCH_SUCCESS 0
-#define FETCH_ERROR 1
-#define FETCH_OVERSIZE 2
-#define FETCH_COMPLETE 3
-
-/* Fetch functions. */
-struct fetch {
-	const char	*name;
-	const char	*port;
-
-	int	 	 (*connect)(struct account *);
-	int 		 (*poll)(struct account *, u_int *);
-	int	 	 (*fetch)(struct account *, struct mail *);
-	int		 (*delete)(struct account *);
-	void		 (*error)(struct account *);
-	int		 (*disconnect)(struct account *);
-};
-
-/* Delivery types. */
-enum delivertype {
-	DELIVER_INCHILD,	/* do not pass up to parent */
-	DELIVER_ASUSER,		/* do pass up to parent to drop privs */
-	DELIVER_WRBACK		/* modifies mail: pass up to parent and expect
-				   a new mail back */
-};
-
-/* Deliver functions. */
-struct deliver {
-	const char	*name;
-	enum delivertype type;
-
-	int	 	 (*deliver)(struct account *, struct action *, 
-			     struct mail *);
 };
 
 /* Lock types. */
@@ -513,11 +443,104 @@ struct io {
 	const char	*eol;
 };
 
+/* Command data. */
+struct cmd {
+	pid_t	 	 pid;
+
+	int	 	 in[2];
+	int	 	 out[2];
+	int	 	 err[2];
+
+	struct io	*io_out;
+	struct io	*io_err;
+};
+
+/* Poll return codes. */
+#define POLL_SUCCESS FETCH_SUCCESS
+#define POLL_ERROR FETCH_ERROR
+
+/* Fetch return codes. */
+#define FETCH_SUCCESS 0
+#define FETCH_ERROR 1
+#define FETCH_OVERSIZE 2
+#define FETCH_COMPLETE 3
+
+/* Fetch functions. */
+struct fetch {
+	const char	*name;
+	const char	*port;
+
+	int	 	 (*connect)(struct account *);
+	int 		 (*poll)(struct account *, u_int *);
+	int	 	 (*fetch)(struct account *, struct mail *);
+	int		 (*delete)(struct account *);
+	void		 (*error)(struct account *);
+	int		 (*disconnect)(struct account *);
+};
+
+/* Deliver return codes. */
+#define DELIVER_SUCCESS 0
+#define DELIVER_FAILURE 1
+
+/* Delivery types. */
+enum delivertype {
+	DELIVER_INCHILD,	/* do not pass up to parent */
+	DELIVER_ASUSER,		/* do pass up to parent to drop privs */
+	DELIVER_WRBACK		/* modifies mail: pass up to parent and expect
+				   a new mail back */
+};
+
+/* Deliver functions. */
+struct deliver {
+	const char	*name;
+	enum delivertype type;
+
+	int	 	 (*deliver)(struct account *, struct action *, 
+			     struct mail *);
+};
+
+#define MATCH_FALSE 0
+#define MATCH_TRUE 1
+#define MATCH_ERROR 2
+
+/* Match functions. */
+struct match {
+	const char		*name;
+
+	int			 (*match)(struct io *, struct account *, 
+				     struct mail *, struct expritem *);
+	char 			*(*desc)(struct expritem *);
+};
+
+/* Match tagged data. */
+struct tagged_data {
+	char			*tag;
+};
+
+/* Match regexp data. */
+struct regexp_data {
+	char			*re_s;
+	regex_t			 re;
+
+	enum area	 	 area;
+};
+
+/* Match command data. */
+struct command_data {
+	char			*cmd;
+	uid_t			 uid;
+	int			 pipe;		/* pipe mail to command */
+
+	char			*re_s;		/* NULL to not check */
+	regex_t			 re;
+	int			 ret;		/* -1 to not check */
+};
+
 /* Fetch stdin data. */
 struct stdin_data {
-	struct io	*io;
-
 	int		 complete;
+
+	struct io	*io;
 };
 
 /* Fetch pop3 states. */
@@ -678,8 +701,14 @@ int			 privsep_send(struct io *, struct msg *, void *,
 int			 privsep_recv(struct io *, struct msg *, void **buf,
 			     size_t *);
 
+/* command.c */
+struct cmd 		*cmd_start(const char *, int, int, char *, size_t, 
+			     char **);
+int			 cmd_poll(struct cmd *, char **, char **, char **);
+void			 cmd_free(struct cmd *);
+
 /* child.c */
-int			 child(int, enum cmd);
+int			 child(int, enum fdmop);
 
 /* parent.c */
 int			 parent(int, pid_t);
@@ -719,6 +748,7 @@ struct io		*io_create(int, SSL *, const char *);
 void			 io_free(struct io *);
 void			 io_close(struct io *);
 int			 io_update(struct io *, char **);
+int			 io_polln(struct io **, u_int, struct io **, char **);
 int			 io_poll(struct io *, char **);
 int			 io_read2(struct io *, void *, size_t);
 void 			*io_read(struct io *, size_t);

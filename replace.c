@@ -31,7 +31,8 @@ replaceinfo(char *src, struct account *a, struct action *t)
 	map[REPL_IDX('a')] = a->name;
 	map[REPL_IDX('h')] = conf.info.home;
 	map[REPL_IDX('n')] = conf.info.uid;
-	map[REPL_IDX('t')] = t->name;
+	if (t != NULL)
+		map[REPL_IDX('t')] = t->name;
 	map[REPL_IDX('u')] = conf.info.user;
 
 	return (replace(src, map));

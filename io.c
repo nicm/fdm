@@ -113,83 +113,131 @@ io_update(struct io *io, char **cause)
 	return (io_poll(io, cause));
 }
 
-/* Poll the io. */
+/* Poll multiple IOs. */
 int
-io_poll(struct io *io, char **cause)
+io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 {
-	struct pollfd	pfd;
-	int		error;
+	struct io	*io;
+	struct pollfd   *pfds, *pfd;
+	int		 error;
+	u_int		 i;
 
-	if (io->error != NULL) {
-		if (cause != NULL)
-			*cause = xstrdup(io->error);
-		return (-1);
+	/* check all the ios */
+	for (i = 0; i < n; i++) {
+		io = *rio = ios[i];
+		if (io == NULL)
+			continue;
+		if (io->error != NULL) {
+			if (cause != NULL)
+				*cause = xstrdup(io->error);
+			return (-1);
+		}
+		if (io->closed)
+			return (0);		
 	}
-	if (io->closed)
-		return (0);
 
-	if (io->ssl != NULL)
-		pfd.fd = SSL_get_fd(io->ssl);
-	else
-		pfd.fd = io->fd;
-	pfd.events = POLLIN;
-	if (io->wsize > 0 || io->need != 0)
-		pfd.events |= POLLOUT;
+	/* create the poll structure */
+	pfds = xcalloc(n, sizeof *pfds);
+	for (i = 0; i < n; i++) {
+		io = *rio = ios[i];
+		if (io == NULL)
+			continue;
+		pfd = pfds + i;
+		if (io->ssl != NULL)
+			pfd->fd = SSL_get_fd(io->ssl);
+		else
+			pfd->fd = io->fd;
+		pfd->events = POLLIN;
+		if (io->wsize > 0 || io->need != 0)
+			pfd->events |= POLLOUT;
+	}
 
-#ifdef IO_DEBUG
-	log_debug3("io_poll: in: roff=%zu rsize=%zu rspace=%zu "
-	    "wsize=%zu wspace=%zu", io->roff, io->rsize, io->rspace,
-	    io->wsize, io->wspace);
-#endif
-
-	error = poll(&pfd, 1, INFTIM);
+	/* do the poll */
+	error = poll(pfds, n, INFTIM);
 	if (error == 0 || error == -1) {
+		*rio = NULL;
 		if (errno == EINTR)
 			return (1);
 		if (cause != NULL)
 			xasprintf(cause, "io: poll: %s", strerror(errno));
 		return (-1);
 	}
-	if (pfd.revents & POLLERR || pfd.revents & POLLNVAL) {
-		io->closed = 1;
-		return (1);
-	}
+
+	/* and check all the ios */
+	for (i = 0; i < n; i++) {
+		io = *rio = ios[i];
+		if (io == NULL)
+			continue;
+		pfd = pfds + i;
+
+		if (pfd->revents & POLLERR || pfd->revents & POLLNVAL) {
+			io->closed = 1;
+			continue;
+		}
+		if (pfd->revents & POLLERR || pfd->revents & POLLNVAL) {
+			io->closed = 1;
+			continue;
+		}
 	
-	if (io->need != 0) {
-		/* if a repeated read/write is necessary, the socket must
-		   be ready for both reading and writing */
-		if (pfd.revents & POLLOUT && pfd.revents & POLLIN) {
-			if (io->need & IO_NEED_FILL) {
-				if ((error = io_fill(io)) != 1)
-					goto error;
+		if (io->need != 0) {
+			/* if a repeated read/write is necessary, the socket
+			   must be ready for both reading and writing */
+			if (pfd->revents & POLLOUT && pfd->revents & POLLIN) {
+				if (io->need & IO_NEED_FILL) {
+					if ((error = io_fill(io)) != 1)
+						goto error;
+				}
+				if (io->need & IO_NEED_PUSH) {
+					switch (io_push(io)) {
+					case 0:
+						io->closed = 1;
+						continue;
+					case -1:
+						goto error;
+					}
+				}
 			}
-			if (io->need & IO_NEED_PUSH) {
-				if ((error = io_push(io)) != 1)
-					goto error;
+			continue;
+		}
+		
+		/* otherwise try to read and write */
+		if (pfd->revents & POLLOUT) {
+			switch (io_push(io)) {
+			case 0:
+				io->closed = 1;
+				continue;
+			case -1:
+				goto error;
 			}
 		}
-		return (1);
+		if (pfd->revents & POLLIN) {
+			switch (io_fill(io)) {
+			case 0:
+				io->closed = 1;
+				continue;
+			case -1:
+				goto error;
+			}
+		}
 	}
 
-	/* otherwise try to read and write */
-	if (pfd.revents & POLLOUT) {
-		if ((error = io_push(io)) != 1)
-			goto error;
-	}
-	if (pfd.revents & POLLIN) {
-		if ((error = io_fill(io)) != 1)
-			goto error;
-	}
+	xfree(pfds);
 	return (1);
 
 error:
-	if (error == 0) {
-		io->closed = 1;
-		return (1);
-	}
 	if (cause != NULL)
 		*cause = xstrdup(io->error);
+	xfree(pfds);
 	return (-1);
+}
+
+/* Poll the io. */
+int
+io_poll(struct io *io, char **cause)
+{
+	struct io	*rio;
+
+	return (io_polln(&io, 1, &rio, cause));
 }
 
 /* Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,
