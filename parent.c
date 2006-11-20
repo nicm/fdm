@@ -22,6 +22,7 @@
 #include <sys/wait.h>
 
 #include <fcntl.h>
+#include <paths.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -49,7 +50,7 @@ parent(int fd, pid_t pid)
 #ifdef DEBUG
 	xmalloc_clear();
 
-	fd2 = open("/dev/null", O_RDONLY, 0);
+	fd2 = open(_PATH_DEVNULL, O_RDONLY, 0);
 	close(fd2);
 	log_debug2("parent: last fd on entry %d", fd);
 #endif
@@ -131,7 +132,7 @@ parent(int fd, pid_t pid)
 #ifdef DEBUG
 	xmalloc_dump("parent");
 
-	fd = open("/dev/null", O_RDONLY, 0);
+	fd = open(_PATH_DEVNULL, O_RDONLY, 0);
 	close(fd);
 	log_debug2("parent: last fd on exit %d", fd);
 #endif
