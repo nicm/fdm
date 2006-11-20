@@ -111,7 +111,7 @@ yywrap(void)
 	xfree(curfile);
 	curfile = top->curfile;
 	xfree(top);
-	ARRAY_TRUNC(&filestack, 1, struct saved *);
+	ARRAY_TRUNC(&filestack, 1, struct filestackent *);
 
         return (0);
 }
