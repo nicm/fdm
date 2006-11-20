@@ -673,6 +673,14 @@ extern struct deliver 	 deliver_append;
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
 
+#ifdef NO_SETRESUID
+#define setresuid(r, e, s) setreuid(r, e)
+#endif
+
+#ifdef NO_SETRESGID
+#define setresgid(r, e, s) setregid(r, e)
+#endif
+
 #ifdef NO_STRTONUM
 /* strtonum.c */
 long long		 strtonum(const char *, long long, long long,

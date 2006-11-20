@@ -17,8 +17,6 @@ SRCS= fdm.c log.c xmalloc.c parse.y lex.l io.c replace.c connect.c mail.c \
       deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
       match-tagged.c child.c parent.c privsep.c command.c
 
-OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
-
 LEX= lex
 YACC= yacc -d
 
@@ -33,6 +31,12 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wredundant-decls
 
+# NetBSD
+.if ${OS} == "NetBSD"
+SRCS+= compat/strtonum.c
+CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
+.endif
+
 PREFIX?= /usr/local
 INSTALLBIN= install -g bin -o root -m 555
 INSTALLMAN= install -g bin -o root -m 444
@@ -43,6 +47,8 @@ LDFLAGS+= -L/usr/local/lib
 LDFLAGS+= -pg
 .endif
 LIBS= -lcrypto -lssl
+
+OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
 DISTFILES= *.[chyl] compat/*.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] \
 	   README
