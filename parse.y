@@ -162,6 +162,7 @@ find_macro(char *name)
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKEQ TOKNE TOKSIZE
+%token TOKEXEC
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -213,7 +214,7 @@ find_macro(char *name)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled poptype imaptype
+%type  <flag> cont icase not disabled poptype imaptype execpipe
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
@@ -977,6 +978,15 @@ cmp: '<'
 	     $$ = CMP_NE;
      }
 
+execpipe: TOKEXEC
+	  {
+		  $$ = 0;
+	  }
+        | TOKPIPE
+	  {
+		  $$ = 1;
+	  }
+
 exprop: TOKAND
 	{
 		$$ = OP_AND;
@@ -1016,16 +1026,16 @@ expritem: not icase strv area
 			  yyerror("%s: %s", $3, buf);
 		  }
 	  }
-        | not COMMAND user TOKRETURNS '(' retrc ',' retre ')'
+        | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 	  {
 		  struct command_data	*data;
 		  int	 		 error, flags;
 		  size_t	 	 len;
 		  char			*buf;
 		  
-		  if (*$2 == '\0' || ($2[0] == '|' && $2[1] == '\0'))
+		  if (*$3 == '\0' || ($3[0] == '|' && $3[1] == '\0'))
 			  yyerror("invalid command");
-		  if ($6 == -1 && $8 == NULL)
+		  if ($7 == -1 && $9 == NULL)
 			  yyerror("return code or regexp must be specified");
 
 		  $$ = xcalloc(1, sizeof *$$);
@@ -1035,24 +1045,20 @@ expritem: not icase strv area
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 		  
-		  data->uid = $3;
-		  if (*$2 == '|') {
-			  data->pipe = 1;
-			  data->cmd = xstrdup($2 + 1);
-			  xfree($2);
-		  } else
-			  data->cmd = $2;
+		  data->uid = $4;
+		  data->pipe = $2;
+		  data->cmd = $3;
 
-		  data->ret = $6;
-		  data->re_s = $8;
+		  data->ret = $7;
+		  data->re_s = $9;
 		  
-		  if ($8 != NULL) {
+		  if ($9 != NULL) {
 			  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-			  if ((error = regcomp(&data->re, $8, flags)) != 0) {
+			  if ((error = regcomp(&data->re, $9, flags)) != 0) {
 				  len = regerror(error, &data->re, NULL, 0);
 				  buf = xmalloc(len);
 				  regerror(error, &data->re, buf, len);
-				  yyerror("%s: %s", $8, buf);
+				  yyerror("%s: %s", $9, buf);
 			  }
 		  }
 

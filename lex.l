@@ -136,6 +136,7 @@ domain return (TOKDOMAIN);
 domains return (TOKDOMAINS);
 dotlock return (LCKDOTLOCK);
 drop return (TOKDROP);
+exec return (TOKEXEC);
 fcntl return (LCKFCNTL);
 flock return (LCKFLOCK);
 folder return (TOKFOLDER);
