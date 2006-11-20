@@ -2,7 +2,6 @@
 - auth on http proxying
 - http (hotmail) fetching
 - filter based on attachment size, quantity, type?
-- filter based on mail size
 - add more examples to the man page
 - daemon mode
 - redo chrooting properly (resolver needs to be in parent)
@@ -15,5 +14,6 @@
   parse seperately or do a parser-munge into tag/tagged or into some form of
   goto, rather than recursion?
 - allow matched/unmatched to be part of expressions
-- document command stuff
+- document command stuff and size match
+
 

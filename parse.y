@@ -155,7 +155,7 @@ find_macro(char *name)
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
-%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED
+%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKEQ TOKNE TOKSIZE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -191,6 +191,7 @@ find_macro(char *name)
 		int		 find_uid;
 	} users;
 	struct rule		*rule;
+	enum cmp		 cmp;
 }
 
 %token <number> NUMBER SIZE
@@ -200,6 +201,7 @@ find_macro(char *name)
 %type  <action> action
 %type  <actions> actions actionslist
 %type  <area> area
+%type  <cmp> cmp
 %type  <domains> domains domainslist
 %type  <expr> expr exprlist
 %type  <expritem> expritem
@@ -951,6 +953,23 @@ retre: strv
 	       $$ = NULL;
        }
 
+cmp: '<'
+     {
+	     $$ = CMP_LT;
+     }
+   | '>'
+     {
+	     $$ = CMP_GT;
+     }
+   | TOKEQ
+     {
+	     $$ = CMP_EQ;
+     }
+   | TOKNE
+     {
+	     $$ = CMP_NE;
+     }
+
 exprop: TOKAND
 	{
 		$$ = OP_AND;
@@ -1047,6 +1066,26 @@ expritem: not icase strv area
 		  $$->data = data;
 		  
 		  data->tag = $3;
+	  }
+        | not TOKSIZE cmp size
+	  {
+		  struct size_data	*data;
+		  
+		  if ($4 > SIZE_MAX)
+			  yyerror("size too large");
+		  if ($3 == CMP_EQ || $3 == CMP_NE)
+			  yyerror("can't compare size with == or !=");
+		  
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_size;
+		  $$->inverted = $1;
+		  
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+		  
+		  data->size = $4;
+		  data->cmp = $3;
 	  }
 
 exprlist: exprlist exprop expritem

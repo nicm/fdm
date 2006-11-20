@@ -512,6 +512,20 @@ struct match {
 	char 			*(*desc)(struct expritem *);
 };
 
+/* Comparison operators. */
+enum cmp {
+	CMP_LT,
+	CMP_GT,
+	CMP_EQ,
+	CMP_NE
+};
+
+/* Match size data. */
+struct size_data {
+	size_t			 size;
+	enum cmp		 cmp;
+};
+
 /* Match tagged data. */
 struct tagged_data {
 	char			*tag;
@@ -623,6 +637,9 @@ struct smtp_data {
 	struct server	 server;
 	char		*to;
 };
+
+/* match-size.c */
+extern struct match	 match_size;
 
 /* match-tagged.c */
 extern struct match	 match_tagged;
