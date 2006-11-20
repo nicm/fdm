@@ -213,7 +213,8 @@ fetch_account(struct io *io, struct account *a)
 
 		if (stopped)
 			goto delete;
-		log_warnx("reached end of ruleset. mail implicitly dropped!");
+		log_warnx("%s: mail implicitly dropped at end of ruleset!",
+		    a->name);
 
 	delete:
 		/* delete the message */
