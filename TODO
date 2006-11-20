@@ -9,6 +9,6 @@
 - add _desc for fetch/deliver too
 - allow matched/unmatched to be part of expressions
 - document command stuff and size match
-- think more about nested rules? any way to avoid the false sense of scope?
+- document nested rules
 
 
