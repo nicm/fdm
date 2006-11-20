@@ -36,15 +36,18 @@
 
 #include "fdm.h"
 
-struct macros			 macros = TAILQ_HEAD_INITIALIZER(macros);
+struct macros	macros = TAILQ_HEAD_INITIALIZER(macros);
 
-struct saved {
-	FILE			*yyin;
-	int		 	 yylineno;
-	char			*curfile;
+struct filestackent {
+	FILE				*yyin;
+	int		 	 	 yylineno;
+	char				*curfile;
 };
-ARRAY_DECLARE(, struct saved *)	 stack;
-char				*curfile;
+ARRAY_DECLARE(, struct filestackent *)	 filestack;
+char					*curfile;
+
+ARRAY_DECLARE(, struct rule *)		 rulestack;
+struct rule				*currule;
 
 extern FILE			*yyin;
 extern int		 	 yylineno;
@@ -78,14 +81,14 @@ yyerror(const char *fmt, ...)
 int
 yywrap(void)
 {
-	struct macro	*macro;
-	struct saved	*old;
-	char		*file;
+	struct macro		*macro;
+	struct filestackent	*top;
+	char			*file;
 
 	file = curfile == NULL ? conf.conf_file : curfile;
 	log_debug2("finished file %s", file);
 
-	if (ARRAY_EMPTY(&stack)) {
+	if (ARRAY_EMPTY(&filestack)) {
 		while (!TAILQ_EMPTY(&macros)) {
 			macro = TAILQ_FIRST(&macros);
 			TAILQ_REMOVE(&macros, macro, entry);
@@ -94,18 +97,21 @@ yywrap(void)
 			xfree(macro);
 		}
 
-		ARRAY_FREE(&stack);
+		ARRAY_FREE(&filestack);
+		if (!ARRAY_EMPTY(&rulestack))
+			yyerror("missing }");
+		ARRAY_FREE(&rulestack);
 		return (1);
 	}
 	
-	old = ARRAY_ITEM(&stack, ARRAY_LENGTH(&stack) - 1, struct saved *);
-	yyin = old->yyin;
+	top = ARRAY_LAST(&filestack, struct filestackent *);
+	yyin = top->yyin;
 	yyrestart(yyin);
-	yylineno = old->yylineno;
+	yylineno = top->yylineno;
 	xfree(curfile);
-	curfile = old->curfile;
-	xfree(old);
-	ARRAY_REMOVE(&stack, ARRAY_LENGTH(&stack) - 1, struct saved *);
+	curfile = top->curfile;
+	xfree(top);
+	ARRAY_TRUNC(&filestack, 1, struct saved *);
 
         return (0);
 }
@@ -229,6 +235,7 @@ cmds: /* empty */
     | cmds include
     | cmds rule
     | cmds set
+    | cmds close
 
 strv: STRING
       {
@@ -318,17 +325,17 @@ numv: NUMBER
 
 include: TOKINCLUDE strv
 	 {
-		 char		*path;
-		 struct saved	*old;
+		 char			*path;
+		 struct filestackent	*top;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid include file");
 		 
-		 old = xmalloc(sizeof *old);
-		 old->yyin = yyin;
-		 old->yylineno = yylineno;
-		 old->curfile = curfile;
-		 ARRAY_ADD(&stack, old, struct saved *);
+		 top = xmalloc(sizeof *top);
+		 top->yyin = yyin;
+		 top->yylineno = yylineno;
+		 top->curfile = curfile;
+		 ARRAY_ADD(&filestack, top, struct filestackent *);
 
 		 yyin = fopen($2, "r");
 		 if (yyin == NULL) {
@@ -789,7 +796,7 @@ action: TOKPIPE strv
 defaction: TOKACTION strv users action
 	   {
 		   struct action	*t;
-		   
+
 		   if (strlen($2) >= MAXNAMESIZE)
 			   yyerror("action name too long: %s", $2);
 		   if (*$2 == '\0')
@@ -1147,19 +1154,58 @@ perform: TOKTAG strv
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->actions = NULL;
 		 $$->tag = $2;
+		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
 		 $$->find_uid = 0;
+
+		 if (currule == NULL)
+			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
+		 else
+			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
        | users actions cont
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->actions = $2;
 		 $$->tag = NULL;
+		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$3;
 		 $$->users = $1.users;
 		 $$->find_uid = $1.find_uid;
+
+		 if (currule == NULL)
+			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
+		 else
+			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
+       | '{'
+	 {
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->actions = NULL;
+		 $$->tag = NULL;
+		 TAILQ_INIT(&$$->rules);
+		 $$->stop = 0;
+		 $$->users = NULL;
+		 $$->find_uid = 0;
+
+		 if (currule == NULL)
+			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
+		 else
+			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
+
+		 ARRAY_ADD(&rulestack, currule, struct rule *);
+		 currule = $$;
+	 }
+
+close: '}'
+       {
+	       if (currule == NULL)
+		       yyerror("missing {");
+
+	       currule = ARRAY_LAST(&rulestack, struct rule *);
+	       ARRAY_TRUNC(&rulestack, 1, struct rule *);
+       }
 
 rule: match accounts perform
       {
@@ -1170,8 +1216,6 @@ rule: match accounts perform
 	      $3->accounts = $2;
 	      $3->expr = $1.expr;
 	      $3->type = $1.type;
-
-	      TAILQ_INSERT_TAIL(&conf.rules, $3, entry);
 
 	      switch ($3->type) {
  	      case RULE_ALL:
@@ -1216,9 +1260,10 @@ rule: match accounts perform
 			      strlcat(tmp2, " ", sizeof tmp2);
 		      }
 		      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
-	      } else
+	      } else if ($3->tag != NULL)
 		      log_debug2("added rule: tag=%s matches=%s", $3->tag, tmp);
-
+	      else 
+		      log_debug2("added rule: nested matches=%s", tmp);
       }
 
 folder: /* empty */

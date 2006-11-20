@@ -117,7 +117,7 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 		fd_in[1] = -1;
 	}
 
-	/* create ios  */
+	/* create ios */
 	if (fd_out[0] != -1)
 		cmd->io_out = io_create(fd_out[0], NULL, IO_LF);
 	else

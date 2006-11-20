@@ -105,7 +105,14 @@ extern char	*__progname;
 	} else								\
 		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
 } while (0)
-#define ARRAY_CONCAT(a, b, c) {						\
+#define ARRAY_TRUNC(a, n, c) do {					\
+	if ((a)->num > n) {						\
+		(a)->num -= n;				       		\
+		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
+	} else								\
+		ARRAY_FREE(a);						\
+} while (0)
+#define ARRAY_CONCAT(a, b, c) do {					\
 	size_t	size = sizeof (c);					\
 	(a)->list = xrealloc((a)->list, (a)->num + (b)->num, size);	\
 	memcpy((a)->list + (a)->num, (b)->list, (b)->num * size);  	\
@@ -113,6 +120,7 @@ extern char	*__progname;
 } while (0)
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
+#define ARRAY_LAST(a, c) ARRAY_ITEM(a, (a)->num - 1, c)
 #define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
 #define ARRAY_FREE(a) do {						\
 	if ((a)->list != NULL)						\
@@ -322,6 +330,9 @@ struct expritem {
 /* Expression strut. */
 TAILQ_HEAD(expr, expritem);
 
+/* Rule list. */
+TAILQ_HEAD(rules, rule);
+
 /* Rule types. */
 enum ruletype {
 	RULE_EXPRESSION,
@@ -333,6 +344,8 @@ enum ruletype {
 /* Rule entry. */
 struct rule {
 	enum ruletype		 type;
+
+	struct accounts		*accounts;
 	struct expr		*expr;
 
 	struct users		*users;
@@ -342,8 +355,8 @@ struct rule {
 
 	char			*tag;
 
+	struct rules		 rules;
 	struct actions		*actions;
-	struct accounts		*accounts;
 
 	TAILQ_ENTRY(rule)	 entry;
 };
@@ -396,7 +409,7 @@ struct conf {
 
 	TAILQ_HEAD(, account)	 accounts;
  	TAILQ_HEAD(, action)	 actions;
- 	TAILQ_HEAD(, rule)	 rules;
+	struct rules		 rules;
 };
 extern struct conf		 conf;
 

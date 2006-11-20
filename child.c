@@ -31,6 +31,8 @@ int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct io *, struct account *, struct mail *, struct rule *);
 int	do_deliver(struct io *, struct account *, struct mail *, struct rule *);
+int	do_rules(struct io *, struct account *, struct mail *, struct rules *,
+	    int *, int *, const char **);
 
 int
 child(int fd, enum fdmop op)
@@ -151,15 +153,12 @@ poll_account(unused struct io *io, struct account *a)
 int
 fetch_account(struct io *io, struct account *a)
 {
-	struct rule	*r;
 	struct mail	 m;
 	struct timeval	 tv;
 	double		 tim;
-	u_int	 	 i, n, l;
-	int		 error, matched;
-	char		*name;
+	u_int	 	 n, l;
+	int		 error, matched, stopped;
  	const char	*cause = NULL;
-	struct accounts	*list;
 
 	if (a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
@@ -206,64 +205,15 @@ fetch_account(struct io *io, struct account *a)
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
-		matched = 0;
-		TAILQ_FOREACH(r, &conf.rules, entry) {
-			/* check if the rule is for the current account */
-			list = r->accounts;
-			if (!ARRAY_EMPTY(list)) {
-				for (i = 0; i < ARRAY_LENGTH(list); i++) {
-					name = ARRAY_ITEM(list, i, char *);
-					if (name_match(name, a->name))
-						break;
-				}
-				if (i == ARRAY_LENGTH(list))
-					continue;
-			}
+		/* handle rule evaluation and actions */
+		matched = stopped = 0;
+		if (do_rules(io, a, &m, &conf.rules, &matched, &stopped,
+		    &cause) != 0)
+			goto out;
 
-			/* match all the regexps */
-			switch (r->type) {
-			case RULE_EXPRESSION:
-				if ((error = do_expr(io, a, &m, r)) == -1) {
-					cause = "matching";
-					goto out;
-				}
-				/* continue if no match */
-				if (!error)
-					continue;
-				break;
-			case RULE_ALL:
-				break;
-			case RULE_MATCHED:
-				if (!matched)
-					continue;
-				break;
-			case RULE_UNMATCHED:
-				if (matched)
-					continue;
-				break;
-			}
-			log_debug("%s: matched message", a->name);
-			matched = 1;
-
-			set_wrapped(&m, '\n');
-
-			/* tag mail if needed */
-			if (r->tag != NULL)
-				ARRAY_ADD(&m.tags, r->tag, char *);
-			
-			/* handle delivery */
-			if (r->actions != NULL) {
-				if (do_deliver(io, a, &m, r) != 0) {
-					cause = "delivery";
-					goto out;
-				}
-			}
-				
-
-			/* if this rule is marked as stop, stop checking now */
-			if (r->stop)
-				break;
-		}
+		if (stopped)
+			goto delete;
+		log_warnx("reached end of ruleset. mail implicitly dropped!");
 
 	delete:
 		/* delete the message */
@@ -296,6 +246,91 @@ out:
 	}
 
 	return (cause != NULL);
+}
+
+int
+do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
+    int *matched, int *stopped, const char **cause)
+{
+	struct rule	*r;
+	struct accounts	*list;
+	u_int		 i;
+	int		 error;
+	char		*name;
+
+	TAILQ_FOREACH(r, rules, entry) {
+		/* check if the rule is for the current account */
+		list = r->accounts;
+		if (!ARRAY_EMPTY(list)) {
+			for (i = 0; i < ARRAY_LENGTH(list); i++) {
+				name = ARRAY_ITEM(list, i, char *);
+				if (name_match(name, a->name))
+					break;
+			}
+			if (i == ARRAY_LENGTH(list))
+				continue;
+		}
+		
+		/* match all the regexps */
+		switch (r->type) {
+		case RULE_EXPRESSION:
+			if ((error = do_expr(io, a, m, r)) == -1) {
+				*cause = "matching";
+				return (1);
+			}
+			/* continue if no match */
+			if (!error)
+				continue;
+			break;
+		case RULE_ALL:
+			break;
+		case RULE_MATCHED:
+			if (!*matched)
+				continue;
+			break;
+		case RULE_UNMATCHED:
+			if (*matched)
+				continue;
+			break;
+		}
+		log_debug("%s: matched message", a->name);
+		*matched = 1;
+			
+		set_wrapped(m, '\n');
+		
+		/* tag mail if needed */
+		if (r->tag != NULL)
+			ARRAY_ADD(&m->tags, r->tag, char *);
+		
+		/* handle delivery */
+		if (r->actions != NULL) {
+			if (do_deliver(io, a, m, r) != 0) {
+				*cause = "delivery";
+				return (1);
+			}
+		}		
+		/* deal with nested rules */
+		if (!TAILQ_EMPTY(&r->rules)) {
+			log_debug2("%s: entering nested ruleset", a->name);
+			if (do_rules(io, a, m, &r->rules, matched, stopped, 
+			    cause) != 0)
+				return (1);
+			log_debug2("%s: exiting nested ruleset%s", a->name,
+			    *stopped ? " and stopping" : "");
+			/* if it didn't drop of the end of the nested rules, 
+			   stop now */
+			if (*stopped)
+				return (0);
+		}
+		
+		/* if this rule is marked as stop, stop checking now */
+		if (r->stop) {
+			*stopped = 1;
+			return (0);
+		}
+	}
+
+	return (0);
 }
 
 int
