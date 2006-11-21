@@ -16,9 +16,7 @@ under /usr/local. The PREFIX environment variable may be set to specify an
 alternative installation location.
 
     $ export PREFIX=/opt/           # defaults to /usr/local
-    $ su -
-    # make install
-    # exit
+    $ sudo make install
     $ man fdm
     $ fdm
 
