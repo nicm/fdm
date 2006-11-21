@@ -292,14 +292,6 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 			break;
 		case RULE_ALL:
 			break;
-		case RULE_MATCHED:
-			if (!*mctx->matched)
-				continue;
-			break;
-		case RULE_UNMATCHED:
-			if (*mctx->matched)
-				continue;
-			break;
 		}
 		log_debug("%s: matched message", a->name);
 			
