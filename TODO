@@ -10,4 +10,5 @@
 - allow matched/unmatched to be part of expressions
 - document command stuff and size match
 - document nested rules
-- rewrite will corrupt the regexp_pmatch. fix it
+- document match string etc
+- rewrite will corrupt the pmatch. fix it
