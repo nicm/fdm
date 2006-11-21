@@ -312,13 +312,13 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 		}		
 		/* deal with nested rules */
 		if (!TAILQ_EMPTY(&r->rules)) {
-			log_debug2("%s: entering nested ruleset", a->name);
+			log_debug2("%s: entering nested rules", a->name);
 			if (do_rules(io, a, m, &r->rules, matched, stopped, 
 			    cause) != 0)
 				return (1);
-			log_debug2("%s: exiting nested ruleset%s", a->name,
-			    *stopped ? " and stopping" : "");
-			/* if it didn't drop of the end of the nested rules, 
+			log_debug2("%s: exiting nested rules%s", a->name,
+			    *stopped ? ", and stopping" : "");
+			/* if it didn't drop off the end of the nested rules, 
 			   stop now */
 			if (*stopped)
 				return (0);
