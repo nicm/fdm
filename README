@@ -1,15 +1,33 @@
+fdm ----------------------------------------------------------------------------
+
 fdm is a small program designed to fetch mail from POP3 or IMAP servers, or
 receive local mail from stdin, and deliver it in various ways.
 
-There are two main ways of using fdm, single-user and multiuser:
+Installation -------------------------------------------------------------------
 
---------------------------------------------------------------------------------
-SINGLE-USER
---------------------------------------------------------------------------------
+To build fdm, extract the source tarball and run the make(1) program:
+
+    $ tar xzf fdm-0.6.tar.gz
+    $ cd fdm-0.6
+    $ make
+
+Then run 'make install' to copy the newly-built files to the default locations
+under /usr/local. The PREFIX environment variable may be set to specify an
+alternative installation location.
+
+    $ export PREFIX=/opt/           # defaults to /usr/local
+    $ su -
+    # make install
+    # exit
+    $ man fdm
+    $ fdm
+
+Single-user --------------------------------------------------------------------
+
 When fdm is run as a non-root user, it will not attempt to drop privileges and
 all mail will be delivered as the user it is run as - the "user" keyword on
-rules and actions will be ignored. It is best run from cron every so often, for
-example:
+rules and actions will be ignored. It is best run from cron(8) every so often.
+For example:
 
 */30    *       *       *       *       /usr/local/bin/fdm -l -x stdin fetch
 
@@ -17,21 +35,25 @@ Local mail can be delivered via stdin. See the fdm(1) man page for an example
 using sendmail, users of other MTAs are on their own for the moment. Man page
 diffs and/or instructions I can format into the man page would be appreciated.
 
-The included fdm.conf is an example of a single-user configuration.
+The included fdm.conf(5) is an example of a single-user configuration.
 
---------------------------------------------------------------------------------
-MULTIUSER
---------------------------------------------------------------------------------
-When fdm is run as a root user, it will drop to user _fdm and chroot to that
-user's home directory in order to fetch mail. You can add the user, on OpenBSD,
-with:
+Multi-user ---------------------------------------------------------------------
+
+When fdm is run as a root user, it will attempt to drop to user _fdm in order
+to fetch mail. This user account must be present on the system or fdm will
+fail. On OpenBSD, it may be added with:
 
 	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
 
-Mail will be delivered either using the user specified in the rule or action or
-the user specified by the "default-user" keyword (or with the -u switch on the
-command line) or the from-headers keyword may be used to try and extract the
-user from the mail headers. A config file for multiuser may look something like:
+A different user will be used to deliver mail. This user is the first 
+available from the following list:
+
+- a user specified in the rule or action definition in the configuration file,
+  or extracted from the mail headers (controlled by the "from-headers" keyword),
+- the user specified by the -u switch on the command line,
+- the user specified by the "default-user" option.
+
+A multi-user configuration may look something like:
 
 	set default-user "bob"
 	set headers { "to" "cc" "x-custom" }
@@ -52,7 +74,7 @@ Alternatively, it could be more limited, perhaps something like this:
 	match "^(To:|Cc:).* bob@my.domain" action "bob" continue
 	match unmatched action "bob" # all other mail will end up with bob
 
-If you use POP3 accounts fdm is best run from cron, but it can also be set up
+If you use POP3 accounts, fdm is best run from cron, but it can also be set up
 to deliver mail via stdin from an MTA. Configuring this is left as an exercise
 to the reader, let me know how you get on ;-). If you're using some MTA that
 can invoke fdm with the -u option, you'd probably just need something like:
@@ -63,11 +85,12 @@ can invoke fdm with the -u option, you'd probably just need something like:
 
 Since fdm will then deliver using the default user from stdin.
 
+--------------------------------------------------------------------------------
+
 Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
 
---------------------------------------------------------------------------------
 This is beta-quality software. There will be bugs. I use it single-user with
-maildirs so this are the most tested.
+maildirs so this is the most tested.
 
 Feedback, bug reports, suggestions, etc, are welcome.
 
