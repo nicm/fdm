@@ -34,7 +34,7 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 	int			 res;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
-	regmatch_t	        *pmatch = mctx->regexp_pmatch;
+	regmatch_t	        *pmatch = mctx->pmatch;
 
 	data = ei->data;
 	
@@ -59,14 +59,12 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 		break;
 	}
 	
-	res = regexec(&data->re, m->data, NPMATCHES, pmatch, REG_STARTEND);
+	res = regexec(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND);
 	if (res != 0 && res != REG_NOMATCH) {
 		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
 		return (MATCH_ERROR);
 	}
-	mctx->regexp_valid = 1;
-
-	log_debug("XXX %lld %lld", pmatch[1].rm_so, pmatch[1].rm_eo);
+	mctx->pmatch_valid = 1;
 
 	return (res == 0 ? MATCH_TRUE : MATCH_FALSE);
 }

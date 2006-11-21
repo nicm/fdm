@@ -23,40 +23,31 @@
 
 #include "fdm.h"
 
-int	index_match(struct match_ctx *, struct expritem *);
-char   *index_desc(struct expritem *);
+int	string_match(struct match_ctx *, struct expritem *);
+char   *string_desc(struct expritem *);
 
-struct match match_index = { "index", index_match, index_desc };
+struct match match_string = { "string", string_match, string_desc };
 
 int
-index_match(struct match_ctx *mctx, struct expritem *ei)
+string_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct index_data	*data;
+	struct string_data	*data;
 	int			 res;
 	char			*s;
-	size_t	 		 len;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
-        regmatch_t		*pmatch = mctx->regexp_pmatch;
+        regmatch_t		*pmatch = mctx->pmatch;
 
 	data = ei->data;
 
-	if (mctx->regexp_valid != 1) {
-		log_warnx("%s: index match before any regexps", a->name);
+	if (!mctx->pmatch_valid) {
+		log_warnx("%s: string match before any regexps", a->name);
 		return (MATCH_ERROR);
 	}
 
-	log_debug2("%s: index %u is from %lld to %lld", a->name, data->index,
-	    (long long) pmatch[data->index].rm_so, 
-	    (long long) pmatch[data->index].rm_eo);
-	if (pmatch[data->index].rm_so >= pmatch[data->index].rm_eo)
-		return (MATCH_FALSE);
-	len = pmatch[data->index].rm_eo - pmatch[data->index].rm_so;
+	s = replacepmatch(data->s, m, pmatch);
+	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re_s);
 
-	s = xmalloc(len + 1);
-	memcpy(s, m->data + pmatch[data->index].rm_so, len);
-	s[len] = '\0';
-	
 	res = regexec(&data->re, s, 0, NULL, 0);
 	if (res != 0 && res != REG_NOMATCH) {
 		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
@@ -69,13 +60,13 @@ index_match(struct match_ctx *mctx, struct expritem *ei)
 }
 
 char *
-index_desc(struct expritem *ei)
+string_desc(struct expritem *ei)
 {
-	struct index_data	*data;
+	struct string_data	*data;
 	char			*s;
 
 	data = ei->data;
 
-	xasprintf(&s, "\\%u to \"%s\"", data->index, data->re_s);
+	xasprintf(&s, "\"%s\" to \"%s\"", data->s, data->re_s);
 	return (s);
 }

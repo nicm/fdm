@@ -165,7 +165,7 @@ extern char	*__progname;
 	(c) == '_' || (c) == '@' || (c) == '\'')
 
 /* Number of matches to use. */
-#define NPMATCHES 10
+#define NPMATCH 10
 
 /* Account name match. */
 #define name_match(p, n) (fnmatch(p, n, 0) == 0)
@@ -303,7 +303,7 @@ struct action {
 ARRAY_DECLARE(accounts, char *);
 
 /* Actions array. */
-ARRAY_DECLARE(actions, struct action *);
+ARRAY_DECLARE(actions, char *);
 
 /* Match areas. */
 enum area {
@@ -528,9 +528,8 @@ struct match_ctx {
 	int		*matched;
 	int		*stopped;
 
-	/* Context for regexp matches */
-	int		 regexp_valid;
-	regmatch_t	 regexp_pmatch[NPMATCHES];
+	int		 pmatch_valid;
+	regmatch_t	 pmatch[NPMATCH];
 };
 
 /* Match functions. */
@@ -560,12 +559,12 @@ struct tagged_data {
 	char			*tag;
 };
 
-/* Match match data. */
-struct index_data {
+/* Match string data. */
+struct string_data {
 	char			*re_s;
 	regex_t			 re;
 
-	u_int			 index;
+	char			*s;
 };
 
 /* Match regexp data. */
@@ -681,8 +680,8 @@ extern struct match	 match_size;
 /* match-tagged.c */
 extern struct match	 match_tagged;
 
-/* match-match.c */
-extern struct match	 match_index;
+/* match-string.c */
+extern struct match	 match_string;
 
 /* match-command.c */
 extern struct match	 match_command;
@@ -754,6 +753,11 @@ size_t	 		 strlcpy(char *, const char *, size_t);
 size_t	 		 strlcat(char *, const char *, size_t);
 #endif
 
+/* parse.y */
+extern struct macros	 macros;
+extern struct macro	*find_macro(char *);
+struct action  		*find_action(char *);
+
 /* fdm.c */
 int			 dropto(uid_t);
 int			 check_incl(char *);
@@ -801,10 +805,13 @@ void			 set_wrapped(struct mail *, char);
 void			 free_wrapped(struct mail *);
 
 /* replace.c */
-#define REPL_LEN 52
+#define REPL_LEN 62
 #define REPL_IDX(ch) /* LINTED */ 				\
-	((ch >= 'a' || ch <= 'z') ? ch - 'a' :			\
-	((ch >= 'A' || ch <= 'z') ? 26 + ch - 'A' : -1))
+	(((ch) >= 'a' && (ch) <= 'z') ? (ch) - 'a' :       	\
+	(((ch) >= 'A' && (ch) <= 'Z') ? 26 + (ch) - 'A' : 	\
+	(((ch) >= '0' && (ch) <= '9') ? 52 + (ch) - '0' : -1)))
+char 			*replacepmatch(char *, struct mail *, 
+			     regmatch_t [NPMATCH]) ;
 char			*replaceinfo(char *, struct account *, struct action *);
 char 			*replace(char *, char *[REPL_LEN]);
 

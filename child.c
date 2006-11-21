@@ -30,7 +30,7 @@
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct rule *, struct match_ctx *);
-int	do_deliver(struct io *, struct account *, struct mail *, struct rule *);
+int	do_deliver(struct rule *, struct match_ctx *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
 
 int
@@ -264,7 +264,6 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 	int		 	 error;
 	char			*name;
 	struct account		*a = mctx->account;
-	struct io		*io = mctx->io;
 	struct mail		*m = mctx->mail;
 
 	TAILQ_FOREACH(r, rules, entry) {
@@ -313,7 +312,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		/* handle delivery */
 		if (r->actions != NULL) {
 			*mctx->matched = 1;
-			if (do_deliver(io, a, m, r) != 0) {
+			if (do_deliver(r, mctx) != 0) {
 				*cause = "delivery";
 				return (1);
 			}
@@ -378,10 +377,10 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 }
 
 int
-do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
+do_deliver(struct rule *r, struct match_ctx *mctx)
 {
 
-	struct action	*t;
+ 	struct action	*t;
 	struct mail	*md;
 	u_int		 i, j, l;
 	int		 find;
@@ -389,12 +388,38 @@ do_deliver(struct io *io, struct account *a, struct mail *m, struct rule *r)
 	struct msg	 msg;
 	void		*buf;
 	size_t		 len;
+	char		*s, *name;
+	struct account	*a = mctx->account;
+	struct io	*io = mctx->io;
+	struct mail	*m = mctx->mail;
+
+	if (r->actions == NULL)
+		return (0);
 
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		t = ARRAY_ITEM(r->actions, i, struct action *);
+		name = ARRAY_ITEM(r->actions, i, char *);
+
+		if (mctx->pmatch_valid && strchr(name, '%') != NULL) {
+			s = replacepmatch(name, m, mctx->pmatch);
+			t = find_action(s);
+			name = s;
+		} else {
+ 			s = NULL;
+			t = find_action(name);
+		}
+		if (t == NULL) {
+			log_warnx("unknown action: %s", name);
+			if (s != NULL)
+				xfree(s);
+			return (1);
+		}
+		if (s != NULL)
+			xfree(s);
+
+		log_debug2("%s: action %s", a->name, t->name);
+
 		if (t->deliver->deliver == NULL)
 			continue;
-		log_debug2("%s: action %s", a->name, t->name);
 
 		if (t->deliver->type == DELIVER_INCHILD) {
 			if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)

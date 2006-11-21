@@ -36,9 +36,6 @@
 extern int 			 yylex(void);
 extern __dead printflike1 void	 yyerror(const char *, ...);
 
-extern struct macros		 macros;
-extern struct macro		*find_macro(char *);
-
 char 				*read_str(char);
 
 /* Use a one-byte buffer so flushing it on include doesn't do any harm. */
@@ -48,10 +45,6 @@ char 				*read_str(char);
 
 %%
 
-\\[0-9] {
-        yylval.number = yytext[1] - '0';
-        return (INDEX);
-}
 [0-9]+ {
 	const char	*errstr;
 
@@ -172,6 +165,7 @@ set return (TOKSET);
 size return (TOKSIZE);
 smtp return (TOKSMTP);
 stdin return (TOKSTDIN);
+string return (TOKSTRING);
 tag return (TOKTAG);
 tagged return (TOKTAGGED);
 to return (TOKTO);

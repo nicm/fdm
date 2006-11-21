@@ -23,11 +23,42 @@
 #include "fdm.h"
 
 char *
+replacepmatch(char *src, struct mail *m, regmatch_t pmatch[NPMATCH]) 
+{
+	char	*map[REPL_LEN];
+	char	*dst, *s;
+	size_t	 len;
+	u_int	 i;
+
+	memset(map, 0, sizeof map);
+
+	for (i = 0; i < NPMATCH; i++) {
+		if (pmatch[i].rm_so >= pmatch[i].rm_eo)
+			continue;
+		len = pmatch[i].rm_eo - pmatch[i].rm_so;
+		s = xmalloc(len + 1);
+		memcpy(s, m->data + pmatch[i].rm_so, len);
+		s[len] = '\0';
+		map[REPL_IDX('0' + (char) i)] = s;
+	}
+
+	dst = replace(src, map);
+
+	for (i = 0; i < NPMATCH; i++) {
+		if (map[REPL_IDX('0' + (char) i)] != NULL)
+			xfree(map[REPL_IDX('0' + (char) i)]);
+	}
+
+	return (dst);
+}
+
+char *
 replaceinfo(char *src, struct account *a, struct action *t)
 {
 	char	*map[REPL_LEN];
 
 	memset(map, 0, sizeof map);
+
 	map[REPL_IDX('a')] = a->name;
 	map[REPL_IDX('h')] = conf.info.home;
 	map[REPL_IDX('n')] = conf.info.uid;

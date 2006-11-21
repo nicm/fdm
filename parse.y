@@ -59,8 +59,6 @@ __dead printflike1 void  	 yyerror(const char *, ...);
 int 			 	 yywrap(void);
 
 struct account 			*find_account(char *);
-struct action  			*find_action(char *);
-struct macro			*find_macro(char *);
 
 __dead printflike1 void
 yyerror(const char *fmt, ...)
@@ -162,7 +160,7 @@ find_macro(char *name)
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKEQ TOKNE TOKSIZE
-%token TOKEXEC
+%token TOKEXEC TOKSTRING
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -201,7 +199,7 @@ find_macro(char *name)
 	enum cmp		 cmp;
 }
 
-%token <number> NUMBER SIZE INDEX
+%token <number> NUMBER SIZE
 %token <string> COMMAND STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
 %type  <accounts> accounts accountslist
@@ -866,17 +864,15 @@ actions: TOKACTION TOKNONE
 	 }
        | TOKACTION strv
 	 {
-		 struct action	*t;
-
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
+		 /* XXX check better? */
+		 if (strchr($2, '%') == NULL && find_action($2) == NULL)
+			 yyerror("unknown action: %s", $2);
 
 		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
-		 if ((t = find_action($2)) == NULL)
-			 yyerror("unknown action: %s", $2);
-		 ARRAY_ADD($$, t, struct action *);
-		 xfree($2);
+		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKACTIONS '{' actionslist '}'
          {
@@ -885,30 +881,26 @@ actions: TOKACTION TOKNONE
 
 actionslist: actionslist strv
 	     {
-		     struct action	*t;
-
 		     if (*$2 == '\0')
 			     yyerror("invalid action name");
+		     /* XXX check better? */
+		     if (strchr($2, '%') == NULL && find_action($2) == NULL)
+			     yyerror("unknown action: %s", $2);
 
 		     $$ = $1;
-		     if ((t = find_action($2)) == NULL)
-			     yyerror("unknown action: %s", $2);
-		     ARRAY_ADD($$, t, struct action *);
-		     xfree($2);
+		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | strv
 	     {
-		     struct action	*t;
-
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
+		     /* XXX check better? */
+		     if (strchr($1, '%') == NULL && find_action($1) == NULL)
+			     yyerror("unknown action: %s", $1);
 
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
-		     if ((t = find_action($1)) == NULL)
-			     yyerror("unknown action: %s", $1);
-		     ARRAY_ADD($$, t, struct action *);
-		     xfree($1);
+		     ARRAY_ADD($$, $1, char *);
 	     }
 
 cont: /* empty */
@@ -1102,33 +1094,35 @@ expritem: not icase strv area
 		  data->size = $4;
 		  data->cmp = $3;
 	  }
-        | not INDEX TOKTO strv
+        | not TOKSTRING strv TOKTO strv
 	  {
-		  struct index_data	*data;
+		  struct string_data	*data;
 		  int	 		 error, flags;
 		  size_t	 	 len;
 		  char			*buf;
 
-		  if (*$4 == '\0')
+		  if (*$3 == '\0')
+			  yyerror("invalid string");
+		  if (*$5 == '\0')
 			  yyerror("invalid regexp");
 
 		  $$ = xcalloc(1, sizeof *$$);
 
-		  $$->match = &match_index;
+		  $$->match = &match_string;
 		  $$->inverted = $1;
 
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 		  
-		  data->re_s = $4;
-		  data->index = $2;
+		  data->re_s = $5;
+		  data->s = $3;
 
 		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-		  if ((error = regcomp(&data->re, $4, flags)) != 0) {
+		  if ((error = regcomp(&data->re, $5, flags)) != 0) {
 			  len = regerror(error, &data->re, NULL, 0);
 			  buf = xmalloc(len);
 			  regerror(error, &data->re, buf, len);
-			  yyerror("%s: %s", $4, buf);
+			  yyerror("%s: %s", $5, buf);
 		  }
 	  }
 
@@ -1292,8 +1286,8 @@ rule: match accounts perform
 	      if ($3->actions != NULL) {
 		      *tmp2 = '\0';
 		      for (i = 0; i < ARRAY_LENGTH($3->actions); i++) {
-			      strlcat(tmp2, ARRAY_ITEM($3->actions, i, 
-				  struct action *)->name, sizeof tmp2);
+			      strlcat(tmp2, ARRAY_ITEM($3->actions, i, char *),
+				  sizeof tmp2);
 			      strlcat(tmp2, " ", sizeof tmp2);
 		      }
 		      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
