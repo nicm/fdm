@@ -164,6 +164,9 @@ extern char	*__progname;
 	(c) == '^' || (c) == '{' || (c) == '}' || (c) == '~' || 	\
 	(c) == '_' || (c) == '@' || (c) == '\'')
 
+/* Number of matches to use. */
+#define NPMATCHES 10
+
 /* Account name match. */
 #define name_match(p, n) (fnmatch(p, n, 0) == 0)
 
@@ -249,7 +252,7 @@ enum msgtype {
 	MSG_COMMAND
 };
 
-/* Privsaep message data. */
+/* Privsep message data. */
 struct msgdata {
 	int	 	 	 error;
 	struct mail	 	 mail;
@@ -516,13 +519,26 @@ struct deliver {
 #define MATCH_TRUE 1
 #define MATCH_ERROR 2
 
+/* Match context. */
+struct match_ctx {
+	struct io	*io;
+	struct account	*account;
+	struct mail     *mail;
+
+	int		*matched;
+	int		*stopped;
+
+	/* Context for regexp matches */
+	int		 regexp_valid;
+	regmatch_t	 regexp_pmatch[NPMATCHES];
+};
+
 /* Match functions. */
 struct match {
-	const char		*name;
+	const char	*name;
 
-	int			 (*match)(struct io *, struct account *, 
-				     struct mail *, struct expritem *);
-	char 			*(*desc)(struct expritem *);
+	int		 (*match)(struct match_ctx *, struct expritem *);
+	char 		*(*desc)(struct expritem *);
 };
 
 /* Comparison operators. */
@@ -542,6 +558,14 @@ struct size_data {
 /* Match tagged data. */
 struct tagged_data {
 	char			*tag;
+};
+
+/* Match match data. */
+struct index_data {
+	char			*re_s;
+	regex_t			 re;
+
+	u_int			 index;
 };
 
 /* Match regexp data. */
@@ -656,6 +680,9 @@ extern struct match	 match_size;
 
 /* match-tagged.c */
 extern struct match	 match_tagged;
+
+/* match-match.c */
+extern struct match	 match_index;
 
 /* match-command.c */
 extern struct match	 match_command;
@@ -779,7 +806,7 @@ void			 free_wrapped(struct mail *);
 	((ch >= 'a' || ch <= 'z') ? ch - 'a' :			\
 	((ch >= 'A' || ch <= 'z') ? 26 + ch - 'A' : -1))
 char			*replaceinfo(char *, struct account *, struct action *);
-char 			*replace(char *, char *[52]);
+char 			*replace(char *, char *[REPL_LEN]);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *);

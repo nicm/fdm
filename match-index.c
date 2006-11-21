@@ -19,79 +19,63 @@
 #include <sys/types.h>
 
 #include <regex.h>
+#include <string.h>
 
 #include "fdm.h"
 
-int	regexp_match(struct match_ctx *, struct expritem *);
-char   *regexp_desc(struct expritem *);
+int	index_match(struct match_ctx *, struct expritem *);
+char   *index_desc(struct expritem *);
 
-struct match match_regexp = { "regexp", regexp_match, regexp_desc };
+struct match match_index = { "index", index_match, index_desc };
 
 int
-regexp_match(struct match_ctx *mctx, struct expritem *ei)
+index_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct regexp_data	*data;
+	struct index_data	*data;
 	int			 res;
+	char			*s;
+	size_t	 		 len;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
-	regmatch_t	        *pmatch = mctx->regexp_pmatch;
+        regmatch_t		*pmatch = mctx->regexp_pmatch;
 
 	data = ei->data;
-	
-	if (data->area == AREA_BODY && m->body == -1)
-		return (MATCH_FALSE);
 
-	switch (data->area) {
-	case AREA_HEADERS:
-		pmatch[0].rm_so = 0;
-		if (m->body == -1)
-			pmatch[0].rm_eo = m->size;
-		else
-			pmatch[0].rm_eo = m->body;
-		break;
-	case AREA_BODY:
-		pmatch[0].rm_so = m->body;
-		pmatch[0].rm_eo = m->size;
-		break;
-	case AREA_ANY:
-		pmatch[0].rm_so = 0;
-		pmatch[0].rm_eo = m->size;
-		break;
-	}
-	
-	res = regexec(&data->re, m->data, NPMATCHES, pmatch, REG_STARTEND);
-	if (res != 0 && res != REG_NOMATCH) {
-		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
+	if (mctx->regexp_valid != 1) {
+		log_warnx("%s: index match before any regexps", a->name);
 		return (MATCH_ERROR);
 	}
-	mctx->regexp_valid = 1;
 
-	log_debug("XXX %lld %lld", pmatch[1].rm_so, pmatch[1].rm_eo);
+	log_debug2("%s: index %u is from %lld to %lld", a->name, data->index,
+	    (long long) pmatch[data->index].rm_so, 
+	    (long long) pmatch[data->index].rm_eo);
+	if (pmatch[data->index].rm_so >= pmatch[data->index].rm_eo)
+		return (MATCH_FALSE);
+	len = pmatch[data->index].rm_eo - pmatch[data->index].rm_so;
 
+	s = xmalloc(len + 1);
+	memcpy(s, m->data + pmatch[data->index].rm_so, len);
+	s[len] = '\0';
+	
+	res = regexec(&data->re, s, 0, NULL, 0);
+	if (res != 0 && res != REG_NOMATCH) {
+		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
+		xfree(s);
+		return (MATCH_ERROR);
+	}
+
+	xfree(s);
 	return (res == 0 ? MATCH_TRUE : MATCH_FALSE);
 }
 
 char *
-regexp_desc(struct expritem *ei)
+index_desc(struct expritem *ei)
 {
-	struct regexp_data	*data;
-	const char		*area = NULL;
+	struct index_data	*data;
 	char			*s;
 
 	data = ei->data;
 
-	switch (data->area) {
-	case AREA_BODY:
-		area = "body";
-		break;
-	case AREA_HEADERS:
-		area = "headers";
-		break;
-	case AREA_ANY:
-		area = "any";
-		break;
-	}
-
-	xasprintf(&s, "\"%s\" in %s", data->re_s, area);
+	xasprintf(&s, "\\%u to \"%s\"", data->index, data->re_s);
 	return (s);
 }

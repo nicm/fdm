@@ -23,18 +23,17 @@
 
 #include "fdm.h"
 
-int	tagged_match(struct io *, struct account *, struct mail *,
-	    struct expritem *);
+int	tagged_match(struct match_ctx *, struct expritem *);
 char   *tagged_desc(struct expritem *);
 
 struct match match_tagged = { "tagged", tagged_match, tagged_desc };
 
 int
-tagged_match(unused struct io *io, unused struct account *a, struct mail *m,
-    struct expritem *ei)
+tagged_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct tagged_data	*data;
 	u_int			 i;
+	struct mail		*m = mctx->mail;
 
 	data = ei->data;
 	

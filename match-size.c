@@ -22,17 +22,16 @@
 
 #include "fdm.h"
 
-int	size_match(struct io *, struct account *, struct mail *,
-	    struct expritem *);
+int	size_match(struct match_ctx *, struct expritem *);
 char   *size_desc(struct expritem *);
 
 struct match match_size = { "size", size_match, size_desc };
 
 int
-size_match(unused struct io *io, unused struct account *a, struct mail *m,
-    struct expritem *ei)
+size_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct size_data	*data;
+	struct mail		*m = mctx->mail;
 
 	data = ei->data;
 	

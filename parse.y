@@ -201,7 +201,7 @@ find_macro(char *name)
 	enum cmp		 cmp;
 }
 
-%token <number> NUMBER SIZE
+%token <number> NUMBER SIZE INDEX
 %token <string> COMMAND STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
 %type  <accounts> accounts accountslist
@@ -1016,7 +1016,7 @@ expritem: not icase strv area
 		  data->re_s = $3;
 		  data->area = $4;
 		  
-		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
+		  flags = REG_EXTENDED|REG_NEWLINE;
 		  if ($2)
 			  flags |= REG_ICASE;
 		  if ((error = regcomp(&data->re, $3, flags)) != 0) {
@@ -1037,6 +1037,8 @@ expritem: not icase strv area
 			  yyerror("invalid command");
 		  if ($7 == -1 && $9 == NULL)
 			  yyerror("return code or regexp must be specified");
+		  if ($9 != NULL && *$9 == '\0')
+			  yyerror("invalid regexp");
 
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_command;
@@ -1099,6 +1101,35 @@ expritem: not icase strv area
 		  
 		  data->size = $4;
 		  data->cmp = $3;
+	  }
+        | not INDEX TOKTO strv
+	  {
+		  struct index_data	*data;
+		  int	 		 error, flags;
+		  size_t	 	 len;
+		  char			*buf;
+
+		  if (*$4 == '\0')
+			  yyerror("invalid regexp");
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_index;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+		  
+		  data->re_s = $4;
+		  data->index = $2;
+
+		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
+		  if ((error = regcomp(&data->re, $4, flags)) != 0) {
+			  len = regerror(error, &data->re, NULL, 0);
+			  buf = xmalloc(len);
+			  regerror(error, &data->re, buf, len);
+			  yyerror("%s: %s", $4, buf);
+		  }
 	  }
 
 exprlist: exprlist exprop expritem

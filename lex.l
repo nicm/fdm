@@ -48,6 +48,10 @@ char 				*read_str(char);
 
 %%
 
+\\[0-9] {
+        yylval.number = yytext[1] - '0';
+        return (INDEX);
+}
 [0-9]+ {
 	const char	*errstr;
 

@@ -29,10 +29,9 @@
 
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
-int	do_expr(struct io *, struct account *, struct mail *, struct rule *);
+int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct io *, struct account *, struct mail *, struct rule *);
-int	do_rules(struct io *, struct account *, struct mail *, struct rules *,
-	    int *, int *, const char **);
+int	do_rules(struct match_ctx *, struct rules *, const char **);
 
 int
 child(int fd, enum fdmop op)
@@ -159,6 +158,7 @@ fetch_account(struct io *io, struct account *a)
 	u_int	 	 n, l;
 	int		 error, matched, stopped;
  	const char	*cause = NULL;
+	struct match_ctx mctx;
 
 	if (a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
@@ -168,6 +168,13 @@ fetch_account(struct io *io, struct account *a)
 
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
+
+	memset(&mctx, 0, sizeof mctx);
+	mctx.io = io;
+	mctx.account = a;
+	mctx.mail = &m;
+	mctx.matched = &matched;
+	mctx.stopped = &stopped;
 
 	n = 0;
         for (;;) {
@@ -207,8 +214,7 @@ fetch_account(struct io *io, struct account *a)
 
 		/* handle rule evaluation and actions */
 		matched = stopped = 0;
-		if (do_rules(io, a, &m, &conf.rules, &matched, &stopped,
-		    &cause) != 0)
+		if (do_rules(&mctx, &conf.rules, &cause) != 0)
 			goto out;
 
 		if (stopped)
@@ -250,14 +256,16 @@ out:
 }
 
 int
-do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
-    int *matched, int *stopped, const char **cause)
+do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 {
-	struct rule	*r;
-	struct accounts	*list;
-	u_int		 i;
-	int		 error;
-	char		*name;
+	struct rule		*r;
+	struct accounts		*list;
+	u_int		 	 i;
+	int		 	 error;
+	char			*name;
+	struct account		*a = mctx->account;
+	struct io		*io = mctx->io;
+	struct mail		*m = mctx->mail;
 
 	TAILQ_FOREACH(r, rules, entry) {
 		/* check if the rule is for the current account */
@@ -275,7 +283,7 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 		/* match all the regexps */
 		switch (r->type) {
 		case RULE_EXPRESSION:
-			if ((error = do_expr(io, a, m, r)) == -1) {
+			if ((error = do_expr(r, mctx)) == -1) {
 				*cause = "matching";
 				return (1);
 			}
@@ -286,11 +294,11 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 		case RULE_ALL:
 			break;
 		case RULE_MATCHED:
-			if (!*matched)
+			if (!*mctx->matched)
 				continue;
 			break;
 		case RULE_UNMATCHED:
-			if (*matched)
+			if (*mctx->matched)
 				continue;
 			break;
 		}
@@ -304,7 +312,7 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 		
 		/* handle delivery */
 		if (r->actions != NULL) {
-			*matched = 1;
+			*mctx->matched = 1;
 			if (do_deliver(io, a, m, r) != 0) {
 				*cause = "delivery";
 				return (1);
@@ -313,20 +321,19 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 		/* deal with nested rules */
 		if (!TAILQ_EMPTY(&r->rules)) {
 			log_debug2("%s: entering nested rules", a->name);
-			if (do_rules(io, a, m, &r->rules, matched, stopped, 
-			    cause) != 0)
+			if (do_rules(mctx, &r->rules, cause) != 0)
 				return (1);
 			log_debug2("%s: exiting nested rules%s", a->name,
-			    *stopped ? ", and stopping" : "");
+			    *mctx->stopped ? ", and stopping" : "");
 			/* if it didn't drop off the end of the nested rules, 
 			   stop now */
-			if (*stopped)
+			if (*mctx->stopped)
 				return (0);
 		}
 		
 		/* if this rule is marked as stop, stop checking now */
 		if (r->stop) {
-			*stopped = 1;
+			*mctx->stopped = 1;
 			return (0);
 		}
 	}
@@ -335,17 +342,17 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 }
 
 int
-do_expr(struct io *io, struct account *a, struct mail *m, struct rule *r)
+do_expr(struct rule *r, struct match_ctx *mctx)
 {
 	int		 fres, cres;
 	struct expritem	*ei;
 	char		*s;
 
-	set_wrapped(m, ' ');
+	set_wrapped(mctx->mail, ' ');
 
 	fres = 0;
 	TAILQ_FOREACH(ei, r->expr, entry) {
-		cres = ei->match->match(io, a, m, ei);
+		cres = ei->match->match(mctx, ei);
 		if (cres == MATCH_ERROR)
 			return (-1);
 		cres = cres == MATCH_TRUE;
@@ -362,7 +369,7 @@ do_expr(struct io *io, struct account *a, struct mail *m, struct rule *r)
 		}
 
 		s = ei->match->desc(ei);
-		log_debug2("%s: tried %s%s:%s, got %d", a->name, 
+		log_debug2("%s: tried %s%s:%s, got %d", mctx->account->name, 
 		    ei->inverted ? "not " : "", ei->match->name, s, cres);
 		xfree(s);
 	}

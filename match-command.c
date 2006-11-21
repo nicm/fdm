@@ -22,18 +22,19 @@
 
 #include "fdm.h"
 
-int	command_match(struct io *, struct account *, struct mail *, 
-	    struct expritem *);
+int	command_match(struct match_ctx *, struct expritem *);
 char   *command_desc(struct expritem *);
 
 struct match match_command = { "command", command_match, command_desc };
 
 int
-command_match(struct io *io, struct account *a, struct mail *m, 
-    struct expritem *ei)
+command_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct command_data	*data;
 	struct msg		 msg;
+	struct account		*a = mctx->account;
+	struct mail		*m = mctx->mail;
+	struct io		*io = mctx->io;
 
 	data = ei->data;
 
