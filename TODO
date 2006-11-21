@@ -10,5 +10,5 @@
 - allow matched/unmatched to be part of expressions
 - document command stuff and size match
 - document nested rules
-- document match string etc
+- document match string etc, new matched behaviour
 - rewrite will corrupt the pmatch. fix it
