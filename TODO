@@ -10,4 +10,3 @@
 - allow matched/unmatched to be part of expressions
 - document command stuff and size match
 - document nested rules
-- pipe/rewrite use "s but commands use `s
