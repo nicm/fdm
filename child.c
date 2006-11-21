@@ -295,7 +295,6 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 			break;
 		}
 		log_debug("%s: matched message", a->name);
-		*matched = 1;
 			
 		set_wrapped(m, '\n');
 		
@@ -305,6 +304,7 @@ do_rules(struct io *io, struct account *a, struct mail *m, struct rules *rules,
 		
 		/* handle delivery */
 		if (r->actions != NULL) {
+			*matched = 1;
 			if (do_deliver(io, a, m, r) != 0) {
 				*cause = "delivery";
 				return (1);
