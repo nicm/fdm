@@ -15,7 +15,7 @@ Then run 'make install' to copy the newly-built files to the default locations
 under /usr/local. The PREFIX environment variable may be set to specify an
 alternative installation location.
 
-    $ export PREFIX=/opt/           # defaults to /usr/local
+    $ export PREFIX=/opt/		# defaults to /usr/local
     $ sudo make install
     $ man fdm
     $ fdm
@@ -72,10 +72,10 @@ Alternatively, it could be more limited, perhaps something like this:
 	match "^(To:|Cc:).* bob@my.domain" action "bob" continue
 	match unmatched action "bob" # all other mail will end up with bob
 
-If you use POP3 accounts, fdm is best run from cron, but it can also be set up
+If POP3 accounts are used, fdm is best run from cron, but it can also be set up
 to deliver mail via stdin from an MTA. Configuring this is left as an exercise
-to the reader, let me know how you get on ;-). If you're using some MTA that
-can invoke fdm with the -u option, you'd probably just need something like:
+for the reader ;-). If using some MTA that can invoke fdm with the -u option, 
+something like this would probably work:
 
 	account stdin "stdin"
 	action "default" mbox "/var/mail/%u"
