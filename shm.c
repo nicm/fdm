@@ -44,8 +44,6 @@ shm_reopen(struct shm *shm)
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");
 
-	shm->count++;
-
 	return (shm->data);
 }
 
@@ -54,7 +52,7 @@ shm_malloc(struct shm *shm, size_t size)
 {
 	char	c[1];
 
-	/* XXX TMPDIR */
+	/* XXX TMPDIR XXX check free space */
 	strlcpy(shm->name, _PATH_TMP "fdm.XXXXXXXXXXXX", sizeof shm->name);
 	if ((shm->fd = mkstemp(shm->name)) < 0)
 		fatal("mkstemp");
@@ -75,8 +73,6 @@ shm_malloc(struct shm *shm, size_t size)
 	    shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");
-
-	shm->count = 1;
 
 	return (shm->data);
 }

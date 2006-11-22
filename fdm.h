@@ -233,8 +233,6 @@ struct shm {
 	
 	void	*data;
 	size_t	 size;
-
-	u_int	 count;
 };
 
 /* Tags array. */

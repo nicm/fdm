@@ -9,3 +9,4 @@
 - document nested rules
 - think about whether or not we like MATCH_* (remember
   error can't be -1 for some reason... why?)
+- clear up XXXs
