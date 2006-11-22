@@ -476,7 +476,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	if (io->error != NULL)
 		return (NULL);
 
-	if (io->rsize <= 1)
+	if (io->rsize < strlen(io->eol))
 		return (NULL);
 
 #ifdef IO_DEBUG
