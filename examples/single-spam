@@ -1,0 +1,232 @@
+# vim: set nospell:
+
+# Settings.
+set lock-types flock
+set maximum-size 10M
+
+# Macros.
+$path   = "%h/.maildir"
+$hep    = "${path}/HEP"
+$lug    = "${path}/LUG"
+$foss   = "${path}/FOSS"
+$obsd   = "${path}/OBSD"
+$bsd    = "${path}/BSD"
+$linux  = "${path}/Linux"
+$ubuntu = "${path}/Ubuntu"
+$sec    = "${path}/SEC"
+
+# Actions.
+action "drop" drop
+
+# General.
+action "inbox"      maildir "${path}/Inbox"
+action "junk"       maildir "${path}/Junk"
+action "sent"       maildir "${path}/Sent"
+action "spam"       maildir "${path}/Spam"
+
+# LUGs.
+action "madlug"     maildir "${lug}/Madlug"
+action "mkelug"     maildir "${lug}/Mkelug"
+
+# UW TP.
+action "tp"         maildir "${path}/TP"
+
+# Security.
+action "bugtraq"    maildir "${sec}/BugTraq"
+action "dailydave"  maildir "${sec}/DailyDave"
+action "secunia"    maildir "${sec}/Secunia"
+
+# Debian.
+action "deb-ann"    maildir "${linux}/Debian/Announce"
+action "deb-news"   maildir "${linux}/Debian/News"
+action "deb-sec"    maildir "${linux}/Debian/Security"
+
+# FreeBSD.
+action "fbsd"       maildir "${bsd}/Free/Announce"
+action "fbsd-sec"   maildir "${bsd}/Free/Security"
+
+# OpenBSD.
+action "obsd"       maildir "${obsd}/General"
+action "obsd-bugs"  maildir "${obsd}/Bugs"
+action "obsd-cvs"   maildir "${obsd}/CVS"
+action "obsd-misc"  maildir "${obsd}/Misc"
+action "obsd-ports" maildir "${obsd}/Ports"
+action "obsd-tech"  maildir "${obsd}/Tech"
+
+# NetBSD.
+action "netbsd-sec" maildir "${bsd}/Net/Security"
+
+# Ubuntu.
+action "ubuntu-sec" maildir "${ubuntu}/Security"
+action "ubuntu"     maildir "${ubuntu}/News"
+
+# FOSS.
+action "afs"        maildir "${foss}/OpenAFS"
+action "elinks"     maildir "${foss}/Elinks"
+action "hg"         maildir "${foss}/Hg"
+action "ion"        maildir "${foss}/Ion"
+action "ipython"    maildir "${foss}/IPython"
+action "maildrop"   maildir "${foss}/Maildrop"
+action "mutt"       maildir "${foss}/Mutt"
+action "postfix"    maildir "${foss}/Postfix"
+action "roundup"    maildir "${foss}/Roundup"
+action "screen"     maildir "${foss}/Screen"
+action "vim"        maildir "${foss}/Vim"
+action "zsh"        maildir "${foss}/Zsh"
+
+# Personal.
+action "family"     maildir "${path}/Family"
+action "friend"     maildir "${path}/Friend"
+
+# Work.
+action "absent"     maildir "${hep}/Absent"
+action "cms"        maildir "${hep}/CMS"
+action "dept"       maildir "${hep}/Department"
+action "hep"        maildir "${hep}/Inbox"
+action "root"       maildir "${hep}/Root"
+action "glow"       maildir "${hep}/GLOW"
+action "glow-absent" maildir "${hep}/Absent"
+action "nagios"     maildir "${hep}/Nagios"
+action "req"        maildir "${hep}/RQ"
+
+# SPAM.
+action "bmf"        rewrite "bmf -p"
+
+# The stdin account is disabled: it will be ignored unless
+# explicitly requested using the -a switch on the command line.
+account "stdin" disabled stdin
+
+# Accounts.
+account "fm" pop3s 
+    server "mail.messagingengine.com" 
+    port 995 user "<user>" 
+    pass "<pass>"
+account "hep" imaps 
+    server "hep.wisc.edu" 
+    port 993 
+    user "<user>" 
+    pass "<pass>"
+account "uw" pop3s 
+    server "wiscmail.wisc.edu" 
+    port 995 
+    user "<user>" 
+    pass "<pass>"
+account "gmail" pop3s 
+    server "pop.googlemail.com" 
+    port 995 
+    user "<user>" 
+    pass "<pass>"
+
+# Filter rules.
+
+# SPAM trap.
+# STUB: add relaydb based on bmf(1) at some point.
+match all action "bmf" continue
+match "^X-Spam-Status: Yes" in headers action "spam"
+
+# LUGs.
+match "^List-Id:.*madlug\\.madisonlinux\\.org" in headers action "madlug"
+match "^List-Id:.*mlug-list\\.mail\\.milwaukeelug\\.org" in headers action "mkelug"
+
+# FOSS.
+match "^List-Id:.*openafs-info\\.openafs\\.org" in headers action "afs"
+match "^List-Id:.*elinks-users\\.linuxfromscratch\\.org" in headers action "elinks"
+match "^List-Id:.*mercurial\\.selenic\\.com" in headers action "hg"
+match "^List-Id:.*ion-general\\.lists\\.berlios\\.de" in headers action "ion"
+match "^List-Id:.*ipython-user\\.scipy\\.org" in headers action "ipython"
+match "^List-Id:.*courier-maildrop\\.lists\\.sourceforge\\.net" in headers action "maildrop"
+match "^Sender:.*owner-mutt-users@mutt\\.org" in headers action "mutt"
+match "^List-Post:.*postfix-users@postfix\\.org" in headers action "postfix"
+match "^List-Id:.*roundup-users\\.lists\\.sourceforge\\.net" in headers action "roundup"
+match "^Mailing-List:.*vim-help@vim\\.org" in headers action "vim"
+match "^Mailing-List:.*zsh.*@sunsite\\.dk" in headers action "zsh"
+
+# Debian.
+match "^List-Id:.*lists\\.debian\\.org" in headers {
+    match "^List-Id:.*announce" in headers action "deb-ann"
+    match "^List-Id:.*news" in headers action "deb-news"
+    match "^List-Id:.*security" in headers action "deb-sec"
+}
+
+# FreeBSD.
+match "^List-Id:.*freebsd-.*\\.freebsd\\.org" in headers {
+    match "^List-Id:.*security-notifications" in headers action "fbsd-sec"
+    match "^List-Id:.*announce" in headers {
+        # I already get security announcements...
+        match "^Subject.*FreeBSD Security Advisory FreeBSD-SA-" action "drop"
+        match all action "fbsd"
+    }
+}
+
+# OpenBSD.
+match "^Sender:[ \t]*owner-([a-z-]*)@openbsd\\.org" in headers {
+	match string "%1" to "gnats" action "obsd-bugs"
+	match string "%1" to "ports-changes" action "obsd-cvs"
+	match string "%1" to "source-changes" action "obsd-cvs"
+	match all action "obsd-%1"
+}
+
+# Ubuntu.
+match "^List-Id:.*ubuntu-.*\\.lists\\.ubuntu\\.com" in headers {
+    match "^List-Id:.*security" in headers action "ubuntu-sec"
+    match all action "ubuntu"
+}
+
+# NetBSD.
+match "^Sender:.*@netbsd\\.org" in headers {
+    match "^Sender:.*tech-security" in headers action "netbsd-sec"
+}
+
+# Techpartners.
+match "^(To|Cc):.*techpartners@lists\\.wisc\\.edu" in headers action "tp"
+
+# DailyDave.
+match "^List-Id:.*dailydave\\.lists\\.immunitysec\\.com" in headers action "dailydave"
+
+# BugTraq.
+match "^List-Id:.*bugtraq\\.list-id\\.securityfocus\\.com" in headers action "bugtraq"
+
+# Secunia advisories.
+match "^From:.*sec-adv@secunia\\.com" in headers action "secunia"
+
+# Family.
+match 
+    "^From:.*mom@mom\\.net" or 
+    "^From:.*dad@(dad|father)\\.com" or
+    "^From:.*sister@yahoo\\.com"
+    in headers action "family"
+
+# Friends.
+match 
+    "^From:.*tom@hotmail\\.com" or
+    "^From:.*dick@yahoo\\.com" or
+    "^From:.*harry\\.cameron@gmail\\.com"
+    in headers action "friend"
+
+# GLOW.
+match "^List-Id:.*glow-tech\\.cs\\.wisc\\.edu" in headers {
+    match "^Subject: \\[glow-tech\\] GLOW Absent Report$" in headers action "glow-absent"
+    match all action "glow"
+}
+
+# CMS.
+match "^List-Owner:.*CMS.*@LISTSERV\\.FNAL\\.GOV" in headers action "cms"
+
+# Physics.
+match "^(To|Cc):.*@physics\\.wisc\\.edu" in headers {
+    match "^(To|Cc):.*(root|operator|cron)@" in headers action "root"
+    match all action "dept"
+}
+
+# HEP.
+match "^(From|To):.*(hep|cs)\\.wisc\\.edu" in headers {
+    match "^Subject: (UW-HEP)? (Condor|dCache|CFengine) Absent Report" in headers action "absent"
+    match "(From|To|Cc):.*(help|req)@(nod|ginseng)\.hep\.wisc\.edu" in headers action "req"
+    # HEP root mail.
+    match "^(To|Cc):.*(root|operator|cron)@" in headers action "root"
+    match "^Subject: (UP|DOWN|RECOVERY|PROBLEM):" in headers action "nagios"
+    match all action "hep"
+}
+
+# Default filter.
+match all action "inbox"
