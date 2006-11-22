@@ -229,6 +229,10 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		return (msg.data.error);
 	}
 
+#ifdef DEBUG
+	xmalloc_clear();
+#endif
+
 	/* create privsep io */
  	close(fds[0]);
 	io = io_create(fds[1], NULL, IO_LF);
@@ -271,6 +275,10 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 
 	io_close(io);
 	io_free(io);
+
+#ifdef DEBUG
+	xmalloc_dump("deliver");
+#endif
 
 	_exit(0);
 	return (DELIVER_FAILURE);

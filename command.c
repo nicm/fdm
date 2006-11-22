@@ -165,7 +165,6 @@ restart:
 	}
 
 	if (cmd->io_err != NULL || cmd->io_out != NULL) {
-		log_debug("polling");
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_err;
 		ios[2] = cmd->io_out;

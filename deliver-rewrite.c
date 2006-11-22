@@ -61,6 +61,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 
 	log_debug2("%s: %s: starting", a->name, s);
 	cmd = cmd_start(s, 1, 1, m->data, m->size, &cause);
+	xfree(s);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		goto error;
