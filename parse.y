@@ -138,6 +138,23 @@ find_action(char *name)
 	return (NULL);
 }
 
+struct actionptrs *
+find_actions(char *name)
+{
+	struct action		*t;
+	struct actionptrs	*ta;
+
+	ta = xmalloc(sizeof *ta);
+	ARRAY_INIT(ta);
+
+	TAILQ_FOREACH(t, &conf.actions, entry) {
+		if (name_match(name, t->name))
+			ARRAY_ADD(ta, t, struct action *);
+	}
+
+	return (ta);
+}
+
 struct macro *
 find_macro(char *name)
 {
@@ -184,7 +201,7 @@ find_macro(char *name)
 	enum area	 	 area;
 	struct accounts		*accounts;
 	struct action	 	 action;
-	struct actions		*actions;
+	struct actionnames	*actions;
 	struct domains		*domains;
 	struct headers	 	*headers;
 	enum exprop		 exprop;
@@ -809,7 +826,7 @@ defaction: TOKACTION strv users action
 		   if (*$2 == '\0')
 			   yyerror("invalid action name");
 		   if (find_action($2) != NULL)
-			 yyerror("duplicate action: %s", $2);
+			   yyerror("duplicate action: %s", $2);
 		   
 		   t = xmalloc(sizeof *t);
 		   memcpy(t, &$4, sizeof *t);
@@ -872,11 +889,19 @@ actions: TOKACTION TOKNONE
 	 }
        | TOKACTION strv
 	 {
+		 struct actionptrs	*ta;
+		 
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
-		 /* XXX check better? */
-		 if (strchr($2, '%') == NULL && find_action($2) == NULL)
-			 yyerror("unknown action: %s", $2);
+		 /* XXX check better? or not at all? */
+		 if (strchr($2, '%') == NULL) {
+			 ta = find_actions($2);
+			 if (ARRAY_EMPTY(ta)) {
+				 ARRAY_FREEALL(ta);
+				 yyerror("unknown action: %s", $2);
+			 }
+			 ARRAY_FREEALL(ta);
+		 }
 
 		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
@@ -889,22 +914,38 @@ actions: TOKACTION TOKNONE
 
 actionslist: actionslist strv
 	     {
+		     struct actionptrs	*ta;
+
 		     if (*$2 == '\0')
 			     yyerror("invalid action name");
-		     /* XXX check better? */
-		     if (strchr($2, '%') == NULL && find_action($2) == NULL)
-			     yyerror("unknown action: %s", $2);
+ 		     /* XXX check better? or not at all? */
+		     if (strchr($2, '%') == NULL) {
+			     ta = find_actions($2);
+			     if (ARRAY_EMPTY(ta)) {
+				     ARRAY_FREEALL(ta);
+				     yyerror("unknown action: %s", $2);
+			     }
+			     ARRAY_FREEALL(ta);
+		     }
 
 		     $$ = $1;
 		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | strv
 	     {
+		     struct actionptrs	*ta;
+
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
-		     /* XXX check better? */
-		     if (strchr($1, '%') == NULL && find_action($1) == NULL)
-			     yyerror("unknown action: %s", $1);
+ 		     /* XXX check better? or not at all? */
+		     if (strchr($1, '%') == NULL) {
+			     ta = find_actions($1);
+			     if (ARRAY_EMPTY(ta)) {
+				     ARRAY_FREEALL(ta);
+				     yyerror("unknown action: %s", $1);
+			     }
+			     ARRAY_FREEALL(ta);
+		     }
 
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);

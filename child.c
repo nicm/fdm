@@ -31,6 +31,7 @@ int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
+int	do_action(struct rule *, struct match_ctx *, struct action *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
 
 int
@@ -399,122 +400,141 @@ int
 do_deliver(struct rule *r, struct match_ctx *mctx)
 {
 
- 	struct action	*t;
-	struct mail	*md;
-	u_int		 i, j, l;
-	int		 find;
-	struct users	*users;
-	struct msg	 msg;
-	void		*buf;
-	size_t		 len;
-	char		*s, *name;
-	struct account	*a = mctx->account;
-	struct io	*io = mctx->io;
-	struct mail	*m = mctx->mail;
+ 	struct action		*t;
+	struct actionptrs	*ta;
+	u_int		 	 i, j;
+	char		        *s, *name;
+	struct account		*a = mctx->account;
 
 	if (r->actions == NULL)
 		return (0);
-
+	
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		name = ARRAY_ITEM(r->actions, i, char *);
 
-		if (mctx->pmatch_valid && strchr(name, '%') != NULL) {
-			s = replacepmatch(name, m, mctx->pmatch);
-			t = find_action(s);
-		} else {
- 			s = NULL;
-			t = find_action(name);
-		}
-		if (t == NULL) {
-			if (s != NULL) {
-				log_warnx("%s: can't find action: %s (was %s)",
-				    a->name, s, name);
-				xfree(s);
-			} else {
-				log_warnx("%s: can't find action: %s", a->name,
-				    name);
-			}
+		if (mctx->pmatch_valid)
+			s = replacepmatch(name, mctx->mail, mctx->pmatch);
+		else
+			s = xstrdup(name);
+
+		log_debug2("%s: looking for actions matching: %s", a->name, s);
+		ta = find_actions(s);
+		if (ARRAY_EMPTY(ta)) {
+			log_warnx("%s: can't any find actions matching: %s "
+			    "(was %s)", a->name, s, name);
+			xfree(s);
+			ARRAY_FREEALL(ta);
 			return (1);
 		}
-		if (s != NULL)
-			xfree(s);
+		xfree(s);
 
-		log_debug2("%s: action %s", a->name, t->name);
-
-		if (t->deliver->deliver == NULL)
-			continue;
-
-		if (t->deliver->type == DELIVER_INCHILD) {
-			if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
+		log_debug2("%s: found %u actions", a->name, ARRAY_LENGTH(ta));
+		for (j = 0; j < ARRAY_LENGTH(ta); j++) {
+			t = ARRAY_ITEM(ta, j, struct action *);
+			log_debug2("%s: action %s", a->name, t->name);
+			if (do_action(r, mctx, t) != 0) {
+				ARRAY_FREEALL(ta);
 				return (1);
-			continue;
-		}
-
-		/* figure out the users to use */
-		users = NULL;
-		if (r->find_uid) {		/* rule comes first */
-			find = 1;
-			users = find_users(m);
-		} else if (r->users != NULL) {
-			find = 0;
-			users = r->users;
-		} else if (t->find_uid) {
-			find = 1;
-			users = find_users(m);
-		} else if (t->users != NULL) {	/* then action */
-			find = 0;
-			users = t->users;
-		}
-		if (users == NULL) {
-			find = 1;
-			users = xmalloc(sizeof *users);
-			ARRAY_INIT(users);
-			ARRAY_ADD(users, conf.def_user, uid_t);
-		}
-
-		for (j = 0; j < ARRAY_LENGTH(users); j++) {
-			msg.type = MSG_ACTION;
-			msg.data.account = a;
-			msg.data.action = t;
-			msg.data.uid = ARRAY_ITEM(users, j, uid_t);
-			memcpy(&msg.data.mail, m, sizeof msg.data.mail);
-			if (privsep_send(io, &msg, m->data, m->size) != 0)
-				fatalx("child: privsep_send error");
-			if (privsep_recv(io, &msg, &buf, &len) != 0)
-				fatalx("child: privsep_recv error");
-			if (msg.type != MSG_DONE)
-				fatalx("child: unexpected message");
-			if (msg.data.error != 0)
-				return (1);
-			if (t->deliver->type != DELIVER_WRBACK) {
-				if (buf != NULL || len != 0)
-					fatalx("child: unexpected data");
-			} else {
-				md = &msg.data.mail;
-				if (buf == NULL || len != md->size || len == 0)
-					fatalx("child: bad mail");
-
-				/* free the old mail, but keep the tags */
-				free_wrapped(m);
-				xfree(m->base);
-
-				/* copy the new mail in */
-				m->base = buf;
-				m->data = m->base;
-				m->body = md->body;
-
-				log_debug("%s: received modified mail, size "
-				    "now %zu bytes", a->name, m->size);
-
-				l = fill_wrapped(m);
-				log_debug2("%s: found %u wrapped lines", 
-				    a->name, l);
 			}
 		}
 
-		if (find)
-			ARRAY_FREEALL(users);
+		ARRAY_FREEALL(ta);
 	}
+
+	return (0);
+}
+
+int
+do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
+{
+	struct mail		*md;
+	u_int		 	 i, l;
+	int		 	 find;
+	struct users	        *users;
+	struct msg	 	 msg;
+	void		        *buf;
+	size_t		 	 len;
+	struct account		*a = mctx->account;
+	struct mail		*m = mctx->mail;
+
+ 	if (t->deliver->deliver == NULL)
+		return (0);
+
+	/* just deliver now for in-child delivery */
+	if (t->deliver->type == DELIVER_INCHILD) {
+		if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
+			return (1);
+		return (0);
+	}
+	
+	/* figure out the users to use */
+	users = NULL;
+	if (r->find_uid) {		/* rule comes first */
+		find = 1;
+		users = find_users(m);
+	} else if (r->users != NULL) {
+		find = 0;
+		users = r->users;
+	} else if (t->find_uid) {
+		find = 1;
+		users = find_users(m);
+	} else if (t->users != NULL) {	/* then action */
+		find = 0;
+		users = t->users;
+	}
+	if (users == NULL) {
+		find = 1;
+		users = xmalloc(sizeof *users);
+		ARRAY_INIT(users);
+		ARRAY_ADD(users, conf.def_user, uid_t);
+	}
+	
+	for (i = 0; i < ARRAY_LENGTH(users); i++) {
+		msg.type = MSG_ACTION;
+		msg.data.account = a;
+		msg.data.action = t;
+		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
+		memcpy(&msg.data.mail, m, sizeof msg.data.mail);
+		if (privsep_send(mctx->io, &msg, m->data, m->size) != 0)
+			fatalx("child: privsep_send error");
+
+		if (privsep_recv(mctx->io, &msg, &buf, &len) != 0)
+			fatalx("child: privsep_recv error");
+		if (msg.type != MSG_DONE)
+			fatalx("child: unexpected message");
+		if (msg.data.error != 0) {
+			ARRAY_FREEALL(users);
+			return (1);
+		}
+
+		if (t->deliver->type != DELIVER_WRBACK) {
+			if (buf != NULL || len != 0)
+				fatalx("child: unexpected data");
+			continue;
+		}
+
+		md = &msg.data.mail;
+		if (buf == NULL || len != md->size || len == 0)
+			fatalx("child: bad mail");
+
+		/* free the old mail, but keep the tags */
+		free_wrapped(m);
+		xfree(m->base);
+
+		/* copy the new mail in */
+		m->base = buf;
+		m->data = m->base;
+		m->body = md->body;
+		
+		log_debug("%s: received modified mail, size %zu bytes",
+		    a->name, m->size);
+		
+		l = fill_wrapped(m);
+		log_debug2("%s: found %u wrapped lines", a->name, l);
+	}
+	
+	if (find)
+		ARRAY_FREEALL(users);
 
 	return (0);
 }

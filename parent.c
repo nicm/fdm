@@ -28,8 +28,9 @@
 
 #include "fdm.h"
 
-int	do_action(struct account *, struct action *, struct mail *, uid_t);
-int	do_cmd(struct account *, struct command_data *, struct mail *, uid_t);
+int	parent_action(struct account *, struct action *, struct mail *, uid_t);
+int	parent_command(struct account *, struct command_data *, struct mail *, 
+	    uid_t);
 int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
 int
@@ -81,7 +82,8 @@ parent(int fd, pid_t pid)
 			m->wrapped = NULL;
 
 			uid = data->uid;
-			error = do_action(data->account, data->action, m, uid);
+			error = parent_action(data->account, data->action, m,
+			    uid);
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
@@ -108,7 +110,8 @@ parent(int fd, pid_t pid)
 			m->wrapped = NULL;
 
 			uid = data->uid;
-			error = do_cmd(data->account, data->cmddata, m, uid);
+			error = parent_command(data->account, data->cmddata, m,
+			    uid);
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
@@ -147,7 +150,7 @@ parent(int fd, pid_t pid)
 }
 
 int
-do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
+parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 {
 	int		 status;
 	pid_t		 pid;
@@ -272,7 +275,8 @@ do_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 }
 
 int
-do_cmd(struct account *a, struct command_data *data, struct mail *m, uid_t uid)
+parent_command(struct account *a, struct command_data *data, struct mail *m, 
+    uid_t uid)
 {
 	int		 status, found;
 	pid_t		 pid;
