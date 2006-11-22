@@ -55,7 +55,10 @@ replacepmatch(char *src, struct mail *m, regmatch_t pmatch[NPMATCH])
 char *
 replaceinfo(char *src, struct account *a, struct action *t)
 {
-	char	*map[REPL_LEN];
+	char		*map[REPL_LEN], H[11], M[11], S[11], d[11], m[11];
+	char		 y[11], W[11], Y[11], Q[11];
+	struct tm	*tm;
+	time_t		 tt;
 
 	memset(map, 0, sizeof map);
 
@@ -65,6 +68,30 @@ replaceinfo(char *src, struct account *a, struct action *t)
 	if (t != NULL)
 		map[REPL_IDX('t')] = t->name;
 	map[REPL_IDX('u')] = conf.info.user;
+
+	/* time and date */
+	tt = time(NULL);
+	tm = localtime(&tt);
+	if (tm != NULL) {
+		xsnprintf(H, sizeof H, "%d", tm->tm_hour);
+		map[REPL_IDX('H')] = H;
+		xsnprintf(M, sizeof M, "%d", tm->tm_min);
+		map[REPL_IDX('M')] = M;
+		xsnprintf(S, sizeof S, "%d", tm->tm_sec);
+		map[REPL_IDX('S')] = S;
+		xsnprintf(d, sizeof d, "%d", tm->tm_mday);
+		map[REPL_IDX('d')] = d;
+		xsnprintf(m, sizeof m, "%d", tm->tm_mon);
+		map[REPL_IDX('m')] = m;
+		xsnprintf(y, sizeof y, "%d", tm->tm_year);
+		map[REPL_IDX('y')] = y;
+		xsnprintf(W, sizeof W, "%d", tm->tm_wday);
+		map[REPL_IDX('W')] = W;
+		xsnprintf(Y, sizeof Y, "%d", tm->tm_yday);
+		map[REPL_IDX('Y')] = Y;
+		xsnprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1);
+		map[REPL_IDX('Q')] = Q;
+	}
 
 	return (replace(src, map));
 }
