@@ -126,10 +126,8 @@ stdin_fetch(struct account *a, struct mail *m)
 		return (FETCH_COMPLETE);
 
 	if (m->data == NULL) {
-		m->space = IO_BLOCKSIZE;
-		m->base = m->data = xmalloc(m->space);
+		init_mail(m, IO_BLOCKSIZE);
 		m->size = 0;
-		m->body = -1;
 	}
 
 	llen = IO_LINESIZE;
@@ -154,11 +152,12 @@ stdin_fetch(struct account *a, struct mail *m)
 			len = strlen(line);
 			if (len == 0 && m->body == -1)
 				m->body = m->size + 1;
-
+			
 			resize_mail(m, m->size + len + 1);
 
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
+
 			/* append an LF */
 			m->data[m->size + len] = '\n';
 			m->size += len + 1;

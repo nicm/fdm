@@ -302,9 +302,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					flushing = 1;
 
 				off = lines = 0;
-				m->base = m->data = xmalloc(m->size);
-				m->space = m->size;
-				m->body = -1;
+				init_mail(m, m->size);
 
 				data->state = IMAP_LINE;
 				break;

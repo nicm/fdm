@@ -53,11 +53,8 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 
 	log_debug("%s: rewriting using \"%s\"", a->name, s);
 
-	memset(&m2, 0, sizeof m2);
-	m2.space = IO_BLOCKSIZE;
-	m2.base = m2.data = xmalloc(m2.space);
+	init_mail(&m2, IO_BLOCKSIZE);
 	m2.size = 0;
-	m2.body = -1;
 
 	log_debug2("%s: %s: starting", a->name, s);
 	cmd = cmd_start(s, 1, 1, m->data, m->size, &cause);
@@ -111,7 +108,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	}
 
 	/* replace the old mail */
-	free_mail(m);
+	free_mail(m, 0);
 	memcpy(m, &m2, sizeof *m);
 
 	cmd_free(cmd);
@@ -119,7 +116,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	return (DELIVER_SUCCESS);
 
 error:
-	free_mail(&m2);
+	free_mail(&m2, 1);
 
 	cmd_free(cmd);
 	xfree(s);

@@ -44,9 +44,10 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 	msg.data.account = a;
 	msg.data.cmddata = data;
 	msg.data.uid = data->uid;
-	memcpy(&msg.data.mail, m, sizeof msg.data.mail);
-	if (privsep_send(io, &msg, m->data, m->size) != 0)
+	copy_mail(m, &msg.data.mail);
+	if (privsep_send(io, &msg, NULL, 0) != 0)
 		fatalx("child: privsep_send error");
+
 	if (privsep_recv(io, &msg, NULL, 0) != 0)
 		fatalx("child: privsep_recv error");
 	if (msg.type != MSG_DONE)

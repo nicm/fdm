@@ -43,8 +43,6 @@ parent(int fd, pid_t pid)
 #ifdef DEBUG
 	int		 fd2;
 #endif
-	void		*buf;
-	size_t		 len;
 	struct msgdata	*data;
 	uid_t		 uid;
 
@@ -66,16 +64,13 @@ parent(int fd, pid_t pid)
 	data = &msg.data;
 	m = &data->mail;
 	do {
-		if (privsep_recv(io, &msg, &buf, &len) != 0)
+		if (privsep_recv(io, &msg, NULL, NULL) != 0)
 			fatalx("parent: privsep_recv error");
 		log_debug2("parent: got message type %d", msg.type);
 
 		switch (msg.type) {
 		case MSG_ACTION:
-			if (buf == NULL || len != m->size || len == 0)
-				fatalx("parent: bad mail");
-
-			m->base = buf;
+			m->base = shm_reopen(&m->shm);
 			m->data = m->base;
 
 			ARRAY_INIT(&m->tags);
@@ -87,23 +82,14 @@ parent(int fd, pid_t pid)
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
+			/* msg.data.mail is m */
+			if (privsep_send(io, &msg, NULL, 0) != 0)
+				fatalx("parent: privsep_send error");
 
-			if (data->action->deliver->type == DELIVER_WRBACK) {
-				if (privsep_send(io, 
-				    &msg, m->data, m->size) != 0)
-					fatalx("parent: privsep_send error");
-			} else {
-				if (privsep_send(io, &msg, NULL, 0) != 0)
-					fatalx("parent: privsep_send error");
-			}
-
-			free_mail(m);
+			free_mail(m, 0);
 			break;
 		case MSG_COMMAND:
-			if (buf == NULL || len != m->size || len == 0)
-				fatalx("parent: bad mail");
-
-			m->base = buf;
+			m->base = shm_reopen(&m->shm);
 			m->data = m->base;
 
 			ARRAY_INIT(&m->tags);
@@ -115,16 +101,15 @@ parent(int fd, pid_t pid)
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
+			/* msg.data.mail is m */
 			if (privsep_send(io, &msg, NULL, 0) != 0)
 				fatalx("parent: privsep_send error");
 
-			free_mail(m);
+			free_mail(m, 0);
 			break;
 		case MSG_DONE:
 			fatalx("parent: unexpected message");
 		case MSG_EXIT:
-			if (buf != NULL || len != 0)
-				fatalx("parent: invalid message");
 			break;
 		}
 	} while (msg.type != MSG_EXIT);
@@ -158,8 +143,6 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	struct io	*io;
 	struct msg	 msg;
 	struct mail	*md;
-	void		*buf;
-	size_t		 len;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 		fatal("socketpair");
@@ -179,7 +162,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
 
 		do {
-			if (privsep_recv(io, &msg, &buf, &len) != 0)
+			if (privsep_recv(io, &msg, NULL, 0) != 0)
 				fatalx("parent2: privsep_recv error");
 			log_debug2("parent2: got message type %d", msg.type);
 
@@ -194,12 +177,11 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		/* reread mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
 			md = &msg.data.mail;
-			if (buf == NULL || len != md->size || len == 0)
-				fatalx("parent2: bad mail");
 
-			free_mail(m);
+			free_mail(m, 0);
+
 			memcpy(m, md, sizeof *m);
-			m->base = buf;
+			m->base = shm_reopen(&m->shm);
 			m->data = m->base;
 
 			log_debug2("%s: got new mail from delivery: size %zu, "
@@ -261,18 +243,16 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	msg.data.error = t->deliver->deliver(a, t, m);
 
 	/* inform parent we're done */
-	msg.type = MSG_DONE;
-	if (t->deliver->type == DELIVER_WRBACK) {
+	if (t->deliver->type == DELIVER_WRBACK)
 		log_debug2("%s: sending new mail to parent, size %zu", a->name,
 		    m->size);
-		memcpy(&msg.data.mail, m, sizeof msg.data.mail);
-		if (privsep_send(io, &msg, m->data, m->size) != 0)
-			fatalx("deliver: privsep_send error");
-	} else {
-		if (privsep_send(io, &msg, NULL, 0) != 0)
-			fatalx("deliver: privsep_send error");
-	}
 
+	msg.type = MSG_DONE;
+	copy_mail(m, &msg.data.mail);
+	if (privsep_send(io, &msg, NULL, 0) != 0)
+		fatalx("deliver: privsep_send error");
+
+	/* free the io */
 	io_close(io);
 	io_free(io);
 

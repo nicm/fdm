@@ -116,7 +116,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 
 	data = a->data;
 
-	if (m != NULL)
+	if (m != NULL) 
 		m->data = NULL;
 
 	llen = IO_LINESIZE;
@@ -204,9 +204,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 				}
 
 				off = lines = 0;
-				m->base = m->data = xmalloc(m->size);
-				m->space = m->size;
-				m->body = -1;
+				init_mail(m, m->size);
 
 				data->state = POP3_RETR;
 				io_writeline(data->io, "RETR %u", data->cur);

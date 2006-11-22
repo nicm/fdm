@@ -226,12 +226,25 @@ struct proxy {
 	struct server	 server;
 };
 
+/* Shared memory. */
+struct shm {
+	char	 name[MAXNAMESIZE];
+	int	 fd;
+	
+	void	*data;
+	size_t	 size;
+
+	u_int	 count;
+};
+
 /* Tags array. */
 ARRAY_DECLARE(tags, char *);
 
 /* A single mail. */
 struct mail {
 	struct tags	 tags;
+
+	struct shm	 shm;
 
 	char		*base;
 
@@ -769,6 +782,13 @@ size_t	 		 strlcpy(char *, const char *, size_t);
 size_t	 		 strlcat(char *, const char *, size_t);
 #endif
 
+/* shm.c */
+void 			*shm_reopen(struct shm *);
+void			*shm_malloc(struct shm *, size_t);
+void			*shm_realloc(struct shm *, size_t);
+void			 shm_free(struct shm *);
+void			 shm_destroy(struct shm *);
+
 /* parse.y */
 extern struct macros	 macros;
 extern struct macro	*find_macro(char *);
@@ -806,7 +826,9 @@ struct io 		*connectproxy(struct server *, struct proxy *,
 struct io		*connectio(struct server *, const char *, char **);
 
 /* mail.c */
-void			 free_mail(struct mail *);
+void			 init_mail(struct mail *, size_t);
+void			 copy_mail(struct mail *, struct mail *);
+void			 free_mail(struct mail *, int);
 void			 resize_mail(struct mail *, size_t);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);

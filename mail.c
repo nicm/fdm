@@ -32,14 +32,35 @@
 #include "fdm.h"
 
 void
-free_mail(struct mail *m)
+init_mail(struct mail *m, size_t size)
+{
+	memset(m, 0, sizeof m);
+	m->body = -1;
+	m->size = size;
+	m->base = shm_malloc(&m->shm, m->size);
+	m->space = m->size;
+	m->data = m->base;
+}
+
+void
+copy_mail(struct mail *src, struct mail *dst)
+{
+	memcpy(dst, src, sizeof *dst);
+	ARRAY_INIT(&dst->tags);
+	dst->wrapped = NULL;
+}
+
+void
+free_mail(struct mail *m, int final)
 {
 	if (!ARRAY_EMPTY(&m->tags))
 		ARRAY_FREE(&m->tags);
 	free_wrapped(m);
 	if (m->base != NULL) {
-		xfree(m->base);
-		m->base = NULL;
+		if (final)
+			shm_destroy(&m->shm);
+		else
+			shm_free(&m->shm);
 	}
 }
 
@@ -49,7 +70,10 @@ resize_mail(struct mail *m, size_t size)
 	size_t	off;
 
 	off = m->data - m->base;
-	ENSURE_FOR(m->base, m->space, off, size);
+	while (m->space <= (off + size)) {
+		m->space *= 2;
+		m->base = shm_realloc(&m->shm, m->space);
+	}
 	m->data = m->base + off;
 }
 

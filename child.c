@@ -207,7 +207,7 @@ fetch_account(struct io *io, struct account *a)
 
 		trim_from(&m);
 		if (m.size == 0) {
-			free_mail(&m);
+			free_mail(&m, 1);
 			log_warnx("%s: got empty message. ignored", a->name);
 			continue;
 		}
@@ -272,12 +272,12 @@ fetch_account(struct io *io, struct account *a)
 			}
 		}
 
- 		free_mail(&m);
+ 		free_mail(&m, 1);
 		n++;
 	}
 
 out:
-	free_mail(&m);
+	free_mail(&m, 1);
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
 
@@ -464,10 +464,9 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	int		 	 find;
 	struct users	        *users;
 	struct msg	 	 msg;
-	void		        *buf;
-	size_t		 	 len;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
+	struct tags		 tags;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
@@ -506,11 +505,11 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		msg.data.account = a;
 		msg.data.action = t;
 		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
-		memcpy(&msg.data.mail, m, sizeof msg.data.mail);
-		if (privsep_send(mctx->io, &msg, m->data, m->size) != 0)
+		copy_mail(m, &msg.data.mail);
+		if (privsep_send(mctx->io, &msg, NULL, 0) != 0)
 			fatalx("child: privsep_send error");
 
-		if (privsep_recv(mctx->io, &msg, &buf, &len) != 0)
+		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)
 			fatalx("child: privsep_recv error");
 		if (msg.type != MSG_DONE)
 			fatalx("child: unexpected message");
@@ -519,26 +518,26 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 			return (1);
 		}
 
-		if (t->deliver->type != DELIVER_WRBACK) {
-			if (buf != NULL || len != 0)
-				fatalx("child: unexpected data");
+		if (t->deliver->type != DELIVER_WRBACK)
 			continue;
-		}
 
 		md = &msg.data.mail;
-		if (buf == NULL || len != md->size || len == 0)
-			fatalx("child: bad mail");
 
-		/* free the old mail, but keep the tags */
-		free_wrapped(m);
-		xfree(m->base);
+		/* save the tags */
+		memcpy(&tags, &m->tags, sizeof tags);
+		ARRAY_INIT(&m->tags);
 
-		/* copy the new mail in */
-		m->base = buf;
-		m->size = len;
+		/* free the old mail */
+		free_mail(m, 1);
+
+		/* copy the new mail in and reopen it */
+		memcpy(m, md, sizeof *m);
+		m->base = shm_reopen(&m->shm);
 		m->data = m->base;
-		m->body = md->body;
-		
+
+		/* restore the tags */
+		memcpy(&m->tags, &tags, sizeof tags);
+		   
 		log_debug("%s: received modified mail: size %zu, body=%zd",
 		    a->name, m->size, m->body);
 
