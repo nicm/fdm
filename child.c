@@ -170,13 +170,6 @@ fetch_account(struct io *io, struct account *a)
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
-	memset(&mctx, 0, sizeof mctx);
-	mctx.io = io;
-	mctx.account = a;
-	mctx.mail = &m;
-	mctx.matched = &matched;
-	mctx.stopped = &stopped;
-
 	n = 0;
         for (;;) {
 		delete = 1;
@@ -184,6 +177,13 @@ fetch_account(struct io *io, struct account *a)
 		memset(&m, 0, sizeof m);
 		m.body = -1;
 		ARRAY_INIT(&m.tags);
+
+		memset(&mctx, 0, sizeof mctx);
+		mctx.io = io;
+		mctx.account = a;
+		mctx.mail = &m;
+		mctx.matched = &matched;
+		mctx.stopped = &stopped;
 
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
