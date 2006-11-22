@@ -6,8 +6,6 @@
 - redo chrooting properly (resolver needs to be in parent)
 - add more examples to the man page
 - audit man pages for clarity
-- document command stuff and size match
 - document nested rules
-- document match string etc, new matched behaviour
 - think about whether or not we like MATCH_* (remember
   error can't be -1 for some reason... why?)

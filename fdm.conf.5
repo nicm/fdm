@@ -400,14 +400,21 @@ argument may be one of:
 .Bl -tag -width Ds
 .It Ic all
 Matches all mail.
-.It Ic matched
+.It Xo Op Ic not 
+.Ic matched
+.Op Ic and | Ic or Ar ...
+.Xc
 Matches only mail that has matched a previous rule and been passed on with
 .Ic continue .
-.It Ic unmatched
+.It Xo Op Ic not 
+.Ic unmatched
+.Op Ic and | Ic or Ar ...
+.Xc
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
-.It Xo Ic tagged Ar string
+.It Xo Op Ic not 
+.Ic tagged Ar string
 .Op Ic and | Ic or Ar ...
 .Xc
 Matches mails tagged with 
@@ -423,28 +430,75 @@ The regexp matches may be restricted to either the headers or body of the messag
 .Ic in headers
 or
 .Ic in body .
-If the
-.Ic not
-keyword is specified, the sense of the regexp match is inverted, so the rule will apply to mails only where the regexp does
-.Em not
-match.
 The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
+.It Xo Op Ic not 
+.Ic exec Ar command Ic returns 
+.Li (
+.Ar return code ,
+.Ar stdout regexp )
+.Xc
+.It Xo Op Ic not 
+.Ic pipe Ar command Ic returns 
+.Li (
+.Ar return code ,
+.Ar stdout regexp )
+.Xc
+These two conditions execute a
+.Ar command 
+and test its return value and output. The
+.Ar return code
+argument is the numeric return code expected and 
+.Ar stdout regexp
+is a regexp to be tested against the output of the command to 
+.Em stdout .
+Either of these two arguments may be omitted: if both are specified, both must match for the condition to be true.
+The
+.Ic pipe
+version will pipe the mail to the command's 
+.Em stdin
+when executing it.
+.It Xo Op Ic not 
+.Ic size 
+.Li <
+.Ar number
+.Xc
+.It Xo Op Ic not 
+.Ic size 
+.Li >
+.Ar number
+.Xc
+Compare the mail size with
+.Ar number .
+.It Xo Op Ic not
+.Ic string Ar string Ic to Ar regexp
+.Xc
+Match
+.Ar string
+against
+.Ar regexp .
+If any of %0 to %9 appear in the string, they will be replaced with the contents of any subexpressions from the regexp executed as part of the last
+.Ic regexp
+condition. If no 
+.Ic regexp 
+condition has yet been seen, or the mail contents has been modified by a
+.Ic rewrite
+action since the last one, this condition will log a warning and evaluate to false.
 .El
 .Pp
 Aside from the
-.Ic all ,
-.Ic matched
-and
-.Ic unmatched 
-conditions, multiple conditions may be chained together using the
+.Ic all
+condition, multiple conditions may be chained together using the
 .Ic and
 or
 .Ic or
 keywords.
 The conditions are tested from left to right.
-
+The
+.Ic not
+keyword may be specified to invert the sense of a condition.
+.Pp
 The first form of the command specifies a number of actions to take when a mail matches the rule.
 The second form tags the mail with 
 .Ar string ,
