@@ -41,7 +41,9 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	data = ei->data;
 
 	if (!mctx->pmatch_valid) {
-		log_warnx("%s: string match before any regexps", a->name);
+		log_warnx("%s: string match but no regexp match data available."
+		    " either no regexp has been executed yet, or a the mail has"
+		    " been modified", a->name);
 		return (MATCH_ERROR);
 	}
 

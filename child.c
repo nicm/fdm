@@ -531,6 +531,9 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		
 		l = fill_wrapped(m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
+
+		/* invalidate the pmatch data since stuff may have moved */
+		mctx->pmatch_valid = 0;
 	}
 	
 	if (find)
