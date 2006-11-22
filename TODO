@@ -2,9 +2,9 @@
 - auth on http proxying
 - http (hotmail) fetching
 - filter based on attachment size, quantity, type?
-- add more examples to the man page
 - daemon mode
 - redo chrooting properly (resolver needs to be in parent)
+- add more examples to the man page
 - audit man pages for clarity
 - document command stuff and size match
 - document nested rules

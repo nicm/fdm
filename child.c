@@ -528,7 +528,11 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		
 		log_debug("%s: received modified mail, size %zu bytes",
 		    a->name, m->size);
-		
+
+		/* trim from line */
+		trim_from(m);
+
+		/* and recreate the wrapped array */		
 		l = fill_wrapped(m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
