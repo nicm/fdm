@@ -533,7 +533,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		/* copy the new mail in and reopen it */
 		memcpy(m, md, sizeof *m);
 		m->base = shm_reopen(&m->shm);
-		m->data = m->base;
+		m->data = m->base + m->off;
 
 		/* restore the tags */
 		memcpy(&m->tags, &tags, sizeof tags);

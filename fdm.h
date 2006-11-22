@@ -247,6 +247,8 @@ struct mail {
 	char		*base;
 
 	char		*data;
+	size_t		 off;
+
 	size_t	 	 size;		/* size of mail */
 	size_t	 	 space;		/* size of malloc'd area */
 

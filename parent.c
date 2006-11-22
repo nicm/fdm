@@ -71,7 +71,7 @@ parent(int fd, pid_t pid)
 		switch (msg.type) {
 		case MSG_ACTION:
 			m->base = shm_reopen(&m->shm);
-			m->data = m->base;
+			m->data = m->base + m->off;
 
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
@@ -90,7 +90,7 @@ parent(int fd, pid_t pid)
 			break;
 		case MSG_COMMAND:
 			m->base = shm_reopen(&m->shm);
-			m->data = m->base;
+			m->data = m->base + m->off;
 
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
@@ -182,7 +182,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 
 			memcpy(m, md, sizeof *m);
 			m->base = shm_reopen(&m->shm);
-			m->data = m->base;
+			m->data = m->base + m->off;
 
 			log_debug2("%s: got new mail from delivery: size %zu, "
 			    "body=%zd", a->name, m->size, m->body);

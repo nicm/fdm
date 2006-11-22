@@ -35,11 +35,15 @@ void
 init_mail(struct mail *m, size_t size)
 {
 	memset(m, 0, sizeof m);
-	m->body = -1;
-	m->size = size;
-	m->base = shm_malloc(&m->shm, m->size);
+
 	m->space = m->size;
-	m->data = m->base;
+	m->size = size;
+	m->body = -1;
+
+	m->base = shm_malloc(&m->shm, m->size);
+
+	m->off = 0;
+	m->data = m->base + m->off;
 }
 
 void
@@ -67,14 +71,11 @@ free_mail(struct mail *m, int final)
 void
 resize_mail(struct mail *m, size_t size)
 {
-	size_t	off;
-
-	off = m->data - m->base;
-	while (m->space <= (off + size)) {
+	while (m->space <= (m->off + size)) {
 		m->space *= 2;
 		m->base = shm_realloc(&m->shm, m->space);
 	}
-	m->data = m->base + off;
+	m->data = m->base + m->off;
 }
 
 int
@@ -335,7 +336,8 @@ trim_from(struct mail *m)
 	len = ptr - m->data;
 
 	m->size -= len;
-	m->data += len;
+	m->off += len;
+	m->data = m->base + m->off;
 	if (m->body != -1)
 		m->body -= len;
 }
