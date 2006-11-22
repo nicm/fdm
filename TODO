@@ -9,7 +9,5 @@
 - document command stuff and size match
 - document nested rules
 - document match string etc, new matched behaviour
-- document new %s
-- document unmatched-mail
 - think about whether or not we like MATCH_* (remember
   error can't be -1 for some reason... why?)

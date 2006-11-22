@@ -55,8 +55,8 @@ replacepmatch(char *src, struct mail *m, regmatch_t pmatch[NPMATCH])
 char *
 replaceinfo(char *src, struct account *a, struct action *t)
 {
-	char		*map[REPL_LEN], H[11], M[11], S[11], d[11], m[11];
-	char		 y[11], W[11], Y[11], Q[11];
+	char		*map[REPL_LEN], H[5], M[5], S[5], d[5], m[5], y[5];
+	char		 W[5], Y[5], Q[5];
 	struct tm	*tm;
 	time_t		 tt;
 
@@ -73,21 +73,21 @@ replaceinfo(char *src, struct account *a, struct action *t)
 	tt = time(NULL);
 	tm = localtime(&tt);
 	if (tm != NULL) {
-		xsnprintf(H, sizeof H, "%d", tm->tm_hour);
+		xsnprintf(H, sizeof H, "%.2d", tm->tm_hour);
 		map[REPL_IDX('H')] = H;
-		xsnprintf(M, sizeof M, "%d", tm->tm_min);
+		xsnprintf(M, sizeof M, "%.2d", tm->tm_min);
 		map[REPL_IDX('M')] = M;
-		xsnprintf(S, sizeof S, "%d", tm->tm_sec);
+		xsnprintf(S, sizeof S, "%.2d", tm->tm_sec);
 		map[REPL_IDX('S')] = S;
-		xsnprintf(d, sizeof d, "%d", tm->tm_mday);
+		xsnprintf(d, sizeof d, "%.2d", tm->tm_mday);
 		map[REPL_IDX('d')] = d;
-		xsnprintf(m, sizeof m, "%d", tm->tm_mon);
+		xsnprintf(m, sizeof m, "%.2d", tm->tm_mon);
 		map[REPL_IDX('m')] = m;
-		xsnprintf(y, sizeof y, "%d", tm->tm_year);
+		xsnprintf(y, sizeof y, "%.4d", tm->tm_year);
 		map[REPL_IDX('y')] = y;
 		xsnprintf(W, sizeof W, "%d", tm->tm_wday);
 		map[REPL_IDX('W')] = W;
-		xsnprintf(Y, sizeof Y, "%d", tm->tm_yday);
+		xsnprintf(Y, sizeof Y, "%.2d", tm->tm_yday);
 		map[REPL_IDX('Y')] = Y;
 		xsnprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1);
 		map[REPL_IDX('Q')] = Q;
