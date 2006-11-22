@@ -21,6 +21,7 @@
 #include <sys/wait.h>
 
 #include <fnmatch.h>
+#include <limits.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -160,6 +161,8 @@ fetch_account(struct io *io, struct account *a)
 	int		 error, matched, stopped, delete;
  	const char	*cause = NULL;
 	struct match_ctx mctx;
+	char		*hdr;
+	size_t		 len;
 
 	if (a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
@@ -211,6 +214,15 @@ fetch_account(struct io *io, struct account *a)
 			
 		log_debug("%s: got message: size=%zu, body=%zd", a->name,
 		    m.size, m.body);
+
+		hdr = find_header(&m, "message-id: ", &len);
+		if (hdr == NULL || len == 0 || len > INT_MAX)
+			log_debug("%s: no message-id", a->name);
+		else {
+			/* len - 1 to strip \n */
+			log_debug("%s: message-id is: %.*s", a->name, 
+			    (int) len - 1, hdr);
+		}
 
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
