@@ -93,10 +93,6 @@ char 				*read_str(char);
 	yylval.string = read_str('"');
         return (STRING);
 }
-\` {
-	yylval.string = read_str('`');
-        return (COMMAND);
-}
 \$[A-Za-z][A-Za-z0-9_]* {
         yylval.string = xstrdup(yytext);
 	return (STRMACRO);

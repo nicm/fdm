@@ -60,18 +60,21 @@ command_desc(struct expritem *ei)
 {
 	struct command_data	*data;
 	char			*s, ret[11];
+	const char		*t;
 
 	data = ei->data;
 
 	*ret = '\0';
 	if (data->ret != -1)
 		snprintf(ret, sizeof ret, "%d", data->ret);
+	t = data->pipe ? "pipe" : "exec";
 
-	if (data->re_s == NULL)
-		xasprintf(&s, "`%s` returns (%s, )", data->cmd, ret);
-	else {
-		xasprintf(&s, "`%s` returns (%s, \"%s\")", data->cmd, ret,
-		    data->re_s);
+	if (data->re_s == NULL) {
+		xasprintf(&s, "%s \"%s\" returns (%s, )", t, data->cmd, ret);
+		return (s);
 	}
+
+	xasprintf(&s, "%s \"%s\" returns (%s, \"%s\")", t, data->cmd, ret,
+	    data->re_s);
 	return (s);
 }

@@ -217,7 +217,7 @@ find_macro(char *name)
 }
 
 %token <number> NUMBER SIZE
-%token <string> COMMAND STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
+%token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
 %type  <accounts> accounts accountslist
 %type  <action> action
