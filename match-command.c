@@ -67,7 +67,7 @@ command_desc(struct expritem *ei)
 
 	*ret = '\0';
 	if (data->ret != -1)
-		snprintf(ret, sizeof ret, "%d", data->ret);
+		xsnprintf(ret, sizeof ret, "%d", data->ret);
 	t = data->pipe ? "pipe" : "exec";
 
 	if (data->re_s == NULL) {
