@@ -61,7 +61,6 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 
 	log_debug2("%s: %s: starting", a->name, s);
 	cmd = cmd_start(s, 1, 1, m->data, m->size, &cause);
-	xfree(s);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		goto error;
@@ -116,12 +115,14 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 	memcpy(m, &m2, sizeof *m);
 
 	cmd_free(cmd);
+	xfree(s);
 	return (DELIVER_SUCCESS);
 
 error:
 	free_mail(&m2);
 
 	cmd_free(cmd);
+	xfree(s);
 	return (DELIVER_FAILURE);
 }
 
