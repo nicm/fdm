@@ -52,7 +52,7 @@ LIBS= -lcrypto -lssl
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
 DISTFILES= *.[chyl] compat/*.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] \
-	   README
+	   README examples/*
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
 	    ${PROG}-*.tar.gz *~ *.ln ${PROG}.core 
