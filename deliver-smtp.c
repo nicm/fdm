@@ -27,9 +27,11 @@
 
 #include "fdm.h"
 
-int	smtp_deliver(struct account *, struct action *, struct mail *);
+int	 smtp_deliver(struct account *, struct action *, struct mail *);
+char	*smtp_desc(struct action *);
 
-struct deliver deliver_smtp = { "smtp", DELIVER_ASUSER, smtp_deliver };
+struct deliver deliver_smtp = { "smtp", DELIVER_ASUSER, smtp_deliver,
+				smtp_desc };
 
 int
 smtp_deliver(struct account *a, struct action *t, struct mail *m)
@@ -167,4 +169,18 @@ error:
 	io_free(io);
 
 	return (DELIVER_FAILURE);
+}
+
+char *
+smtp_desc(struct action *t)
+{
+	struct smtp_data	*data;
+	char			*s;
+
+	data = t->data;
+
+	xasprintf(&s, "smtp%s server \"%s\" port %s to \"%s\"",
+	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
+	    data->to);
+	return (s);
 }

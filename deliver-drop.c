@@ -20,13 +20,21 @@
 
 #include "fdm.h"
 
-int	drop_deliver(struct account *, struct action *, struct mail *);
+int	 drop_deliver(struct account *, struct action *, struct mail *);
+char	*drop_desc(struct action *);
 
-struct deliver deliver_drop = { "drop", DELIVER_INCHILD, drop_deliver };
+struct deliver deliver_drop = { "drop", DELIVER_INCHILD, drop_deliver,
+				drop_desc };
 
 int
 drop_deliver(unused struct account *a, unused struct action *t,
     unused struct mail *m)
 {
 	return (DELIVER_SUCCESS);
+}
+
+char *
+drop_desc(unused struct action *t)
+{
+	return (xstrdup("drop"));
 }

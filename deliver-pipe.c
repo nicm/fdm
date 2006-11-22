@@ -26,9 +26,11 @@
 
 #include "fdm.h"
 
-int	pipe_deliver(struct account *, struct action *, struct mail *);
+int	 pipe_deliver(struct account *, struct action *, struct mail *);
+char	*pipe_desc(struct action *);
 
-struct deliver deliver_pipe = { "pipe", DELIVER_ASUSER, pipe_deliver };
+struct deliver deliver_pipe = { "pipe", DELIVER_ASUSER, pipe_deliver,
+				pipe_desc };
 
 int
 pipe_deliver(struct account *a, struct action *t, struct mail *m)
@@ -66,4 +68,13 @@ pipe_deliver(struct account *a, struct action *t, struct mail *m)
 
 	xfree(cmd);
 	return (DELIVER_SUCCESS);
+}
+
+char *
+pipe_desc(struct action *t)
+{
+	char	*s;
+
+	xasprintf(&s, "pipe \"%s\"", (char *) t->data);
+	return (s);
 }

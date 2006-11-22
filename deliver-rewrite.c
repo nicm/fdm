@@ -28,9 +28,11 @@
 
 #include "fdm.h"
 
-int	rewrite_deliver(struct account *, struct action *, struct mail *);
+int	 rewrite_deliver(struct account *, struct action *, struct mail *);
+char	*rewrite_desc(struct action *);
 
-struct deliver deliver_rewrite = { "rewrite", DELIVER_WRBACK, rewrite_deliver };
+struct deliver deliver_rewrite = { "rewrite", DELIVER_WRBACK, rewrite_deliver,
+				   rewrite_desc };
 
 int
 rewrite_deliver(struct account *a, struct action *t, struct mail *m)
@@ -118,4 +120,13 @@ error:
 
 	cmd_free(cmd);
 	return (DELIVER_FAILURE);
+}
+
+char *
+rewrite_desc(struct action *t)
+{
+	char	*s;
+
+	xasprintf(&s, "rewrite \"%s\"", (char *) t->data);
+	return (s);
 }

@@ -820,6 +820,7 @@ action: TOKPIPE strv
 defaction: TOKACTION strv users action
 	   {
 		   struct action	*t;
+		   char			*s;
 
 		   if (strlen($2) >= MAXNAMESIZE)
 			   yyerror("action name too long: %s", $2);
@@ -834,9 +835,10 @@ defaction: TOKACTION strv users action
 		   t->users = $3.users;
 		   t->find_uid = $3.find_uid;
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
-		   
-		   log_debug2("added action: name=%s deliver=%s", t->name,
-		       t->deliver->name);
+
+		   s = t->deliver->desc(t);
+		   log_debug2("added action: name=%s deliver=%s", t->name, s);
+		   xfree(s);
 		   
 		   xfree($2);
 	   }
@@ -1429,6 +1431,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 account: TOKACCOUNT strv disabled fetchtype
          {
 		 struct account		*a;
+		 char			*s;
 
 		 if (strlen($2) >= MAXNAMESIZE)
 			 yyerror("account name too long: %s", $2);
@@ -1444,8 +1447,9 @@ account: TOKACCOUNT strv disabled fetchtype
 		 a->data = $4.data;
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);
 
-		 log_debug2("added account: name=%s fetch=%s", a->name,
-		     a->fetch->name);
+		 s = a->fetch->desc(a);
+		 log_debug2("added account: name=%s fetch=%s", a->name, s);
+		 xfree(s);
 	 }
 
 %%

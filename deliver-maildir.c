@@ -29,9 +29,11 @@
 
 #include "fdm.h"
 
-int	maildir_deliver(struct account *, struct action *, struct mail *);
+int	 maildir_deliver(struct account *, struct action *, struct mail *);
+char	*maildir_desc(struct action *);
 
-struct deliver deliver_maildir = { "maildir", DELIVER_ASUSER, maildir_deliver };
+struct deliver deliver_maildir = { "maildir", DELIVER_ASUSER, maildir_deliver,
+				   maildir_desc };
 
 int
 maildir_deliver(struct account *a, struct action *t, struct mail *m)
@@ -178,4 +180,13 @@ out:
 	if (path != NULL)
 		xfree(path);
 	return (res);
+}
+
+char *
+maildir_desc(struct action *t)
+{
+	char	*s;
+
+	xasprintf(&s, "maildir \"%s\"", (char *) t->data);
+	return (s);
 }

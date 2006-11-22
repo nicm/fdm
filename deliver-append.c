@@ -26,12 +26,23 @@
 
 #include "fdm.h"
 
-int	append_deliver(struct account *, struct action *, struct mail *);
+int	 append_deliver(struct account *, struct action *, struct mail *);
+char	*append_desc(struct action *);
 
-struct deliver deliver_append = { "append", DELIVER_ASUSER, append_deliver };
+struct deliver deliver_append = { "append", DELIVER_ASUSER, append_deliver,
+				  append_desc };
 
 int
 append_deliver(struct account *a, struct action *t, struct mail *m)
 {
 	return (do_write(a, t, m, 1));
+}
+
+char *
+append_desc(struct action *t)
+{
+	char	*s;
+
+	xasprintf(&s, "append \"%s\"", (char *) t->data);
+	return (s);
 }

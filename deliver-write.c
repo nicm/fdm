@@ -26,14 +26,25 @@
 
 #include "fdm.h"
 
-int	write_deliver(struct account *, struct action *, struct mail *);
+int	 write_deliver(struct account *, struct action *, struct mail *);
+char	*write_desc(struct action *);
 
-struct deliver deliver_write = { "write", DELIVER_ASUSER, write_deliver };
+struct deliver deliver_write = { "write", DELIVER_ASUSER, write_deliver,
+				 write_desc };
 
 int
 write_deliver(struct account *a, struct action *t, struct mail *m)
 {
 	return (do_write(a, t, m, 0));
+}
+
+char *
+write_desc(struct action *t)
+{
+	char	*s;
+
+	xasprintf(&s, "write \"%s\"", (char *) t->data);
+	return (s);
 }
 
 int

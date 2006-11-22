@@ -27,16 +27,17 @@
 
 #include "fdm.h"
 
-int	imap_connect(struct account *);
-int	imap_disconnect(struct account *);
-int	imap_poll(struct account *, u_int *);
-int	imap_fetch(struct account *, struct mail *);
-int	imap_delete(struct account *);
-int	imap_keep(struct account *);
-void	imap_error(struct account *);
-int	imap_tag(char *);
-int	imap_okay(char *);
-int	do_imap(struct account *, u_int *, struct mail *, int);
+int	 imap_connect(struct account *);
+int	 imap_disconnect(struct account *);
+int	 imap_poll(struct account *, u_int *);
+int	 imap_fetch(struct account *, struct mail *);
+int	 imap_delete(struct account *);
+int	 imap_keep(struct account *);
+void	 imap_error(struct account *);
+int	 imap_tag(char *);
+int	 imap_okay(char *);
+char	*imap_desc(struct account *);
+int	 do_imap(struct account *, u_int *, struct mail *, int);
 
 #define IMAP_TAG_NONE -1
 #define IMAP_TAG_CONTINUE -2
@@ -49,7 +50,9 @@ struct fetch	fetch_imap = { "imap", "imap",
 			       imap_delete,
 			       imap_keep,
 			       imap_error,
-			       imap_disconnect };
+			       imap_disconnect,
+			       imap_desc
+};
 
 int
 imap_connect(struct account *a)
@@ -444,4 +447,18 @@ imap_keep(struct account *a)
 	io_writeline(data->io, "%u NOOP", ++data->tag);
 
 	return (0);
+}
+
+char *
+imap_desc(struct account *a)
+{
+	struct imap_data	*data;
+	char			*s;
+
+	data = a->data;
+
+	xasprintf(&s, "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
+	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
+	    data->user, data->folder);
+	return (s);
 }

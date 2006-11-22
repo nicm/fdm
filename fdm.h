@@ -497,6 +497,7 @@ struct fetch {
 	int		 (*keep)(struct account *);
 	void		 (*error)(struct account *);
 	int		 (*disconnect)(struct account *);
+	char		*(*desc)(struct account *);
 };
 
 /* Deliver return codes. */
@@ -518,6 +519,7 @@ struct deliver {
 
 	int	 	 (*deliver)(struct account *, struct action *, 
 			     struct mail *);
+	char		*(*desc)(struct action *);
 };
 
 #define MATCH_FALSE 0

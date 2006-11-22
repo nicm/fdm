@@ -33,6 +33,7 @@ int	pop3_fetch(struct account *, struct mail *);
 int	pop3_delete(struct account *);
 int	pop3_keep(struct account *);
 void	pop3_error(struct account *);
+char   *pop3_desc(struct account *);
 int	do_pop3(struct account *, u_int *, struct mail *, int);
 
 struct fetch	fetch_pop3 = { "pop3", "pop3",
@@ -42,7 +43,9 @@ struct fetch	fetch_pop3 = { "pop3", "pop3",
 			       pop3_delete,
 			       pop3_keep,
 			       pop3_error,
-			       pop3_disconnect };
+			       pop3_disconnect,
+			       pop3_desc
+};
 
 int
 pop3_connect(struct account *a)
@@ -329,4 +332,18 @@ pop3_keep(struct account *a)
 	io_writeline(data->io, "NOOP");
 
 	return (0);
+}
+
+char *
+pop3_desc(struct account *a)
+{
+	struct pop3_data	*data;
+	char			*s;
+
+	data = a->data;
+
+	xasprintf(&s, "pop3%s server \"%s\" port %s user \"%s\"",
+	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
+	    data->user);
+	return (s);
 }

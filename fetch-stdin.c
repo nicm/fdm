@@ -27,10 +27,11 @@
 
 #include "fdm.h"
 
-int	stdin_connect(struct account *);
-int	stdin_disconnect(struct account *);
-int	stdin_fetch(struct account *, struct mail *);
-int	stdin_delete(struct account *);
+int	 stdin_connect(struct account *);
+int	 stdin_disconnect(struct account *);
+int	 stdin_fetch(struct account *, struct mail *);
+int	 stdin_delete(struct account *);
+char	*stdin_desc(struct account *);
 
 struct fetch	fetch_stdin = { "stdin", "stdin",
 				stdin_connect,
@@ -39,7 +40,9 @@ struct fetch	fetch_stdin = { "stdin", "stdin",
 				stdin_delete,
 				NULL,
 				NULL,
-				stdin_disconnect };
+				stdin_disconnect,
+				stdin_desc
+};
 
 int
 stdin_connect(struct account *a)
@@ -177,4 +180,10 @@ stdin_fetch(struct account *a, struct mail *m)
  	data->complete = 1;
 	xfree(lbuf);
 	return (FETCH_SUCCESS);
+}
+
+char *
+stdin_desc(unused struct account *a)
+{
+	return (xstrdup("stdin"));
 }
