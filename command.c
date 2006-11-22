@@ -107,17 +107,12 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 	close(fd_err[1]);
 	fd_err[1] = -1;
 
-	/* write the data */
-	if (fd_in[1] != -1 && buf != NULL && len > 0) {
-		if (write(fd_in[1], buf, len) == -1) {
-			xasprintf(cause, "write: %s", strerror(errno));
-			goto error;
-		}
-		close(fd_in[1]);
-		fd_in[1] = -1;
-	}
-
 	/* create ios */
+	if (fd_in[1] != -1 && buf != NULL && len > 0) {
+		cmd->io_in = io_create(fd_in[1], NULL, IO_LF);
+		/* write the buffer directly, without copying */
+		io_writefixed(cmd->io_in, buf, len);
+	}
 	if (fd_out[0] != -1)
 		cmd->io_out = io_create(fd_out[0], NULL, IO_LF);
 	else
@@ -162,10 +157,19 @@ restart:
 	if (*out != NULL || *err != NULL)
 		return (0);
 
+	/* close stdin if it is done */
+	if (cmd->io_in != NULL && IO_WRSIZE(cmd->io_in) == 0) {
+		io_close(cmd->io_in);
+		io_free(cmd->io_in);
+		cmd->io_in = NULL;
+	}
+
 	if (cmd->io_err != NULL || cmd->io_out != NULL) {
-		ios[0] = cmd->io_err;
-		ios[1] = cmd->io_out;
-		switch (io_polln(ios, 2, &io, cause)) {
+		log_debug("polling");
+		ios[0] = cmd->io_in;
+		ios[1] = cmd->io_err;
+		ios[2] = cmd->io_out;
+		switch (io_polln(ios, 3, &io, cause)) {
 		case -1:
 			return (1);
 		case 0:
@@ -216,6 +220,10 @@ cmd_free(struct cmd *cmd)
 	if (cmd->pid != -1)
 		kill(cmd->pid, SIGTERM);
 
+	if (cmd->io_in != NULL) {
+		io_close(cmd->io_in);
+		io_free(cmd->io_in);
+	}
 	if (cmd->io_out != NULL) {
 		io_close(cmd->io_out);
 		io_free(cmd->io_out);

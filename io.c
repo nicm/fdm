@@ -75,6 +75,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 	io->wspace = IO_BLOCKSIZE;
 	io->wbase = xmalloc(io->wspace);
 	io->wsize = 0;
+	io->woff = 0;
 
 	io->eol = eol;
 
@@ -88,7 +89,8 @@ io_free(struct io *io)
 	if (io->error != NULL)
 		xfree(io->error);
 	xfree(io->rbase);
-	xfree(io->wbase);
+	if (io->wspace != IO_FIXED)
+		xfree(io->wbase);
 	xfree(io);
 }
 
@@ -348,7 +350,7 @@ io_push(struct io *io)
 
 	/* write as much as possible */
 	if (io->ssl == NULL) {
-		n = write(io->fd, io->wbase, io->wsize);
+		n = write(io->fd, io->wbase + io->woff, io->wsize);
 		if (n == 0)
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -358,7 +360,7 @@ io_push(struct io *io)
 			return (-1);
 		}
 	} else {
-		n = SSL_write(io->ssl, io->wbase, io->wsize);
+		n = SSL_write(io->ssl, io->wbase + io->woff, io->wsize);
 		if (n == 0)
 			return (0);
 		if (n < 0) {
@@ -388,11 +390,15 @@ io_push(struct io *io)
 		/* copy out the duplicate fd */
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "> ", 3);
-			write(io->dup_fd, io->wbase, n);
+			write(io->dup_fd, io->wbase + io->woff, n);
 		}
 
-		/* move the unwritten data down and adjust the next pointer */
-		memmove(io->wbase, io->wbase + n, io->wsize - n);
+		io->woff += n;
+		if (io->wspace != IO_FIXED && io->woff > IO_BLOCKSIZE) {
+			/* move the unwritten data down */
+			memmove(io->wbase, io->wbase + n, io->wsize - n);
+			io->woff = 0;
+		}
 		io->wsize -= n;
 
 		/* reset the need flags */
@@ -445,6 +451,16 @@ io_read2(struct io *io, void *buf, size_t len)
 	return (0);
 }
 
+/* Replace the write buffer with the specified one. */
+void
+io_writefixed(struct io *io, void *buf, size_t len)
+{
+	io->wbase = buf;
+	io->wspace = IO_FIXED;
+	io->wsize = len;
+	io->woff = 0;
+}
+
 /* Write a block to the io write buffer. */
 void
 io_write(struct io *io, const void *buf, size_t len)
@@ -452,10 +468,13 @@ io_write(struct io *io, const void *buf, size_t len)
 	if (io->error != NULL)
 		return;
 
-	if (len != 0) {
-		ENSURE_FOR(io->wbase, io->wspace, io->wsize, len);
+	if (io->wspace == IO_FIXED)
+		fatalx("io: attempt to write to fixed buffer");
 
-		memcpy(io->wbase + io->wsize, buf, len);
+	if (len != 0) {
+		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, len);
+
+		memcpy(io->wbase + io->woff + io->wsize, buf, len);
 		io->wsize += len;
 	}
 

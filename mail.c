@@ -358,7 +358,7 @@ fill_wrapped(struct mail *m)
 	end = m->body == -1 ? m->size : (size_t) m->body;
 	ptr = m->data;
 	for (;;) {
-		ptr = memchr(ptr, '\n', m->size);
+		ptr = memchr(ptr, '\n', m->size - (ptr - m->data));
 		if (ptr == NULL)
 			break;
 		ptr++;

@@ -460,9 +460,11 @@ struct io {
 	size_t		 rsize;		/* amount of data available */
 	size_t		 roff;		/* base of data in buffer */
 
+#define IO_FIXED 0			/* fixed write buffer */
 	char		*wbase;		/* buffer start */
 	size_t		 wspace;	/* total size of buffer */
 	size_t		 wsize;		/* size of data currently in buffer */
+	size_t		 woff;
 
 	const char	*eol;
 };
@@ -471,6 +473,7 @@ struct io {
 struct cmd {
 	pid_t	 	 pid;
 
+	struct io	*io_in;
 	struct io	*io_out;
 	struct io	*io_err;
 };
@@ -838,6 +841,7 @@ int			 io_polln(struct io **, u_int, struct io **, char **);
 int			 io_poll(struct io *, char **);
 int			 io_read2(struct io *, void *, size_t);
 void 			*io_read(struct io *, size_t);
+void			 io_writefixed(struct io *, void *, size_t);
 void			 io_write(struct io *, const void *, size_t);
 char 			*io_readline2(struct io *, char **, size_t *);
 char 			*io_readline(struct io *);
