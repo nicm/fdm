@@ -523,6 +523,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
 		/* copy the new mail in */
 		m->base = buf;
+		m->size = len
 		m->data = m->base;
 		m->body = md->body;
 		
