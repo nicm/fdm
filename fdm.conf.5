@@ -136,6 +136,17 @@ No authentication is supported for HTTP.
 This option may be overridden by an
 .Em http_proxy
 variable in the environment.
+.It Ic unmatched-mail Ar drop | Ar keep
+This option controls what
+.Xr fdm 1
+does with mail that reaches the end of the ruleset (mail that matches no rules or matches only rules with the
+.Ic continue
+keyword).
+.Ar drop
+will cause such mail to be discarded, and
+.Ar keep
+will attempt to leave the mail on the server.
+The default is to keep the mail and log a warning that it reached the end of the ruleset.
 .El
 .Sh INCLUDING FILES
 Further configuration files may be including using the
@@ -292,9 +303,27 @@ by the current user's home directory,
 .Em %t
 by the name of the current action,
 .Em %u
-by the current user's login name and
+by the current user's login name,
 .Em %n
-by the UID.
+by the UID and
+.Em %H
+by the current hour (00-23),
+.Em %M
+minute (00-59),
+.Em %S
+second (00-59),
+.Em %d
+day of the month (00-31),
+.Em %m
+month (01-12),
+.Em %y
+year,
+.Em %W
+day of the week (0-6, Sunday is 0),
+.Em %Y
+day of the year (000-365) and
+.Em %Q
+quarter (1-4).
 .Bl -tag -width Ds
 .It Xo Ic drop
 .Xc
