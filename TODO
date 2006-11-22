@@ -12,7 +12,5 @@
 - document match string etc, new matched behaviour
 - document new %s
 - document unmatched-mail
-- rewrite will corrupt the pmatch. fix it
-- implicit action (set unmatched-mail drop/keep)
-- think about MATCH_*
-- fnmatch on actions
+- think about whether or not we like MATCH_* (remember
+  error can't be -1 for some reason... why?)
