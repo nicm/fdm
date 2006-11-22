@@ -527,8 +527,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		m->data = m->base;
 		m->body = md->body;
 		
-		log_debug("%s: received modified mail, size %zu bytes",
-		    a->name, m->size);
+		log_debug("%s: received modified mail: size %zu, body=%zd",
+		    a->name, m->size, m->body);
 
 		/* trim from line */
 		trim_from(m);

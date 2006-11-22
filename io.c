@@ -476,15 +476,15 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	if (io->error != NULL)
 		return (NULL);
 
-	if (io->rsize < strlen(io->eol))
-		return (NULL);
-
 #ifdef IO_DEBUG
 	log_debug3("io_readline2: in: off=%zu used=%zu", io->roff, io->rsize);
 #endif
 
 	maxlen = io->rsize > IO_MAXLINELEN ? IO_MAXLINELEN : io->rsize;
 	eollen = strlen(io->eol);
+
+	if (io->rsize < eollen)
+		return (NULL);
 
 	ptr = io->rbase + io->roff;
 	for (;;) {
