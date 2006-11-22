@@ -10,4 +10,9 @@
 - document command stuff and size match
 - document nested rules
 - document match string etc, new matched behaviour
+- document new %s
+- document unmatched-mail
 - rewrite will corrupt the pmatch. fix it
+- implicit action (set unmatched-mail drop/keep)
+- think about MATCH_*
+- fnmatch on actions

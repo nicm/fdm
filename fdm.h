@@ -402,6 +402,11 @@ struct conf {
 	char			*lock_file;
 	int			 check_only;
 	int			 allow_many;
+	enum {
+		IMPLICIT_NONE,
+		IMPLICIT_DROP,
+		IMPLICIT_KEEP
+	} impl_act;
 
 	size_t			 max_size;
 	int		         del_big;
@@ -488,6 +493,7 @@ struct fetch {
 	int 		 (*poll)(struct account *, u_int *);
 	int	 	 (*fetch)(struct account *, struct mail *);
 	int		 (*delete)(struct account *);
+	int		 (*keep)(struct account *);
 	void		 (*error)(struct account *);
 	int		 (*disconnect)(struct account *);
 };

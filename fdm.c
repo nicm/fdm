@@ -194,6 +194,7 @@ main(int argc, char **argv)
 	TAILQ_INIT(&conf.actions);
 	conf.max_size = DEFMAILSIZE;
 	conf.lock_types = LOCK_FLOCK;
+	conf.impl_act = IMPLICIT_NONE;
 
 	log_init(1);
 

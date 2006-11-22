@@ -38,6 +38,7 @@ struct fetch	fetch_stdin = { "stdin", "stdin",
 				stdin_fetch,
 				stdin_delete,
 				NULL,
+				NULL,
 				stdin_disconnect };
 
 int

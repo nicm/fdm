@@ -31,6 +31,7 @@ int	pop3_disconnect(struct account *);
 int	pop3_poll(struct account *, u_int *);
 int	pop3_fetch(struct account *, struct mail *);
 int	pop3_delete(struct account *);
+int	pop3_keep(struct account *);
 void	pop3_error(struct account *);
 int	do_pop3(struct account *, u_int *, struct mail *, int);
 
@@ -39,6 +40,7 @@ struct fetch	fetch_pop3 = { "pop3", "pop3",
 			       pop3_poll,
 			       pop3_fetch,
 			       pop3_delete,
+			       pop3_keep,
 			       pop3_error,
 			       pop3_disconnect };
 
@@ -305,7 +307,26 @@ pop3_delete(struct account *a)
 	data = a->data;
 
 	data->state = POP3_DONE;
+
 	io_writeline(data->io, "DELE %u", data->cur);
+
+	return (0);
+}
+
+int
+pop3_keep(struct account *a)
+{
+	struct pop3_data	*data;
+
+	data = a->data;
+
+	data->state = POP3_DONE;
+
+	/* we don't need to /do/ anything here, but we need to poke the POP3
+	   server so the response in the POP3_DONE state is a) there and
+	   b) valid. this is not ideal, maybe it should be structured 
+	   differently */
+	io_writeline(data->io, "NOOP");
 
 	return (0);
 }

@@ -144,6 +144,8 @@ imap return (TOKIMAP);
 imaps return (TOKIMAPS);
 in return (TOKIN);
 include return (TOKINCLUDE);
+unmatched-mail return (TOKIMPLACT);
+keep return (TOKKEEP);
 lock-file return (TOKLOCKFILE);
 maildir return (TOKMAILDIR);
 match return (TOKMATCH);

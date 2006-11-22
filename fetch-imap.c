@@ -32,6 +32,7 @@ int	imap_disconnect(struct account *);
 int	imap_poll(struct account *, u_int *);
 int	imap_fetch(struct account *, struct mail *);
 int	imap_delete(struct account *);
+int	imap_keep(struct account *);
 void	imap_error(struct account *);
 int	imap_tag(char *);
 int	imap_okay(char *);
@@ -46,6 +47,7 @@ struct fetch	fetch_imap = { "imap", "imap",
 			       imap_poll,
 			       imap_fetch,
 			       imap_delete,
+			       imap_keep,
 			       imap_error,
 			       imap_disconnect };
 
@@ -113,13 +115,19 @@ imap_tag(char *line)
 {
 	long	 	 tag;
 	const char	*errstr;
+	char		*ptr;
 
 	if (line[0] == '*' && line[1] == ' ')
 		return (IMAP_TAG_NONE);
 	if (line[0] == '+')
 		return (IMAP_TAG_CONTINUE);
 
+	if ((ptr = strchr(line, ' ')) == NULL) 
+		return (IMAP_TAG_ERROR);
+	*ptr = '\0';
+
 	tag = strtonum(line, 0, INT_MAX, &errstr);
+	*ptr = ' ';
 	if (errstr != NULL)
 		return (IMAP_TAG_ERROR);
 
@@ -339,7 +347,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				else
 					res = FETCH_SUCCESS;
 
-				data->state = IMAP_DONE;
+				/* state set in keep/delete */
 				break;
 			case IMAP_DONE:
 				tag = imap_tag(line);
@@ -413,8 +421,27 @@ imap_delete(struct account *a)
 
 	data = a->data;
 
+	data->state = IMAP_DONE;
+
 	io_writeline(data->io, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
 	    data->cur);
+
+	return (0);
+}
+
+int
+imap_keep(struct account *a)
+{
+	struct imap_data	*data;
+
+	data = a->data;
+
+	data->state = IMAP_DONE;
+
+	/* we don't need to /do/ anything here, but we need to poke the IMAP
+	   server so the response in the IMAP_DONE state is a) there and
+	   b) valid */
+	io_writeline(data->io, "%u NOOP", ++data->tag);
 
 	return (0);
 }

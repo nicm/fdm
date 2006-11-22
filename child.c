@@ -156,7 +156,7 @@ fetch_account(struct io *io, struct account *a)
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, l;
-	int		 error, matched, stopped;
+	int		 error, matched, stopped, delete;
  	const char	*cause = NULL;
 	struct match_ctx mctx;
 
@@ -178,6 +178,8 @@ fetch_account(struct io *io, struct account *a)
 
 	n = 0;
         for (;;) {
+		delete = 1;
+
 		memset(&m, 0, sizeof m);
 		m.body = -1;
 		ARRAY_INIT(&m.tags);
@@ -194,7 +196,7 @@ fetch_account(struct io *io, struct account *a)
 				cause = "fetching";
 				goto out;
 			}
-			goto delete;
+			goto done;
 		case FETCH_COMPLETE:
 			goto out;
 		}
@@ -218,17 +220,42 @@ fetch_account(struct io *io, struct account *a)
 			goto out;
 
 		if (stopped)
-			goto delete;
-		log_warnx("%s: mail implicitly dropped at end of ruleset!",
-		    a->name);
+			goto done;
 
-	delete:
-		/* delete the message */
-		if (a->fetch->delete != NULL) {
-			log_debug("%s: deleting message", a->name);
-			if (a->fetch->delete(a) != 0) {
-				cause = "deleting";
-				goto out;
+		switch (conf.impl_act) {
+		case IMPLICIT_NONE:
+			log_warnx("%s: reached end of ruleset. no "
+			    "unmatched-mail option; mail kept",  a->name);
+			delete = 0;
+			break;
+		case IMPLICIT_KEEP:
+			log_debug("%s: reached end of ruleset. mail kept",
+			    a->name);
+			delete = 0;
+			break;
+		case IMPLICIT_DROP:
+			log_debug("%s: reached end of ruleset. mail dropped",
+			    a->name);
+			break;
+		}
+
+	done:
+		/* finished with the message */
+		if (delete) {
+			if (a->fetch->delete != NULL) {
+				log_debug("%s: deleting message", a->name);
+				if (a->fetch->delete(a) != 0) {
+					cause = "deleting";
+					goto out;
+				}
+			}
+		} else {
+			if (a->fetch->keep != NULL) {
+				log_debug("%s: keeping message", a->name);
+				if (a->fetch->keep(a) != 0) {
+					cause = "keeping";
+					goto out;
+				}
 			}
 		}
 
