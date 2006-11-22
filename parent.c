@@ -197,13 +197,13 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 			if (buf == NULL || len != md->size || len == 0)
 				fatalx("parent2: bad mail");
 
-			log_debug2("%s: got new mail from delivery, size %zu", 
-			    a->name, m->size);
-
 			free_mail(m);
 			memcpy(m, md, sizeof *m);
 			m->base = buf;
 			m->data = m->base;
+
+			log_debug2("%s: got new mail from delivery, size %zu", 
+			    a->name, m->size);
 		}
 
 		/* free the io */
