@@ -19,7 +19,7 @@
 #ifndef FDM_H
 #define FDM_H
 
-#include <sys/types.h>
+#include <sys/param.h>
 #include <sys/queue.h>
 
 #include <stdarg.h>
@@ -228,7 +228,7 @@ struct proxy {
 
 /* Shared memory. */
 struct shm {
-	char	 name[MAXNAMESIZE];
+	char	 name[MAXPATHLEN];
 	int	 fd;
 	
 	void	*data;
@@ -397,6 +397,7 @@ struct conf {
 
 	uid_t			 child_uid;
 	gid_t			 child_gid;
+	const char		*tmp_dir;
 
 	struct accounts	 	 incl;
 	struct accounts		 excl;

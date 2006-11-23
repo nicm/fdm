@@ -122,7 +122,7 @@ xmalloc_find(void *ptr)
 {
 	u_int	i;
 
-	/* XXX */
+	/* update peak here since this is called often */
 	if (xmalloc_allocated - xmalloc_freed > xmalloc_peak)
 		xmalloc_peak = xmalloc_allocated - xmalloc_freed;
 

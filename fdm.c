@@ -25,6 +25,7 @@
 #include <fnmatch.h>
 #include <grp.h>
 #include <limits.h>
+#include <paths.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,7 +185,7 @@ main(int argc, char **argv)
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*errstr;
-	char		 tmp[512];
+	char		 tmp[512], *ptr;
 	const char	*proxy = NULL;
 	char		*user = NULL, *lock = NULL;
 	long		 n;
@@ -367,6 +368,24 @@ main(int argc, char **argv)
 		strlcat(tmp, " ", sizeof tmp);
 	}
 	log_debug("%s", tmp);
+
+	/* save and print tmp dir */
+	conf.tmp_dir = getenv("TMPDIR");
+	if (conf.tmp_dir == NULL || *conf.tmp_dir == '\0')
+		conf.tmp_dir = _PATH_TMP;
+	else {
+		if (stat(conf.tmp_dir, &sb) == -1 || !S_ISDIR(sb.st_mode)) {
+			log_warn("%s", conf.tmp_dir);
+			conf.tmp_dir = _PATH_TMP;
+		}
+	}
+	conf.tmp_dir = xstrdup(conf.tmp_dir);
+	while ((ptr = strrchr(conf.tmp_dir, '/')) != NULL) {
+		if (ptr == conf.tmp_dir || ptr[1] != '\0')
+			break;
+		*ptr = '\0';
+	}
+	log_debug("using tmp directory: %s", conf.tmp_dir);
 
 	/* if -n, bail now, otherwise check there is something to work with */
 	if (conf.check_only)
