@@ -89,8 +89,10 @@ child(int fd, enum fdmop op)
 
 		/* connect */
 		if (a->fetch->connect != NULL) {
-			if (a->fetch->connect(a) != 0)
+			if (a->fetch->connect(a) != 0) {
+				rc = 1;
 				continue;
+			}
 		}
 
 		/* process */
