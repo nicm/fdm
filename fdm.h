@@ -459,7 +459,7 @@ extern struct conf		 conf;
 #define IO_FLUSHSIZE (8 * IO_BLOCKSIZE)
 
 /* IO buffer size macros. */
-#define IO_ROUND(n) ((n / IO_BLOCKSIZE) * IO_BLOCKSIZE)
+#define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
 #define IO_RDSIZE(io) (io->rsize)
 #define IO_WRSIZE(io) (io->wsize)
 
