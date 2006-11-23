@@ -29,15 +29,17 @@
 
 #include "fdm.h"
 
-int	 maildir_deliver(struct account *, struct action *, struct mail *);
+int	 maildir_deliver(struct deliver_ctx *, struct action *);
 char	*maildir_desc(struct action *);
 
 struct deliver deliver_maildir = { "maildir", DELIVER_ASUSER, maildir_deliver,
 				   maildir_desc };
 
 int
-maildir_deliver(struct account *a, struct action *t, struct mail *m)
+maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 {
+	struct account	*a = dctx->account;
+	struct mail	*m = dctx->mail;
 	static u_int	 delivered = 0;
 	char		*path, ch;
 	char	 	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;

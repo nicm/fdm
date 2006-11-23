@@ -28,18 +28,20 @@
 
 #include "fdm.h"
 
-int	 rewrite_deliver(struct account *, struct action *, struct mail *);
+int	 rewrite_deliver(struct deliver_ctx *, struct action *);
 char	*rewrite_desc(struct action *);
 
 struct deliver deliver_rewrite = { "rewrite", DELIVER_WRBACK, rewrite_deliver,
 				   rewrite_desc };
 
 int
-rewrite_deliver(struct account *a, struct action *t, struct mail *m)
+rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 {
+	struct account	*a = dctx->account;
+	struct mail	*m = dctx->mail;
+	struct mail	*md = &dctx->wr_mail;
         char		*s, *cause, *out, *err;
 	size_t		 len;
-	struct mail	 m2;
 	int	 	 status;
 	struct cmd	*cmd;
 
@@ -53,8 +55,7 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 
 	log_debug("%s: rewriting using \"%s\"", a->name, s);
 
-	init_mail(&m2, IO_BLOCKSIZE);
-	m2.size = 0;
+	md->size = 0;
 
 	log_debug2("%s: %s: starting", a->name, s);
 	cmd = cmd_start(s, 1, 1, m->data, m->size, &cause);
@@ -79,17 +80,17 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 				log_debug3("%s: %s: out: %s", a->name, s, out);
 
 				len = strlen(out);
-				if (len == 0 && m2.body == -1)
-					m2.body = m2.size + 1;
+				if (len == 0 && md->body == -1)
+					md->body = md->size + 1;
 
-				resize_mail(&m2, m2.size + len + 1);
+				resize_mail(md, md->size + len + 1);
 
 				if (len > 0)
-					memcpy(m2.data + m2.size, out, len);
+					memcpy(md->data + md->size, out, len);
 
 				/* append an LF */
-				m2.data[m2.size + len] = '\n';
-				m2.size += len + 1;
+				md->data[md->size + len] = '\n';
+				md->size += len + 1;
 
 				xfree(out);
 			}
@@ -102,22 +103,16 @@ rewrite_deliver(struct account *a, struct action *t, struct mail *m)
 		goto error;
 	} 
 
-	if (m2.size == 0) {
+	if (md->size == 0) {
 		log_warnx("%s: %s: empty mail returned", a->name, s);
 		goto error;
 	}
-
-	/* replace the old mail */
-	free_mail(m, 0);
-	memcpy(m, &m2, sizeof *m);
 
 	cmd_free(cmd);
 	xfree(s);
 	return (DELIVER_SUCCESS);
 
 error:
-	free_mail(&m2, 1);
-
 	cmd_free(cmd);
 	xfree(s);
 	return (DELIVER_FAILURE);

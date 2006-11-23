@@ -56,8 +56,9 @@ child(int fd, enum fdmop op)
 	if (geteuid() != 0)
 		log_debug("child: not root user. not dropping privileges");
 	else {
-		log_debug("child: changing to user %lu", (u_long) conf.uid);
-		if (dropto(conf.uid) != 0)
+		log_debug("child: changing to user %lu", 
+		    (u_long) conf.child_uid);
+		if (dropto(conf.child_uid) != 0)
 			fatal("dropto");
         }
 #ifndef NO_SETPROCTITLE
@@ -467,13 +468,18 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
 	struct tags		 tags;
+	struct deliver_ctx	 dctx;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
 
 	/* just deliver now for in-child delivery */
-	if (t->deliver->type == DELIVER_INCHILD) {
-		if (t->deliver->deliver(a, t, m) != DELIVER_SUCCESS)
+	if (t->deliver->type == DELIVER_INCHILD) { 
+		memset(&dctx, 0, sizeof dctx);
+		dctx.account = a;
+		dctx.mail = m;
+
+		if (t->deliver->deliver(&dctx, t) != DELIVER_SUCCESS)
 			return (1);
 		return (0);
 	}

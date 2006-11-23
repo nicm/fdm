@@ -395,7 +395,8 @@ struct conf {
 	int 			 debug;
 	int			 syslog;
 
-	uid_t			 uid;
+	uid_t			 child_uid;
+	gid_t			 child_gid;
 
 	struct accounts	 	 incl;
 	struct accounts		 excl;
@@ -518,6 +519,13 @@ struct fetch {
 	char		*(*desc)(struct account *);
 };
 
+/* Deliver context. */
+struct deliver_ctx {
+	struct account	*account;
+	struct mail	*mail;
+	struct mail	 wr_mail;
+};
+
 /* Deliver return codes. */
 #define DELIVER_SUCCESS 0
 #define DELIVER_FAILURE 1
@@ -535,8 +543,7 @@ struct deliver {
 	const char	*name;
 	enum delivertype type;
 
-	int	 	 (*deliver)(struct account *, struct action *, 
-			     struct mail *);
+	int	 	 (*deliver)(struct deliver_ctx *, struct action *);
 	char		*(*desc)(struct action *);
 };
 
@@ -752,7 +759,7 @@ extern struct deliver 	 deliver_mbox;
 
 /* deliver-write.c */
 extern struct deliver 	 deliver_write;
-int	 do_write(struct account *, struct action *, struct mail *, int);
+int	 		 do_write(struct deliver_ctx *, struct action *, int);
 
 /* deliver-append.c */
 extern struct deliver 	 deliver_append;

@@ -26,16 +26,16 @@
 
 #include "fdm.h"
 
-int	 append_deliver(struct account *, struct action *, struct mail *);
+int	 append_deliver(struct deliver_ctx *, struct action *);
 char	*append_desc(struct action *);
 
 struct deliver deliver_append = { "append", DELIVER_ASUSER, append_deliver,
 				  append_desc };
 
 int
-append_deliver(struct account *a, struct action *t, struct mail *m)
+append_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	return (do_write(a, t, m, 1));
+	return (do_write(dctx, t, 1));
 }
 
 char *

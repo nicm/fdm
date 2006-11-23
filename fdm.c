@@ -386,7 +386,8 @@ main(int argc, char **argv)
 			log_warnx("can't find user: %s", CHILDUSER);
 			exit(1);
 		}
-		conf.uid = pw->pw_uid;
+		conf.child_uid = pw->pw_uid;
+		conf.child_gid = pw->pw_gid;
 		endpwent();
 
 		if (conf.def_user == 0) {

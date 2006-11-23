@@ -27,15 +27,17 @@
 
 #include "fdm.h"
 
-int	 smtp_deliver(struct account *, struct action *, struct mail *);
+int	 smtp_deliver(struct deliver_ctx *, struct action *);
 char	*smtp_desc(struct action *);
 
 struct deliver deliver_smtp = { "smtp", DELIVER_ASUSER, smtp_deliver,
 				smtp_desc };
 
 int
-smtp_deliver(struct account *a, struct action *t, struct mail *m)
+smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 {
+	struct account		*a = dctx->account;
+	struct mail		*m = dctx->mail;
 	struct smtp_data	*data;
 	int		 	 done;
 	long			 code;

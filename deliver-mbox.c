@@ -29,15 +29,17 @@
 
 #include "fdm.h"
 
-int	 mbox_deliver(struct account *, struct action *, struct mail *);
+int	 mbox_deliver(struct deliver_ctx *, struct action *);
 char	*mbox_desc(struct action *);
 
 struct deliver deliver_mbox = { "mbox", DELIVER_ASUSER, mbox_deliver,
 				mbox_desc };
 
 int
-mbox_deliver(struct account *a, struct action *t, struct mail *m)
+mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 {
+	struct account	*a = dctx->account;
+	struct mail	*m = dctx->mail;
 	char		*path, *ptr, *ptr2, *from = NULL;
 	size_t	 	 len, len2;
 	int	 	 fd = -1, res = DELIVER_FAILURE;

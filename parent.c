@@ -82,7 +82,7 @@ parent(int fd, pid_t pid)
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
-			/* msg.data.mail is m */
+			/* msg.data.mail is already m */
 			if (privsep_send(io, &msg, NULL, 0) != 0)
 				fatalx("parent: privsep_send error");
 
@@ -101,7 +101,7 @@ parent(int fd, pid_t pid)
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
-			/* msg.data.mail is m */
+			/* msg.data.mail is already m */
 			if (privsep_send(io, &msg, NULL, 0) != 0)
 				fatalx("parent: privsep_send error");
 
@@ -137,22 +137,30 @@ parent(int fd, pid_t pid)
 int
 parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 {
-	int		 status;
-	pid_t		 pid;
-	int		 fds[2];
-	struct io	*io;
-	struct msg	 msg;
-	struct mail	*md;
+	int		 	 status, error, fds[2];
+	pid_t		 	 pid;
+	struct io		*io;
+	struct msg	 	 msg;
+	struct deliver_ctx	 dctx;
+
+	memset(&dctx, 0, sizeof dctx);
+	dctx.account = a;
+	dctx.mail = m;
+
+	/* if writing back, open a new mail now and set its ownership so it
+	   can be accessed by the child */
+	if (t->deliver->type == DELIVER_WRBACK) {
+		init_mail(&dctx.wr_mail, IO_BLOCKSIZE);
+		if (geteuid() == 0 && fchown(dctx.wr_mail.shm.fd,
+		    conf.child_uid, conf.child_gid) != 0)
+			fatal("fchown");
+	}
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 		fatal("socketpair");
 	pid = fork();
-	if (pid == -1) {
-		close(fds[0]);
-		close(fds[1]);
-		log_warn("%s: fork", a->name);
-		return (DELIVER_FAILURE);
-	}
+	if (pid == -1)
+		fatal("fork");
 	if (pid != 0) {
 		/* create privsep io */
 		close(fds[1]);
@@ -173,19 +181,22 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 				fatalx("parent2: unexpected message");
 			}
 		} while (msg.type != MSG_DONE);
-
-		/* reread mail if necessary */
+		error = msg.data.error;
+		
+		/* use new mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
-			md = &msg.data.mail;
+			if (error == DELIVER_SUCCESS) {
+				free_mail(m, 0);
 
-			free_mail(m, 0);
-
-			memcpy(m, md, sizeof *m);
-			m->base = shm_reopen(&m->shm);
-			m->data = m->base + m->off;
-
-			log_debug2("%s: got new mail from delivery: size %zu, "
-			    "body=%zd", a->name, m->size, m->body);
+				copy_mail(&msg.data.mail, m);
+				m->base = shm_reopen(&m->shm); /* XXX needed? */
+				m->data = m->base + m->off;
+				
+				log_debug2("%s: got new mail from delivery: "
+				    "size %zu, body=%zd", a->name, m->size, 
+				    m->body);
+			} else
+				free_mail(&dctx.wr_mail, 1);
 		}
 
 		/* free the io */
@@ -208,7 +219,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 			log_warnx("%s: child returned %d", a->name, status);
 			return (DELIVER_FAILURE);
 		}
-		return (msg.data.error);
+		return (error);
 	}
 
 #ifdef DEBUG
@@ -240,17 +251,22 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	    conf.info.home);
 
 	/* do the delivery */
-	msg.data.error = t->deliver->deliver(a, t, m);
+	error = t->deliver->deliver(&dctx, t);
+	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS) {
+		m = &dctx.wr_mail;
+		log_debug2("%s: using new mail, size %zu", a->name, m->size);
+		copy_mail(&dctx.wr_mail, &msg.data.mail);
+	}
 
 	/* inform parent we're done */
-	if (t->deliver->type == DELIVER_WRBACK)
-		log_debug2("%s: sending new mail to parent, size %zu", a->name,
-		    m->size);
-
 	msg.type = MSG_DONE;
-	copy_mail(m, &msg.data.mail);
+	msg.data.error = error;
 	if (privsep_send(io, &msg, NULL, 0) != 0)
 		fatalx("deliver: privsep_send error");
+
+	/* free the new mail, if necessary */
+	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS)
+		free_mail(&dctx.wr_mail, 0);
 
 	/* free the io */
 	io_close(io);
@@ -274,10 +290,8 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
 	struct cmd	*cmd;
 
 	pid = fork();
-	if (pid == -1) {
-		log_warn("%s: fork", a->name);
-		return (MATCH_ERROR);
-	}
+	if (pid == -1)
+		fatal("fork");
 	if (pid != 0) {
  		/* parent process. wait for child */
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
