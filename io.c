@@ -508,7 +508,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	ptr = io->rbase + io->roff;
 	for (;;) {
 		/* find the first EOL character */
-		ptr = memchr(ptr, *io->eol, maxlen);
+		ptr = memchr(ptr, *io->eol, io->rsize - (ptr - io->rbase -
+		    io->roff));
 
 		if (ptr != NULL) {
 			off = (ptr - io->rbase) - io->roff;
