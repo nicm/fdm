@@ -459,6 +459,7 @@ extern struct conf		 conf;
 #define IO_FLUSHSIZE (8 * IO_BLOCKSIZE)
 
 /* IO buffer size macros. */
+#define IO_ROUND(n) ((n / IO_BLOCKSIZE) * IO_BLOCKSIZE)
 #define IO_RDSIZE(io) (io->rsize)
 #define IO_WRSIZE(io) (io->wsize)
 
@@ -508,7 +509,7 @@ struct cmd {
 /* Fetch functions. */
 struct fetch {
 	const char	*name;
-	const char	*port;
+	const char	*ports[2];	/* normal port, ssl port */
 
 	int	 	 (*connect)(struct account *);
 	int 		 (*poll)(struct account *, u_int *);

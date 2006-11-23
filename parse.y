@@ -1391,9 +1391,11 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->user = $4;
 		   data->pass = $6;
 		   data->server.ssl = $1;
-		   data->server.host = $2.host;
-		   data->server.port =
-		       $2.port != NULL ? $2.port : xstrdup($$.fetch->port);
+		   data->server.host = $2.host;	
+		   if ($2.port != NULL) 
+			   data->server.port = $2.port;
+		   else
+			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
 	   }
          | imaptype server TOKUSER strv TOKPASS strv folder
@@ -1415,8 +1417,11 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->folder = $7 == NULL ? xstrdup("INBOX") : $7;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
-		   data->server.port =
-		       $2.port != NULL ? $2.port : xstrdup($$.fetch->port);
+		   if ($2.port != NULL) 
+			   data->server.port = $2.port;
+		   else
+			   data->server.port = xstrdup($$.fetch->ports[$1]);
+
 		   data->server.ai = NULL;
 	   }
 	 | TOKSTDIN
