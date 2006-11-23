@@ -794,7 +794,7 @@ size_t	 		 strlcat(char *, const char *, size_t);
 /* shm.c */
 void 			*shm_reopen(struct shm *);
 void			*shm_malloc(struct shm *, size_t);
-void			*shm_realloc(struct shm *, size_t);
+void			*shm_realloc(struct shm *, size_t, size_t);
 void			 shm_free(struct shm *);
 void			 shm_destroy(struct shm *);
 

@@ -21,6 +21,7 @@
 #include <sys/mman.h>
 
 #include <fcntl.h>
+#include <limits.h>
 #include <paths.h>
 #include <string.h>
 #include <unistd.h>
@@ -52,6 +53,9 @@ shm_malloc(struct shm *shm, size_t size)
 {
 	char	c[1];
 
+        if (size == 0)
+                fatalx("shm_malloc: zero size");
+
 	/* XXX TMPDIR XXX check free space */
 	xsnprintf(shm->name, sizeof shm->name, _PATH_TMP "%s.XXXXXXXXXXXX", 
 	    __progname);
@@ -79,13 +83,18 @@ shm_malloc(struct shm *shm, size_t size)
 }
 
 void *
-shm_realloc(struct shm *shm, size_t size)
+shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 {
 	char	c[1];
 
 #ifdef SHM_DEBUG
 	log_debug("shm_realloc: %s", shm->name);
 #endif
+
+	if (size == 0)
+                fatalx("shm_realloc: zero size");
+        if (SIZE_MAX / nmemb < size)
+                fatalx("shm_realloc: nmemb * size > SIZE_MAX");
 
 	if (size < shm->size) {
 		if (ftruncate(shm->fd, size) != 0)
