@@ -20,6 +20,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
+#include <fcntl.h>
 #include <fnmatch.h>
 #include <limits.h>
 #include <string.h>
@@ -45,6 +46,7 @@ child(int fd, enum fdmop op)
 
 #ifdef DEBUG
 	xmalloc_clear();
+	COUNTFDS("child");
 #endif
 
         SSL_library_init();
@@ -127,6 +129,7 @@ child(int fd, enum fdmop op)
 	io_free(io);
 
 #ifdef DEBUG
+	COUNTFDS("child");
 	xmalloc_dump("child");
 #endif
 
@@ -464,15 +467,14 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 int
 do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 {
-	struct mail		*md;
+	struct account		*a = mctx->account;
+	struct mail		*m = mctx->mail;
+	struct msg	 	 msg;
+	struct tags		 tags;
+	struct deliver_ctx	 dctx;
 	u_int		 	 i, l;
 	int		 	 find;
 	struct users	        *users;
-	struct msg	 	 msg;
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct tags		 tags;
-	struct deliver_ctx	 dctx;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
@@ -531,8 +533,6 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		if (t->deliver->type != DELIVER_WRBACK)
 			continue;
 
-		md = &msg.data.mail;
-
 		/* save the tags */
 		memcpy(&tags, &m->tags, sizeof tags);
 		ARRAY_INIT(&m->tags);
@@ -541,7 +541,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		free_mail(m, 1);
 
 		/* copy the new mail in and reopen it */
-		memcpy(m, md, sizeof *m);
+		memcpy(m, &msg.data.mail, sizeof *m);
 		m->base = shm_reopen(&m->shm);
 		m->data = m->base + m->off;
 

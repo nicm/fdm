@@ -69,10 +69,10 @@ xmalloc_dump(const char *hdr)
 	char	 		 tmp[4096];
 	struct xmalloc_block	*p;
 	
-	log_debug("xmalloc_dump: %s: allocated=%zu, freed=%zu, difference=%zd, "
-	    "peak=%zd", hdr, xmalloc_allocated, xmalloc_freed,
+	log_debug2("xmalloc_dump: %s: allocated=%zu, freed=%zu, "
+	    "difference=%zd, peak=%zd", hdr, xmalloc_allocated, xmalloc_freed,
 	    xmalloc_allocated - xmalloc_freed, xmalloc_peak);
-	log_debug("xmalloc_dump: %s: mallocs=%u, reallocs=%u, frees=%u", hdr,
+	log_debug2("xmalloc_dump: %s: mallocs=%u, reallocs=%u, frees=%u", hdr,
 	    xmalloc_mallocs, xmalloc_reallocs, xmalloc_frees);
 
 	if (xmalloc_allocated == xmalloc_freed)
@@ -114,7 +114,7 @@ xmalloc_dump(const char *hdr)
 		}
 	}
 	tmp[off - 1] = '\0';
-	log_debug("%s", tmp);
+	log_debug2("%s", tmp);
 }
 
 struct xmalloc_block *

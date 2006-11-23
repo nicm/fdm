@@ -28,7 +28,8 @@
 
 #undef SHM_DEBUG
 
-#define SHM_PROT PROT_READ|PROT_WRITE
+#define SHM_PROTW PROT_READ|PROT_WRITE
+#define SHM_PROTR PROT_READ
 
 void *
 shm_reopen(struct shm *shm)
@@ -40,7 +41,7 @@ shm_reopen(struct shm *shm)
 	if ((shm->fd = open(shm->name, O_RDWR, 0)) < 0)
 		fatal("open");
 
-	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");
 
@@ -73,7 +74,7 @@ shm_malloc(struct shm *shm, size_t size)
 	if (write(shm->fd, c, 1) < 0)
 		fatal("write");
 
-	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");
 
@@ -107,7 +108,7 @@ shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 	}
 	shm->size = size;
 	
-	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");
 

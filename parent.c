@@ -39,18 +39,12 @@ parent(int fd, pid_t pid)
 	struct msg	 msg;
 	struct mail	*m;
 	int		 status, error;
-#ifdef DEBUG
-	int		 fd2;
-#endif
 	struct msgdata	*data;
 	uid_t		 uid;
 
 #ifdef DEBUG
 	xmalloc_clear();
-
-	fd2 = open(_PATH_DEVNULL, O_RDONLY, 0);
-	close(fd2);
-	log_debug2("parent: last fd on entry %d", fd);
+	COUNTFDS("parent");
 #endif
 
 	io = io_create(fd, NULL, IO_LF);
@@ -117,11 +111,8 @@ parent(int fd, pid_t pid)
 	io_free(io);
 
 #ifdef DEBUG
+	COUNTFDS("parent");
 	xmalloc_dump("parent");
-
-	fd = open(_PATH_DEVNULL, O_RDONLY, 0);
-	close(fd);
-	log_debug2("parent: last fd on exit %d", fd);
 #endif
 
 	if (waitpid(pid, &status, 0) == -1)
@@ -187,9 +178,9 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 			if (error == DELIVER_SUCCESS) {
 				free_mail(m, 0);
 
+				/* no need to update anything, since the
+				   important stuff is all the same */
 				copy_mail(&msg.data.mail, m);
-				m->base = shm_reopen(&m->shm); /* XXX needed? */
-				m->data = m->base + m->off;
 				
 				log_debug2("%s: got new mail from delivery: "
 				    "size %zu, body=%zd", a->name, m->size, 
@@ -218,11 +209,13 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 			log_warnx("%s: child returned %d", a->name, status);
 			return (DELIVER_FAILURE);
 		}
+
 		return (error);
 	}
 
 #ifdef DEBUG
 	xmalloc_clear();
+	COUNTFDS("deliver");
 #endif
 
 	/* create privsep io */
@@ -252,8 +245,8 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	/* do the delivery */
 	error = t->deliver->deliver(&dctx, t);
 	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS) {
-		m = &dctx.wr_mail;
-		log_debug2("%s: using new mail, size %zu", a->name, m->size);
+		log_debug2("%s: using new mail, size %zu", a->name, 
+		    dctx.wr_mail.size);
 		copy_mail(&dctx.wr_mail, &msg.data.mail);
 	}
 
@@ -263,15 +256,12 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	if (privsep_send(io, &msg, NULL, 0) != 0)
 		fatalx("deliver: privsep_send error");
 
-	/* free the new mail, if necessary */
-	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS)
-		free_mail(&dctx.wr_mail, 0);
-
 	/* free the io */
 	io_close(io);
 	io_free(io);
 
 #ifdef DEBUG
+	COUNTFDS("deliver");
 	xmalloc_dump("deliver");
 #endif
 

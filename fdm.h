@@ -49,6 +49,17 @@ extern char	*__progname;
 #define __dead __attribute__ ((noreturn))
 #endif
 
+#define NFDS 64
+#define COUNTFDS(s) do {						\
+	u_int	fd_i, fd_n;						\
+	fd_n = 0;							\
+	for (fd_i = 0; fd_i < NFDS; fd_i++) {				\
+		if (fcntl(fd_n, F_GETFL) != -1)				\
+			fd_n++;						\
+	}								\
+	log_debug2("%s: %u file descriptors in use", s, fd_n);		\
+} while (0)
+
 #ifndef TAILQ_HEAD_INITIALIZER
 #define TAILQ_HEAD_INITIALIZER(head)					\
 	{ NULL, &(head).tqh_first }
