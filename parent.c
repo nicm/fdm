@@ -296,10 +296,8 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
  		/* parent process. wait for child */
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
 
-		if (waitpid(pid, &status, 0) == -1) {
-			log_warn("%s: waitpid", a->name);
-			return (MATCH_ERROR);
-		}
+		if (waitpid(pid, &status, 0) == -1)
+			fatal("waitpid");
 		if (WIFSIGNALED(status)) {	
 			log_warnx("%s: child got signal: %d", a->name,
 			    WTERMSIG(status));

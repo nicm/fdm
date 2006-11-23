@@ -108,7 +108,7 @@ fill_info(const char *home)
 	endpwent();
 	if (conf.info.user == NULL) {
 		conf.info.user = xstrdup(conf.info.uid);
-		log_warn("can't find name for user %lu", (u_long) uid);
+		log_warnx("can't find name for user %lu", (u_long) uid);
 	}
 }
 
