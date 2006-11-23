@@ -406,6 +406,8 @@ struct conf {
 	struct headers		*headers; /* headers to search for users */
 
 	struct {
+		uid_t		 uid_n;
+
 		char		*home;
 		char		*user;
 		char		*uid;

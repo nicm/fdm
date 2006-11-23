@@ -66,6 +66,11 @@ fill_info(const char *home)
 	uid_t		 uid;
 	char		 host[MAXHOSTNAMELEN];
 
+	uid = getuid();
+	if (conf.info.uid_n == uid)
+		return;
+	conf.info.uid_n = uid;
+
 	if (conf.info.uid != NULL) {
 		xfree(conf.info.uid);
 		conf.info.uid = NULL;
@@ -88,7 +93,6 @@ fill_info(const char *home)
 	if (home != NULL && *home != '\0')
 		conf.info.home = xstrdup(home);
 
-	uid = getuid();
 	xasprintf(&conf.info.uid, "%lu", (u_long) uid);
 	pw = getpwuid(uid);
 	if (pw != NULL) {
