@@ -147,7 +147,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	int		 	 v, res, flushing;
 	long			 tag;
 	char			*line, *cause, *lbuf, *folder;
-	size_t			 off = 0, len, llen;
+	size_t			 off = 0, len, llen, size;
 	u_int			 u, lines = 0;
 
 	if (m != NULL)
@@ -278,23 +278,23 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 					goto error;
 
 				if (sscanf(line, "* %u FETCH (BODY[] {%zu}",
-				    &u, &m->size) != 2)
+				    &u, &size) != 2)
 					goto error;
 				if (u != data->cur) {
 					cause = xstrdup("wrong message index");
 					goto error;
 				}
 
-				if (m->size == 0) {
+				if (size == 0) {
 					cause = xstrdup("zero-length message");
 					goto error;
 				}
 
-				if (m->size > conf.max_size)
+				if (size > conf.max_size)
 					flushing = 1;
 
 				off = lines = 0;
-				init_mail(m, IO_ROUND(m->size));
+				init_mail(m, IO_ROUND(size));
 
 				data->state = IMAP_LINE;
 				break;
@@ -312,7 +312,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				lines++;
 				off += len + 1;
 
-				if (off + lines >= m->size)
+				if (off + lines >= size)
 					data->state = IMAP_LINEWAIT;
 				break;
 			case IMAP_LINEWAIT:
@@ -329,7 +329,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				if (!imap_okay(line))
 					goto error;
 
-				if (off + lines != m->size) {
+				if (off + lines != size) {
 					cause = xstrdup("too much data");
 					goto error;
 				}
