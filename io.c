@@ -455,6 +455,7 @@ io_read2(struct io *io, void *buf, size_t len)
 void
 io_writefixed(struct io *io, void *buf, size_t len)
 {
+	xfree(io->wbase);
 	io->wbase = buf;
 	io->wspace = IO_FIXED;
 	io->wsize = len;
