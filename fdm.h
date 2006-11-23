@@ -508,7 +508,6 @@ struct cmd {
 
 /* Fetch functions. */
 struct fetch {
-	const char	*name;
 	const char	*ports[2];	/* normal port, ssl port */
 
 	int	 	 (*connect)(struct account *);
@@ -542,7 +541,6 @@ enum delivertype {
 
 /* Deliver functions. */
 struct deliver {
-	const char	*name;
 	enum delivertype type;
 
 	int	 	 (*deliver)(struct deliver_ctx *, struct action *);

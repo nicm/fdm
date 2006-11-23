@@ -30,15 +30,14 @@
 int	 smtp_deliver(struct deliver_ctx *, struct action *);
 char	*smtp_desc(struct action *);
 
-struct deliver deliver_smtp = { "smtp", DELIVER_ASUSER, smtp_deliver,
-				smtp_desc };
+struct deliver deliver_smtp = { DELIVER_ASUSER, smtp_deliver, smtp_desc };
 
 int
 smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct account		*a = dctx->account;
 	struct mail		*m = dctx->mail;
-	struct smtp_data	*data;
+	struct smtp_data	*data = t->data;
 	int		 	 done;
 	long			 code;
 	struct io		*io;
@@ -46,8 +45,6 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	const char		*errstr;
 	enum smtp_state		 state;
 	size_t		 	 len;
-
-	data = t->data;
 
 	io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (io == NULL) {
@@ -176,10 +173,8 @@ error:
 char *
 smtp_desc(struct action *t)
 {
-	struct smtp_data	*data;
+	struct smtp_data	*data = t->data;
 	char			*s;
-
-	data = t->data;
 
 	xasprintf(&s, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,

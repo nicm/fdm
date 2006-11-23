@@ -29,8 +29,7 @@
 int	 write_deliver(struct deliver_ctx *, struct action *);
 char	*write_desc(struct action *);
 
-struct deliver deliver_write = { "write", DELIVER_ASUSER, write_deliver,
-				 write_desc };
+struct deliver deliver_write = { DELIVER_ASUSER, write_deliver, write_desc };
 
 int
 write_deliver(struct deliver_ctx *dctx, struct action *t)

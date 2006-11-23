@@ -33,7 +33,7 @@ int	 stdin_fetch(struct account *, struct mail *);
 int	 stdin_delete(struct account *);
 char	*stdin_desc(struct account *);
 
-struct fetch	fetch_stdin = { "stdin", { NULL, NULL },
+struct fetch	fetch_stdin = { { NULL, NULL },
 				stdin_connect,
 				NULL,
 				stdin_fetch,
@@ -47,14 +47,12 @@ struct fetch	fetch_stdin = { "stdin", { NULL, NULL },
 int
 stdin_connect(struct account *a)
 {
-	struct stdin_data	*data;
+	struct stdin_data	*data = a->data;
 
 	if (isatty(STDIN_FILENO)) {
 		log_warnx("%s: stdin is a tty. ignoring", a->name);
 		return (1);
 	}
-
-	data = a->data;
 
 	if (fcntl(STDIN_FILENO, F_GETFL) == -1) {
 		if (errno != EBADF)
@@ -75,9 +73,7 @@ stdin_connect(struct account *a)
 int
 stdin_disconnect(struct account *a)
 {
-	struct stdin_data	*data;
-
-	data = a->data;
+	struct stdin_data	*data = a->data;
 
 	io_free(data->io);
 
@@ -89,11 +85,9 @@ stdin_disconnect(struct account *a)
 int
 stdin_delete(struct account *a)
 {
-	struct stdin_data	*data;
+	struct stdin_data	*data = a->data;
 	char		        *line, *lbuf;
 	size_t			 llen;
-
-	data = a->data;
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
@@ -116,12 +110,11 @@ stdin_delete(struct account *a)
 int
 stdin_fetch(struct account *a, struct mail *m)
 {
-	struct stdin_data	*data;
+	struct stdin_data	*data = a->data;
 	int		 	 error;
 	char			*line, *cause, *lbuf;
 	size_t			 len, llen;
 
-	data = a->data;
 	if (data->complete)
 		return (FETCH_COMPLETE);
 

@@ -36,7 +36,7 @@ void	pop3_error(struct account *);
 char   *pop3_desc(struct account *);
 int	do_pop3(struct account *, u_int *, struct mail *, int);
 
-struct fetch	fetch_pop3 = { "pop3", { "pop3", "pop3s" },
+struct fetch	fetch_pop3 = { { "pop3", "pop3s" },
 			       pop3_connect,
 			       pop3_poll,
 			       pop3_fetch,
@@ -50,10 +50,8 @@ struct fetch	fetch_pop3 = { "pop3", { "pop3", "pop3s" },
 int
 pop3_connect(struct account *a)
 {
-	struct pop3_data	*data;
+	struct pop3_data	*data = a->data;
 	char			*cause;
-
-	data = a->data;
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
@@ -72,9 +70,7 @@ pop3_connect(struct account *a)
 int
 pop3_disconnect(struct account *a)
 {
-	struct pop3_data	*data;
-
-	data = a->data;
+	struct pop3_data	*data = a->data;
 
 	io_close(data->io);
 	io_free(data->io);
@@ -85,9 +81,7 @@ pop3_disconnect(struct account *a)
 void
 pop3_error(struct account *a)
 {
-	struct pop3_data	*data;
-
-	data = a->data;
+	struct pop3_data	*data = a->data;
 
 	io_writeline(data->io, "QUIT");
 	io_flush(data->io, NULL);
@@ -108,13 +102,11 @@ pop3_fetch(struct account *a, struct mail *m)
 int
 do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 {
-	struct pop3_data	*data;
+	struct pop3_data	*data = a->data;
 	int		 	 res, flushing;
 	char			*line, *cause, *ptr, *lbuf;
 	size_t			 off = 0, len, llen;
 	u_int			 lines = 0;
-
-	data = a->data;
 
 	if (m != NULL) 
 		m->data = NULL;
@@ -303,9 +295,7 @@ error:
 int
 pop3_delete(struct account *a)
 {
-	struct pop3_data	*data;
-
-	data = a->data;
+	struct pop3_data	*data = a->data;
 
 	data->state = POP3_DONE;
 
@@ -317,9 +307,7 @@ pop3_delete(struct account *a)
 int
 pop3_keep(struct account *a)
 {
-	struct pop3_data	*data;
-
-	data = a->data;
+	struct pop3_data	*data = a->data;
 
 	data->state = POP3_DONE;
 
@@ -335,10 +323,8 @@ pop3_keep(struct account *a)
 char *
 pop3_desc(struct account *a)
 {
-	struct pop3_data	*data;
+	struct pop3_data	*data = a->data;
 	char			*s;
-
-	data = a->data;
 
 	xasprintf(&s, "pop3%s server \"%s\" port %s user \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,

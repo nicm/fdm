@@ -43,7 +43,7 @@ int	 do_imap(struct account *, u_int *, struct mail *, int);
 #define IMAP_TAG_CONTINUE -2
 #define IMAP_TAG_ERROR -3
 
-struct fetch	fetch_imap = { "imap", { "imap", "imaps" },
+struct fetch	fetch_imap = { { "imap", "imaps" },
 			       imap_connect,
 			       imap_poll,
 			       imap_fetch,
@@ -57,10 +57,8 @@ struct fetch	fetch_imap = { "imap", { "imap", "imaps" },
 int
 imap_connect(struct account *a)
 {
-	struct imap_data	*data;
+	struct imap_data	*data = a->data;
 	char			*cause;
-
-	data = a->data;
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
@@ -80,9 +78,7 @@ imap_connect(struct account *a)
 int
 imap_disconnect(struct account *a)
 {
-	struct imap_data	*data;
-
-	data = a->data;
+	struct imap_data	*data = a->data;
 
 	io_close(data->io);
 	io_free(data->io);
@@ -93,9 +89,7 @@ imap_disconnect(struct account *a)
 void
 imap_error(struct account *a)
 {
-	struct imap_data	*data;
-
-	data = a->data;
+	struct imap_data	*data = a->data;
 
         io_writeline(data->io, "%u LOGOUT", ++data->tag);
         io_flush(data->io, NULL);
@@ -149,14 +143,12 @@ imap_okay(char *line)
 int
 do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 {
-	struct imap_data	*data;
+	struct imap_data	*data = a->data;
 	int		 	 v, res, flushing;
 	long			 tag;
 	char			*line, *cause, *lbuf, *folder;
 	size_t			 off = 0, len, llen;
 	u_int			 u, lines = 0;
-
-	data = a->data;
 
 	if (m != NULL)
 		m->data = NULL;
@@ -418,9 +410,7 @@ error:
 int
 imap_delete(struct account *a)
 {
-	struct imap_data	*data;
-
-	data = a->data;
+	struct imap_data	*data = a->data;
 
 	data->state = IMAP_DONE;
 
@@ -433,9 +423,7 @@ imap_delete(struct account *a)
 int
 imap_keep(struct account *a)
 {
-	struct imap_data	*data;
-
-	data = a->data;
+	struct imap_data	*data = a->data;
 
 	data->state = IMAP_DONE;
 
@@ -450,10 +438,8 @@ imap_keep(struct account *a)
 char *
 imap_desc(struct account *a)
 {
-	struct imap_data	*data;
+	struct imap_data	*data = a->data;
 	char			*s;
-
-	data = a->data;
 
 	xasprintf(&s, "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,

@@ -29,8 +29,7 @@
 int	 append_deliver(struct deliver_ctx *, struct action *);
 char	*append_desc(struct action *);
 
-struct deliver deliver_append = { "append", DELIVER_ASUSER, append_deliver,
-				  append_desc };
+struct deliver deliver_append = { DELIVER_ASUSER, append_deliver, append_desc };
 
 int
 append_deliver(struct deliver_ctx *dctx, struct action *t)

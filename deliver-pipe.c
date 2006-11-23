@@ -29,8 +29,7 @@
 int	 pipe_deliver(struct deliver_ctx *, struct action *);
 char	*pipe_desc(struct action *);
 
-struct deliver deliver_pipe = { "pipe", DELIVER_ASUSER, pipe_deliver,
-				pipe_desc };
+struct deliver deliver_pipe = { DELIVER_ASUSER, pipe_deliver, pipe_desc };
 
 int
 pipe_deliver(struct deliver_ctx *dctx, struct action *t)

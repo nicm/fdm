@@ -1,6 +1,7 @@
 - SMTP SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
+- look into GSSAPI, POP3's MD5 thing, all that other crap
 - filter based on attachment size, quantity, type?
 - daemon mode
 - redo chrooting properly (resolver needs to be in parent)

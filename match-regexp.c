@@ -30,13 +30,11 @@ struct match match_regexp = { "regexp", regexp_match, regexp_desc };
 int
 regexp_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct regexp_data	*data;
-	int			 res;
+	struct regexp_data	*data = ei->data;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
 	regmatch_t	        *pmatch = mctx->pmatch;
-
-	data = ei->data;
+	int			 res;
 	
 	if (data->area == AREA_BODY && m->body == -1)
 		return (MATCH_FALSE);
@@ -72,11 +70,9 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 char *
 regexp_desc(struct expritem *ei)
 {
-	struct regexp_data	*data;
+	struct regexp_data	*data = ei->data;
 	const char		*area = NULL;
 	char			*s;
-
-	data = ei->data;
 
 	switch (data->area) {
 	case AREA_BODY:

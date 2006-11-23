@@ -32,8 +32,7 @@
 int	 mbox_deliver(struct deliver_ctx *, struct action *);
 char	*mbox_desc(struct action *);
 
-struct deliver deliver_mbox = { "mbox", DELIVER_ASUSER, mbox_deliver,
-				mbox_desc };
+struct deliver deliver_mbox = { DELIVER_ASUSER, mbox_deliver, mbox_desc };
 
 int
 mbox_deliver(struct deliver_ctx *dctx, struct action *t)

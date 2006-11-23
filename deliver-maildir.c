@@ -32,7 +32,7 @@
 int	 maildir_deliver(struct deliver_ctx *, struct action *);
 char	*maildir_desc(struct action *);
 
-struct deliver deliver_maildir = { "maildir", DELIVER_ASUSER, maildir_deliver,
+struct deliver deliver_maildir = { DELIVER_ASUSER, maildir_deliver,
 				   maildir_desc };
 
 int
