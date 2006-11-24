@@ -87,7 +87,10 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	diff = difftime(now, then);
 	if (diff < 0)
 		goto invalid;
-	if (diff == 0)
+
+	/* mails reaching this point is not invalid, so return false if
+	   validity is what is being tested for */
+	if (data->time == -1)
 		return (MATCH_FALSE);
 
 	t = diff;
