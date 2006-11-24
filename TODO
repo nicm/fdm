@@ -11,3 +11,4 @@
 - think about whether or not we like MATCH_* (remember
   error can't be -1 for some reason... why?)
 - clear up XXXs
+- fetch from maildir/mbox, filter by date/age (age > 3 months, age invalid, etc), and add keep options, so i can use fdm to do my monthly mail prune rather than archivemail
