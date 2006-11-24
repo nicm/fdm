@@ -22,6 +22,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,7 +74,8 @@ maildir_poll(struct account *a, u_int *n)
 
 	*n = 0;
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
-		s = replaceinfo(ARRAY_ITEM(data->paths, i, char *), a, NULL);
+		s = replaceinfo(ARRAY_ITEM(data->paths, i, char *), a, NULL,
+		    NULL);
 		if (s == NULL || *s == '\0') {
 			log_warnx("%s: empty path", a->name);
 			if (s != NULL)
@@ -130,7 +132,7 @@ maildir_fetch(struct account *a, struct mail *m)
 restart:	
 	if (data->dirp == NULL) {
 		s = ARRAY_ITEM(data->paths, data->index, char *);
-		data->path = replaceinfo(s, a, NULL);
+		data->path = replaceinfo(s, a, NULL, NULL);
 		if (data->path == NULL || *data->path == '\0') {
 			log_warnx("%s: empty path", a->name);
 			return (FETCH_ERROR);
@@ -181,6 +183,8 @@ restart:
 	}			
 	
 	init_mail(m, sb.st_size);
+	m->s = xstrdup(basename(data->path));
+
 	log_debug("%s: reading %zu bytes", a->name, m->size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
 		log_warn("%s: %s: read", a->name, data->entry); 

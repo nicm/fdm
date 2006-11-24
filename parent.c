@@ -41,6 +41,8 @@ parent(int fd, pid_t pid)
 	int		 status, error;
 	struct msgdata	*data;
 	uid_t		 uid;
+	void		*buf;
+	size_t		len;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -57,7 +59,9 @@ parent(int fd, pid_t pid)
 	data = &msg.data;
 	m = &data->mail;
 	do {
-		if (privsep_recv(io, &msg, NULL, NULL) != 0)
+		memset(m, 0, sizeof *m);
+
+		if (privsep_recv(io, &msg, &buf, &len) != 0)
 			fatalx("parent: privsep_recv error");
 		log_debug2("parent: got message type %d", msg.type);
 
@@ -65,6 +69,11 @@ parent(int fd, pid_t pid)
 		case MSG_ACTION:
 			m->base = shm_reopen(&m->shm);
 			m->data = m->base + m->off;
+
+			if (buf != NULL) {
+				m->s = xrealloc(buf, 1, len + 1);
+				m->s[len] = '\0';
+			}
 
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
@@ -85,6 +94,11 @@ parent(int fd, pid_t pid)
 			m->base = shm_reopen(&m->shm);
 			m->data = m->base + m->off;
 
+			if (buf != NULL) {
+				m->s = xrealloc(buf, 1, len + 1);
+				m->s[len] = '\0';
+			}
+
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
 
@@ -103,6 +117,8 @@ parent(int fd, pid_t pid)
 		case MSG_DONE:
 			fatalx("parent: unexpected message");
 		case MSG_EXIT:
+			if (buf != NULL)
+				fatalx("parent: unexpected data");
 			break;
 		}
 	} while (msg.type != MSG_EXIT);
@@ -327,7 +343,7 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
 	    conf.info.home);
 
 	/* sort out the command */
-	s = replaceinfo(data->cmd, a, NULL);
+	s = replaceinfo(data->cmd, a, NULL, m->s);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		_exit(MATCH_ERROR);

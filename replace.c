@@ -53,7 +53,7 @@ replacepmatch(char *src, struct mail *m, regmatch_t pmatch[NPMATCH])
 }
 
 char *
-replaceinfo(char *src, struct account *a, struct action *t)
+replaceinfo(char *src, struct account *a, struct action *t, char *s)
 {
 	char		*map[REPL_LEN], H[5], M[5], S[5], d[5], m[5], y[5];
 	char		 W[5], Y[5], Q[5];
@@ -63,6 +63,7 @@ replaceinfo(char *src, struct account *a, struct action *t)
 	memset(map, 0, sizeof map);
 
 	map[REPL_IDX('a')] = a->name;
+	map[REPL_IDX('s')] = s;
 	map[REPL_IDX('h')] = conf.info.home;
 	map[REPL_IDX('n')] = conf.info.uid;
 	if (t != NULL)
@@ -83,7 +84,7 @@ replaceinfo(char *src, struct account *a, struct action *t)
 		map[REPL_IDX('d')] = d;
 		xsnprintf(m, sizeof m, "%.2d", tm->tm_mon);
 		map[REPL_IDX('m')] = m;
-		xsnprintf(y, sizeof y, "%.4d", tm->tm_year);
+		xsnprintf(y, sizeof y, "%.4d", 1900 + tm->tm_year);
 		map[REPL_IDX('y')] = y;
 		xsnprintf(W, sizeof W, "%d", tm->tm_wday);
 		map[REPL_IDX('W')] = W;

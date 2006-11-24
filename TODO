@@ -16,3 +16,5 @@
 - document age match
 - get rid of CMP_NE/EQ
 - get rid of name in matches
+- think about how to do a keep action (mail->delete?)
+- fill in server name as metadata (m->s) for imap/pop3/stdin...

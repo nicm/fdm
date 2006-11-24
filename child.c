@@ -475,6 +475,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	u_int		 	 i, l;
 	int		 	 find;
 	struct users	        *users;
+	char			*s;
+	size_t			 slen;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
@@ -518,7 +520,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		msg.data.action = t;
 		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
 		copy_mail(m, &msg.data.mail);
-		if (privsep_send(mctx->io, &msg, NULL, 0) != 0)
+		slen = m->s != NULL ? strlen(m->s) : 0;
+		if (privsep_send(mctx->io, &msg, m->s, slen) != 0)
 			fatalx("child: privsep_send error");
 
 		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)
@@ -533,9 +536,10 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		if (t->deliver->type != DELIVER_WRBACK)
 			continue;
 
-		/* save the tags */
+		/* save the tags and string */
 		memcpy(&tags, &m->tags, sizeof tags);
 		ARRAY_INIT(&m->tags);
+		s = m->s;
 
 		/* free the old mail */
 		free_mail(m, 1);
@@ -545,8 +549,9 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		m->base = shm_reopen(&m->shm);
 		m->data = m->base + m->off;
 
-		/* restore the tags */
+		/* restore the tags and string */
 		memcpy(&m->tags, &tags, sizeof tags);
+		m->s = s;
 
 		log_debug("%s: received modified mail: size %zu, body=%zd",
 		    a->name, m->size, m->body);

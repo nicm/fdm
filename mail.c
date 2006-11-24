@@ -57,6 +57,8 @@ copy_mail(struct mail *src, struct mail *dst)
 void
 free_mail(struct mail *m, int final)
 {
+	if (m->s != NULL)
+		xfree(m->s);
 	if (!ARRAY_EMPTY(&m->tags))
 		ARRAY_FREE(&m->tags);
 	free_wrapped(m);
