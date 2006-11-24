@@ -51,7 +51,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	xasprintf(&s, "%*s", (int) len, hdr);
 	ptr = s;
 
-	log_debug2("%s: found date header: %s", a->name, ptr);
+	log_debug2("%s: found date header: %.*s", a->name, (int) len, ptr);
 	endptr = strptime(ptr, "%a, %d %b %Y %H:%M:%S", &tm);
 	if (endptr == NULL)
 		endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
