@@ -140,7 +140,7 @@ maildir_fetch(struct account *a, struct mail *m)
 
 restart:	
 	if (data->dirp == NULL) {
-		if (data->ep == NULL) {
+		if (*data->ep == NULL) {
 			s = ARRAY_ITEM(data->paths, data->index, char *);
 			data->path = replaceinfo(s, a, NULL, NULL);
 			if (data->path == NULL || *data->path == '\0') {
