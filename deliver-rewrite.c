@@ -101,7 +101,7 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 	if (status != 0) {
 		log_warnx("%s: %s: command returned %d", a->name, s, status);
 		goto error;
-	} 
+	}
 
 	if (md->size == 0) {
 		log_warnx("%s: %s: empty mail returned", a->name, s);

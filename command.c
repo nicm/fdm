@@ -42,7 +42,7 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 
 	/* open child's stdin */
 	if (in) {
-		if (pipe(fd_in) != 0) {	
+		if (pipe(fd_in) != 0) {
 			xasprintf(cause, "pipe: %s", strerror(errno));
 			goto error;
 		}
@@ -56,7 +56,7 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 
 	/* open child's stdout */
 	if (out) {
-		if (pipe(fd_out) != 0) {		
+		if (pipe(fd_out) != 0) {
 			xasprintf(cause, "pipe: %s", strerror(errno));
 			goto error;
 		}
@@ -69,7 +69,7 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 	}
 
 	/* open child's stderr */
-	if (pipe(fd_err) != 0) {		
+	if (pipe(fd_err) != 0) {
 		xasprintf(cause, "pipe: %s", strerror(errno));
 		goto error;
 	}
@@ -86,14 +86,14 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 		if (fd_out[0] != -1)
 			close(fd_out[0]);
 		close(fd_err[0]);
-		
+
 		if (dup2(fd_in[0], STDIN_FILENO) == -1)
 			fatal("dup2(stdin)");
 		if (dup2(fd_out[1], STDOUT_FILENO) == -1)
 			fatal("dup2(stdout)");
 		if (dup2(fd_err[1], STDERR_FILENO) == -1)
 			fatal("dup2(stderr)");
-		
+
 		execl(_PATH_BSHELL, "sh", "-c", s, (char *) NULL);
 		fatal("execl");
 	}
@@ -171,7 +171,7 @@ restart:
 		case -1:
 			return (1);
 		case 0:
-			/* the pipe has closed. if there is data left in the 
+			/* the pipe has closed. if there is data left in the
 			   buffer, go on to try to handle it. io_readline will
 			   return everyone left once the socket closes, so next
 			   time one of these will be true */
@@ -200,9 +200,9 @@ restart:
 		xasprintf(cause, "waitpid: %s", strerror(errno));
 		return (1);
 	}
-	if (WIFSIGNALED(status)) {	
+	if (WIFSIGNALED(status)) {
 		xasprintf(cause, "child got signal: %d", WTERMSIG(status));
-		return (1);	
+		return (1);
 	}
 	if (!WIFEXITED(status)) {
 		xasprintf(cause, "child didn't exit normally");

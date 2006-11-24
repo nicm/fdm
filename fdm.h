@@ -241,7 +241,7 @@ struct proxy {
 struct shm {
 	char	 name[MAXPATHLEN];
 	int	 fd;
-	
+
 	void	*data;
 	size_t	 size;
 };
@@ -280,12 +280,12 @@ enum msgtype {
 struct msgdata {
 	int	 	 	 error;
 	struct mail	 	 mail;
-	
+
 	/* these only work so long as they aren't moved in either process */
 	struct account		*account;
 	struct action		*action;
 	struct command_data	*cmddata;
- 
+
 	uid_t		 	 uid;
 };
 
@@ -734,7 +734,7 @@ extern struct match	 match_string;
 
 /* match-command.c */
 extern struct match	 match_command;
- 
+
 /* match-regexp.c */
 extern struct match	 match_regexp;
 
@@ -828,7 +828,7 @@ int			 privsep_recv(struct io *, struct msg *, void **buf,
 			     size_t *);
 
 /* command.c */
-struct cmd 		*cmd_start(const char *, int, int, char *, size_t, 
+struct cmd 		*cmd_start(const char *, int, int, char *, size_t,
 			     char **);
 int			 cmd_poll(struct cmd *, char **, char **, char **);
 void			 cmd_free(struct cmd *);
@@ -869,7 +869,7 @@ void			 free_wrapped(struct mail *);
 	(((ch) >= 'a' && (ch) <= 'z') ? (ch) - 'a' :       	\
 	(((ch) >= 'A' && (ch) <= 'Z') ? 26 + (ch) - 'A' : 	\
 	(((ch) >= '0' && (ch) <= '9') ? 52 + (ch) - '0' : -1)))
-char 			*replacepmatch(char *, struct mail *, 
+char 			*replacepmatch(char *, struct mail *,
 			     regmatch_t [NPMATCH]) ;
 char			*replaceinfo(char *, struct account *, struct action *);
 char 			*replace(char *, char *[REPL_LEN]);

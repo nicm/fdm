@@ -119,7 +119,7 @@ imap_tag(char *line)
 	if (line[0] == '+')
 		return (IMAP_TAG_CONTINUE);
 
-	if ((ptr = strchr(line, ' ')) == NULL) 
+	if ((ptr = strchr(line, ' ')) == NULL)
 		return (IMAP_TAG_ERROR);
 	*ptr = '\0';
 

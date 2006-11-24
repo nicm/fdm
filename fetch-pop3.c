@@ -108,7 +108,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 	size_t			 off = 0, size, len, llen;
 	u_int			 lines = 0;
 
-	if (m != NULL) 
+	if (m != NULL)
 		m->data = NULL;
 
 	llen = IO_LINESIZE;
@@ -312,7 +312,7 @@ pop3_keep(struct account *a)
 
 	/* we don't need to /do/ anything here, but we need to poke the POP3
 	   server so the response in the POP3_DONE state is a) there and
-	   b) valid. this is not ideal, maybe it should be structured 
+	   b) valid. this is not ideal, maybe it should be structured
 	   differently */
 	io_writeline(data->io, "NOOP");
 

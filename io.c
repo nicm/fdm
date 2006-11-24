@@ -135,7 +135,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 			return (-1);
 		}
 		if (io->closed)
-			return (0);		
+			return (0);
 	}
 
 	/* create the poll structure */
@@ -180,7 +180,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 			io->closed = 1;
 			continue;
 		}
-	
+
 		if (io->need != 0) {
 			/* if a repeated read/write is necessary, the socket
 			   must be ready for both reading and writing */
@@ -201,7 +201,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 			}
 			continue;
 		}
-		
+
 		/* otherwise try to read and write */
 		if (pfd->revents & POLLOUT) {
 			switch (io_push(io)) {

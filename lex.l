@@ -233,7 +233,7 @@ read_str(char endc)
 				ch = name[0];
 				break;
 			}
-			
+
 			/* remaining characters */
 			valid = 1;
 			do {
@@ -254,7 +254,7 @@ read_str(char endc)
 
 			if ((macro = find_macro(name)) == NULL)
 				yyerror("undefined macro: %s", name);
-			
+
 			if (macro->type == MACRO_NUMBER)
  				xasprintf(&s, "%lld", macro->value.number);
 			else

@@ -35,7 +35,7 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail		*m = mctx->mail;
 	regmatch_t	        *pmatch = mctx->pmatch;
 	int			 res;
-	
+
 	if (data->area == AREA_BODY && m->body == -1)
 		return (MATCH_FALSE);
 
@@ -56,7 +56,7 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 		pmatch[0].rm_eo = m->size;
 		break;
 	}
-	
+
 	res = regexec(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND);
 	if (res != 0 && res != REG_NOMATCH) {
 		log_warnx("%s: %s: regexec failed", a->name, data->re_s);

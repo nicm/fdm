@@ -23,7 +23,7 @@
 #include "fdm.h"
 
 char *
-replacepmatch(char *src, struct mail *m, regmatch_t pmatch[NPMATCH]) 
+replacepmatch(char *src, struct mail *m, regmatch_t pmatch[NPMATCH])
 {
 	char	*map[REPL_LEN];
 	char	*dst, *s;

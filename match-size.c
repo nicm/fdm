@@ -32,7 +32,7 @@ size_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct size_data	*data = ei->data;
 	struct mail		*m = mctx->mail;
-	
+
 	switch (data->cmp) {
 	case CMP_LT:
 		if (m->size < data->size)

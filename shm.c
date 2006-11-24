@@ -56,7 +56,7 @@ shm_malloc(struct shm *shm, size_t size)
         if (size == 0)
                 fatalx("shm_malloc: zero size");
 
-	if (xsnprintf(shm->name, sizeof shm->name, "%s/%s.XXXXXXXXXXXX", 
+	if (xsnprintf(shm->name, sizeof shm->name, "%s/%s.XXXXXXXXXXXX",
 	    conf.tmp_dir, __progname) < 0)
 		fatal("xsnprintf");
 	if ((shm->fd = mkstemp(shm->name)) < 0)
@@ -107,7 +107,7 @@ shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 			fatal("write");
 	}
 	shm->size = size;
-	
+
 	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");

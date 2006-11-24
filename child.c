@@ -58,7 +58,7 @@ child(int fd, enum fdmop op)
 	if (geteuid() != 0)
 		log_debug("child: not root user. not dropping privileges");
 	else {
-		log_debug("child: changing to user %lu", 
+		log_debug("child: changing to user %lu",
 		    (u_long) conf.child_uid);
 		if (dropto(conf.child_uid) != 0)
 			fatal("dropto");
@@ -217,7 +217,7 @@ fetch_account(struct io *io, struct account *a)
 			log_warnx("%s: got empty message. ignored", a->name);
 			continue;
 		}
-			
+
 		log_debug("%s: got message: size=%zu, body=%zd", a->name,
 		    m.size, m.body);
 
@@ -226,7 +226,7 @@ fetch_account(struct io *io, struct account *a)
 			log_debug("%s: no message-id", a->name);
 		else {
 			/* len - 1 to strip \n */
-			log_debug("%s: message-id is: %.*s", a->name, 
+			log_debug("%s: message-id is: %.*s", a->name,
 			    (int) len - 1, hdr);
 		}
 
@@ -324,7 +324,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 			if (i == ARRAY_LENGTH(list))
 				continue;
 		}
-		
+
 		/* match all the regexps */
 		switch (r->type) {
 		case RULE_EXPRESSION:
@@ -340,15 +340,15 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 			break;
 		}
 		log_debug("%s: matched message", a->name);
-			
+
 		set_wrapped(m, '\n');
-		
+
 		/* tag mail if needed */
 		if (r->tag != NULL) {
 			log_debug("%s: tagging message: %s", a->name, r->tag);
 			ARRAY_ADD(&m->tags, r->tag, char *);
 		}
-		
+
 		/* handle delivery */
 		if (r->actions != NULL) {
 			*mctx->matched = 1;
@@ -356,7 +356,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 				*cause = "delivery";
 				return (1);
 			}
-		}		
+		}
 		/* deal with nested rules */
 		if (!TAILQ_EMPTY(&r->rules)) {
 			log_debug2("%s: entering nested rules", a->name);
@@ -364,12 +364,12 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 				return (1);
 			log_debug2("%s: exiting nested rules%s", a->name,
 			    *mctx->stopped ? ", and stopping" : "");
-			/* if it didn't drop off the end of the nested rules, 
+			/* if it didn't drop off the end of the nested rules,
 			   stop now */
 			if (*mctx->stopped)
 				return (0);
 		}
-		
+
 		/* if this rule is marked as stop, stop checking now */
 		if (r->stop) {
 			*mctx->stopped = 1;
@@ -408,7 +408,7 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 		}
 
 		s = ei->match->desc(ei);
-		log_debug2("%s: tried %s%s:%s, got %d", mctx->account->name, 
+		log_debug2("%s: tried %s%s:%s, got %d", mctx->account->name,
 		    ei->inverted ? "not " : "", ei->match->name, s, cres);
 		xfree(s);
 	}
@@ -428,7 +428,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 
 	if (r->actions == NULL)
 		return (0);
-	
+
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		name = ARRAY_ITEM(r->actions, i, char *);
 
@@ -480,7 +480,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		return (0);
 
 	/* just deliver now for in-child delivery */
-	if (t->deliver->type == DELIVER_INCHILD) { 
+	if (t->deliver->type == DELIVER_INCHILD) {
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = a;
 		dctx.mail = m;
@@ -489,7 +489,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 			return (1);
 		return (0);
 	}
-	
+
 	/* figure out the users to use */
 	users = NULL;
 	if (r->find_uid) {		/* rule comes first */
@@ -511,7 +511,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		ARRAY_INIT(users);
 		ARRAY_ADD(users, conf.def_user, uid_t);
 	}
-	
+
 	for (i = 0; i < ARRAY_LENGTH(users); i++) {
 		msg.type = MSG_ACTION;
 		msg.data.account = a;
@@ -547,21 +547,21 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
 		/* restore the tags */
 		memcpy(&m->tags, &tags, sizeof tags);
-		   
+
 		log_debug("%s: received modified mail: size %zu, body=%zd",
 		    a->name, m->size, m->body);
 
 		/* trim from line */
 		trim_from(m);
 
-		/* and recreate the wrapped array */		
+		/* and recreate the wrapped array */
 		l = fill_wrapped(m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
 		/* invalidate the pmatch data since stuff may have moved */
 		mctx->pmatch_valid = 0;
 	}
-	
+
 	if (find)
 		ARRAY_FREEALL(users);
 

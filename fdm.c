@@ -435,7 +435,7 @@ main(int argc, char **argv)
 		close(lockfd);
 	}
 	conf.lock_file = lock;
-	    
+
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 		fatal("socketpair");
 	switch (pid = fork()) {

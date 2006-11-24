@@ -50,7 +50,7 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 		fatalx("child: privsep_recv error");
 	if (msg.type != MSG_DONE)
 		fatalx("child: unexpected message");
-	
+
 	return (msg.data.error);
 }
 

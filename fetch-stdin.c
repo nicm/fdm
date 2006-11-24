@@ -145,7 +145,7 @@ stdin_fetch(struct account *a, struct mail *m)
 			len = strlen(line);
 			if (len == 0 && m->body == -1)
 				m->body = m->size + 1;
-			
+
 			resize_mail(m, m->size + len + 1);
 
 			if (len > 0)

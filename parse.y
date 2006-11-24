@@ -101,7 +101,7 @@ yywrap(void)
 		ARRAY_FREE(&rulestack);
 		return (1);
 	}
-	
+
 	top = ARRAY_LAST(&filestack, struct filestackent *);
 	yyin = top->yyin;
 	yyrestart(yyin);
@@ -260,39 +260,39 @@ strv: STRING
     | STRMACRO
       {
 	      struct macro	*macro;
-	      
+
 	      if (strlen($1) > MAXNAMESIZE)
 		      yyerror("macro name too long: %s", $1);
-	      
+
 	      if ((macro = find_macro($1)) == NULL)
 		      yyerror("undefined macro: %s", $1);
 	      if (macro->type != MACRO_STRING)
 		      yyerror("string macro expected: %s", $1);
-	      
+
 	      $$ = xstrdup(macro->value.string);
-	      
+
 	      xfree($1);
       }
     | STRMACROB
       {
 	      struct macro	*macro;
 	      char 		 name[MAXNAMESIZE];
-	      
+
 	      if (strlen($1) > MAXNAMESIZE + 2)
 		      yyerror("macro name too long: %s", $1);
-	      
+
 	      name[0] = $1[0];
 	      name[1] = '\0';
 	      strlcat(name, $1 + 2, MAXNAMESIZE);
 	      name[strlen(name) - 1] = '\0';
-	      
+
 	      if ((macro = find_macro(name)) == NULL)
 		      yyerror("undefined macro: %s", name);
 	      if (macro->type != MACRO_STRING)
 		      yyerror("string macro expected: %s", name);
-	      
+
 	      $$ = xstrdup(macro->value.string);
-	      
+
 	      xfree($1);
       }
 
@@ -303,39 +303,39 @@ numv: NUMBER
     | NUMMACRO
       {
 	      struct macro	*macro;
-	      
+
 	      if (strlen($1) > MAXNAMESIZE)
 		      yyerror("macro name too long: %s", $1);
-	      
+
 	      if ((macro = find_macro($1)) == NULL)
 		      yyerror("undefined macro: %s", $1);
 	      if (macro->type != MACRO_NUMBER)
 		      yyerror("number macro expected: %s", $1);
-	      
+
 	      $$ = macro->value.number;
-	      
+
 	      xfree($1);
       }
     | NUMMACROB
       {
 	      struct macro	*macro;
 	      char 		 name[MAXNAMESIZE];
-	      
+
 	      if (strlen($1) > MAXNAMESIZE + 2)
 		      yyerror("macro name too long: %s", $1);
-	      
+
 	      name[0] = $1[0];
 	      name[1] = '\0';
 	      strlcat(name, $1 + 2, MAXNAMESIZE);
 	      name[strlen(name) - 1] = '\0';
-	      
+
 	      if ((macro = find_macro(name)) == NULL)
 		      yyerror("undefined macro: %s", name);
 	      if (macro->type != MACRO_NUMBER)
 		      yyerror("number macro expected: %s", name);
-	      
+
 	      $$ = macro->value.number;
-	      
+
 	      xfree($1);
       }
 
@@ -346,7 +346,7 @@ include: TOKINCLUDE strv
 
 		 if (*$2 == '\0')
 			 yyerror("invalid include file");
-		 
+
 		 top = xmalloc(sizeof *top);
 		 top->yyin = yyin;
 		 top->yylineno = yylineno;
@@ -416,7 +416,7 @@ set: TOKSET TOKMAXSIZE size
 		     ARRAY_FREE(conf.domains);
 		     xfree(conf.domains);
 	     }
-		     
+
 	     conf.domains = $2;
      }
    | TOKSET headers
@@ -458,7 +458,7 @@ set: TOKSET TOKMAXSIZE size
 defmacro: STRMACRO '=' STRING
      	  {
 		  struct macro	*macro;
-		  
+
 		  if ((macro = find_macro($1)) == NULL) {
 			  macro = xmalloc(sizeof *macro);
 			  if (strlen($1) > MAXNAMESIZE)
@@ -471,9 +471,9 @@ defmacro: STRMACRO '=' STRING
 		  xfree($1);
 	  }
         | NUMMACRO '=' NUMBER
-	  {	
+	  {
 	     struct macro	*macro;
-	     
+
 	     if ((macro = find_macro($1)) == NULL) {
 		     macro = xmalloc(sizeof *macro);
 		     if (strlen($1) > MAXNAMESIZE)
@@ -828,7 +828,7 @@ defaction: TOKACTION strv users action
 			   yyerror("invalid action name");
 		   if (find_action($2) != NULL)
 			   yyerror("duplicate action: %s", $2);
-		   
+
 		   t = xmalloc(sizeof *t);
 		   memcpy(t, &$4, sizeof *t);
 		   strlcpy(t->name, $2, sizeof t->name);
@@ -839,7 +839,7 @@ defaction: TOKACTION strv users action
 		   s = t->deliver->desc(t);
 		   log_debug2("added action: name=%s deliver=%s", t->name, s);
 		   xfree(s);
-		   
+
 		   xfree($2);
 	   }
 
@@ -892,7 +892,7 @@ actions: TOKACTION TOKNONE
        | TOKACTION strv
 	 {
 		 struct actionptrs	*ta;
-		 
+
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
 		 /* XXX check better? or not at all? */
@@ -1045,20 +1045,20 @@ expritem: not icase strv area
 		  int	 		 error, flags;
 		  size_t	 	 len;
 		  char			*buf;
-		  
+
 		  if (*$3 == '\0')
 			  yyerror("invalid regexp");
-		  
+
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_regexp;
 		  $$->inverted = $1;
-		  
+
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
-		  
+
 		  data->re_s = $3;
 		  data->area = $4;
-		  
+
 		  flags = REG_EXTENDED|REG_NEWLINE;
 		  if ($2)
 			  flags |= REG_ICASE;
@@ -1075,7 +1075,7 @@ expritem: not icase strv area
 		  int	 		 error, flags;
 		  size_t	 	 len;
 		  char			*buf;
-		  
+
 		  if (*$3 == '\0' || ($3[0] == '|' && $3[1] == '\0'))
 			  yyerror("invalid command");
 		  if ($7 == -1 && $9 == NULL)
@@ -1086,17 +1086,17 @@ expritem: not icase strv area
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_command;
 		  $$->inverted = $1;
-		  
+
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
-		  
+
 		  data->uid = $4;
 		  data->pipe = $2;
 		  data->cmd = $3;
 
 		  data->ret = $7;
 		  data->re_s = $9;
-		  
+
 		  if ($9 != NULL) {
 			  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
 			  if ((error = regcomp(&data->re, $9, flags)) != 0) {
@@ -1111,37 +1111,37 @@ expritem: not icase strv area
 	| not TOKTAGGED strv
 	  {
 		  struct tagged_data	*data;
-		  
+
 		  if (*$3 == '\0')
 			  yyerror("invalid tag");
-		  
+
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_tagged;
 		  $$->inverted = $1;
-		  
+
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
-		  
+
 		  data->tag = $3;
 	  }
         | not TOKSIZE cmp size
 	  {
 		  struct size_data	*data;
-		  
+
 		  if ($4 > SIZE_MAX)
 			  yyerror("size too large");
 		  if ($3 == CMP_EQ || $3 == CMP_NE)
 			  yyerror("can't compare size with == or !=");
-		  
+
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_size;
 		  $$->inverted = $1;
-		  
+
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
-		  
+
 		  data->size = $4;
 		  data->cmp = $3;
 	  }
@@ -1164,7 +1164,7 @@ expritem: not icase strv area
 
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
-		  
+
 		  data->re_s = $5;
 		  data->s = $3;
 
@@ -1313,15 +1313,15 @@ rule: match accounts perform
 			      s = ei->match->desc(ei);
 			      switch (ei->op) {
 			      case OP_AND:
-				      xsnprintf(tmp2, sizeof tmp2, 
+				      xsnprintf(tmp2, sizeof tmp2,
 					  "and %s:%s ", ei->match->name, s);
 				      break;
 			      case OP_OR:
-				      xsnprintf(tmp2, sizeof tmp2, 
+				      xsnprintf(tmp2, sizeof tmp2,
 					  "or %s:%s ", ei->match->name, s);
 				      break;
 			      case OP_NONE:
-				      xsnprintf(tmp2, sizeof tmp2, 
+				      xsnprintf(tmp2, sizeof tmp2,
 					  "%s:%s ", ei->match->name, s);
 				      break;
 			      }
@@ -1342,7 +1342,7 @@ rule: match accounts perform
 		      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
 	      } else if ($3->tag != NULL)
 		      log_debug2("added rule: tag=%s matches=%s", $3->tag, tmp);
-	      else 
+	      else
 		      log_debug2("added rule: nested matches=%s", tmp);
       }
 
@@ -1391,8 +1391,8 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->user = $4;
 		   data->pass = $6;
 		   data->server.ssl = $1;
-		   data->server.host = $2.host;	
-		   if ($2.port != NULL) 
+		   data->server.host = $2.host;
+		   if ($2.port != NULL)
 			   data->server.port = $2.port;
 		   else
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
@@ -1417,7 +1417,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->folder = $7 == NULL ? xstrdup("INBOX") : $7;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
-		   if ($2.port != NULL) 
+		   if ($2.port != NULL)
 			   data->server.port = $2.port;
 		   else
 			   data->server.port = xstrdup($$.fetch->ports[$1]);

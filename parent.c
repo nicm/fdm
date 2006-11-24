@@ -28,7 +28,7 @@
 #include "fdm.h"
 
 int	parent_action(struct account *, struct action *, struct mail *, uid_t);
-int	parent_command(struct account *, struct command_data *, struct mail *, 
+int	parent_command(struct account *, struct command_data *, struct mail *,
 	    uid_t);
 int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
@@ -172,7 +172,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 			}
 		} while (msg.type != MSG_DONE);
 		error = msg.data.error;
-		
+
 		/* use new mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
 			if (error == DELIVER_SUCCESS) {
@@ -181,9 +181,9 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 				/* no need to update anything, since the
 				   important stuff is all the same */
 				copy_mail(&msg.data.mail, m);
-				
+
 				log_debug2("%s: got new mail from delivery: "
-				    "size %zu, body=%zd", a->name, m->size, 
+				    "size %zu, body=%zd", a->name, m->size,
 				    m->body);
 			} else
 				free_mail(&dctx.wr_mail, 1);
@@ -192,10 +192,10 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		/* free the io */
 		io_close(io);
 		io_free(io);
-			
+
 		if (waitpid(pid, &status, 0) == -1)
 			fatal("waitpid");
-		if (WIFSIGNALED(status)) {	
+		if (WIFSIGNALED(status)) {
 			log_warnx("%s: child got signal: %d", a->name,
 			    WTERMSIG(status));
 			return (DELIVER_FAILURE);
@@ -245,7 +245,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	/* do the delivery */
 	error = t->deliver->deliver(&dctx, t);
 	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS) {
-		log_debug2("%s: using new mail, size %zu", a->name, 
+		log_debug2("%s: using new mail, size %zu", a->name,
 		    dctx.wr_mail.size);
 		copy_mail(&dctx.wr_mail, &msg.data.mail);
 	}
@@ -270,7 +270,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 }
 
 int
-parent_command(struct account *a, struct command_data *data, struct mail *m, 
+parent_command(struct account *a, struct command_data *data, struct mail *m,
     uid_t uid)
 {
 	int		 status, found;
@@ -287,10 +287,10 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
 
 		if (waitpid(pid, &status, 0) == -1)
 			fatal("waitpid");
-		if (WIFSIGNALED(status)) {	
+		if (WIFSIGNALED(status)) {
 			log_warnx("%s: child got signal: %d", a->name,
 			    WTERMSIG(status));
-			return (MATCH_ERROR);	
+			return (MATCH_ERROR);
 		}
 		if (!WIFEXITED(status)) {
 			log_warnx("%s: child didn't exit normally", a->name);
@@ -331,7 +331,7 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		_exit(MATCH_ERROR);
-        }	
+        }
 
 	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, data->ret,
 	    data->re_s == NULL ? "none" : data->re_s);
@@ -370,7 +370,7 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
 				case REG_NOMATCH:
 					break;
 				default:
-					log_warnx("%s: %s: %s: regexec failed", 
+					log_warnx("%s: %s: %s: regexec failed",
 					    a->name, s, data->re_s);
 					cmd_free(cmd);
 					xfree(s);
