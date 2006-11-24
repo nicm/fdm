@@ -22,6 +22,7 @@
 #include <sys/param.h>
 #include <sys/queue.h>
 
+#include <dirent.h>
 #include <stdarg.h>
 #include <regex.h>
 
@@ -84,7 +85,7 @@ extern char	*__progname;
 #endif
 
 /* Array macros. */
-#define ARRAY_DECLARE(n, c)						\
+#define ARRAY_DECL(n, c)						\
 	struct n {							\
 		c	*list;						\
 		u_int	 num;						\
@@ -255,7 +256,7 @@ struct shm {
 };
 
 /* Tags array. */
-ARRAY_DECLARE(tags, char *);
+ARRAY_DECL(tags, char *);
 
 /* A single mail. */
 struct mail {
@@ -333,11 +334,11 @@ struct action {
 };
 
 /* Accounts array. */
-ARRAY_DECLARE(accounts, char *);
+ARRAY_DECL(accounts, char *);
 
 /* Actions arrays. */
-ARRAY_DECLARE(actionnames, char *);
-ARRAY_DECLARE(actionptrs, struct action *);
+ARRAY_DECL(actionnames, char *);
+ARRAY_DECL(actionptrs, struct action *);
 
 /* Match areas. */
 enum area {
@@ -402,13 +403,16 @@ struct rule {
 #define LOCK_DOTLOCK 0x4
 
 /* Domains array. */
-ARRAY_DECLARE(domains, char *);
+ARRAY_DECL(domains, char *);
 
 /* Headers array. */
-ARRAY_DECLARE(headers, char *);
+ARRAY_DECL(headers, char *);
 
 /* Users array. */
-ARRAY_DECLARE(users, char *);
+ARRAY_DECL(users, char *);
+
+/* Paths array. */
+ARRAY_DECL(paths, char *);
 
 /* Configuration settings. */
 struct conf {
@@ -645,6 +649,16 @@ struct command_data {
 	int			 ret;		/* -1 to not check */
 };
 
+/* Fetch maildir data. */
+struct maildir_data {
+	struct paths		*paths;
+	u_int			 index;
+
+	DIR			*dirp;
+	char			*path;
+	char			*entry;
+};
+
 /* Fetch stdin data. */
 struct stdin_data {
 	int		 complete;
@@ -757,20 +771,17 @@ extern struct match	 match_command;
 /* match-regexp.c */
 extern struct match	 match_regexp;
 
+/* fetch-maildir.c */
+extern struct fetch 	 fetch_maildir;
+
 /* fetch-stdin.c */
 extern struct fetch 	 fetch_stdin;
 
 /* fetch-pop3.c */
 extern struct fetch 	 fetch_pop3;
 
-/* fetch-pop3s.c */
-extern struct fetch 	 fetch_pop3s;
-
 /* fetch-imap.c */
 extern struct fetch 	 fetch_imap;
-
-/* fetch-imaps.c */
-extern struct fetch 	 fetch_imaps;
 
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;

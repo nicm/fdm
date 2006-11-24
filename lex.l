@@ -147,6 +147,7 @@ invalid return (TOKINVALID);
 keep return (TOKKEEP);
 lock-file return (TOKLOCKFILE);
 maildir return (TOKMAILDIR);
+maildirs return (TOKMAILDIRS);
 match return (TOKMATCH);
 matched return (TOKMATCHED);
 mbox return (TOKMBOX);

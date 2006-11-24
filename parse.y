@@ -38,16 +38,16 @@
 
 struct macros	macros = TAILQ_HEAD_INITIALIZER(macros);
 
-struct filestackent {
-	FILE				*yyin;
-	int		 	 	 yylineno;
-	char				*curfile;
+struct fileent {
+	FILE			*yyin;
+	int		 	 yylineno;
+	char			*curfile;
 };
-ARRAY_DECLARE(, struct filestackent *)	 filestack;
-char					*curfile;
+ARRAY_DECL(, struct fileent *)	 filestack;
+char				*curfile;
 
-ARRAY_DECLARE(, struct rule *)		 rulestack;
-struct rule				*currule;
+ARRAY_DECL(, struct rule *)	 rulestack;
+struct rule			*currule;
 
 extern FILE			*yyin;
 extern int		 	 yylineno;
@@ -80,7 +80,7 @@ int
 yywrap(void)
 {
 	struct macro		*macro;
-	struct filestackent	*top;
+	struct fileent	*top;
 	char			*file;
 
 	file = curfile == NULL ? conf.conf_file : curfile;
@@ -102,14 +102,14 @@ yywrap(void)
 		return (1);
 	}
 
-	top = ARRAY_LAST(&filestack, struct filestackent *);
+	top = ARRAY_LAST(&filestack, struct fileent *);
 	yyin = top->yyin;
 	yyrestart(yyin);
 	yylineno = top->yylineno;
 	xfree(curfile);
 	curfile = top->curfile;
 	xfree(top);
-	ARRAY_TRUNC(&filestack, 1, struct filestackent *);
+	ARRAY_TRUNC(&filestack, 1, struct fileent *);
 
         return (0);
 }
@@ -178,7 +178,7 @@ find_macro(char *name)
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKEQ TOKNE TOKSIZE
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
-%token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID 
+%token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKMAILDIRS
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -205,6 +205,7 @@ find_macro(char *name)
 	struct actionnames	*actions;
 	struct domains		*domains;
 	struct headers	 	*headers;
+	struct paths		*paths;
 	enum exprop		 exprop;
 	struct expritem		*expritem;
 	struct expr		*expr;
@@ -235,6 +236,7 @@ find_macro(char *name)
 %type  <locks> lock locklist
 %type  <match> match
 %type  <number> size time numv retrc
+%type  <paths> pathslist maildirs
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
@@ -343,7 +345,7 @@ numv: NUMBER
 include: TOKINCLUDE strv
 	 {
 		 char			*path;
-		 struct filestackent	*top;
+		 struct fileent	*top;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid include file");
@@ -352,7 +354,7 @@ include: TOKINCLUDE strv
 		 top->yyin = yyin;
 		 top->yylineno = yylineno;
 		 top->curfile = curfile;
-		 ARRAY_ADD(&filestack, top, struct filestackent *);
+		 ARRAY_ADD(&filestack, top, struct fileent *);
 
 		 yyin = fopen($2, "r");
 		 if (yyin == NULL) {
@@ -615,6 +617,38 @@ headerslist: headerslist strv
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $1, char *);
 	     }
+
+pathslist: pathslist strv
+	   {
+		   if (*$2 == '\0')
+			   yyerror("invalid path");
+		   
+		   $$ = $1;
+		   ARRAY_ADD($$, $2, char *);
+	   }
+	 | strv
+	   {
+		   if (*$1 == '\0')
+			   yyerror("invalid path");
+		   
+		   $$ = xmalloc(sizeof *$$);
+		   ARRAY_INIT($$);
+		   ARRAY_ADD($$, $1, char *);
+	   }
+
+maildirs: TOKMAILDIR strv
+	  {
+		  if (*$2 == '\0')
+			  yyerror("invalid path");
+		  
+		  $$ = xmalloc(sizeof *$$);
+		  ARRAY_INIT($$);
+		  ARRAY_ADD($$, $2, char *);
+	  }
+        | TOKMAILDIRS '{' pathslist '}'
+	  {
+		  $$ = $3;
+	  }
 
 lock: LCKFCNTL
       {
@@ -1419,6 +1453,7 @@ rule: match accounts perform
 	      }
 	      if ($3->actions != NULL) {
 		      *tmp2 = '\0';
+		      /* XXX format properly {}s etc */
 		      for (i = 0; i < ARRAY_LENGTH($3->actions); i++) {
 			      strlcat(tmp2, ARRAY_ITEM($3->actions, i, char *),
 				  sizeof tmp2);
@@ -1516,6 +1551,15 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.fetch = &fetch_stdin;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
+	   }
+         | maildirs
+	   {
+		   struct maildir_data	*data;
+		   
+		   $$.fetch = &fetch_maildir;
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
+		   data->paths = $1;
 	   }
 
 account: TOKACCOUNT strv disabled fetchtype keep
