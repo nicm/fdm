@@ -492,11 +492,11 @@ set: TOKSET TOKMAXSIZE size
      }
    | TOKSET TOKIMPLACT TOKKEEP
      {
-	     conf.impl_act = IMPLICIT_KEEP;
+	     conf.impl_act = DECISION_KEEP;
      }
    | TOKSET TOKIMPLACT TOKDROP
      {
-	     conf.impl_act = IMPLICIT_DROP;
+	     conf.impl_act = DECISION_DROP;
      }
 
 defmacro: STRMACRO '=' STRING
@@ -900,6 +900,10 @@ action: TOKPIPE strv
       | TOKDROP
         {
 		$$.deliver = &deliver_drop;
+	}
+      | TOKKEEP
+        {
+		$$.deliver = &deliver_keep;
 	}
 
 defaction: TOKACTION strv users action

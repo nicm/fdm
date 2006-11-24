@@ -11,10 +11,9 @@
 - think about whether or not we like MATCH_* (remember
   error can't be -1 for some reason... why?)
 - clear up XXXs
-- fetch from maildir/mbox, filter by date/age (age > 3 months, age invalid, etc), so i can use fdm to do my monthly mail prune rather than archivemail (and with keep for searching) \o/
-- document keep option
+- fetch from mbox
+- document keep option and -k and keep action
 - document age match
 - get rid of CMP_NE/EQ
 - get rid of name in matches
-- think about how to do a keep action (mail->delete?)
 - fill in server name as metadata (m->s) for imap/pop3/stdin...

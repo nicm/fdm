@@ -20,21 +20,21 @@
 
 #include "fdm.h"
 
-int	 drop_deliver(struct deliver_ctx *, struct action *);
-char	*drop_desc(struct action *);
+int	 keep_deliver(struct deliver_ctx *, struct action *);
+char	*keep_desc(struct action *);
 
-struct deliver deliver_drop = { DELIVER_INCHILD, drop_deliver, drop_desc };
+struct deliver deliver_keep = { DELIVER_INCHILD, keep_deliver, keep_desc };
 
 int
-drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
+keep_deliver(struct deliver_ctx *dctx, unused struct action *t)
 {
-	dctx->mail->decision = DECISION_DROP;
+	dctx->mail->decision = DECISION_KEEP;
 
 	return (DELIVER_SUCCESS);
 }
 
 char *
-drop_desc(unused struct action *t)
+keep_desc(unused struct action *t)
 {
-	return (xstrdup("drop"));
+	return (xstrdup("keep"));
 }

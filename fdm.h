@@ -258,10 +258,19 @@ struct shm {
 /* Tags array. */
 ARRAY_DECL(tags, char *);
 
+/* Options for final mail handling. */
+enum decision {
+	DECISION_NONE,
+	DECISION_DROP,
+	DECISION_KEEP
+};
+
 /* A single mail. */
 struct mail {
 	struct tags	 tags;
 	char		*s;		/* fetch-specific string */
+
+	enum decision	 decision;
 
 	struct shm	 shm;
 
@@ -446,11 +455,7 @@ struct conf {
 	int			 check_only;
 	int			 allow_many;
 	int			 keep_all;
-	enum {
-		IMPLICIT_NONE,
-		IMPLICIT_DROP,
-		IMPLICIT_KEEP
-	} impl_act;
+	enum decision		 impl_act;
 
 	size_t			 max_size;
 	int		         del_big;
@@ -792,6 +797,9 @@ extern struct deliver 	 deliver_pipe;
 
 /* deliver-drop.c */
 extern struct deliver 	 deliver_drop;
+
+/* deliver-keep.c */
+extern struct deliver 	 deliver_keep;
 
 /* deliver-maildir.c */
 extern struct deliver 	 deliver_maildir;

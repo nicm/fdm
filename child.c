@@ -164,7 +164,7 @@ fetch_account(struct io *io, struct account *a)
 	struct timeval	 tv;
 	double		 tim;
 	u_int	 	 n, l;
-	int		 error, matched, stopped, delete;
+	int		 error, matched, stopped;
  	const char	*cause = NULL;
 	struct match_ctx mctx;
 	char		*hdr;
@@ -181,13 +181,11 @@ fetch_account(struct io *io, struct account *a)
 
 	n = 0;
         for (;;) {
-		delete = 1;
-		if (conf.keep_all || a->keep)
-			delete = 0;
-
 		memset(&m, 0, sizeof m);
 		m.body = -1;
 		ARRAY_INIT(&m.tags);
+		/* drop mail by default unless something else comes along */
+		m.decision = DECISION_DROP;
 
 		memset(&mctx, 0, sizeof mctx);
 		mctx.io = io;
@@ -243,25 +241,30 @@ fetch_account(struct io *io, struct account *a)
 			goto done;
 
 		switch (conf.impl_act) {
-		case IMPLICIT_NONE:
+		case DECISION_NONE:
 			log_warnx("%s: reached end of ruleset. no "
-			    "unmatched-mail option; mail kept",  a->name);
-			delete = 0;
+			    "unmatched-mail option; keeping mail",  a->name);
+			m.decision = DECISION_KEEP;
 			break;
-		case IMPLICIT_KEEP:
-			log_debug("%s: reached end of ruleset. mail kept",
+		case DECISION_KEEP:
+			log_debug("%s: reached end of ruleset. keeping mail",
 			    a->name);
-			delete = 0;
+			m.decision = DECISION_KEEP;
 			break;
-		case IMPLICIT_DROP:
-			log_debug("%s: reached end of ruleset. mail dropped",
+		case DECISION_DROP:
+			log_debug("%s: reached end of ruleset. dropping mail",
 			    a->name);
+			m.decision = DECISION_DROP;
 			break;
 		}
 
 	done:
+		if (conf.keep_all || a->keep)
+			m.decision = DECISION_KEEP;
+
 		/* finished with the message */
-		if (delete) {
+		switch (m.decision) {
+		case DECISION_DROP:
 			if (a->fetch->delete != NULL) {
 				log_debug("%s: deleting message", a->name);
 				if (a->fetch->delete(a) != 0) {
@@ -269,7 +272,8 @@ fetch_account(struct io *io, struct account *a)
 					goto out;
 				}
 			}
-		} else {
+			break;
+		case DECISION_KEEP:
 			if (a->fetch->keep != NULL) {
 				log_debug("%s: keeping message", a->name);
 				if (a->fetch->keep(a) != 0) {
@@ -277,12 +281,17 @@ fetch_account(struct io *io, struct account *a)
 					goto out;
 				}
 			}
+			break;
+		default:
+			log_warnx("invalid decision on message: %d", 
+			    m.decision);
+			exit(1);
 		}
-
+		
  		free_mail(&m, 1);
 		n++;
 	}
-
+	
 out:
 	free_mail(&m, 1);
 	if (cause != NULL)
@@ -470,12 +479,10 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
 	struct msg	 	 msg;
-	struct tags		 tags;
 	struct deliver_ctx	 dctx;
 	u_int		 	 i, l;
 	int		 	 find;
 	struct users	        *users;
-	char			*s;
 	size_t			 slen;
 
  	if (t->deliver->deliver == NULL)
@@ -533,13 +540,26 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 			return (1);
 		}
 
-		if (t->deliver->type != DELIVER_WRBACK)
+		if (t->deliver->type != DELIVER_WRBACK) {
+			/* check everything that should be is the same
+			   (not that it matters) */
+			if (m->size != msg.data.mail.size || 
+			    m->body != msg.data.mail.body ||
+			    m->decision != msg.data.mail.decision)
+				fatalx("child: corrupted message");
 			continue;
-
-		/* save the tags and string */
-		memcpy(&tags, &m->tags, sizeof tags);
+		}
+			
+		/* copy the tags and string to the new mail and clear them
+		   from old to stop them being freed */
+		memcpy(&msg.data.mail.tags, &m->tags, 
+		    sizeof msg.data.mail.tags);
 		ARRAY_INIT(&m->tags);
-		s = m->s;
+		msg.data.mail.s = m->s;
+		m->s = NULL;
+
+		/* save the decision (only in-child delivery can alter it) */
+		msg.data.mail.decision = m->decision;
 
 		/* free the old mail */
 		free_mail(m, 1);
@@ -548,10 +568,6 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		memcpy(m, &msg.data.mail, sizeof *m);
 		m->base = shm_reopen(&m->shm);
 		m->data = m->base + m->off;
-
-		/* restore the tags and string */
-		memcpy(&m->tags, &tags, sizeof tags);
-		m->s = s;
 
 		log_debug("%s: received modified mail: size %zu, body=%zd",
 		    a->name, m->size, m->body);
