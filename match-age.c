@@ -51,18 +51,10 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	xasprintf(&s, "%*s", (int) len, hdr);
 	ptr = s;
 
-	/* skip the first word */
-	while (*ptr != '\0' && !isspace((int) *ptr))
-		ptr++;
-	while (*ptr != '\0' && isspace((int) *ptr))
-		ptr++;
-	if (*ptr == '\0') {
-		xfree(s);
-		goto invalid;
-	}
-
 	log_debug2("%s: found date header: %s", a->name, ptr);
-	endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
+	endptr = strptime(ptr, "%a, %d %b %Y %H:%M:%S", &tm);
+	if (endptr == NULL)
+		endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
 	if (endptr == NULL) {
 		xfree(s);
 		goto invalid;
