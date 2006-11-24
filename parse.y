@@ -177,7 +177,8 @@ find_macro(char *name)
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKEQ TOKNE TOKSIZE
-%token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT
+%token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
+%token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID 
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -233,7 +234,7 @@ find_macro(char *name)
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
-%type  <number> size numv retrc
+%type  <number> size time numv retrc
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
@@ -374,6 +375,47 @@ size: numv
     | SIZE
       {
 	      $$ = $1;
+      }
+
+time: numv TOKHOURS
+      {
+	      if ($1 > LLONG_MAX / TIME_HOUR)
+		      yyerror("time is too long");
+	      $$ = $1 * TIME_HOUR;
+      }
+    | numv TOKMINUTES
+      {
+	      if ($1 > LLONG_MAX / TIME_MINUTE)
+		      yyerror("time is too long");
+	      $$ = $1 * TIME_MINUTE;
+      }
+    | numv TOKSECONDS
+      {
+	      $$ = $1;
+      }
+    | numv TOKDAYS
+      {
+	      if ($1 > LLONG_MAX / TIME_DAY)
+		      yyerror("time is too long");
+	      $$ = $1 * TIME_DAY;
+      }
+    | numv TOKWEEKS
+      {
+	      if ($1 > LLONG_MAX / TIME_WEEK)
+		      yyerror("time is too long");
+	      $$ = $1 * TIME_WEEK;
+      }
+    | numv TOKMONTHS
+      {
+	      if ($1 > LLONG_MAX / TIME_MONTH)
+		      yyerror("time is too long");
+	      $$ = $1 * TIME_MONTH;
+      }
+    | numv TOKYEARS
+      {
+	      if ($1 > LLONG_MAX / TIME_YEAR)
+		      yyerror("time is too long");
+	      $$ = $1 * TIME_YEAR;
       }
 
 set: TOKSET TOKMAXSIZE size
@@ -1199,6 +1241,40 @@ expritem: not icase strv area
 		  $$->match = &match_unmatched;
 		  $$->inverted = $1;
           }
+        | not TOKAGE cmp time
+	  {
+		  struct age_data	*data;
+
+		  if ($4 == 0)
+			  yyerror("invalid time");
+		  if ($3 == CMP_EQ || $3 == CMP_NE)
+			  yyerror("can't compare age with == or !=");
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_age;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->time = $4;
+		  data->cmp = $3;
+	  }
+        | not TOKAGE TOKINVALID
+	  {
+		  struct age_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_age;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->time = -1;
+	  }
 
 exprlist: exprlist exprop expritem
 	  {

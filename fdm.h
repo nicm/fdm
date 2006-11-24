@@ -165,6 +165,14 @@ extern char	*__progname;
 	(buf) = ensure_for(buf, &(len), now, nmemb, size);		\
 } while (0)
 
+/* Lengths of time. */
+#define TIME_MINUTE 60LL
+#define TIME_HOUR 3600LL
+#define TIME_DAY 86400LL
+#define TIME_WEEK 604800LL
+#define TIME_MONTH 2419200LL
+#define TIME_YEAR 29030400LL
+
 /* Valid email address chars. */
 #define isaddr(c) ( 							\
 	((c) >= 'a' && (c) <= 'z') || 					\
@@ -593,6 +601,12 @@ enum cmp {
 	CMP_NE
 };
 
+/* Match age data. */
+struct age_data {
+	long long		 time;
+	enum cmp		 cmp;
+};
+
 /* Match size data. */
 struct size_data {
 	size_t			 size;
@@ -718,6 +732,9 @@ struct smtp_data {
 	struct server	 server;
 	char		*to;
 };
+
+/* match-age.c */
+extern struct match	 match_age;
 
 /* match-matched.c */
 extern struct match	 match_matched;

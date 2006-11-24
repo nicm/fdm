@@ -203,8 +203,22 @@ find_header(struct mail *m, const char *hdr, size_t *len)
 	ptr = memchr(out, '\n', end - out);
 	if (ptr == NULL)
 		*len = end - out;
-	else
-		*len = (ptr - out) + 1;
+	else {
+		/* calculate length, not including '\n' */
+		*len = ptr - out - 1;
+	}
+
+	/* header must be followed by space */
+	if (!isspace((int) *out))
+		return (NULL);
+		
+	/* strip any following space */
+	while (isspace((int) *out)) {
+		out++;
+		len--;
+	}
+	if (len == 0)
+		return (NULL);
 
 	return (out);
 }
@@ -225,13 +239,12 @@ find_users(struct mail *m)
 		if (*ARRAY_ITEM(conf.headers, i, char *) == '\0')
 			continue;
 
-		xasprintf(&ptr, "%s: ", ARRAY_ITEM(conf.headers, i, char *));
+		xasprintf(&ptr, "%s:", ARRAY_ITEM(conf.headers, i, char *));
 		hdr = find_header(m, ptr, &len);
 		xfree(ptr);
 
-		if (hdr == NULL || len < 1)
+		if (hdr == NULL || len == 0)
 			continue;
-		len--;	/* lose \n */
 		while (isspace((int) *hdr)) {
 			hdr++;
 			len--;
@@ -350,11 +363,11 @@ make_from(struct mail *m)
 	char	*s, *from = NULL;
 	size_t	 fromlen = 0;
 
-	from = find_header(m, "From: ", &fromlen);
- 	if (fromlen > INT_MAX)
-		from = NULL;
+	from = find_header(m, "From:", &fromlen);
 	if (from != NULL && fromlen > 0)
 		from = find_address(from, fromlen, &fromlen);
+ 	if (fromlen > INT_MAX)
+		from = NULL;
 	if (from == NULL) {
 		from = conf.info.user;
 		fromlen = strlen(from);
