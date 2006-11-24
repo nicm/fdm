@@ -48,7 +48,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	if (hdr == NULL || len == 0 || len > INT_MAX)
 		goto invalid;
 	/* make a copy of the header */
-	xasprintf(&s, "%*s", (int) len, hdr);
+	xasprintf(&s, "%.*s", (int) len, hdr);
 	ptr = s;
 
 	log_debug2("%s: found date header: %.*s", a->name, (int) len, ptr);

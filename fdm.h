@@ -661,6 +661,7 @@ struct maildir_data {
 	u_int			 index;
 
 	DIR			*dirp;
+	const char	       **ep;
 	char			*path;
 	char			*entry;
 };

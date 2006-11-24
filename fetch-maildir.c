@@ -37,15 +37,17 @@ int	 maildir_fetch(struct account *, struct mail *);
 int	 maildir_delete(struct account *);
 char	*maildir_desc2(struct account *); /* conflicts with deliver-maildir.c */
 
-struct fetch	fetch_maildir = { { NULL, NULL },
-				  maildir_connect,
-				  maildir_poll,
-				  maildir_fetch,
-				  maildir_delete,
-				  NULL,
-				  NULL,
-				  maildir_disconnect,
-				  maildir_desc2
+const char	*entries[] = { "cur", "new", NULL };
+
+struct fetch	 fetch_maildir = { { NULL, NULL },
+				   maildir_connect,
+				   maildir_poll,
+				   maildir_fetch,
+				   maildir_delete,
+				   NULL,
+				   NULL,
+				   maildir_disconnect,
+				   maildir_desc2
 };
 
 int
@@ -58,6 +60,7 @@ maildir_connect(struct account *a)
 
 	data->path = NULL;
 	data->entry = NULL;
+	data->ep = NULL;
 
 	return (0);
 }
@@ -67,10 +70,11 @@ maildir_poll(struct account *a, u_int *n)
 {
 	struct maildir_data	*data = a->data;
 	u_int			 i;
-	char			*s, path[MAXPATHLEN], name[MAXPATHLEN];
+	char			*s, path[MAXPATHLEN];
 	DIR			*dirp;
 	struct dirent		*dp;
 	struct stat		 sb;
+	const char	       **ep;
 
 	*n = 0;
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
@@ -83,40 +87,45 @@ maildir_poll(struct account *a, u_int *n)
 			return (POLL_ERROR);
 		}
 
-		if (xsnprintf(path, sizeof path, "%s/cur", s) < 0) {
-			log_warn("%s: %s: xsnprintf", a->name, s);
-			xfree(s);
-			return (POLL_ERROR);
-		}			
-		xfree(s);
-
-		if ((dirp = opendir(path)) == NULL) {
-			log_warn("%s: %s: opendir", a->name, path);
-			return (POLL_ERROR);
-		}
-
-		while ((dp = readdir(dirp)) != NULL) {
-			if (xsnprintf(name, sizeof name, "%s/%s", path,
-			    dp->d_name) < 0) {
-				log_warn("%s: %s/%s: xsnprintf", a->name, 
-				    path, dp->d_name);
-				closedir(dirp);
+		for (ep = entries; *ep != NULL; ep++) {
+			if (xsnprintf(path, sizeof path, "%s/%s", s, *ep) < 0) {
+				log_warn("%s: %s: xsnprintf", a->name, s);
+				xfree(s);
+				return (POLL_ERROR);
+			}			
+			if ((dirp = opendir(path)) == NULL) {
+				log_warn("%s: %s: opendir", a->name, path);
+				xfree(s);
 				return (POLL_ERROR);
 			}
-			if (stat(name, &sb) != 0) {
-				log_warn("%s: %s: stat", a->name, name);
-				closedir(dirp);
-				return (POLL_ERROR);
-			}
-			if (!S_ISREG(sb.st_mode))
-				continue;
+			
+			while ((dp = readdir(dirp)) != NULL) {
+				if (xsnprintf(path, sizeof path, "%s/%s/%s", 
+				    s, *ep, dp->d_name) < 0) {
+					log_warn("%s: %s: xsnprintf", a->name,
+					    path);
+					closedir(dirp);
+					xfree(s);
+					return (POLL_ERROR);
+				}
+				if (stat(path, &sb) != 0) {
+					log_warn("%s: %s: stat", a->name, path);
+					closedir(dirp);
+					xfree(s);
+					return (POLL_ERROR);
+				}
+				if (!S_ISREG(sb.st_mode))
+					continue;
 				
-			(*n)++;
+				(*n)++;
+			}
+			
+			closedir(dirp);
 		}
 
-		closedir(dirp);
+		xfree(s);
 	}
-
+	
 	return (POLL_SUCCESS);
 }
 
@@ -131,19 +140,26 @@ maildir_fetch(struct account *a, struct mail *m)
 
 restart:	
 	if (data->dirp == NULL) {
-		s = ARRAY_ITEM(data->paths, data->index, char *);
-		data->path = replaceinfo(s, a, NULL, NULL);
-		if (data->path == NULL || *data->path == '\0') {
-			log_warnx("%s: empty path", a->name);
-			return (FETCH_ERROR);
+		if (data->ep == NULL) {
+			s = ARRAY_ITEM(data->paths, data->index, char *);
+			data->path = replaceinfo(s, a, NULL, NULL);
+			if (data->path == NULL || *data->path == '\0') {
+				log_warnx("%s: empty path", a->name);
+				return (FETCH_ERROR);
+			}
+			log_debug("%s: opening maildir: %s", a->name,
+			    data->path);
+			data->ep = entries;
 		}
-		log_debug("%s: opening maildir: %s", a->name, data->path);
 
-		xasprintf(&s, "%s/cur", data->path);
+		xasprintf(&s, "%s/%s", data->path, *data->ep);
+		log_debug("%s: examining subdirectory: %s", a->name, *data->ep);
 		if ((data->dirp = opendir(s)) == NULL) {
 			log_warn("%s: %s: opendir", a->name, data->path);
+			xfree(s);
 			return (FETCH_ERROR);
 		}
+		xfree(s);
 	}
 
 	do {
@@ -151,24 +167,29 @@ restart:
 		if (dp == NULL) {
 			closedir(data->dirp);
 			data->dirp = NULL;	
-			xfree(data->path);
-			data->path = NULL;
-			
-			data->index++;
-			if (data->index == ARRAY_LENGTH(data->paths))
-				return (FETCH_COMPLETE);
+
+			data->ep++;
+			if (*data->ep == NULL) {
+				xfree(data->path);
+				data->path = NULL;
+
+				data->index++;
+				if (data->index == ARRAY_LENGTH(data->paths))
+					return (FETCH_COMPLETE);
+			}
 			goto restart;
 		}
 
 		if (data->entry != NULL)
 			xfree(data->entry);
-		xasprintf(&data->entry, "%s/cur/%s", data->path, dp->d_name);
+		xasprintf(&data->entry, "%s/%s/%s", data->path, *data->ep,
+		    dp->d_name);
 		if (stat(data->entry, &sb) != 0) {
 			log_warn("%s: %s: stat", a->name, data->entry);
 			return (FETCH_ERROR);
 		}
 	} while (!S_ISREG(sb.st_mode));
-	log_debug("%s: retrieving mail from: %s", a->name, data->entry);
+	log_debug2("%s: reading mail from: %s", a->name, data->entry);
 
 	if (sb.st_size == 0) {
 		log_warnx("%s: %s: empty file", a->name, data->entry); 
@@ -185,7 +206,7 @@ restart:
 	init_mail(m, sb.st_size);
 	m->s = xstrdup(basename(data->path));
 
-	log_debug("%s: reading %zu bytes", a->name, m->size);
+	log_debug2("%s: reading %zu bytes", a->name, m->size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
 		log_warn("%s: %s: read", a->name, data->entry); 
 		return (FETCH_ERROR);
