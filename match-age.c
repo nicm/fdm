@@ -63,7 +63,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 
 	log_debug2("%s: found date header: %s", a->name, ptr);
 	endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
-	if (ptr == NULL) {
+	if (endptr == NULL) {
 		xfree(s);
 		goto invalid;
 	}
