@@ -304,6 +304,7 @@ struct account {
 	char			 name[MAXNAMESIZE];
 
 	int			 disabled;
+	int			 keep;
 	struct fetch		*fetch;
 	void			*data;
 
@@ -431,6 +432,7 @@ struct conf {
 	char			*lock_file;
 	int			 check_only;
 	int			 allow_many;
+	int			 keep_all;
 	enum {
 		IMPLICIT_NONE,
 		IMPLICIT_DROP,

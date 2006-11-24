@@ -173,7 +173,7 @@ check_excl(char *name)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-lmnv] [-f conffile] [-u user] [-a name] [-x name] "
+	printf("usage: %s [-klmnv] [-f conffile] [-u user] [-a name] [-x name] "
 	    "[fetch|poll]\n", __progname);
         exit(1);
 }
@@ -206,7 +206,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:f:mlnu:vx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:f:klmnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, char *);
@@ -214,6 +214,9 @@ main(int argc, char **argv)
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
                         break;
+		case 'k':
+			conf.keep_all = 1;
+			break;
 		case 'l':
 			conf.syslog = 1;
 			break;

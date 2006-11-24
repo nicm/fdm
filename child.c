@@ -182,6 +182,8 @@ fetch_account(struct io *io, struct account *a)
 	n = 0;
         for (;;) {
 		delete = 1;
+		if (conf.keep_all || a->keep)
+			delete = 0;
 
 		memset(&m, 0, sizeof m);
 		m.body = -1;

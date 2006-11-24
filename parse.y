@@ -229,7 +229,7 @@ find_macro(char *name)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled poptype imaptype execpipe
+%type  <flag> cont icase not disabled keep poptype imaptype execpipe
 %type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
@@ -686,6 +686,15 @@ icase: TOKCASE
       }
 
 not: TOKNOT
+      {
+	      $$ = 1;
+      }
+    | /* empty */
+      {
+	      $$ = 0;
+      }
+
+keep: TOKKEEP
       {
 	      $$ = 1;
       }
@@ -1433,7 +1442,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.data = data;
 	   }
 
-account: TOKACCOUNT strv disabled fetchtype
+account: TOKACCOUNT strv disabled fetchtype keep
          {
 		 struct account		*a;
 		 char			*s;
@@ -1447,6 +1456,7 @@ account: TOKACCOUNT strv disabled fetchtype
 
 		 a = xcalloc(1, sizeof *a);
 		 strlcpy(a->name, $2, sizeof a->name);
+		 a->keep = $5;
 		 a->disabled = $3;
 		 a->fetch = $4.fetch;
 		 a->data = $4.data;
