@@ -340,8 +340,6 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		case RULE_ALL:
 			break;
 		}
-		log_debug("%s: matched message", a->name);
-
 		set_wrapped(m, '\n');
 
 		/* tag mail if needed */
@@ -352,6 +350,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 
 		/* handle delivery */
 		if (r->actions != NULL) {
+			log_debug("%s: matched message", a->name);
 			*mctx->matched = 1;
 			if (do_deliver(r, mctx) != 0) {
 				*cause = "delivery";
