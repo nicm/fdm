@@ -226,8 +226,10 @@ fetch_account(struct io *io, struct account *a)
 		hdr = find_header(&m, "message-id:", &len);
 		if (hdr == NULL || len == 0 || len > INT_MAX)
 			log_debug("%s: no message-id", a->name);
-		else
-			log_debug("%s: message-id is: %.*s", a->name, len, hdr);
+		else {
+			log_debug("%s: message-id is: %.*s", a->name, (int) len,
+			    hdr);
+		}
 
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
