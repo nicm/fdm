@@ -70,11 +70,16 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 		ptr++;
 	*ptr = '\0';
 
-        tz = strtonum(endptr, -9999, 9999, &errstr);
-	if (errstr != NULL) {
-		xfree(s);
-		goto invalid;
+	if (strcmp(endptr, "GMT") == 0)
+		tz = 0;
+	else {
+		tz = strtonum(endptr, -9999, 9999, &errstr);
+		if (errstr != NULL) {
+			xfree(s);
+			goto invalid;
+		}
 	}
+
 	log_debug2("%s: mail timezone is: %+.4d", a->name, tz);
 	then -= (tz / 100) * TIME_HOUR + (tz % 100) * TIME_MINUTE;
 	if (then < 0) {
