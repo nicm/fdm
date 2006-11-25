@@ -16,3 +16,4 @@
 - document age match
 - investigate why find_address in make-from is almost always finding jack shit
 - document %s
+- replace all arrays of char * with struct strings

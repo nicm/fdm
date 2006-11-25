@@ -114,6 +114,49 @@ yywrap(void)
         return (0);
 }
 
+char *
+fmt_strings(const char *prefix, struct strings *sp)
+{
+	char	*buf, *s;
+	size_t	 slen, len;
+	ssize_t	 off;
+	u_int	 i;
+	
+	if (ARRAY_LENGTH(sp) == 0)
+		return (xstrdup(""));
+	if (ARRAY_LENGTH(sp) == 1) {
+		xasprintf(&buf, "\"%s\"", ARRAY_ITEM(sp, 0, char *));
+		return (buf);
+	}
+
+	len = 256;
+	buf = xmalloc(len);
+	off = 0;
+	if (prefix != NULL) {
+		if ((off = xsnprintf(buf, len, "%s ", prefix)) < 0)
+			fatal("xsnprintf");
+	}
+	buf[off++] = '{';
+
+	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
+		s = ARRAY_ITEM(sp, i, char *);
+		slen = strlen(s);
+
+		ENSURE_FOR(buf, len, off, slen + 4);
+		if (xsnprintf(buf + off, len - off, " \"%s\"", s) < 0)
+			fatal("xsnprintf");
+		off += slen + 3;
+	}
+
+	ENSURE_FOR(buf, len, off, 3);
+	buf[off++] = ' ';
+	buf[off++] = '}';
+	buf[off] = '\0';
+
+	return (buf);
+
+}
+
 struct account *
 find_account(char *name)
 {
@@ -1408,7 +1451,6 @@ rule: match accounts perform
       {
 	      struct expritem	*ei;
 	      char		 s1[1024], s2[1024], *s;
-	      u_int		 i;
 
 	      $3->accounts = $2;
 	      $3->expr = $1.expr;
@@ -1441,14 +1483,9 @@ rule: match accounts perform
 		      break;
 	      }
 	      if ($3->actions != NULL) {
-		      *s2 = '\0';
-		      /* XXX format properly {}s etc */
-		      for (i = 0; i < ARRAY_LENGTH($3->actions); i++) {
-			      strlcat(s2, ARRAY_ITEM($3->actions, i, char *),
-				  sizeof s2);
-			      strlcat(s2, " ", sizeof s2);
-		      }
-		      log_debug2("added rule: actions=%smatches=%s", s2, s1);
+		      s = fmt_strings(NULL, (struct strings *) $3->actions);
+		      log_debug2("added rule: actions=%s matches=%s", s, s1);
+		      xfree(s);
 	      } else if ($3->tag != NULL)
 		      log_debug2("added rule: tag=%s matches=%s", $3->tag, s1);
 	      else

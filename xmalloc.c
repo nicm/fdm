@@ -63,11 +63,12 @@ xmalloc_clear(void)
 void
 xmalloc_dump(const char *hdr)
 {
- 	u_int	 		 i, j, n = 0;
-	int	 		 off, off2;
-	size_t	 		 len;
-	char	 		 tmp[4096];
 	struct xmalloc_block	*p;
+	char	 		 tmp[4096];
+	int			 m;
+	size_t	 		 len;
+	size_t	 		 off;
+ 	u_int	 		 i, j, n = 0;
 
 	log_debug2("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zd",
 	    hdr, xmalloc_allocated, xmalloc_freed,
@@ -79,8 +80,9 @@ xmalloc_dump(const char *hdr)
 		return;
 
 	len = sizeof tmp;
-	if ((off = xsnprintf(tmp, len, "%s: ", hdr)) < 0)
+	if ((m = xsnprintf(tmp, len, "%s: ", hdr)) < 0)
 		fatal("xsnprintf");
+	off = m;
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
 		n++;
 		if (n > 64)
@@ -88,29 +90,27 @@ xmalloc_dump(const char *hdr)
 
 		p = &xmalloc_array[i];
 		if (p->ptr != NULL) {
-			off2 = xsnprintf(tmp + off, len - off, "[%p %zu:",
-			    p->ptr, p->size);
-			if (off2 < 0)
+			if ((m = xsnprintf(tmp + off, len - off, "[%p %zu:", 
+			    p->ptr, p->size)) < 0)
 				break;
-			off += off2;
+			off += m;
 
 			for (j = 0; j < (p->size > 8 ? 8 : p->size); j++) {
 				if (((char *) p->ptr)[j] > 31) {
-					off2 = xsnprintf(tmp + off, len - off,
+					m = xsnprintf(tmp + off, len - off,
 					    "%c", ((char *) p->ptr)[j]);
 				} else {
-					off2 = xsnprintf(tmp + off, len - off,
+					m = xsnprintf(tmp + off, len - off,
 					    "\\%03o", ((char *) p->ptr)[j]);
 				}
-				if (off2 < 0)
+				if (m < 0)
 					break;
-				off += off2;
+				off += m;
 			}
 
-			off2 = xsnprintf(tmp + off, len - off, "] ");
-			if (off2 < 0)
+			if ((m = xsnprintf(tmp + off, len - off, "] ")) < 0)
 				break;
-			off += off2;
+			off += m;
 		}
 	}
 	tmp[off - 1] = '\0';

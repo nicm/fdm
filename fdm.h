@@ -255,6 +255,9 @@ struct shm {
 	size_t	 size;
 };
 
+/* Generic array of strings. */
+ARRAY_DECL(strings, char *);
+
 /* Tags array. */
 ARRAY_DECL(tags, char *);
 
@@ -847,7 +850,8 @@ void			 shm_destroy(struct shm *);
 
 /* parse.y */
 extern struct macros	 macros;
-extern struct macro	*find_macro(char *);
+char 			*fmt_strings(const char *, struct strings *);
+struct macro		*find_macro(char *);
 struct action  		*find_action(char *);
 struct actionptrs	*find_actions(char *);
 
