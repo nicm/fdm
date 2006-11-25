@@ -417,8 +417,8 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 		}
 
 		s = ei->match->desc(ei);
-		log_debug2("%s: tried %s%s:%s, got %d", mctx->account->name,
-		    ei->inverted ? "not " : "", ei->match->name, s, cres);
+		log_debug2("%s: tried %s%s, got %d", mctx->account->name,
+		    ei->inverted ? "not " : "", s, cres);
 		xfree(s);
 	}
 

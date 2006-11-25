@@ -25,7 +25,7 @@
 int	command_match(struct match_ctx *, struct expritem *);
 char   *command_desc(struct expritem *);
 
-struct match match_command = { "command", command_match, command_desc };
+struct match match_command = { command_match, command_desc };
 
 int
 command_match(struct match_ctx *mctx, struct expritem *ei)
@@ -73,7 +73,7 @@ command_desc(struct expritem *ei)
 		return (s);
 	}
 
-	xasprintf(&s, "%s \"%s\" returns (%s, \"%s\")", t, data->cmd, ret,
-	    data->re_s);
+	xasprintf(&s, "command %s \"%s\" returns (%s, \"%s\")", t, data->cmd,
+	    ret, data->re_s);
 	return (s);
 }

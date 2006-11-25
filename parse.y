@@ -176,9 +176,9 @@ find_macro(char *name)
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
-%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKEQ TOKNE TOKSIZE
+%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKSIZE TOKMAILDIRS
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
-%token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKMAILDIRS
+%token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1101,14 +1101,6 @@ cmp: '<'
      {
 	     $$ = CMP_GT;
      }
-   | TOKEQ
-     {
-	     $$ = CMP_EQ;
-     }
-   | TOKNE
-     {
-	     $$ = CMP_NE;
-     }
 
 execpipe: TOKEXEC
 	  {
@@ -1220,8 +1212,6 @@ expritem: not icase strv area
 
 		  if ($4 > SIZE_MAX)
 			  yyerror("size too large");
-		  if ($3 == CMP_EQ || $3 == CMP_NE)
-			  yyerror("can't compare size with == or !=");
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1285,8 +1275,6 @@ expritem: not icase strv area
 
 		  if ($4 == 0)
 			  yyerror("invalid time");
-		  if ($3 == CMP_EQ || $3 == CMP_NE)
-			  yyerror("can't compare age with == or !=");
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1419,7 +1407,7 @@ close: '}'
 rule: match accounts perform
       {
 	      struct expritem	*ei;
-	      char		 tmp[1024], tmp2[1024], *s;
+	      char		 s1[1024], s2[1024], *s;
 	      u_int		 i;
 
 	      $3->accounts = $2;
@@ -1428,46 +1416,43 @@ rule: match accounts perform
 
 	      switch ($3->type) {
  	      case RULE_ALL:
-		      xsnprintf(tmp, sizeof tmp, "all");
+		      xsnprintf(s1, sizeof s1, "all");
 		      break;
 	      case RULE_EXPRESSION:
-		      *tmp = '\0';
+		      *s1 = '\0';
 		      TAILQ_FOREACH(ei, $3->expr, entry) {
 			      s = ei->match->desc(ei);
 			      switch (ei->op) {
 			      case OP_AND:
-				      xsnprintf(tmp2, sizeof tmp2,
-					  "and %s:%s ", ei->match->name, s);
+				      xsnprintf(s2, sizeof s2, "and %s ", s);
 				      break;
 			      case OP_OR:
-				      xsnprintf(tmp2, sizeof tmp2,
-					  "or %s:%s ", ei->match->name, s);
+				      xsnprintf(s2, sizeof s2, "or %s ", s);
 				      break;
 			      case OP_NONE:
-				      xsnprintf(tmp2, sizeof tmp2,
-					  "%s:%s ", ei->match->name, s);
+				      xsnprintf(s2, sizeof s2, "%s ", s);
 				      break;
 			      }
 			      xfree(s);
 			      if (ei->inverted)
-				      strlcat(tmp, "not ", sizeof tmp);
-			      strlcat(tmp, tmp2, sizeof tmp);
+				      strlcat(s1, "not ", sizeof s1);
+			      strlcat(s1, s2, sizeof s1);
 		      }
 		      break;
 	      }
 	      if ($3->actions != NULL) {
-		      *tmp2 = '\0';
+		      *s2 = '\0';
 		      /* XXX format properly {}s etc */
 		      for (i = 0; i < ARRAY_LENGTH($3->actions); i++) {
-			      strlcat(tmp2, ARRAY_ITEM($3->actions, i, char *),
-				  sizeof tmp2);
-			      strlcat(tmp2, " ", sizeof tmp2);
+			      strlcat(s2, ARRAY_ITEM($3->actions, i, char *),
+				  sizeof s2);
+			      strlcat(s2, " ", sizeof s2);
 		      }
-		      log_debug2("added rule: actions=%smatches=%s", tmp2, tmp);
+		      log_debug2("added rule: actions=%smatches=%s", s2, s1);
 	      } else if ($3->tag != NULL)
-		      log_debug2("added rule: tag=%s matches=%s", $3->tag, tmp);
+		      log_debug2("added rule: tag=%s matches=%s", $3->tag, s1);
 	      else
-		      log_debug2("added rule: nested matches=%s", tmp);
+		      log_debug2("added rule: nested matches=%s", s1);
       }
 
 folder: /* empty */

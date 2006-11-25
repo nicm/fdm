@@ -597,8 +597,6 @@ struct match_ctx {
 
 /* Match functions. */
 struct match {
-	const char	*name;
-
 	int		 (*match)(struct match_ctx *, struct expritem *);
 	char 		*(*desc)(struct expritem *);
 };
@@ -606,9 +604,7 @@ struct match {
 /* Comparison operators. */
 enum cmp {
 	CMP_LT,
-	CMP_GT,
-	CMP_EQ,
-	CMP_NE
+	CMP_GT
 };
 
 /* Match age data. */

@@ -26,7 +26,7 @@
 int	tagged_match(struct match_ctx *, struct expritem *);
 char   *tagged_desc(struct expritem *);
 
-struct match match_tagged = { "tagged", tagged_match, tagged_desc };
+struct match match_tagged = { tagged_match, tagged_desc };
 
 int
 tagged_match(struct match_ctx *mctx, struct expritem *ei)
@@ -47,6 +47,8 @@ char *
 tagged_desc(struct expritem *ei)
 {
 	struct tagged_data	*data = ei->data;
-
-	return (xstrdup(data->tag));
+	char			*s;
+	
+	xasprintf(&s, "tagged %s", data->tag);
+	return (s);
 }

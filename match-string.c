@@ -26,7 +26,7 @@
 int	string_match(struct match_ctx *, struct expritem *);
 char   *string_desc(struct expritem *);
 
-struct match match_string = { "string", string_match, string_desc };
+struct match match_string = { string_match, string_desc };
 
 int
 string_match(struct match_ctx *mctx, struct expritem *ei)
@@ -64,6 +64,6 @@ string_desc(struct expritem *ei)
 	struct string_data	*data = ei->data;
 	char			*s;
 
-	xasprintf(&s, "\"%s\" to \"%s\"", data->s, data->re_s);
+	xasprintf(&s, "string \"%s\" to \"%s\"", data->s, data->re_s);
 	return (s);
 }

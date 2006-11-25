@@ -25,7 +25,7 @@
 int	size_match(struct match_ctx *, struct expritem *);
 char   *size_desc(struct expritem *);
 
-struct match match_size = { "size", size_match, size_desc };
+struct match match_size = { size_match, size_desc };
 
 int
 size_match(struct match_ctx *mctx, struct expritem *ei)
@@ -33,18 +33,11 @@ size_match(struct match_ctx *mctx, struct expritem *ei)
 	struct size_data	*data = ei->data;
 	struct mail		*m = mctx->mail;
 
-	switch (data->cmp) {
-	case CMP_LT:
-		if (m->size < data->size)
-			return (MATCH_TRUE);
-		return (MATCH_FALSE);
-	case CMP_GT:
-		if (m->size > data->size)
-			return (MATCH_TRUE);
-		return (MATCH_FALSE);
-	default:
-		return (MATCH_ERROR);
-	}
+	if (data->cmp == CMP_LT && m->size < data->size)
+		return (MATCH_TRUE);
+	else if (data->cmp == CMP_GT && m->size > data->size)
+		return (MATCH_TRUE);
+	return (MATCH_FALSE);
 }
 
 char *
@@ -52,20 +45,12 @@ size_desc(struct expritem *ei)
 {
 	struct size_data	*data = ei->data;
 	char			*s;
-	const char		*cmp;
+	const char		*cmp = "";
 
-	switch (data->cmp) {
-	case CMP_LT:
+	if (data->cmp == CMP_LT)
 		cmp = "<";
-		break;
-	case CMP_GT:
+	else if (data->cmp == CMP_GT)
 		cmp = ">";
-		break;
-	default:
-		cmp = "";
-		break;
-	}
-
-	xasprintf(&s, "%s %zu", cmp, data->size);
+	xasprintf(&s, "size %s %zu", cmp, data->size);
 	return (s);
 }

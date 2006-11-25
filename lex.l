@@ -188,8 +188,6 @@ write return (TOKWRITE);
 \, return (',');
 \< return ('<');
 \> return ('>');
-== return (TOKEQ);
-!= return (TOKNE);
 = return ('=');
 \#.*\n /* ignore comments */;
 \n /* ignore end of line */;

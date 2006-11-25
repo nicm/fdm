@@ -26,7 +26,7 @@
 int	age_match(struct match_ctx *, struct expritem *);
 char   *age_desc(struct expritem *);
 
-struct match match_age = { "age", age_match, age_desc };
+struct match match_age = { age_match, age_desc };
 
 int
 age_match(struct match_ctx *mctx, struct expritem *ei)
@@ -95,7 +95,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 
 	/* mails reaching this point is not invalid, so return false if
 	   validity is what is being tested for */
-	if (data->time == -1)
+	if (data->time < 0)
 		return (MATCH_FALSE);
 
 	t = diff;
@@ -110,20 +110,14 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	off += snprintf(tmp + off, len - off, "%lld s", t);
 	log_debug2("%s: mail age is: %s", a->name, tmp);
 	
-	if (data->cmp == CMP_LT) {
-		if (diff < data->time)
-			return (MATCH_TRUE);
-		return (MATCH_FALSE);
-	} else if (data->cmp == CMP_GT) {
-		if (diff > data->time)
-			return (MATCH_TRUE);
-		return (MATCH_FALSE);
-	}
-	
-	return (MATCH_TRUE);
+	if (data->cmp == CMP_LT && diff < data->time)
+		return (MATCH_TRUE);
+	else if (data->cmp == CMP_GT && diff > data->time)
+		return (MATCH_TRUE);
+	return (MATCH_FALSE);
 
 invalid:
-	if (data->time == -1)
+	if (data->time < 0)
 		return (MATCH_TRUE);
 	return (MATCH_FALSE);
 }
@@ -133,23 +127,15 @@ age_desc(struct expritem *ei)
 {
 	struct age_data	*data = ei->data;
 	char			*s;
-	const char		*cmp;
+	const char		*cmp = "";
 
 	if (data->time < 0)
 		return (xstrdup("invalid"));
 
-	switch (data->cmp) {
-	case CMP_LT:
+	if (data->cmp == CMP_LT)
 		cmp = "<";
-		break;
-	case CMP_GT:
+	else if (data->cmp == CMP_GT)
 		cmp = ">";
-		break;
-	default:
-		cmp = "";
-		break;
-	}
-
-	xasprintf(&s, "%s %lld seconds", cmp, data->time);
+	xasprintf(&s, "age %s %lld seconds", cmp, data->time);
 	return (s);
 }
