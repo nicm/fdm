@@ -279,7 +279,7 @@ maildir_desc2(struct account *a)
 	off = strlcpy(buf, "maildirs {", len);
 
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
-		s = ARRAY_ITEM(data->paths, 0, char *);
+		s = ARRAY_ITEM(data->paths, i, char *);
 		slen = strlen(s);
 
 		ENSURE_SIZE(buf, len, off + slen + 3);
