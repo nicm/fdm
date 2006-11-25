@@ -225,11 +225,11 @@ find_header(struct mail *m, const char *hdr, size_t *len)
 	return (out);
 }
 
-struct users *
+struct strings *
 find_users(struct mail *m)
 {
 	struct passwd	*pw;
-	struct users	*users;
+	struct strings	*users;
 	u_int	 	 i, j;
 	char		*hdr, *ptr, *dptr, *dom;
 	size_t	 	 len, alen;

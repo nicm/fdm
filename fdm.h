@@ -258,9 +258,6 @@ struct shm {
 /* Generic array of strings. */
 ARRAY_DECL(strings, char *);
 
-/* Tags array. */
-ARRAY_DECL(tags, char *);
-
 /* Options for final mail handling. */
 enum decision {
 	DECISION_NONE,
@@ -270,7 +267,7 @@ enum decision {
 
 /* A single mail. */
 struct mail {
-	struct tags	 tags;
+	struct strings	 tags;
 	char		*s;		/* fetch-specific string */
 
 	enum decision	 decision;
@@ -337,7 +334,7 @@ struct account {
 struct action {
 	char			 name[MAXNAMESIZE];
 
-	struct users		*users;
+	struct strings		*users;
 	int			 find_uid;
 
 	struct deliver		*deliver;
@@ -346,12 +343,8 @@ struct action {
 	TAILQ_ENTRY(action)	 entry;
 };
 
-/* Accounts array. */
-ARRAY_DECL(accounts, char *);
-
 /* Actions arrays. */
-ARRAY_DECL(actionnames, char *);
-ARRAY_DECL(actionptrs, struct action *);
+ARRAY_DECL(actions, struct action *);
 
 /* Match areas. */
 enum area {
@@ -394,10 +387,10 @@ enum ruletype {
 struct rule {
 	enum ruletype		 type;
 
-	struct accounts		*accounts;
+	struct strings		*accounts;
 	struct expr		*expr;
 
-	struct users		*users;
+	struct strings		*users;
 	int			 find_uid;	/* find uids from headers */
 
 	int			 stop;		/* stop matching at this rule */
@@ -405,7 +398,7 @@ struct rule {
 	char			*tag;
 
 	struct rules		 rules;
-	struct actionnames	*actions;
+	struct strings		*actions;
 
 	TAILQ_ENTRY(rule)	 entry;
 };
@@ -414,18 +407,6 @@ struct rule {
 #define LOCK_FCNTL 0x1
 #define LOCK_FLOCK 0x2
 #define LOCK_DOTLOCK 0x4
-
-/* Domains array. */
-ARRAY_DECL(domains, char *);
-
-/* Headers array. */
-ARRAY_DECL(headers, char *);
-
-/* Users array. */
-ARRAY_DECL(users, char *);
-
-/* Paths array. */
-ARRAY_DECL(paths, char *);
 
 /* Configuration settings. */
 struct conf {
@@ -436,13 +417,13 @@ struct conf {
 	gid_t			 child_gid;
 	const char		*tmp_dir;
 
-	struct accounts	 	 incl;
-	struct accounts		 excl;
+	struct strings	 	 incl;
+	struct strings		 excl;
 
 	struct proxy		*proxy;
 
-	struct domains		*domains; /* domains to look for with users */
-	struct headers		*headers; /* headers to search for users */
+	struct strings		*domains; /* domains to look for with users */
+	struct strings		*headers; /* headers to search for users */
 
 	struct {
 		uid_t		 uid_n;
@@ -656,7 +637,7 @@ struct command_data {
 
 /* Fetch maildir data. */
 struct maildir_data {
-	struct paths		*paths;
+	struct strings		*paths;
 	u_int			 index;
 
 	DIR			*dirp;
@@ -853,7 +834,7 @@ extern struct macros	 macros;
 char 			*fmt_strings(const char *, struct strings *);
 struct macro		*find_macro(char *);
 struct action  		*find_action(char *);
-struct actionptrs	*find_actions(char *);
+struct actions		*find_actions(char *);
 
 /* fdm.c */
 int			 dropto(uid_t);
@@ -895,7 +876,7 @@ void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
 char 			*find_header(struct mail *, const char *, size_t *);
-struct users		*find_users(struct mail *);
+struct strings		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
 char 		        *make_from(struct mail *);

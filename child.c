@@ -315,7 +315,7 @@ int
 do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 {
 	struct rule		*r;
-	struct accounts		*list;
+	struct strings		*aa;
 	u_int		 	 i;
 	int		 	 error;
 	char			*name;
@@ -324,14 +324,14 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 
 	TAILQ_FOREACH(r, rules, entry) {
 		/* check if the rule is for the current account */
-		list = r->accounts;
-		if (!ARRAY_EMPTY(list)) {
-			for (i = 0; i < ARRAY_LENGTH(list); i++) {
-				name = ARRAY_ITEM(list, i, char *);
+		aa = r->accounts;
+		if (!ARRAY_EMPTY(aa)) {
+			for (i = 0; i < ARRAY_LENGTH(aa); i++) {
+				name = ARRAY_ITEM(aa, i, char *);
 				if (name_match(name, a->name))
 					break;
 			}
-			if (i == ARRAY_LENGTH(list))
+			if (i == ARRAY_LENGTH(aa))
 				continue;
 		}
 
@@ -429,11 +429,11 @@ int
 do_deliver(struct rule *r, struct match_ctx *mctx)
 {
 
- 	struct action		*t;
-	struct actionptrs	*ta;
-	u_int		 	 i, j;
-	char		        *s, *name;
-	struct account		*a = mctx->account;
+ 	struct action	*t;
+	struct actions	*ta;
+	u_int		 i, j;
+	char		*s, *name;
+	struct account	*a = mctx->account;
 
 	if (r->actions == NULL)
 		return (0);
@@ -482,7 +482,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	struct deliver_ctx	 dctx;
 	u_int		 	 i, l;
 	int		 	 find;
-	struct users	        *users;
+	struct strings	        *users;
 	size_t			 slen;
 
  	if (t->deliver->deliver == NULL)

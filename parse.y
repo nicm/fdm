@@ -136,22 +136,18 @@ fmt_strings(const char *prefix, struct strings *sp)
 		if ((off = xsnprintf(buf, len, "%s ", prefix)) < 0)
 			fatal("xsnprintf");
 	}
-	buf[off++] = '{';
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
 		s = ARRAY_ITEM(sp, i, char *);
 		slen = strlen(s);
 
 		ENSURE_FOR(buf, len, off, slen + 4);
-		if (xsnprintf(buf + off, len - off, " \"%s\"", s) < 0)
+		if (xsnprintf(buf + off, len - off, "\"%s\" ", s) < 0)
 			fatal("xsnprintf");
 		off += slen + 3;
 	}
 
-	ENSURE_FOR(buf, len, off, 3);
-	buf[off++] = ' ';
-	buf[off++] = '}';
-	buf[off] = '\0';
+	buf[off - 1] = '\0';
 
 	return (buf);
 
@@ -181,11 +177,11 @@ find_action(char *name)
 	return (NULL);
 }
 
-struct actionptrs *
+struct actions *
 find_actions(char *name)
 {
-	struct action		*t;
-	struct actionptrs	*ta;
+	struct action	*t;
+	struct actions	*ta;
 
 	ta = xmalloc(sizeof *ta);
 	ARRAY_INIT(ta);
@@ -243,48 +239,42 @@ find_macro(char *name)
 		enum ruletype	 type;
 	} match;
 	enum area	 	 area;
-	struct accounts		*accounts;
-	struct action	 	 action;
-	struct actionnames	*actions;
-	struct domains		*domains;
-	struct headers	 	*headers;
-	struct paths		*paths;
 	enum exprop		 exprop;
-	struct expritem		*expritem;
+	struct action	 	 action;
 	struct expr		*expr;
+	struct expritem		*expritem;
+	struct paths		*paths;
+	struct strings		*strings;
 	uid_t			 uid;
 	struct {
-		struct users	*users;
+		struct strings	*users;
 		int		 find_uid;
 	} users;
-	struct rule		*rule;
 	enum cmp		 cmp;
+	struct rule		*rule;
 }
 
 %token <number> NUMBER SIZE
 %token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
-%type  <accounts> accounts accountslist
 %type  <action> action
-%type  <actions> actions actionslist
 %type  <area> area
 %type  <cmp> cmp
-%type  <domains> domains domainslist
 %type  <expr> expr exprlist
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled keep poptype imaptype execpipe
-%type  <headers> headers headerslist
 %type  <locks> lock locklist
 %type  <match> match
 %type  <number> size time numv retrc
-%type  <paths> pathslist maildirs
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
-%type  <uid> uid user
+%type  <strings> actions actionslist domains domainslist headers headerslist
+%type  <strings> accounts accountslist pathslist maildirs
 %type  <users> users userslist
+%type  <uid> uid user
 
 %%
 
@@ -1023,7 +1013,7 @@ actions: TOKACTION TOKNONE
 	 }
        | TOKACTION strv
 	 {
-		 struct actionptrs	*ta;
+		 struct actions	*ta;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
@@ -1048,7 +1038,7 @@ actions: TOKACTION TOKNONE
 
 actionslist: actionslist strv
 	     {
-		     struct actionptrs	*ta;
+		     struct actions	*ta;
 
 		     if (*$2 == '\0')
 			     yyerror("invalid action name");
@@ -1067,7 +1057,7 @@ actionslist: actionslist strv
 	     }
 	   | strv
 	     {
-		     struct actionptrs	*ta;
+		     struct actions	*ta;
 
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");

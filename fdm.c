@@ -182,10 +182,9 @@ int
 main(int argc, char **argv)
 {
         int		 opt, fds[2], lockfd, rc;
-	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*errstr;
-	char		 tmp[512], *ptr;
+	char		 tmp[512], *ptr, *s;
 	const char	*proxy = NULL;
 	char		*user = NULL, *lock = NULL;
 	long		 n;
@@ -349,28 +348,22 @@ main(int argc, char **argv)
 
 	/* initialise and print headers and domains */
 	if (conf.headers == NULL) {
-		conf.headers = xmalloc(sizeof (struct headers));
+		conf.headers = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.headers);
 		ARRAY_ADD(conf.headers, xstrdup("to"), char *);
 		ARRAY_ADD(conf.headers, xstrdup("cc"), char *);
 	}
-	xsnprintf(tmp, sizeof tmp, "headers are: ");
-	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		strlcat(tmp, ARRAY_ITEM(conf.headers, i, char *), sizeof tmp);
-		strlcat(tmp, " ", sizeof tmp);
-	}
-	log_debug("%s", tmp);
+	s = fmt_strings(NULL, conf.headers);
+	log_debug("headers are: %s", s);
+	xfree(s);
 	if (conf.domains == NULL) {
-		conf.domains = xmalloc(sizeof (struct domains));
+		conf.domains = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.domains);
 		ARRAY_ADD(conf.domains, conf.info.host, char *);
 	}
-	xsnprintf(tmp, sizeof tmp, "domains are: ");
-	for (i = 0; i < ARRAY_LENGTH(conf.domains); i++) {
-		strlcat(tmp, ARRAY_ITEM(conf.domains, i, char *), sizeof tmp);
-		strlcat(tmp, " ", sizeof tmp);
-	}
-	log_debug("%s", tmp);
+	s = fmt_strings(NULL, conf.domains);
+	log_debug("domains are: %s", s);
+	xfree(s);
 
 	/* save and print tmp dir */
 	conf.tmp_dir = getenv("TMPDIR");
