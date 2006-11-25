@@ -130,7 +130,7 @@ age_desc(struct expritem *ei)
 	const char		*cmp = "";
 
 	if (data->time < 0)
-		return (xstrdup("invalid"));
+		return (xstrdup("age invalid"));
 
 	if (data->cmp == CMP_LT)
 		cmp = "<";
