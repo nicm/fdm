@@ -122,10 +122,17 @@ fmt_strings(const char *prefix, struct strings *sp)
 	ssize_t	 off;
 	u_int	 i;
 	
-	if (ARRAY_LENGTH(sp) == 0)
+	if (ARRAY_LENGTH(sp) == 0) {
+		if (prefix != NULL)
+			return (xstrdup(prefix));
 		return (xstrdup(""));
+	}
 	if (ARRAY_LENGTH(sp) == 1) {
-		xasprintf(&buf, "\"%s\"", ARRAY_ITEM(sp, 0, char *));
+		s = ARRAY_ITEM(sp, 0, char *);
+		if (prefix != NULL)
+			xasprintf(&buf, "%s\"%s\"", prefix, s);
+		else
+			xasprintf(&buf, "\"%s\"", s);
 		return (buf);
 	}
 
@@ -1440,7 +1447,7 @@ close: '}'
 rule: match accounts perform
       {
 	      struct expritem	*ei;
-	      char		 s1[1024], s2[1024], *s;
+	      char		 s1[1024], s2[1024], *s, *sa;
 
 	      $3->accounts = $2;
 	      $3->expr = $1.expr;
@@ -1472,14 +1479,21 @@ rule: match accounts perform
 		      }
 		      break;
 	      }
-	      if ($3->actions != NULL) {
-		      s = fmt_strings(NULL, (struct strings *) $3->actions);
-		      log_debug2("added rule: actions=%s matches=%s", s, s1);
-		      xfree(s);
-	      } else if ($3->tag != NULL)
-		      log_debug2("added rule: tag=%s matches=%s", $3->tag, s1);
+	      if ($3->accounts != NULL)
+		      sa = fmt_strings(" accounts=", $3->accounts);
 	      else
-		      log_debug2("added rule: nested matches=%s", s1);
+		      sa = xstrdup("");
+	      if ($3->actions != NULL) {
+		      s = fmt_strings(NULL, $3->actions);
+		      log_debug2("added rule:%s actions=%s matches=%s", sa, s,
+			  s1);
+		      xfree(s);
+	      } else if ($3->tag != NULL) {
+		      log_debug2("added rule:%s tag=%s matches=%s", sa, $3->tag,
+			  s1);
+	      } else
+		      log_debug2("added rule:%s nested matches=%s", sa, s1);
+	      xfree(sa);
       }
 
 folder: /* empty */
