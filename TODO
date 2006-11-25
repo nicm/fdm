@@ -14,5 +14,4 @@
 - fetch from mbox
 - document keep option and -k and keep action
 - document age match
-- fill in server name as metadata (m->s) for imap/pop3/stdin...
 - investigate why find_address in make-from is almost always finding jack shit
