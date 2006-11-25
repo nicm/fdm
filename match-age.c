@@ -62,10 +62,12 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	now = time(NULL);
 	then = mktime(&tm);
 
+	/* skip spaces */
+	while (*endptr != '\0' && isspace((int) *endptr))
+		endptr++;
+
 	/* terminate the timezone */
 	ptr = endptr;
-	while (*ptr != '\0' && isspace((int) *ptr))
-		ptr++;
 	while (*ptr != '\0' && !isspace((int) *ptr))
 		ptr++;
 	*ptr = '\0';
