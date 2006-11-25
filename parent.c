@@ -192,11 +192,14 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		/* use new mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
 			if (error == DELIVER_SUCCESS) {
+				free_mail(&dctx.wr_mail, 0);
 				free_mail(m, 0);
 
 				/* no need to update anything, since the
 				   important stuff is all the same */
 				copy_mail(&msg.data.mail, m);
+				m->base = shm_reopen(&m->shm);
+				m->data = m->base + m->off;
 
 				log_debug2("%s: got new mail from delivery: "
 				    "size %zu, body=%zd", a->name, m->size,

@@ -84,10 +84,11 @@ shm_malloc(struct shm *shm, size_t size)
 void *
 shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 {
+	size_t	newsize = nmemb * size;
 	char	c[1];
 
 #ifdef SHM_DEBUG
-	log_debug("shm_realloc: %s", shm->name);
+	log_debug("shm_realloc: %s: %zu -> %zu", shm->name, shm->size, newsize);
 #endif
 
 	if (size == 0)
@@ -95,19 +96,19 @@ shm_realloc(struct shm *shm, size_t nmemb, size_t size)
         if (SIZE_MAX / nmemb < size)
                 fatalx("shm_realloc: nmemb * size > SIZE_MAX");
 
-	if (size < shm->size) {
-		if (ftruncate(shm->fd, size) != 0)
+	if (newsize < shm->size) {
+		if (ftruncate(shm->fd, newsize) != 0)
 			fatal("ftruncate");
 	} else {
-		if (lseek(shm->fd, size, SEEK_SET) < 0)
+		if (lseek(shm->fd, newsize, SEEK_SET) < 0)
 			fatal("lseek");
 
 		c[0] = '\0';
 		if (write(shm->fd, c, 1) < 0)
 			fatal("write");
 	}
-	shm->size = size;
 
+	shm->size = newsize;
 	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		fatal("mmap");
@@ -124,6 +125,9 @@ shm_free(struct shm *shm)
 
 	if (munmap(shm->data, shm->size) != 0)
 		fatal("munmap");
+
+	shm->data = NULL;
+	shm->size = 0;
 
 	close(shm->fd);
 	shm->fd = -1;
