@@ -173,8 +173,8 @@ restart:
 		case 0:
 			/* the pipe has closed. if there is data left in the
 			   buffer, go on to try to handle it. io_readline will
-			   return everyone left once the socket closes, so next
-			   time one of these will be true */
+			   return everything left once the socket closes, so
+			   next time one of these will be true */
 			if (io == cmd->io_err && IO_RDSIZE(cmd->io_err) == 0) {
 				io_close(cmd->io_err);
 				io_free(cmd->io_err);
@@ -185,15 +185,22 @@ restart:
 				io_free(cmd->io_out);
 				cmd->io_out = NULL;
 			}
+			break;
 		}
 	}
 
-	if (cmd->io_out != NULL && IO_RDSIZE(cmd->io_out) > 0)
-		goto restart;
-	if (cmd->io_err != NULL && IO_RDSIZE(cmd->io_err) > 0)
-		goto restart;
-
-	res = waitpid(cmd->pid, &status, WNOHANG);
+	if (cmd->io_out != NULL) {
+		if (IO_RDSIZE(cmd->io_out) > 0)
+			goto restart;
+		return (0);
+	}
+	if (cmd->io_err != NULL) {
+		if (IO_RDSIZE(cmd->io_err) > 0)
+			goto restart;
+		return (0);
+	}
+	    
+	res = waitpid(cmd->pid, &status, 0 /*WNOHANG*/);
 	if (res == 0 || (res == -1 && errno == ECHILD))
 		return (0);
 	if (res == -1) {
