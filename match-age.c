@@ -49,9 +49,14 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 		goto invalid;
 	/* make a copy of the header */
 	xasprintf(&s, "%.*s", (int) len, hdr);
-	ptr = s;
 
-	log_debug2("%s: found date header: %.*s", a->name, (int) len, ptr);
+	/* skip spaces */
+	ptr = s;
+	while (*ptr != '\0' && isspace((int) *ptr))
+		ptr++;
+
+	/* parse the date */
+	log_debug2("%s: found date header: %s", a->name, ptr);
 	endptr = strptime(ptr, "%a, %d %b %Y %H:%M:%S", &tm);
 	if (endptr == NULL)
 		endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
