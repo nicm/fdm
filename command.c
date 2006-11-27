@@ -194,7 +194,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 
 
 	/* check if the child is still alive */
-	if (cmd->pid != 0) {
+	if (cmd->pid != -1) {
 		switch (waitpid(cmd->pid, &cmd->status, WNOHANG)) {
 		case -1:
 			if (errno == ECHILD)
