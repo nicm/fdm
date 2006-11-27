@@ -20,7 +20,12 @@
 #define FDM_H
 
 #include <sys/param.h>
+
+#ifndef NO_QUEUE_H
 #include <sys/queue.h>
+#else
+#include "compat/queue.h"
+#endif
 
 #include <dirent.h>
 #include <stdarg.h>
@@ -60,29 +65,6 @@ extern char	*__progname;
 	}								\
 	log_debug2("%s: %u file descriptors in use", s, fd_n);		\
 } while (0)
-
-#ifndef TAILQ_HEAD_INITIALIZER
-#define TAILQ_HEAD_INITIALIZER(head)					\
-	{ NULL, &(head).tqh_first }
-#endif
-#ifndef TAILQ_FIRST
-#define TAILQ_FIRST(head) (head)->tqh_first
-#endif
-#ifndef TAILQ_END
-#define TAILQ_END(head) NULL
-#endif
-#ifndef TAILQ_NEXT
-#define TAILQ_NEXT(elm, field) ((elm)->field.tqe_next)
-#endif
-#ifndef TAILQ_FOREACH
-#define TAILQ_FOREACH(var, head, field)					\
-	for ((var) = TAILQ_FIRST(head);					\
-	     (var) != TAILQ_END(head);				 	\
-	     (var) = TAILQ_NEXT(var, field))
-#endif
-#ifndef TAILQ_EMPTY
-#define TAILQ_EMPTY(head) (TAILQ_FIRST(head) == TAILQ_END(head))
-#endif
 
 /* Array macros. */
 #define ARRAY_DECL(n, c)						\
