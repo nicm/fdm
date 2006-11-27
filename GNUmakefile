@@ -45,10 +45,12 @@ endif
 
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 CPPFLAGS = $(DEFS) -I.
-CFLAGS+= -std=c99 -pedantic -Wno-long-long -Wall -W -Wnested-externs \
-	-Wformat=2 -Wmissing-prototypes -Wstrict-prototypes \
-	-Wmissing-declarations -Wwrite-strings -Wshadow -Wpointer-arith \
-	-Wcast-qual -Wsign-compare -Wredundant-decls
+CFLAGS+= -std=c99
+CFLAGS+= -pedantic -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
+CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
+CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CFLAGS+= -Wredundant-decls -Wundef -Wshadow -Wbad-function-cast -Winline
+CFLAGS+= -Wdisabled-optimization -Wcast-align -Wendif-labels
 
 LIBS = -lssl
 
