@@ -42,9 +42,6 @@
 int	io_push(struct io *);
 int	io_fill(struct io *);
 
-#define IO_NEED_FILL 0x1
-#define IO_NEED_PUSH 0x2
-
 /* Create a struct io for the specified socket and SSL descriptors. */
 struct io *
 io_create(int fd, SSL *ssl, const char *eol)
@@ -63,7 +60,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
 		fatal("fcntl");
 
-	io->need = 0;
+	io->flags = IO_RD|IO_WR;
 	io->closed = 0;
 	io->error = NULL;
 
@@ -89,7 +86,7 @@ io_free(struct io *io)
 	if (io->error != NULL)
 		xfree(io->error);
 	xfree(io->rbase);
-	if (io->wspace != IO_FIXED)
+	if ((io->flags & IO_FIXED) == 0)
 		xfree(io->wbase);
 	xfree(io);
 }
@@ -149,8 +146,10 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 			pfd->fd = SSL_get_fd(io->ssl);
 		else
 			pfd->fd = io->fd;
-		pfd->events = POLLIN;
-		if (io->wsize > 0 || io->need != 0)
+		if (io->flags & IO_RD)
+			pfd->events = POLLIN;
+		if (io->flags & IO_WR && (io->wsize > 0 || 
+		    (io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0))
 			pfd->events |= POLLOUT;
 	}
 
@@ -181,15 +180,15 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 			continue;
 		}
 
-		if (io->need != 0) {
+		if ((io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0) {
 			/* if a repeated read/write is necessary, the socket
 			   must be ready for both reading and writing */
 			if (pfd->revents & POLLOUT && pfd->revents & POLLIN) {
-				if (io->need & IO_NEED_FILL) {
+				if (io->flags & IO_NEEDFILL) {
 					if ((error = io_fill(io)) != 1)
 						goto error;
 				}
-				if (io->need & IO_NEED_PUSH) {
+				if (io->flags & IO_NEEDPUSH) {
 					switch (io_push(io)) {
 					case 0:
 						io->closed = 1;
@@ -297,7 +296,7 @@ io_fill(struct io *io)
 				   be ignored */
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				io->need |= IO_NEED_FILL;
+				io->flags |= IO_NEEDFILL;
 				break;
 			default:
 				if (io->error != NULL)
@@ -324,7 +323,7 @@ io_fill(struct io *io)
 		io->rsize += n;
 
 		/* reset the need flags */
-		io->need &= ~IO_NEED_FILL;
+		io->flags &= ~IO_NEEDFILL;
 	}
 
 #ifdef IO_DEBUG
@@ -366,7 +365,7 @@ io_push(struct io *io)
 		if (n < 0) {
 			switch (SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
-				io->need |= IO_NEED_PUSH;
+				io->flags |= IO_NEEDPUSH;
 				break;
 			case SSL_ERROR_WANT_WRITE:
 				/* a repeat is certain (io->wsize is still != 0)
@@ -394,7 +393,7 @@ io_push(struct io *io)
 		}
 
 		io->woff += n;
-		if (io->wspace != IO_FIXED && io->woff > IO_BLOCKSIZE) {
+		if ((io->flags & IO_FIXED) == 0 && io->woff > IO_BLOCKSIZE) {
 			/* move the unwritten data down */
 			memmove(io->wbase, io->wbase + n, io->wsize - n);
 			io->woff = 0;
@@ -402,7 +401,7 @@ io_push(struct io *io)
 		io->wsize -= n;
 
 		/* reset the need flags */
-		io->need &= ~IO_NEED_PUSH;
+		io->flags &= ~IO_NEEDPUSH;
 	}
 
 #ifdef IO_DEBUG
@@ -417,6 +416,9 @@ void *
 io_read(struct io *io, size_t len)
 {
 	void	*buf;
+
+	if ((io->flags & IO_RD) == 0)
+		fatalx("io: read when flag unset");
 
 	if (io->error != NULL)
 		return (NULL);
@@ -437,6 +439,9 @@ io_read(struct io *io, size_t len)
 int
 io_read2(struct io *io, void *buf, size_t len)
 {
+	if ((io->flags & IO_RD) == 0)
+		fatalx("io: read when flag unset");
+
 	if (io->error != NULL)
 		return (1);
 
@@ -455,21 +460,28 @@ io_read2(struct io *io, void *buf, size_t len)
 void
 io_writefixed(struct io *io, void *buf, size_t len)
 {
+	if ((io->flags & IO_WR) == 0)
+		fatalx("io: write when flag unset");
+
 	xfree(io->wbase);
 	io->wbase = buf;
-	io->wspace = IO_FIXED;
+	io->wspace = 0;
 	io->wsize = len;
 	io->woff = 0;
+	io->flags |= IO_FIXED;
 }
 
 /* Write a block to the io write buffer. */
 void
 io_write(struct io *io, const void *buf, size_t len)
 {
+	if ((io->flags & IO_WR) == 0)
+		fatalx("io: write when flag unset");
+
 	if (io->error != NULL)
 		return;
 
-	if (io->wspace == IO_FIXED)
+	if (io->flags & IO_FIXED)
 		fatalx("io: attempt to write to fixed buffer");
 
 	if (len != 0) {
@@ -492,6 +504,9 @@ io_readline2(struct io *io, char **buf, size_t *len)
 {
 	char	*ptr;
 	size_t	 off, maxlen, eollen;
+
+	if ((io->flags & IO_RD) == 0)
+		fatalx("io: read when flag unset");
 
 	if (io->error != NULL)
 		return (NULL);

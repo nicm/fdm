@@ -111,12 +111,15 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 		cmd->io_in = io_create(fd_in[1], NULL, IO_LF);
 		/* write the buffer directly, without copying */
 		io_writefixed(cmd->io_in, buf, len);
+		cmd->io_in->flags &= ~IO_RD;
 	}
-	if (fd_out[0] != -1)
+	if (fd_out[0] != -1) {
 		cmd->io_out = io_create(fd_out[0], NULL, IO_LF);
-	else
+		cmd->io_out->flags &= ~IO_WR;
+	} else
 		cmd->io_out = NULL;
 	cmd->io_err = io_create(fd_err[0], NULL, IO_LF);
+	cmd->io_err->flags &= ~IO_WR;
 
 	return (cmd);
 
@@ -189,18 +192,11 @@ restart:
 		}
 	}
 
-	if (cmd->io_out != NULL) {
-		if (IO_RDSIZE(cmd->io_out) > 0)
-			goto restart;
-		return (0);
-	}
-	if (cmd->io_err != NULL) {
-		if (IO_RDSIZE(cmd->io_err) > 0)
-			goto restart;
-		return (0);
-	}
+	if (cmd->io_in != NULL && cmd->io_out != NULL && cmd->io_err != NULL)
+		goto restart;
 	    
-	res = waitpid(cmd->pid, &status, 0 /*WNOHANG*/);
+	res = waitpid(cmd->pid, &status, WNOHANG);
+	log_debug("waitpid: out: %d", res);
 	if (res == 0 || (res == -1 && errno == ECHILD))
 		return (0);
 	if (res == -1) {

@@ -468,14 +468,19 @@ struct io {
 
 	int		 closed;
 	char		*error;
-	int		 need;
+
+	int		 flags;
+#define IO_RD 0x1
+#define IO_WR 0x2
+#define IO_NEEDFILL 0x4
+#define IO_NEEDPUSH 0x8
+#define IO_FIXED 0x10			/* fixed write buffer */
 
 	char		*rbase;		/* buffer start */
 	size_t		 rspace;	/* total size of buffer */
 	size_t		 rsize;		/* amount of data available */
 	size_t		 roff;		/* base of data in buffer */
 
-#define IO_FIXED 0			/* fixed write buffer */
 	char		*wbase;		/* buffer start */
 	size_t		 wspace;	/* total size of buffer */
 	size_t		 wsize;		/* size of data currently in buffer */
