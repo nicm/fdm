@@ -492,6 +492,7 @@ struct io {
 /* Command data. */
 struct cmd {
 	pid_t	 	 pid;
+	int		 status;
 
 	struct io	*io_in;
 	struct io	*io_out;

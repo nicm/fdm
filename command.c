@@ -118,8 +118,11 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 		cmd->io_out->flags &= ~IO_WR;
 	} else
 		cmd->io_out = NULL;
-	cmd->io_err = io_create(fd_err[0], NULL, IO_LF);
-	cmd->io_err->flags &= ~IO_WR;
+	if (fd_err[0] != -1) {
+		cmd->io_err = io_create(fd_err[0], NULL, IO_LF);
+		cmd->io_err->flags &= ~IO_WR;
+	} else
+		cmd->io_err = NULL;
 
 	return (cmd);
 
@@ -148,15 +151,8 @@ int
 cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 {
 	struct io	*io, *ios[2];
-	int		 status, res;
 
-restart:
-	log_debug("cmd_poll: restart: %p %p %p %zu %zu %zu", 
-	    cmd->io_in, cmd->io_out, cmd->io_err,
-	    cmd->io_in != NULL ? IO_WRSIZE(cmd->io_in) : 0,
-	    cmd->io_out != NULL ? IO_RDSIZE(cmd->io_out) : 0,
-	    cmd->io_err != NULL ? IO_RDSIZE(cmd->io_err) : 0);
-
+	/* retrieve a line if possible */
 	*out = *err = NULL;
 	if (cmd->io_out != NULL)
 		*out = io_readline(cmd->io_out);
@@ -165,6 +161,30 @@ restart:
 	if (*out != NULL || *err != NULL)
 		return (0);
 
+	/* if anything is open, try and poll it */
+	if (cmd->io_in != NULL || cmd->io_out != NULL || cmd->io_err != NULL) {
+		ios[0] = cmd->io_in;
+		ios[1] = cmd->io_out;
+		ios[2] = cmd->io_err;
+		switch (io_polln(ios, 3, &io, cause)) {
+		case -1:
+			return (1);
+		case 0:
+			/* if the closed io is empty, free it */
+			if (io == cmd->io_out && IO_RDSIZE(cmd->io_out) == 0) {
+				io_close(cmd->io_out);
+				io_free(cmd->io_out);
+				cmd->io_out = NULL;
+			}
+			if (io == cmd->io_err && IO_RDSIZE(cmd->io_err) == 0) {
+				io_close(cmd->io_err);
+				io_free(cmd->io_err);
+				cmd->io_err = NULL;
+			}
+			break;
+		}
+	}
+
 	/* close stdin if it is done */
 	if (cmd->io_in != NULL && IO_WRSIZE(cmd->io_in) == 0) {
 		io_close(cmd->io_in);
@@ -172,61 +192,43 @@ restart:
 		cmd->io_in = NULL;
 	}
 
-	if (cmd->io_in != NULL || cmd->io_err != NULL || cmd->io_out != NULL) {
-		ios[0] = cmd->io_in;
-		ios[1] = cmd->io_err;
-		ios[2] = cmd->io_out;
-		switch (io_polln(ios, 3, &io, cause)) {
+
+	/* check if the child is still alive */
+	if (cmd->pid != 0) {
+		switch (waitpid(cmd->pid, &cmd->status, WNOHANG)) {
 		case -1:
+			if (errno == ECHILD)
+				break;
+			xasprintf(cause, "waitpid: %s", strerror(errno));
 			return (1);
 		case 0:
-			/* the pipe has closed. if there is data left in the
-			   buffer, go on to try to handle it. io_readline will
-			   return everything left once the socket closes, so
-			   next time one of these will be true */
-			if (io == cmd->io_err && IO_RDSIZE(cmd->io_err) == 0) {
-				io_close(cmd->io_err);
-				io_free(cmd->io_err);
-				cmd->io_err = NULL;
-			}
-			if (io == cmd->io_out && IO_RDSIZE(cmd->io_out) == 0) {
-				io_close(cmd->io_out);
-				io_free(cmd->io_out);
-				cmd->io_out = NULL;
-			}
+			break;
+		default:
+			cmd->pid = -1;
 			break;
 		}
 	}
 
-	if (cmd->io_in != NULL)
-		goto restart;
+	/* if the child isn't dead, or there is data left in the buffers,
+	   return with 0 now to get called again */
+	if (cmd->pid != -1)
+		return (0);
 	if (cmd->io_out != NULL && IO_RDSIZE(cmd->io_out) > 0)
-		goto restart;
+		return (0);
 	if (cmd->io_err != NULL && IO_RDSIZE(cmd->io_err) > 0)
-		goto restart;
-	    
-	res = waitpid(cmd->pid, &status, WNOHANG);
-	log_debug("cmd_poll: waitpid: (%d) %p %p %p %zu %zu %zu", res,
-	    cmd->io_in, cmd->io_out, cmd->io_err,
-	    cmd->io_in != NULL ? IO_WRSIZE(cmd->io_in) : 0,
-	    cmd->io_out != NULL ? IO_RDSIZE(cmd->io_out) : 0,
-	    cmd->io_err != NULL ? IO_RDSIZE(cmd->io_err) : 0);
-	if (res == 0 || (res == -1 && errno == ECHILD))
-		goto restart;
-	if (res == -1) {
-		xasprintf(cause, "waitpid: %s", strerror(errno));
+		return (0);
+
+	/* child is dead, everything is empty. sort out what to return */
+	if (WIFSIGNALED(cmd->status)) {
+		xasprintf(cause, "child got signal: %d", WTERMSIG(cmd->status));
 		return (1);
 	}
-	if (WIFSIGNALED(status)) {
-		xasprintf(cause, "child got signal: %d", WTERMSIG(status));
-		return (1);
-	}
-	if (!WIFEXITED(status)) {
+	if (!WIFEXITED(cmd->status)) {
 		xasprintf(cause, "child didn't exit normally");
 		return (1);
 	}
-	status = WEXITSTATUS(status);
-	return (-1 - status);
+	cmd->status = WEXITSTATUS(cmd->status);
+	return (-1 - cmd->status);
 }
 
 void
