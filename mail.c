@@ -25,6 +25,7 @@
 #include <fnmatch.h>
 #include <limits.h>
 #include <pwd.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>

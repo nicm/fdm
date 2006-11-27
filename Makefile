@@ -31,7 +31,8 @@ CFLAGS+= -g -ggdb -DDEBUG
 CFLAGS+= -pedantic -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
-CFLAGS+= -Wredundant-decls
+CFLAGS+= -Wredundant-decls -Wundef -Wshadow -Wbad-function-cast -Winline
+CFLAGS+= -Wdisabled-optimization -Wcast-align -Wendif-labels
 
 # NetBSD
 .if ${OS} == "NetBSD"
