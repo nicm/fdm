@@ -151,6 +151,12 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 	int		 status, res;
 
 restart:
+	log_debug("cmd_poll: restart: %p %p %p %zu %zu %zu", 
+	    cmd->io_in, cmd->io_out, cmd->io_err,
+	    cmd->io_in != NULL ? IO_WRSIZE(cmd->io_in) : 0,
+	    cmd->io_out != NULL ? IO_RDSIZE(cmd->io_out) : 0,
+	    cmd->io_err != NULL ? IO_RDSIZE(cmd->io_err) : 0);
+
 	*out = *err = NULL;
 	if (cmd->io_out != NULL)
 		*out = io_readline(cmd->io_out);
@@ -166,7 +172,7 @@ restart:
 		cmd->io_in = NULL;
 	}
 
-	if (cmd->io_err != NULL || cmd->io_out != NULL) {
+	if (cmd->io_in != NULL || cmd->io_err != NULL || cmd->io_out != NULL) {
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_err;
 		ios[2] = cmd->io_out;
@@ -192,13 +198,21 @@ restart:
 		}
 	}
 
-	if (cmd->io_in != NULL && cmd->io_out != NULL && cmd->io_err != NULL)
+	if (cmd->io_in != NULL)
+		goto restart;
+	if (cmd->io_out != NULL && IO_RDSIZE(cmd->io_out) > 0)
+		goto restart;
+	if (cmd->io_err != NULL && IO_RDSIZE(cmd->io_err) > 0)
 		goto restart;
 	    
 	res = waitpid(cmd->pid, &status, WNOHANG);
-	log_debug("waitpid: out: %d", res);
+	log_debug("cmd_poll: waitpid: (%d) %p %p %p %zu %zu %zu", res,
+	    cmd->io_in, cmd->io_out, cmd->io_err,
+	    cmd->io_in != NULL ? IO_WRSIZE(cmd->io_in) : 0,
+	    cmd->io_out != NULL ? IO_RDSIZE(cmd->io_out) : 0,
+	    cmd->io_err != NULL ? IO_RDSIZE(cmd->io_err) : 0);
 	if (res == 0 || (res == -1 && errno == ECHILD))
-		return (0);
+		goto restart;
 	if (res == -1) {
 		xasprintf(cause, "waitpid: %s", strerror(errno));
 		return (1);
