@@ -205,7 +205,8 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 			break;
 		default:
 			cmd->pid = -1;
-			break;
+			/* do at least one poll before finishing */
+			return (0);
 		}
 	}
 
