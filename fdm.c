@@ -283,7 +283,7 @@ main(int argc, char **argv)
 
 	/* log the start time */
 	t = time(NULL);
-	log_debug("starting at: %.25s", ctime(&t));
+	log_debug("starting at: %.24s", ctime(&t));
 
 	/* save the home dir and misc user info */
 	fill_info(getenv("HOME"));
