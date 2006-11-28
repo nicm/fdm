@@ -7,8 +7,8 @@
 - redo chrooting properly (resolver needs to be in parent)
 - add more examples to the man page
 - audit man pages for clarity
-- document nested rules
 - think about whether or not we like MATCH_* (remember error can't be -1 for
   some reason... why?)
 - clear up XXXs
 - fetch from mbox
+- write a manual/expand README

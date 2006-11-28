@@ -550,6 +550,11 @@ The second form tags the mail with
 which may be matched using the
 .Ic tagged
 condition in later rules. A mail may be tagged with any number of different strings by different rules.
+Rules which apply a tag to not count as a match for the purposes of the
+.Ic matched
+or
+.Ic unmatched
+conditions.
 .Pp
 The optional
 .Ar users
@@ -569,8 +574,6 @@ parts consist either of a single name or a list of names enclosed in braces:
 .Ar name ...
 .Li }
 .Xc
-.El
-.Bl -tag -width Ds
 .It Xo Ic action Ar name | Ic actions
 .Li {
 .Ar name ...
@@ -597,6 +600,23 @@ keyword is present, evaluation will not stop if this rule is matched.
 Instead,
 .Xr fdm 1
 will continue to match further rules after performing any actions for this rule.
+.Sh NESTED RULES
+Rules may be nested by specifying further rules in braces:
+.Bl -tag -width Ds
+.It Xo Ic match
+.Ar condition
+.Op Ic and | Ic or Ar condition ...
+.Li {
+.Xc
+.It Ic match Ar ...
+.It Li }
+.El
+.Pp
+The inner rules will not be evaluated unless the outer one matches. Rules may be multiply nested. Note that the outer rule does not count as a match for the purposes of the
+.Ic matched
+and
+.Ic unmatched
+conditions.
 .Sh FILES
 .Bl -tag -width "/var/db/fdm.lockXXX" -compact
 .It Pa ~/.fdm.conf
