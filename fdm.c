@@ -191,6 +191,7 @@ main(int argc, char **argv)
 	pid_t		 pid;
 	struct passwd	*pw;
 	struct stat	 sb;
+	time_t		 t;
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -279,6 +280,10 @@ main(int argc, char **argv)
 	/* start logging to syslog if necessary */
 	log_init(!conf.syslog);
 	log_debug("version is: %s " BUILD, __progname);
+
+	/* log the start time */
+	t = time(NULL);
+	log_debug("starting at: %.25s", ctime(&t));
 
 	/* save the home dir and misc user info */
 	fill_info(getenv("HOME"));
