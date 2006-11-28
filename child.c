@@ -298,9 +298,8 @@ out:
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
 	n = dropped + kept;
 	if (n > 0) {
-		log_info("%s: %u messages processed in %.3f seconds "
-		    "(average %.3f). %u dropped, %u kept", a->name, n, tim,
-		    tim / n, dropped, kept);
+		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
+		    "(average %.3f)", a->name, n, kept, tim, tim / n);
 	} else {
 	        log_info("%s: %u messages processed in %.3f seconds",
 		    a->name, n, tim);
