@@ -141,7 +141,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 	buf = xmalloc(len);
 	off = 0;
 	if (prefix != NULL) {
-		if ((off = xsnprintf(buf, len, "%s ", prefix)) < 0)
+		if ((off = xsnprintf(buf, len, "%s", prefix)) < 0)
 			fatal("xsnprintf");
 	}
 

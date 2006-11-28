@@ -277,5 +277,5 @@ maildir_desc2(struct account *a)
 {
 	struct maildir_data	*data = a->data;
 
-	return (fmt_strings("maildirs", data->maildirs));
+	return (fmt_strings("maildirs ", data->maildirs));
 }
