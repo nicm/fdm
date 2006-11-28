@@ -180,8 +180,9 @@ command is used to instruct
 to fetch mail from an account.
 The syntax is:
 .Bl -tag -width Ds
-.It Xo Ic account Ar name Op Ic disabled
+.It Xo Ic account Ar name Op Ic disabled 
 .Ar type Op Ar args
+.Op Ic keep
 .Xc
 .El
 .Pp
@@ -195,6 +196,12 @@ keyword instructs
 to ignore this account unless it is explicitly enabled with a
 .Fl a
 option on the command line.
+If the
+.Ic keep
+keyword is specified, all mail collected from this account is kept (not deleted) even if it matches a
+.Ic drop
+action.
+.Pp
 Supported account types and arguments are:
 .Pp
 .Bl -tag -width Ds
@@ -240,6 +247,18 @@ These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3 account, aside from the additional
 .Ic folder
 option which allows the folder name to be specified (the default is to fetch from the inbox).
+.It Ic maildir Ar path
+.It Xo Ic maildirs 
+.Li {
+.Ar path ...
+.Li }
+.Xc
+These account types instruct
+.Xr fdm 1
+to fetch mail from the maildir or maildirs specified.
+This allows
+.Xr fdm 1
+to be used to filter mail, fetching from a maildir and deleting dropping unwanted mail, or delivering mail to another maildir or to an mbox.
 .El
 .Sh ACTIONS
 The
@@ -324,10 +343,16 @@ day of the week (0-6, Sunday is 0),
 day of the year (000-365) and
 .Em %Q
 quarter (1-4).
+In addition,
+.Em %s
+is replaced by a string specific to the type of account.
+When fetching from a maildir, this is the basename of the maildir path.
+With pop3 or imap, it is the hostname of the server, as specified in the account definition.
 .Bl -tag -width Ds
-.It Xo Ic drop
-.Xc
+.It Ic drop
 Discard the mail.
+.It Ic keep
+Keep the mail, do not remove it from the account.
 .It Xo Ic maildir Ar path
 .Xc
 Save the mail to the maildir specified by
@@ -381,14 +406,16 @@ keyword.
 It has one of the following basic forms:
 .Bl -tag -width Ds
 .It Xo Ic match
-.Ar conditions
+.Ar condition
+.Op Ic and | Ic or Ar condition ...
 .Op Ar accounts
 .Op Ar users
 .Ar actions
 .Op Ic continue
 .Xc
 .It Xo Ic match
-.Ar conditions
+.Ar condition
+.Op Ic and | Ic or Ar condition ...
 .Op Ar accounts
 .Ic tag Ar string
 .Xc
@@ -402,20 +429,17 @@ argument may be one of:
 Matches all mail.
 .It Xo Op Ic not 
 .Ic matched
-.Op Ic and | Ic or Ar ...
 .Xc
 Matches only mail that has matched a previous rule and been passed on with
 .Ic continue .
 .It Xo Op Ic not 
 .Ic unmatched
-.Op Ic and | Ic or Ar ...
 .Xc
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
 .It Xo Op Ic not 
 .Ic tagged Ar string
-.Op Ic and | Ic or Ar ...
 .Xc
 Matches mails tagged with 
 .Ar string .
@@ -423,7 +447,6 @@ Matches mails tagged with
 .Op Ic case
 .Ar regexp
 .Op Ic in Ic headers | Ic in body
-.Op Ic and | Ic or Ar ...
 .Xc
 Specifies a list of regexps against which each mail should be matched.
 The regexp matches may be restricted to either the headers or body of the message by specifying either
@@ -485,6 +508,28 @@ condition. If no
 condition has yet been seen, or the mail contents has been modified by a
 .Ic rewrite
 action since the last one, this condition will log a warning and evaluate to false.
+.It Xo Op Ic not 
+.Ic age 
+.Li <
+.Ar time
+.Xc
+.It Xo Op Ic not 
+.Ic age 
+.Li >
+.Ar time
+.Xc
+The
+.Ic age
+condition examines the mail's date header to determine its age, and matches if the mail is older (<) or newer (>) than the time specified.
+The time may be given as a simple number in seconds, or followed by the word
+.Em seconds ,
+.Em hours ,
+.Em minutes ,
+.Em days ,
+.Em months
+or
+.Em years 
+to specify a time using in those units.
 .El
 .Pp
 Aside from the

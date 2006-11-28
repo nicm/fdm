@@ -420,7 +420,11 @@ size: numv
 	      $$ = $1;
       }
 
-time: numv TOKHOURS
+time: numv
+      {
+	      $$ = $1;
+      }
+    | numv TOKHOURS
       {
 	      if ($1 > LLONG_MAX / TIME_HOUR)
 		      yyerror("time is too long");

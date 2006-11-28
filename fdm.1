@@ -22,7 +22,7 @@
 .Nd "fetch and deliver mail"
 .Sh SYNOPSIS
 .Nm fdm
-.Op Fl lmnv
+.Op Fl klmnv
 .Bk -words
 .Op Fl f Ar conffile
 .Ek
@@ -55,6 +55,12 @@ or
 .Pa /etc/fdm.conf
 if it doesn't exist.
 .Pp
+.It Fl k
+Keep all mail after delivery, regardless of whether it matches a
+.Ic drop
+action. Note that mails kept in this way will be refetched by
+.Nm
+if it is run again on the same account.
 .It Fl l
 Log using
 .Xr syslog 3
