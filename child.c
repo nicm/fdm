@@ -163,8 +163,8 @@ fetch_account(struct io *io, struct account *a)
 	struct mail	 m;
 	struct timeval	 tv;
 	double		 tim;
-	u_int	 	 n, l;
-	int		 error, matched, stopped;
+	u_int	 	 l, n, dropped, kept;
+	int		 error;
  	const char	*cause = NULL;
 	struct match_ctx mctx;
 	char		*hdr;
@@ -179,7 +179,7 @@ fetch_account(struct io *io, struct account *a)
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
-	n = 0;
+	dropped = kept = 0;
         for (;;) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
@@ -191,8 +191,6 @@ fetch_account(struct io *io, struct account *a)
 		mctx.io = io;
 		mctx.account = a;
 		mctx.mail = &m;
-		mctx.matched = &matched;
-		mctx.stopped = &stopped;
 
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
@@ -223,7 +221,7 @@ fetch_account(struct io *io, struct account *a)
 
 		hdr = find_header(&m, "message-id:", &len);
 		if (hdr == NULL || len == 0 || len > INT_MAX)
-			log_debug("%s: no message-id", a->name);
+			log_debug("%s: message-id not found", a->name);
 		else {
 			log_debug("%s: message-id is: %.*s", a->name, (int) len,
 			    hdr);
@@ -233,11 +231,10 @@ fetch_account(struct io *io, struct account *a)
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
 		/* handle rule evaluation and actions */
-		matched = stopped = 0;
+		mctx.matched = mctx.stopped = 0;
 		if (do_rules(&mctx, &conf.rules, &cause) != 0)
 			goto out;
-
-		if (stopped)
+		if (mctx.stopped)
 			goto done;
 
 		switch (conf.impl_act) {
@@ -265,6 +262,7 @@ fetch_account(struct io *io, struct account *a)
 		/* finished with the message */
 		switch (m.decision) {
 		case DECISION_DROP:
+			dropped++;
 			log_debug("%s: deleting message", a->name);
 			if (a->fetch->delete != NULL) {
 				if (a->fetch->delete(a) != 0) {
@@ -274,6 +272,7 @@ fetch_account(struct io *io, struct account *a)
 			}
 			break;
 		case DECISION_KEEP:
+			kept++;
 			log_debug("%s: keeping message", a->name);
 			if (a->fetch->keep != NULL) {
 				if (a->fetch->keep(a) != 0) {
@@ -283,13 +282,10 @@ fetch_account(struct io *io, struct account *a)
 			}
 			break;
 		default:
-			log_warnx("invalid decision on message: %d",
-			    m.decision);
-			exit(1);
+			fatalx("invalid decision");
 		}
 
  		free_mail(&m, 1);
-		n++;
 	}
 
 out:
@@ -300,9 +296,11 @@ out:
 	if (gettimeofday(&tv, NULL) != 0)
 		fatal("gettimeofday");
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
+	n = dropped + kept;
 	if (n > 0) {
 		log_info("%s: %u messages processed in %.3f seconds "
-		    "(average %.3f)", a->name, n, tim, tim / n);
+		    "(average %.3f). %u dropped, %u kept", a->name, n, tim,
+		    tim / n, dropped, kept);
 	} else {
 	        log_info("%s: %u messages processed in %.3f seconds",
 		    a->name, n, tim);
@@ -360,7 +358,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		/* handle delivery */
 		if (r->actions != NULL) {
 			log_debug("%s: matched message", a->name);
-			*mctx->matched = 1;
+			mctx->matched = 1;
 			if (do_deliver(r, mctx) != 0) {
 				*cause = "delivery";
 				return (1);
@@ -372,16 +370,16 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 			if (do_rules(mctx, &r->rules, cause) != 0)
 				return (1);
 			log_debug2("%s: exiting nested rules%s", a->name,
-			    *mctx->stopped ? ", and stopping" : "");
+			    mctx->stopped ? ", and stopping" : "");
 			/* if it didn't drop off the end of the nested rules,
 			   stop now */
-			if (*mctx->stopped)
+			if (mctx->stopped)
 				return (0);
 		}
 
 		/* if this rule is marked as stop, stop checking now */
 		if (r->stop) {
-			*mctx->stopped = 1;
+			mctx->stopped = 1;
 			return (0);
 		}
 	}

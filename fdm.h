@@ -560,8 +560,8 @@ struct match_ctx {
 	struct account	*account;
 	struct mail     *mail;
 
-	int		*matched;
-	int		*stopped;
+	int		 matched;
+	int		 stopped;
 
 	int		 pmatch_valid;
 	regmatch_t	 pmatch[NPMATCH];

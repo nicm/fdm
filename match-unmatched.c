@@ -30,7 +30,7 @@ struct match match_unmatched = { unmatched_match, unmatched_desc };
 int
 unmatched_match(struct match_ctx *mctx, unused struct expritem *ei)
 {
-	if (*mctx->matched)
+	if (mctx->matched)
 		return (MATCH_FALSE);
 	return (MATCH_TRUE);
 }
