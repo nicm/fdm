@@ -51,6 +51,10 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	}
 	log_debug("%s: saving to mbox %s", a->name, path);
 
+	/* create a from line for the mail */
+	from = make_from(m);
+	log_debug("%s: using from line: %s", a->name, from);
+
 	/* check permissions and ownership */
 	errno = 0;
 	if (stat(path, &sb) != 0 && errno != ENOENT) {
@@ -79,10 +83,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			goto out;
 		}
 	}
-
-	/* create a from line for the mail */
-	from = make_from(m);
-
+	
 	do {
 		fd = openlock(path, conf.lock_types,
 		    O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);

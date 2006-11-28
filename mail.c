@@ -315,7 +315,7 @@ find_address(char *hdr, size_t len, size_t *alen)
 			if (pos != *alen)
 				break;
 			ptr = hdr + off;
-			if (*alen == 0 || memchr(ptr + off, '@', *alen) == NULL)
+			if (*alen == 0 || memchr(ptr, '@', *alen) == NULL)
 				break;
 			if (ptr[0] == '@' || ptr[*alen - 1] == '@')
 				break;
