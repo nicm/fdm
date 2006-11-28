@@ -90,7 +90,7 @@ xmalloc_dump(const char *hdr)
 
 		p = &xmalloc_array[i];
 		if (p->ptr != NULL) {
-			if ((m = xsnprintf(tmp + off, len - off, "[%p %zu:", 
+			if ((m = xsnprintf(tmp + off, len - off, "[%p %zu:",
 			    p->ptr, p->size)) < 0)
 				break;
 			off += m;

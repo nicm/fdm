@@ -95,7 +95,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	}
 
 	xfree(s);
-	
+
 	diff = difftime(now, then);
 	if (diff < 0)
 		goto invalid;
@@ -116,7 +116,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	off += snprintf(tmp + off, len - off, "%lld m, ", t / TIME_MINUTE);
 	off += snprintf(tmp + off, len - off, "%lld s", t);
 	log_debug2("%s: mail age is: %s", a->name, tmp);
-	
+
 	if (data->cmp == CMP_LT && diff < data->time)
 		return (MATCH_TRUE);
 	else if (data->cmp == CMP_GT && diff > data->time)

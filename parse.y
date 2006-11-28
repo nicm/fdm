@@ -122,7 +122,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 	size_t	 slen, len;
 	ssize_t	 off;
 	u_int	 i;
-	
+
 	if (ARRAY_LENGTH(sp) == 0) {
 		if (prefix != NULL)
 			return (xstrdup(prefix));
@@ -666,7 +666,7 @@ pathslist: pathslist strv
 	   {
 		   if (*$2 == '\0')
 			   yyerror("invalid path");
-		   
+
 		   $$ = $1;
 		   ARRAY_ADD($$, $2, char *);
 	   }
@@ -674,7 +674,7 @@ pathslist: pathslist strv
 	   {
 		   if (*$1 == '\0')
 			   yyerror("invalid path");
-		   
+
 		   $$ = xmalloc(sizeof *$$);
 		   ARRAY_INIT($$);
 		   ARRAY_ADD($$, $1, char *);
@@ -684,7 +684,7 @@ maildirs: TOKMAILDIR strv
 	  {
 		  if (*$2 == '\0')
 			  yyerror("invalid path");
-		  
+
 		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2, char *);
@@ -1589,7 +1589,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
          | maildirs
 	   {
 		   struct maildir_data	*data;
-		   
+
 		   $$.fetch = &fetch_maildir;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;

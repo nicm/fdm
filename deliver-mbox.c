@@ -83,7 +83,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			goto out;
 		}
 	}
-	
+
 	do {
 		fd = openlock(path, conf.lock_types,
 		    O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);

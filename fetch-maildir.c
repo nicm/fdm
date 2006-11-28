@@ -131,7 +131,7 @@ maildir_poll(struct account *a, u_int *n)
 			log_warn("%s: %s: opendir", a->name, path);
 			return (POLL_ERROR);
 		}
-		
+
 		while ((dp = readdir(dirp)) != NULL) {
 			xasprintf(&entry, "%s/%s", path, dp->d_name);
 			if (stat(entry, &sb) != 0) {
@@ -144,13 +144,13 @@ maildir_poll(struct account *a, u_int *n)
 
 			if (!S_ISREG(sb.st_mode))
 				continue;
-				
+
 			(*n)++;
 		}
-			
+
 		closedir(dirp);
 	}
-	
+
 	return (POLL_SUCCESS);
 }
 
@@ -162,7 +162,6 @@ maildir_fetch(struct account *a, struct mail *m)
 	char	       		*ptr;
 	struct stat		 sb;
 	int			 fd;
-
 
 restart:
 	if (data->dirp == NULL) {
@@ -184,11 +183,11 @@ restart:
 			xfree(data->entry);
 			data->entry = NULL;
 		}
-		
+
 		dp = readdir(data->dirp);
 		if (dp == NULL) {
 			closedir(data->dirp);
-			data->dirp = NULL;	
+			data->dirp = NULL;
 
 			data->index++;
 			if (data->index == ARRAY_LENGTH(data->paths))
@@ -205,24 +204,24 @@ restart:
 
 	log_debug2("%s: reading mail from: %s", a->name, data->entry);
 	if (sb.st_size == 0) {
-		log_warnx("%s: %s: empty file", a->name, data->entry); 
+		log_warnx("%s: %s: empty file", a->name, data->entry);
 		return (FETCH_ERROR);
 	}
 	if (sb.st_size > conf.max_size)
 		return (FETCH_OVERSIZE);
-	
+
 	if ((fd = open(data->entry, O_RDONLY, 0)) < 0) {
 		log_warn("%s: %s: stat", a->name, data->entry);
 		return (FETCH_ERROR);
-	}			
-	
+	}
+
 	init_mail(m, sb.st_size);
 	m->s = xstrdup(basename(dirname(data->path)));
 
 	log_debug2("%s: reading %zu bytes", a->name, m->size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
 		close(fd);
-		log_warn("%s: %s: read", a->name, data->entry); 
+		log_warn("%s: %s: read", a->name, data->entry);
 		return (FETCH_ERROR);
 	}
 	close(fd);
@@ -239,7 +238,7 @@ restart:
 			break;
 		}
 	}
-	
+
 	return (FETCH_SUCCESS);
 }
 

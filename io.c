@@ -148,7 +148,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 			pfd->fd = io->fd;
 		if (io->flags & IO_RD)
 			pfd->events = POLLIN;
-		if (io->flags & IO_WR && (io->wsize > 0 || 
+		if (io->flags & IO_WR && (io->wsize > 0 ||
 		    (io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0))
 			pfd->events |= POLLOUT;
 	}

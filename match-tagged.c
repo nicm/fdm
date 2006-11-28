@@ -48,7 +48,7 @@ tagged_desc(struct expritem *ei)
 {
 	struct tagged_data	*data = ei->data;
 	char			*s;
-	
+
 	xasprintf(&s, "tagged %s", data->tag);
 	return (s);
 }

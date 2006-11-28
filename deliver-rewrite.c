@@ -96,7 +96,7 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 			}
 		}
 	} while (status >= 0);
-	
+
 	status = -1 - status;
 	if (status != 0) {
 		log_warnx("%s: %s: command returned %d", a->name, s, status);

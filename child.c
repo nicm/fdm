@@ -283,15 +283,15 @@ fetch_account(struct io *io, struct account *a)
 			}
 			break;
 		default:
-			log_warnx("invalid decision on message: %d", 
+			log_warnx("invalid decision on message: %d",
 			    m.decision);
 			exit(1);
 		}
-		
+
  		free_mail(&m, 1);
 		n++;
 	}
-	
+
 out:
 	free_mail(&m, 1);
 	if (cause != NULL)
@@ -543,16 +543,16 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		if (t->deliver->type != DELIVER_WRBACK) {
 			/* check everything that should be is the same
 			   (not that it matters) */
-			if (m->size != msg.data.mail.size || 
+			if (m->size != msg.data.mail.size ||
 			    m->body != msg.data.mail.body ||
 			    m->decision != msg.data.mail.decision)
 				fatalx("child: corrupted message");
 			continue;
 		}
-			
+
 		/* copy the tags and string to the new mail and clear them
 		   from old to stop them being freed */
-		memcpy(&msg.data.mail.tags, &m->tags, 
+		memcpy(&msg.data.mail.tags, &m->tags,
 		    sizeof msg.data.mail.tags);
 		ARRAY_INIT(&m->tags);
 		msg.data.mail.s = m->s;

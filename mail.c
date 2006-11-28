@@ -214,7 +214,7 @@ find_header(struct mail *m, const char *hdr, size_t *len)
 	/* header must be followed by space */
 	if (!isspace((int) *out))
 		return (NULL);
-		
+
 	/* strip any following space */
 	while (isspace((int) *out)) {
 		out++;
