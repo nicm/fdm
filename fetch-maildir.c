@@ -77,6 +77,8 @@ maildir_makepaths(struct account *a)
 
 		xasprintf(&path, "%s/new", s);
 		ARRAY_ADD(data->paths, path, char *);
+
+		xfree(s);
 	}
 }
 
