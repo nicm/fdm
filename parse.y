@@ -251,7 +251,6 @@ find_macro(char *name)
 	struct action	 	 action;
 	struct expr		*expr;
 	struct expritem		*expritem;
-	struct paths		*paths;
 	struct strings		*strings;
 	uid_t			 uid;
 	struct {
@@ -1594,7 +1593,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.fetch = &fetch_maildir;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->paths = $1;
+		   data->maildirs = $1;
 	   }
 
 account: TOKACCOUNT strv disabled fetchtype keep

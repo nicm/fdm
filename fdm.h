@@ -625,11 +625,12 @@ struct command_data {
 
 /* Fetch maildir data. */
 struct maildir_data {
+	struct strings		*maildirs;
+
 	struct strings		*paths;
 	u_int			 index;
 
 	DIR			*dirp;
-	const char	       **ep;
 	char			*path;
 	char			*entry;
 };
