@@ -57,6 +57,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 
 	/* parse the date */
 	log_debug2("%s: found date header: %s", a->name, ptr);
+	memset(&tm, 0, sizeof tm);
 	endptr = strptime(ptr, "%a, %d %b %Y %H:%M:%S", &tm);
 	if (endptr == NULL)
 		endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
@@ -97,7 +98,8 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	xfree(s);
 
 	diff = difftime(now, then);
-	log_debug2("%s: time difference is %lld", a->name, diff);
+	log_debug2("%s: time difference is %lld (now %lld, then %lld)", a->name,
+	    diff, now, then);
 	if (diff < 0)
 		goto invalid;
 
