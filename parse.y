@@ -1028,15 +1028,6 @@ actions: TOKACTION TOKNONE
 
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
-		 /* XXX check better? or not at all? */
-		 if (strchr($2, '%') == NULL) {
-			 ta = find_actions($2);
-			 if (ARRAY_EMPTY(ta)) {
-				 ARRAY_FREEALL(ta);
-				 yyerror("unknown action: %s", $2);
-			 }
-			 ARRAY_FREEALL(ta);
-		 }
 
 		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
@@ -1053,15 +1044,6 @@ actionslist: actionslist strv
 
 		     if (*$2 == '\0')
 			     yyerror("invalid action name");
- 		     /* XXX check better? or not at all? */
-		     if (strchr($2, '%') == NULL) {
-			     ta = find_actions($2);
-			     if (ARRAY_EMPTY(ta)) {
-				     ARRAY_FREEALL(ta);
-				     yyerror("unknown action: %s", $2);
-			     }
-			     ARRAY_FREEALL(ta);
-		     }
 
 		     $$ = $1;
 		     ARRAY_ADD($$, $2, char *);
@@ -1072,15 +1054,6 @@ actionslist: actionslist strv
 
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
- 		     /* XXX check better? or not at all? */
-		     if (strchr($1, '%') == NULL) {
-			     ta = find_actions($1);
-			     if (ARRAY_EMPTY(ta)) {
-				     ARRAY_FREEALL(ta);
-				     yyerror("unknown action: %s", $1);
-			     }
-			     ARRAY_FREEALL(ta);
-		     }
 
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);

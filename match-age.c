@@ -97,6 +97,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	xfree(s);
 
 	diff = difftime(now, then);
+	log_debug2("%s: time difference is %lld", a->name, diff);
 	if (diff < 0)
 		goto invalid;
 
