@@ -1,7 +1,7 @@
 # $Id$
 
 .SUFFIXES: .c .o .y .l .h
-.PHONY: clean update-index.html upload-index.html lint
+.PHONY: clean update-index.html upload-index.html lint regress
 
 PROG= fdm
 VERSION= 0.6
