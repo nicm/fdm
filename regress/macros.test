@@ -1,0 +1,38 @@
+# $Id$
+
+# ------------------------------------------------------------------------------
+# UNDEFINED
+
+account $macro stdin
+@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+account %macro stdin
+@1 ^/dev/stdin: syntax error at line 1$
+
+account "${macro}" stdin
+@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+account "a${macro}" stdin
+@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+account "${macro}b" stdin
+@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+account "a${macro}b" stdin
+@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+
+# ------------------------------------------------------------------------------
+# DEFINED
+
+!%macro = 0
+!$macro = "test"
+
+account $macro stdin
+@0 ^added account: name=test fetch=stdin$
+account %macro stdin
+@1 ^/dev/stdin: syntax error at line 3$
+
+account "${macro}" stdin
+@0 ^added account: name=test fetch=stdin$
+account "a${macro}" stdin
+@0 ^added account: name=atest fetch=stdin$
+account "${macro}b" stdin
+@0 ^added account: name=testb fetch=stdin$
+account "a${macro}b" stdin
+@0 ^added account: name=atestb fetch=stdin$
