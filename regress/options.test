@@ -1,0 +1,136 @@
+# $Id$
+
+set maximum-size 0
+@0
+set maximum-size 2147483647
+@0
+set maximum-size 2147483648
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+
+set maximum-size 0b
+@0
+set maximum-size 2147483647b
+@0
+set maximum-size 2147483648b
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+set maximum-size 0B
+@0
+set maximum-size 2147483647B
+@0
+set maximum-size 2147483648B
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+
+set maximum-size 0K
+@0
+set maximum-size 2097151K
+@0
+set maximum-size 2097152K
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+set maximum-size 0k
+@0
+set maximum-size 2097151k
+@0
+set maximum-size 2097152k
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+
+set maximum-size 0M
+@0
+set maximum-size 2047M
+@0
+set maximum-size 2048M
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+set maximum-size 0m
+@0
+set maximum-size 2047m
+@0
+set maximum-size 2048M
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+
+set maximum-size 0G
+@0
+set maximum-size 1G
+@0
+set maximum-size 2G
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+set maximum-size 0g
+@0
+set maximum-size 1g
+@0
+set maximum-size 2g
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+
+set lock-types abcdef
+@1 ^/dev/stdin: syntax error at line 1$
+set lock-types flock
+@0 ^locking using: flock $
+set lock-types fcntl
+@0 ^locking using: fcntl $
+set lock-types dotlock
+@0 ^locking using: dotlock $
+set lock-types flock fcntl
+@1 ^/dev/stdin: fcntl and flock locking cannot be used together at line 2$
+set lock-types dotlock fcntl
+@0 ^locking using: fcntl dotlock $
+set lock-types dotlock flock
+@0 ^locking using: flock dotlock $
+
+set lock-file ""
+@0
+set lock-file "/tmp/file"
+@0
+
+set delete-oversized
+@0
+
+set allow-multiple
+@0
+
+set default-user 0
+@0
+set default-user "root"
+@0
+
+set domain ""
+@1 ^/dev/stdin: invalid domain at line 1$
+set domain "domain"
+@0 ^domains are: "domain"$
+set domain { "domain1" "domain2" }
+@1 ^/dev/stdin: syntax error at line 1$
+set domain { }
+@1 ^/dev/stdin: syntax error at line 1$
+set domains "domain"
+@1 ^/dev/stdin: syntax error at line 1$
+set domains { "" }
+@1 ^/dev/stdin: invalid domain at line 1$
+set domains { "domain" }
+@0 ^domains are: "domain"$
+set domains { "domain1" "domain2" }
+@0 ^domains are: "domain1" "domain2"$
+set domains { }
+@1 ^/dev/stdin: syntax error at line 1$
+
+set header ""
+@1 ^/dev/stdin: invalid header at line 1$
+set header "header"
+@0 ^headers are: "header"$
+set header { "header1" "header2" }
+@1 ^/dev/stdin: syntax error at line 1$
+set header { }
+@1 ^/dev/stdin: syntax error at line 1$
+set headers "header"
+@1 ^/dev/stdin: syntax error at line 1$
+set headers { "" }
+@1 ^/dev/stdin: invalid header at line 1$
+set headers { "header" }
+@0 ^headers are: "header"$
+set headers { "header1" "header2" }
+@0 ^headers are: "header1" "header2"$
+set headers { }
+@1 ^/dev/stdin: syntax error at line 1$
+
+set unmatched-mail drop
+$0
+set unmatched-mail keep
+@0
+set unmatched-mail test
+@1 ^/dev/stdin: syntax error at line 1$

@@ -2,7 +2,7 @@
 
 DEBUG= 0
 
-TESTS= account.test macros.test
+TESTS= account.test macros.test options.test
 
 all:		regress
 
