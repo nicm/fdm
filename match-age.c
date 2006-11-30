@@ -63,7 +63,7 @@ age_tzlookup(const char *tz)
 	if (strcmp(tz, tm->tm_zone) == 0)
 		off = tm->tm_gmtoff;
 
-	/* restore the old the timezone */
+	/* restore the old timezone */
 	if (saved_tz != NULL) {
 		if (setenv("TZ", saved_tz, 1) != 0)
 			return (INT_MAX);

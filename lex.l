@@ -38,6 +38,9 @@ extern __dead printflike1 void	 yyerror(const char *, ...);
 
 char 				*read_str(char);
 
+/* Redefine ECHO to cause an error. */
+#define ECHO yyerror("syntax error");
+
 /* Use a one-byte buffer so flushing it on include doesn't do any harm. */
 #define YY_READ_BUF_SIZE 1
 
