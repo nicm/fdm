@@ -30,7 +30,6 @@
 int	parent_action(struct account *, struct action *, struct mail *, uid_t);
 int	parent_command(struct account *, struct command_data *, struct mail *,
 	    uid_t);
-int	deliverfork(uid_t, struct account *, struct mail *, struct action *);
 
 int
 parent(int fd, pid_t pid)
@@ -193,7 +192,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		if (t->deliver->type == DELIVER_WRBACK) {
 			if (error == DELIVER_SUCCESS) {
 				free_mail(&dctx.wr_mail, 0);
-				free_mail(m, 0);
+				free_mail(m, 1);
 
 				/* no need to update anything, since the
 				   important stuff is all the same */
