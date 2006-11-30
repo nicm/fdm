@@ -81,7 +81,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	if (strcmp(endptr, "GMT") == 0)
 		tz = 0;
 	else {
-		tz = strtonum(endptr, -9999, 9999, &errstr);
+		tz = strtonum(endptr, -2359, 2359, &errstr);
 		if (errstr != NULL) {
 			xfree(s);
 			goto invalid;
@@ -91,15 +91,15 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	log_debug2("%s: mail timezone is: %+.4d", a->name, tz);
 	then -= (tz / 100) * TIME_HOUR + (tz % 100) * TIME_MINUTE;
 	if (then < 0) {
-		xfree(s);
-		goto invalid;
+		/* reset all ages in the future to zero */
+		then = 0;
 	}
 
 	xfree(s);
 
 	diff = difftime(now, then);
 	log_debug2("%s: time difference is %lld (now %lld, then %lld)", a->name,
-	    diff, now, then);
+	    diff, (long long) now, (long long) then);
 	if (diff < 0)
 		goto invalid;
 
