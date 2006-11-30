@@ -38,7 +38,7 @@ pipe_deliver(struct deliver_ctx *dctx, struct action *t)
 	struct mail	*m = dctx->mail;
         char		*cmd;
         FILE    	*f;
-	int	 	error;
+	int	 	 error;
 
 	cmd = replaceinfo(t->data, a, t, m->s);
         if (cmd == NULL || *cmd == '\0') {
