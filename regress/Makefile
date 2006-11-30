@@ -4,6 +4,8 @@ DEBUG= 0
 
 TESTS= account.test macros.test
 
+all:		regress
+
 TARGETS= 
 .for n in ${TESTS}
 TARGETS+= ${n}
@@ -14,7 +16,5 @@ ${n}::
 .endfor
 
 .PHONY: regress ${TARGETS}
-
-all:		regress
 
 regress:	${TARGETS}
