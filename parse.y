@@ -1024,8 +1024,6 @@ actions: TOKACTION TOKNONE
 	 }
        | TOKACTION strv
 	 {
-		 struct actions	*ta;
-
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
 
@@ -1040,8 +1038,6 @@ actions: TOKACTION TOKNONE
 
 actionslist: actionslist strv
 	     {
-		     struct actions	*ta;
-
 		     if (*$2 == '\0')
 			     yyerror("invalid action name");
 
@@ -1050,8 +1046,6 @@ actionslist: actionslist strv
 	     }
 	   | strv
 	     {
-		     struct actions	*ta;
-
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
 

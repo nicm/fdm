@@ -137,17 +137,19 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	log_debug2("%s: mail timezone is: %+.4d", a->name, tz);
 	then -= (tz / 100) * TIME_HOUR + (tz % 100) * TIME_MINUTE;
 	if (then < 0) {
-		/* reset all ages in the future to zero */
-		then = 0;
-	}
+			xfree(s);
+			goto invalid;
+		}
 
 	xfree(s);
 
 	diff = difftime(now, then);
 	log_debug2("%s: time difference is %lld (now %lld, then %lld)", a->name,
 	    diff, (long long) now, (long long) then);
-	if (diff < 0)
-		goto invalid;
+	if (diff < 0) {
+		/* reset all ages in the future to zero */
+		then = 0;
+	}
 
 	/* mails reaching this point is not invalid, so return false if
 	   validity is what is being tested for */
