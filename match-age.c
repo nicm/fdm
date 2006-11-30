@@ -34,9 +34,9 @@ struct match match_age = { age_match, age_desc };
 /* 
  * Some mailers, notably AOL's, use the timezone string instead of an offset
  * from UTC. This is highly annoying: since there are duplicate abbreviations
- * it cannot be converted with absolute certainty. Since it is only a few 
- * clients do this anyway, don't even try particularly hard, just try to look
- * it up using tzset.
+ * it cannot be converted with absolute certainty. As it is only a few clients
+ * do this anyway, don't even try particularly hard, just try to look it up
+ * using tzset, which catches the few most common abbreviations.
  */
 int
 age_tzlookup(const char *tz)
