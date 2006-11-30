@@ -17,16 +17,21 @@
 
 function failed(line) {
 	failures++;
-	print "FAILED: " line;
+	print FILENAME ":" n ": FAILED: " line;
 }
 function passed(line) {
-	print "PASSED: " line;
+	print FILENAME ":" n ": PASSED: " line;
 }
 
 BEGIN {
 	failures = 0;
 	line = "";
+	n = 0;
 	prefix = "(echo \'";
+}
+
+/.*/ {
+	n++;
 }
 
 /^!.+/ {
