@@ -96,6 +96,9 @@ lint:
 depend:
 		mkdep ${CFLAGS} ${SRCS}
 
+regress:	clean ${OBJS} ${PROG}
+		cd regress && ${MAKE}
+
 port:
 		tar -zxc \
 			-s '/ports\/OpenBSD\/\(.*\)/${PROG}\/\1/' \

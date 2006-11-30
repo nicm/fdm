@@ -1,0 +1,123 @@
+# $Id$
+
+account ""
+@1 ^/dev/stdin: syntax error at line 2$
+
+# ------------------------------------------------------------------------------
+# STDIN
+
+account "" stdin
+@1 ^/dev/stdin: invalid account name at line 2$
+
+account "name" stdin
+@0 ^added account: name=name fetch=stdin$
+
+# ------------------------------------------------------------------------------
+# POP3
+
+account "name" pop3
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" pop3 server
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" pop3 server "server"
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" pop3 server "server" user "user"
+@1 ^/dev/stdin: syntax error at line 2$
+account pop3 server "server" user "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" pop3 "server" user "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" pop3 server user "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" pop3 server "server" "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" pop3 server "server" user pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" pop3 server "server" user "user" "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" pop3 server "server" user "user" pass
+@1 ^/dev/stdin: syntax error at line 2$
+
+account "name" pop3 server "server" user "user" pass "pass"
+@0 ^added account: name=name fetch=pop3 server "server" port pop3 user "user"$
+account "name" pop3s server "server" user "user" pass "pass"
+@0 ^added account: name=name fetch=pop3s server "server" port pop3s user "user"$
+
+account "name" pop3 server "server" port 123 user "user" pass "pass"
+@0 ^added account: name=name fetch=pop3 server "server" port 123 user "user"$
+account "name" pop3 server "server" port "port" user "user" pass "pass"
+@0 ^added account: name=name fetch=pop3 server "server" port port user "user"$
+account "name" pop3 server "server" port 0 user "user" pass "pass"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" pop3 server "server" port 65536 user "user" pass "pass"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" pop3 server "server" port "" user "user" pass "pass"
+@1 ^/dev/stdin: invalid port at line 1$
+
+account "" pop3 server "server" user "user" pass "pass"
+@1 ^/dev/stdin: invalid account name at line 2$
+account "name" pop3 server "" user "user" pass "pass"
+@1 ^/dev/stdin: invalid host at line 1$
+account "name" pop3 server "server" user "" pass "pass"
+@1 ^/dev/stdin: invalid user at line 1$
+account "name" pop3 server "server" user "user" pass ""
+@1 ^/dev/stdin: invalid pass at line 1$
+
+# ------------------------------------------------------------------------------
+# IMAP
+
+account "name" imap
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" imap server
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" imap server "server"
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" imap server "server" user "user"
+@1 ^/dev/stdin: syntax error at line 2$
+account imap server "server" user "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap "server" user "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap server user "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap server "server" "user" pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap server "server" user pass "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap server "server" user "user" "pass"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap server "server" user "user" pass
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" imap server "server" user "user" pass "pass" "folder"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" imap server "server" user "user" pass "pass" folder
+@1 ^/dev/stdin: syntax error at line 2$
+
+account "name" imap server "server" user "user" pass "pass"
+@0 ^added account: name=name fetch=imap server "server" port imap user "user" folder "INBOX"$
+account "name" imaps server "server" user "user" pass "pass"
+@0 ^added account: name=name fetch=imaps server "server" port imaps user "user" folder "INBOX"$
+account "name" imap server "server" user "user" pass "pass" folder "folder"
+@0 ^added account: name=name fetch=imap server "server" port imap user "user" folder "folder"$
+account "name" imaps server "server" user "user" pass "pass" folder "folder"
+@0 ^added account: name=name fetch=imaps server "server" port imaps user "user" folder "folder"$
+
+account "name" imap server "server" port 123 user "user" pass "pass"
+@0 ^added account: name=name fetch=imap server "server" port 123 user "user" folder "INBOX"$
+account "name" imap server "server" port "port" user "user" pass "pass"
+@0 ^added account: name=name fetch=imap server "server" port port user "user" folder "INBOX"$
+account "name" imap server "server" port 0 user "user" pass "pass"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" imap server "server" port 65536 user "user" pass "pass"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" imap server "server" port "" user "user" pass "pass"
+@1 ^/dev/stdin: invalid port at line 1$
+
+account "" imap server "server" user "user" pass "pass"
+@1 ^/dev/stdin: invalid account name at line 2$
+account "name" imap server "" user "user" pass "pass"
+@1 ^/dev/stdin: invalid host at line 1$
+account "name" imap server "server" user "" pass "pass"
+@1 ^/dev/stdin: invalid user at line 2$
+account "name" imap server "server" user "user" pass ""
+@1 ^/dev/stdin: invalid pass at line 2$
