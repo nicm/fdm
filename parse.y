@@ -841,6 +841,9 @@ port: TOKPORT strv
       }
     | TOKPORT numv
       {
+	      if ($2 == 0 || $2 > 65535)
+		      yyerror("invalid port");
+
 	      xasprintf(&$$, "%lld", $2);
       }
 
