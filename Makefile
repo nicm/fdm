@@ -96,7 +96,7 @@ lint:
 depend:
 		mkdep ${CFLAGS} ${SRCS}
 
-regress:	clean ${OBJS} ${PROG}
+regress:	${PROG}
 		cd regress && ${MAKE}
 
 port:
