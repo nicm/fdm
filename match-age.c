@@ -19,6 +19,7 @@
 #include <sys/types.h>
 
 #include <ctype.h>
+#include <limits.h>
 #include <string.h>
 
 #include "fdm.h"
@@ -26,7 +27,53 @@
 int	age_match(struct match_ctx *, struct expritem *);
 char   *age_desc(struct expritem *);
 
+int	age_tzlookup(const char *);
+
 struct match match_age = { age_match, age_desc };
+
+/* 
+ * Some mailers, notably AOL's, use the timezone string instead of an offset
+ * from UTC. This is highly annoying: since there are duplicate abbreviations
+ * it cannot be converted with absolute certainty. Since it is only a few 
+ * clients do this anyway, don't even try particularly hard, just try to look
+ * it up using tzset.
+ */
+int
+age_tzlookup(const char *tz)
+{
+	char		*saved_tz;
+	struct tm	*tm;
+	time_t		 t;
+	int		 off = INT_MAX;
+
+	saved_tz = getenv("TZ");
+	if (saved_tz != NULL)
+	    saved_tz = xstrdup(saved_tz);
+
+	/* set the new timezone */
+	if (setenv("TZ", tz, 1) != 0)
+		return (INT_MAX);
+	tzset();
+	
+	/* get the time at epoch + one year */
+	t =  TIME_YEAR;
+	tm = localtime(&t);
+
+	/* and work out the timezone */
+	if (strcmp(tz, tm->tm_zone) == 0)
+		off = tm->tm_gmtoff;
+
+	/* restore the old the timezone */
+	if (saved_tz != NULL) {
+		if (setenv("TZ", saved_tz, 1) != 0)
+			return (INT_MAX);
+		xfree(saved_tz);
+	} else
+		unsetenv("TZ");
+	tzset();	
+
+	return (off);
+}
 
 int
 age_match(struct match_ctx *mctx, struct expritem *ei)
@@ -78,11 +125,10 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 		ptr++;
 	*ptr = '\0';
 
-	if (strcmp(endptr, "GMT") == 0)
-		tz = 0;
-	else {
-		tz = strtonum(endptr, -2359, 2359, &errstr);
-		if (errstr != NULL) {
+	tz = strtonum(endptr, -2359, 2359, &errstr);
+	if (errstr != NULL) {
+		/* try it using tzset */
+		if ((tz = age_tzlookup(endptr)) == INT_MAX) {
 			xfree(s);
 			goto invalid;
 		}
