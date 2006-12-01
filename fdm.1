@@ -53,7 +53,7 @@ Specify the configuration file location. Default is
 .Pa ~/fdm.conf ,
 or
 .Pa /etc/fdm.conf
-if it doesn't exist.
+if that doesn't exist.
 .Pp
 .It Fl k
 Keep all mail after delivery, regardless of whether it matches a
@@ -80,6 +80,15 @@ option in the configuration file.
 .Pp
 .It Fl v
 Request verbose logging. This option may be specified multiple times.
+.Fl vv
+will print information on configuration (useful with
+.Fl n ) .
+.Fl vvvv
+duplicates all traffic to and from remote servers to
+.Em stdout ,
+but note that this feature is disabled when using the
+.Fl l 
+flag.
 .Pp
 .It Fl x Ar name
 Exclude the named account. Multiple
