@@ -19,22 +19,33 @@
 
 function convert() {
 	n = 0;
-	o = 0;
-	s = "";
+	delete list;
 
+	arg = 0;
 	for (i = 2; i <= NF; i++) {
+		arg++;
+
 		type = rules[$i];
-		if (type == 0) {
-			o++;
-		} else {
+		if (type != 0 && types[type] != 0) {
+			list[n] = "[$" arg  ": " $i " (" types[type] ")]";
 			n++;
-			o++;
-			s = s "[$" o  ": " $i " (" types[type] ")] ";
 		}
 	}
 
-	if (n == 0) {
-		return ("");
+	return (n);
+}
+
+function pretty(initial, prefix, n) {
+	s = initial;
+	column = length(s);
+
+	for (i = 0; i < n; i++) {
+		if (column + length(list[i]) + 1 > 79) {
+			column = 0;
+			s = s "\n" prefix;
+		}
+		s = s list[i] " ";
+		column += length(list[i]);
 	}
 
 	return (substr(s, 1, length(s) - 1));
@@ -79,7 +90,7 @@ BEGIN {
 	if (NF < 3)
 		next;
 
-	for (i = 3; i < NF; i++) {
+	for (i = 3; i <= NF; i++) {
 		rules[$i] = $2;
 	}
 	next;
@@ -93,14 +104,13 @@ BEGIN {
 		print ("/** " toupper(substr($1, 1, length($1) - 1)) " */");
 	}
 
-
-	s = convert();
-	if (s != "") {
-		s = ": " s;
+	elements = convert();
+	if (elements > 0) {
+		s = ""
 		for (i = 0; i < length($1) - 4; i++) {
 			s = " " s;
 		}
-		print ("/**" s " */");
+		print ("/**" pretty(s ": ", "     " s, elements) " */");
 	}
 
 	print ($0);
@@ -108,9 +118,11 @@ BEGIN {
 }
 
 /^[ \t]*\| / {
-	s = convert();
-	if (s != "")
-		print ("/**" wspace($0, 4) "| " s " */");
+	elements = convert();
+	if (elements > 0) {
+		s = wspace($0, 4);
+		print ("/**" pretty(s "| ", "     " s, elements) " */");
+	}
 
 	print ($0);
 	next;	
