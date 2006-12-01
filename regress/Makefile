@@ -11,7 +11,7 @@ TARGETS=
 TARGETS+= ${n}
 ${n}:
 		@echo ${n}:
-		@awk -v CMD="../fdm -vvnf /dev/stdin" -v DEBUG=${DEBUG} \
+		@awk -v CMD="../fdm -vvvnf /dev/stdin" -v DEBUG=${DEBUG} \
 			-f test.awk ${n}
 .endfor
 

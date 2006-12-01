@@ -581,22 +581,26 @@ defmacro: STRMACRO '=' STRING
 		  }
 		  macro->type = MACRO_STRING;
 		  macro->value.string = $3;
+		  log_debug3("added macro: %s = \"%s\"", macro->name,
+		      macro->value.string);
 		  xfree($1);
 	  }
         | NUMMACRO '=' NUMBER
 	  {
-	     struct macro	*macro;
+		  struct macro	*macro;
 
-	     if ((macro = find_macro($1)) == NULL) {
-		     macro = xmalloc(sizeof *macro);
-		     if (strlen($1) > MAXNAMESIZE)
-			     yyerror("macro name too long: %s", $1);
-		     strlcpy(macro->name, $1, sizeof macro->name);
-		     TAILQ_INSERT_HEAD(&macros, macro, entry);
-	     }
-	     macro->type = MACRO_NUMBER;
-	     macro->value.number = $3;
-	     xfree($1);
+		  if ((macro = find_macro($1)) == NULL) {
+			  macro = xmalloc(sizeof *macro);
+			  if (strlen($1) > MAXNAMESIZE)
+				  yyerror("macro name too long: %s", $1);
+			  strlcpy(macro->name, $1, sizeof macro->name);
+			  TAILQ_INSERT_HEAD(&macros, macro, entry);
+		  }
+		  macro->type = MACRO_NUMBER;
+		  macro->value.number = $3;
+		  log_debug3("added macro: %s = %lld", macro->name,
+		      macro->value.number);
+		  xfree($1);
 	  }
 
 /** DOMAINS: <strings> (struct strings *) */
