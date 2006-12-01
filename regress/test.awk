@@ -15,19 +15,20 @@
 # OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-function failed(line) {
+function failed(cmd) {
 	failures++;
-	print FILENAME ":" n ": FAILED: " line;
+	print FILENAME ":" n ": FAILED: " cmd;
 }
-function passed(line) {
-	print FILENAME ":" n ": PASSED: " line;
+function passed(cmd) {
+	print FILENAME ":" n ": PASSED: " cmd;
 }
 
 BEGIN {
 	failures = 0;
-	lines = "";
 	n = 0;
-	prefix = "(echo \'";
+
+	line = 0;
+	header = 0;
 }
 
 /.*/ {
@@ -35,15 +36,14 @@ BEGIN {
 }
 
 /^!.+/ {
-	prefix = prefix substr($0, 2) "';echo '";
+	headers[header] = substr($0, 2);
+	header++;
+	next;
 }
 
 /^[^@!\#].+/ {
-	if (lines != "") {
-		lines = lines "'; echo '" $0;
-	} else {
-		lines = $0;
-	}
+	lines[line] = $0;
+	line++;
 	next;
 }
 
@@ -51,8 +51,19 @@ BEGIN {
 	rc = int(substr($0, 2, 1));
 	re = substr($0, 4);
 
-	cmd = prefix lines "')|" CMD " 2>&1";
-	lines = "";
+	cmd = "(echo '"
+	for (i = 0; i < header; i++) {
+		cmd = cmd headers[i] "';echo '";
+	}
+	for (i = 0; i < line; i++) {
+		if (i != line - 1) {
+			cmd = cmd lines[i] "';echo '";
+		} else {
+			cmd = cmd lines[i];
+		}
+	}
+	cmd = cmd "')|" CMD " 2>&1";
+	line = 0;
 
 	found = 0;
 	do {
