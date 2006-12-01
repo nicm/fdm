@@ -129,7 +129,7 @@ set headers { }
 @1 ^/dev/stdin: syntax error at line 1$
 
 set unmatched-mail drop
-$0
+@0
 set unmatched-mail keep
 @0
 set unmatched-mail test

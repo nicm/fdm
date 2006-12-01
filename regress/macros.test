@@ -76,8 +76,10 @@ account "a%{macro}b" stdin
 # ----------------------------------------------------------------------------
 # REPLACEMENT
 
+$macro = "one"
 $macro = "two"
 @0
 
+%macro = 1000
 %macro = 2000
 @0
