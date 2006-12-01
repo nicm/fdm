@@ -287,6 +287,7 @@ find_macro(char *name)
 
 /* Rules */
 
+/** CMDS */
 cmds: /* empty */
     | cmds account
     | cmds defaction
@@ -296,6 +297,7 @@ cmds: /* empty */
     | cmds set
     | cmds close
 
+/** STRV: <string> (char *). */
 strv: STRING
       {
 	      $$ = $1;
@@ -339,6 +341,7 @@ strv: STRING
 	      xfree($1);
       }
 
+/** NUMV: <number> (long long). */
 numv: NUMBER
       {
 	      $$ = $1;
@@ -382,6 +385,8 @@ numv: NUMBER
 	      xfree($1);
       }
 
+/** INCLUDE */
+/**    : TOKINCLUDE [strv: char *] */
 include: TOKINCLUDE strv
 	 {
 		 char			*path;
@@ -413,50 +418,61 @@ include: TOKINCLUDE strv
 		 yylineno = 0;
 	 }
 
+/** SIZE: <number> (long long). */
+/** : [numv: long long] */
 size: numv
     | SIZE
       {
 	      $$ = $1;
       }
 
+/** TIME: <number> (long long). */
+/** : [numv: long long] */
 time: numv
       {
 	      $$ = $1;
       }
+ /**| [numv: long long] TOKHOURS */
     | numv TOKHOURS
       {
 	      if ($1 > LLONG_MAX / TIME_HOUR)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_HOUR;
       }
+ /**| [numv: long long] TOKMINUTES */
     | numv TOKMINUTES
       {
 	      if ($1 > LLONG_MAX / TIME_MINUTE)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_MINUTE;
       }
+ /**| [numv: long long] TOKSECONDS */
     | numv TOKSECONDS
       {
 	      $$ = $1;
       }
+ /**| [numv: long long] TOKDAYS */
     | numv TOKDAYS
       {
 	      if ($1 > LLONG_MAX / TIME_DAY)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_DAY;
       }
+ /**| [numv: long long] TOKWEEKS */
     | numv TOKWEEKS
       {
 	      if ($1 > LLONG_MAX / TIME_WEEK)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_WEEK;
       }
+ /**| [numv: long long] TOKMONTHS */
     | numv TOKMONTHS
       {
 	      if ($1 > LLONG_MAX / TIME_MONTH)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_MONTH;
       }
+ /**| [numv: long long] TOKYEARS */
     | numv TOKYEARS
       {
 	      if ($1 > LLONG_MAX / TIME_YEAR)
@@ -464,6 +480,8 @@ time: numv
 	      $$ = $1 * TIME_YEAR;
       }
 
+/** SET */
+/**: TOKSET TOKMAXSIZE [size: long long] */
 set: TOKSET TOKMAXSIZE size
      {
 	     if ($3 > MAXMAILSIZE)
@@ -476,6 +494,7 @@ set: TOKSET TOKMAXSIZE size
 		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
      }
+/**| TOKSET TOKLOCKFILE [strv: char *] */
    | TOKSET TOKLOCKFILE strv
      {
 	     if (conf.lock_file != NULL)
@@ -490,10 +509,12 @@ set: TOKSET TOKMAXSIZE size
      {
 	     conf.allow_many = 1;
      }
+/**| TOKSET TOKDEFUSER [uid: uid_t] */
    | TOKSET TOKDEFUSER uid
      {
 	     conf.def_user = $3;
      }
+/**| TOKSET [domains: struct strings *] */
    | TOKSET domains
      {
 	     u_int	i;
@@ -507,6 +528,7 @@ set: TOKSET TOKMAXSIZE size
 
 	     conf.domains = $2;
      }
+/**| TOKSET [headers: struct strings *] */
    | TOKSET headers
      {
 	     u_int	i;
@@ -520,6 +542,7 @@ set: TOKSET TOKMAXSIZE size
 
 	     conf.headers = $2;
      }
+/**| TOKSET TOKPROXY [strv: char *] */
    | TOKSET TOKPROXY strv
      {
 	     if (conf.proxy != NULL) {
@@ -543,6 +566,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.impl_act = DECISION_DROP;
      }
 
+/** DEFMACRO */
 defmacro: STRMACRO '=' STRING
      	  {
 		  struct macro	*macro;
@@ -574,6 +598,8 @@ defmacro: STRMACRO '=' STRING
 	     xfree($1);
 	  }
 
+/** DOMAINS: <strings> (struct strings *). */
+/**    : TOKDOMAIN [strv: char *] */
 domains: TOKDOMAIN strv
 	 {
 		 char	*cp;
@@ -587,11 +613,14 @@ domains: TOKDOMAIN strv
 			 *cp = tolower((int) *cp);
 		 ARRAY_ADD($$, $2, char *);
 	 }
+    /**| TOKDOMAINS '{' [domainslist: struct strings *] '}' */
        | TOKDOMAINS '{' domainslist '}'
 	 {
 		 $$ = $3;
 	 }
 
+/** DOMAINSLIST: <strings> (struct strings *). */
+/**        : [domainslist: struct strings *] [strv: char *] */
 domainslist: domainslist strv
 	     {
 		     char	*cp;
@@ -604,6 +633,7 @@ domainslist: domainslist strv
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, char *);
 	     }
+	/**| [strv: char *] */
 	   | strv
 	     {
 		     char	*cp;
@@ -618,6 +648,8 @@ domainslist: domainslist strv
 		     ARRAY_ADD($$, $1, char *);
 	     }
 
+/** HEADERS: <strings> (struct strings *). */
+/**    : TOKHEADER [strv: char *] */
 headers: TOKHEADER strv
 	 {
 		 char	*cp;
@@ -636,6 +668,8 @@ headers: TOKHEADER strv
 		 $$ = $3;
 	 }
 
+/** HEADERSLIST */
+/**        : headerslist [strv: char *] */
 headerslist: headerslist strv
 	     {
 		     char	*cp;
@@ -648,6 +682,7 @@ headerslist: headerslist strv
 			     *cp = tolower((int) *cp);
 		     ARRAY_ADD($$, $2, char *);
 	     }
+	/**| [strv: char *] */
 	   | strv
 	     {
 		     char	*cp;
@@ -662,6 +697,8 @@ headerslist: headerslist strv
 		     ARRAY_ADD($$, $1, char *);
 	     }
 
+/** PATHSLIST: <strings> (struct strings *). */
+/**      : [pathslist: struct strings *] [strv: char *] */
 pathslist: pathslist strv
 	   {
 		   if (*$2 == '\0')
@@ -670,6 +707,7 @@ pathslist: pathslist strv
 		   $$ = $1;
 		   ARRAY_ADD($$, $2, char *);
 	   }
+      /**| [strv: char *] */
 	 | strv
 	   {
 		   if (*$1 == '\0')
@@ -680,6 +718,8 @@ pathslist: pathslist strv
 		   ARRAY_ADD($$, $1, char *);
 	   }
 
+/** MAILDIRS */
+/**     : TOKMAILDIR [strv: char *] */
 maildirs: TOKMAILDIR strv
 	  {
 		  if (*$2 == '\0')
@@ -689,11 +729,13 @@ maildirs: TOKMAILDIR strv
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2, char *);
 	  }
+     /**| TOKMAILDIRS '{' [pathslist: struct strings *] '}' */
         | TOKMAILDIRS '{' pathslist '}'
 	  {
 		  $$ = $3;
 	  }
 
+/** LOCK: <locks> (u_int). */
 lock: LCKFCNTL
       {
 	      $$ |= LOCK_FCNTL;
@@ -707,10 +749,13 @@ lock: LCKFCNTL
 	      $$ |= LOCK_DOTLOCK;
       }
 
+/** LOCKLIST */
+/**     : locklist [lock: u_int] */
 locklist: locklist lock
 	  {
 		  $$ = $1 | $2;
 	  }
+     /**| [lock: u_int] */
 	| lock
 	  {
 		  $$ = $1;
@@ -720,6 +765,8 @@ locklist: locklist lock
 		  $$ = 0;
 	  }
 
+/** UID: <uid> (uid_t). */
+/**: [strv: char *] */
 uid: strv
      {
 	     struct passwd	*pw;
@@ -732,6 +779,7 @@ uid: strv
 
 	     xfree($1);
      }
+/**| [numv: long long] */
    | numv
      {
 	     struct passwd	*pw;
@@ -745,15 +793,18 @@ uid: strv
 	     endpwent();
      }
 
+/** USER */
 user: /* empty */
       {
 	      $$ = 0;
       }
+ /**| TOKUSER [uid: uid_t] */
     | TOKUSER uid
       {
 	      $$ = $2;
       }
 
+/** USERS: <users> (struct { ... } users). */
 users: /* empty */
        {
 	       $$.users = NULL;
@@ -769,6 +820,7 @@ users: /* empty */
 	       $$.users = NULL;
 	       $$.find_uid = 1;
        }
+  /**| TOKUSER [uid: uid_t] */
      | TOKUSER uid
        {
 	       $$.users = xmalloc(sizeof *$$.users);
@@ -782,11 +834,14 @@ users: /* empty */
 	       $$.find_uid = 0;
        }
 
+/** USERSLIST */
+/**      : userslist [uid: uid_t] */
 userslist: userslist uid
 	   {
 		   $$ = $1;
 		   ARRAY_ADD($$.users, $2, uid_t);
 	   }
+      /**| [uid: uid_t] */
 	 | uid
 	   {
 		   $$.users = xmalloc(sizeof *$$.users);
@@ -794,6 +849,7 @@ userslist: userslist uid
 		   ARRAY_ADD($$.users, $1, uid_t);
 	   }
 
+/** ICASE: <flag> (int). */
 icase: TOKCASE
       {
 	      /* match case */
@@ -805,6 +861,7 @@ icase: TOKCASE
 	      $$ = 1;
       }
 
+/** NOT: <flag> (int). */
 not: TOKNOT
       {
 	      $$ = 1;
@@ -814,6 +871,7 @@ not: TOKNOT
 	      $$ = 0;
       }
 
+/** KEEP: <flag> (int). */
 keep: TOKKEEP
       {
 	      $$ = 1;
@@ -823,6 +881,7 @@ keep: TOKKEEP
 	      $$ = 0;
       }
 
+/** DISABLED: <flag> (int). */
 disabled: TOKDISABLED
           {
 		  $$ = 1;
@@ -832,6 +891,8 @@ disabled: TOKDISABLED
 		  $$ = 0;
 	  }
 
+/** PORT: <string> (char *). */
+/** : TOKPORT [strv: char *] */
 port: TOKPORT strv
       {
 	      if (*$2 == '\0')
@@ -839,6 +900,7 @@ port: TOKPORT strv
 
 	      $$ = $2;
       }
+ /**| TOKPORT [numv: long long] */
     | TOKPORT numv
       {
 	      if ($2 == 0 || $2 > 65535)
@@ -847,6 +909,8 @@ port: TOKPORT strv
 	      xasprintf(&$$, "%lld", $2);
       }
 
+/** SERVER */
+/**   : TOKSERVER [strv: char *] [port: char *] */
 server: TOKSERVER strv port
 	{
 		if (*$2 == '\0')
@@ -855,6 +919,7 @@ server: TOKSERVER strv port
 		$$.host = $2;
 		$$.port = $3;
 	}
+   /**| TOKSERVER [strv: char *] */
       | TOKSERVER strv
 	{
 		if (*$2 == '\0')
@@ -864,10 +929,12 @@ server: TOKSERVER strv port
 		$$.port = NULL;
 	}
 
+/** TO: <string> (char *). */
 to: /* empty */
     {
 	    $$ = NULL;
     }
+/**| TOKTO [strv: char *] */
   | TOKTO strv
     {
 	    if (*$2 == '\0')
@@ -876,6 +943,8 @@ to: /* empty */
 	    $$ = $2;
     }
 
+/** ACTION */
+/**   : TOKPIPE [strv: char *] */
 action: TOKPIPE strv
 	{
 		if (*$2 == '\0')
@@ -885,6 +954,7 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+   /**| TOKREWRITE [strv: char *] */
       | TOKREWRITE strv
 	{
 		if (*$2 == '\0')
@@ -894,6 +964,7 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+   /**| TOKWRITE [strv: char *] */
       | TOKWRITE strv
 	{
 		if (*$2 == '\0')
@@ -903,6 +974,7 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+   /**| TOKAPPEND [strv: char *] */
       | TOKAPPEND strv
 	{
 		if (*$2 == '\0')
@@ -912,6 +984,7 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+   /**| TOKMAILDIR [strv: char *] */
       | TOKMAILDIR strv
 	{
 		if (*$2 == '\0')
@@ -921,6 +994,7 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+   /**| TOKMBOX [strv: char *] */
       | TOKMBOX strv
 	{
 		if (*$2 == '\0')
@@ -930,6 +1004,7 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+   /**| TOKSMTP server [to: char *] */
       | TOKSMTP server to
 	{
 		struct smtp_data	*data;
@@ -953,6 +1028,8 @@ action: TOKPIPE strv
 		$$.deliver = &deliver_keep;
 	}
 
+/** DEFACTION */
+/**      : TOKACTION [strv: char *] [users: struct { ... } users] action */
 defaction: TOKACTION strv users action
 	   {
 		   struct action	*t;
@@ -979,10 +1056,12 @@ defaction: TOKACTION strv users action
 		   xfree($2);
 	   }
 
+/** ACCOUNTS: <strings> (struct strings *). */
 accounts: /* empty */
 	  {
 		  $$ = NULL;
 	  }
+     /**| TOKACCOUNT [strv: char *] */
         | TOKACCOUNT strv
 	  {
 		  if (*$2 == '\0')
@@ -994,11 +1073,14 @@ accounts: /* empty */
 			  yyerror("no matching accounts: %s", $2);
 		  ARRAY_ADD($$, $2, char *);
 	  }
+     /**| TOKACCOUNTS '{' [accountslist: struct strings *] '}' */
 	| TOKACCOUNTS '{' accountslist '}'
 	  {
 		  $$ = $3;
 	  }
 
+/** ACCOUNTSLIST: <strings> (struct strings *). */
+/**         : [accountslist: struct strings *] [strv: char *] */
 accountslist: accountslist strv
  	      {
 		      if (*$2 == '\0')
@@ -1009,6 +1091,7 @@ accountslist: accountslist strv
 			      yyerror("no matching accounts: %s", $2);
 		      ARRAY_ADD($$, $2, char *);
 	      }
+	 /**| [strv: char *] */
 	    | strv
 	      {
 		      if (*$1 == '\0')
@@ -1021,10 +1104,12 @@ accountslist: accountslist strv
 		      ARRAY_ADD($$, $1, char *);
 	      }
 
+/** ACTIONS: <strings> (struct strings *). */
 actions: TOKACTION TOKNONE
 	 {
 		 $$ = NULL;
 	 }
+    /**| TOKACTION [strv: char *] */
        | TOKACTION strv
 	 {
 		 if (*$2 == '\0')
@@ -1034,11 +1119,14 @@ actions: TOKACTION TOKNONE
 		 ARRAY_INIT($$);
 		 ARRAY_ADD($$, $2, char *);
 	 }
+    /**| TOKACTIONS '{' [actionslist: struct strings *] '}' */
        | TOKACTIONS '{' actionslist '}'
          {
 		 $$ = $3;
 	 }
 
+/** ACTIONSLIST: <strings> (struct strings *). */
+/**        : [actionslist: struct strings *] [strv: char *] */
 actionslist: actionslist strv
 	     {
 		     if (*$2 == '\0')
@@ -1047,6 +1135,7 @@ actionslist: actionslist strv
 		     $$ = $1;
 		     ARRAY_ADD($$, $2, char *);
 	     }
+	/**| [strv: char *] */
 	   | strv
 	     {
 		     if (*$1 == '\0')
@@ -1057,6 +1146,7 @@ actionslist: actionslist strv
 		     ARRAY_ADD($$, $1, char *);
 	     }
 
+/** CONT: <flag> (int). */
 cont: /* empty */
       {
 	      $$ = 0;
@@ -1066,6 +1156,7 @@ cont: /* empty */
 	      $$ = 1;
       }
 
+/** AREA */
 area: /* empty */
       {
 	      $$ = AREA_ANY;
@@ -1083,6 +1174,8 @@ area: /* empty */
 	      $$ = AREA_BODY;
       }
 
+/** RETRC */
+/**  : [numv: long long] */
 retrc: numv
        {
 	       if ($1 < 0 || $1 > 255)
@@ -1095,6 +1188,8 @@ retrc: numv
 	       $$ = -1;
        }
 
+/** RETRE */
+/**  : [strv: char *] */
 retre: strv
        {
 	       if (*$1 == '\0')
@@ -1107,6 +1202,7 @@ retre: strv
 	       $$ = NULL;
        }
 
+/** CMP */
 cmp: '<'
      {
 	     $$ = CMP_LT;
@@ -1116,6 +1212,7 @@ cmp: '<'
 	     $$ = CMP_GT;
      }
 
+/** EXECPIPE */
 execpipe: TOKEXEC
 	  {
 		  $$ = 0;
@@ -1125,6 +1222,7 @@ execpipe: TOKEXEC
 		  $$ = 1;
 	  }
 
+/** EXPROP */
 exprop: TOKAND
 	{
 		$$ = OP_AND;
@@ -1134,6 +1232,8 @@ exprop: TOKAND
 		$$ = OP_OR;
 	}
 
+/** EXPRITEM */
+/**     : [not: int] [icase: int] [strv: char *] area */
 expritem: not icase strv area
           {
 		  struct regexp_data	*data;
@@ -1164,6 +1264,7 @@ expritem: not icase strv area
 			  yyerror("%s: %s", $3, buf);
 		  }
 	  }
+     /**| [not: int] execpipe [strv: char *] user TOKRETURNS '(' retrc ',' retre ')' */
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 	  {
 		  struct command_data	*data;
@@ -1203,6 +1304,7 @@ expritem: not icase strv area
 		  }
 
 	  }
+     /**| [not: int] TOKTAGGED [strv: char *] */
 	| not TOKTAGGED strv
 	  {
 		  struct tagged_data	*data;
@@ -1220,6 +1322,7 @@ expritem: not icase strv area
 
 		  data->tag = $3;
 	  }
+     /**| [not: int] TOKSIZE cmp [size: long long] */
         | not TOKSIZE cmp size
 	  {
 		  struct size_data	*data;
@@ -1238,6 +1341,7 @@ expritem: not icase strv area
 		  data->size = $4;
 		  data->cmp = $3;
 	  }
+     /**| [not: int] TOKSTRING [strv: char *] TOKTO [strv: char *] */
         | not TOKSTRING strv TOKTO strv
 	  {
 		  struct string_data	*data;
@@ -1269,6 +1373,7 @@ expritem: not icase strv area
 			  yyerror("%s: %s", $5, buf);
 		  }
 	  }
+     /**| [not: int] TOKMATCHED */
         | not TOKMATCHED
 	  {
 		  $$ = xcalloc(1, sizeof *$$);
@@ -1276,6 +1381,7 @@ expritem: not icase strv area
 		  $$->match = &match_matched;
 		  $$->inverted = $1;
           }
+     /**| [not: int] TOKUNMATCHED */
         | not TOKUNMATCHED
 	  {
 		  $$ = xcalloc(1, sizeof *$$);
@@ -1283,6 +1389,7 @@ expritem: not icase strv area
 		  $$->match = &match_unmatched;
 		  $$->inverted = $1;
           }
+     /**| [not: int] TOKAGE cmp [time: long long] */
         | not TOKAGE cmp time
 	  {
 		  struct age_data	*data;
@@ -1301,6 +1408,7 @@ expritem: not icase strv area
 		  data->time = $4;
 		  data->cmp = $3;
 	  }
+     /**| [not: int] TOKAGE TOKINVALID */
         | not TOKAGE TOKINVALID
 	  {
 		  struct age_data	*data;
@@ -1316,6 +1424,7 @@ expritem: not icase strv area
 		  data->time = -1;
 	  }
 
+/** EXPRLIST */
 exprlist: exprlist exprop expritem
 	  {
 		  $$ = $1;
@@ -1332,6 +1441,7 @@ exprlist: exprlist exprop expritem
 		  TAILQ_INSERT_HEAD($$, $2, entry);
 	  }
 
+/** EXPR: <expr> (struct expr *). */
 expr: expritem
       {
 	      $$ = xmalloc(sizeof *$$);
@@ -1346,6 +1456,8 @@ expr: expritem
 	      TAILQ_INSERT_HEAD($$, $1, entry);
       }
 
+/** MATCH */
+/**  : TOKMATCH [expr: struct expr *] */
 match: TOKMATCH expr
        {
 	       $$.expr = $2;
@@ -1357,6 +1469,8 @@ match: TOKMATCH expr
 	       $$.type = RULE_ALL;
        }
 
+/** PERFORM */
+/**    : TOKTAG [strv: char *] */
 perform: TOKTAG strv
 	 {
 		 if (*$2 == '\0')
@@ -1375,6 +1489,7 @@ perform: TOKTAG strv
 		 else
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
+    /**| [users: struct { ... } users] [actions: struct strings *] [cont: int] */
        | users actions cont
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
@@ -1409,6 +1524,7 @@ perform: TOKTAG strv
 		 currule = $$;
 	 }
 
+/** CLOSE */
 close: '}'
        {
 	       if (currule == NULL)
@@ -1418,6 +1534,8 @@ close: '}'
 	       ARRAY_TRUNC(&rulestack, 1, struct rule *);
        }
 
+/** RULE */
+/** : match [accounts: struct strings *] perform */
 rule: match accounts perform
       {
 	      struct expritem	*ei;
@@ -1470,10 +1588,12 @@ rule: match accounts perform
 	      xfree(sa);
       }
 
+/** FOLDER: <string> (char *). */
 folder: /* empty */
         {
 		$$ = NULL;
         }
+   /**| TOKFOLDER [strv: char *] */
       | TOKFOLDER strv
 	{
 		if (*$2 == '\0')
@@ -1482,6 +1602,7 @@ folder: /* empty */
 		$$ = $2;
 	}
 
+/** POPTYPE: <flag> (int). */
 poptype: TOKPOP3
          {
 		 $$ = 0;
@@ -1491,6 +1612,7 @@ poptype: TOKPOP3
 		 $$ = 1;
 	 }
 
+/** IMAPTYPE: <flag> (int). */
 imaptype: TOKIMAP
           {
 		  $$ = 0;
@@ -1500,6 +1622,8 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
+/** FETCHTYPE */
+/**      : [poptype: int] server TOKUSER [strv: char *] TOKPASS [strv: char *] */
 fetchtype: poptype server TOKUSER strv TOKPASS strv
            {
 		   struct pop3_data	*data;
@@ -1522,6 +1646,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
 	   }
+      /**| [imaptype: int] server TOKUSER [strv: char *] TOKPASS [strv: char *] [folder: char *] */
          | imaptype server TOKUSER strv TOKPASS strv folder
            {
 		   struct imap_data	*data;
@@ -1566,6 +1691,8 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->maildirs = $1;
 	   }
 
+/** ACCOUNT */
+/**    : TOKACCOUNT [strv: char *] [disabled: int] fetchtype [keep: int] */
 account: TOKACCOUNT strv disabled fetchtype keep
          {
 		 struct account		*a;
