@@ -104,6 +104,8 @@ BEGIN {
 		print ("/** " toupper(substr($1, 1, length($1) - 1)) " */");
 	}
 
+	print ($0);
+
 	elements = convert();
 	if (elements > 0) {
 		s = ""
@@ -113,18 +115,18 @@ BEGIN {
 		print ("/**" pretty(s ": ", "     " s, elements) " */");
 	}
 
-	print ($0);
 	next;
 }
 
 /^[ \t]*\| / {
+	print ($0);
+
 	elements = convert();
 	if (elements > 0) {
 		s = wspace($0, 4);
 		print ("/**" pretty(s "| ", "     " s, elements) " */");
 	}
 
-	print ($0);
 	next;	
 }
 
