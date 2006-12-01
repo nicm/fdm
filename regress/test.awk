@@ -17,15 +17,15 @@
 
 function failed(cmd) {
 	failures++;
-	print (FILENAME ":" n ": FAILED: " cmd);
+	print (FILENAME ":" line ": FAILED: " cmd);
 }
 function passed(cmd) {
-	print (FILENAME ":" n ": PASSED: " cmd);
+	print (FILENAME ":" line ": PASSED: " cmd);
 }
 
 BEGIN {
 	failures = 0;
-	n = 0;
+	line = 0;
 
 	nlines = 0;
 	nheaders = 0;
@@ -33,7 +33,7 @@ BEGIN {
 }
 
 /.*/ {
-	n++;
+	line++;
 }
 
 /^!.+/ {
