@@ -47,10 +47,7 @@ function wspace(s, o) {
 		n = 0;
 
 	t = "";
-	for (i = 0; i < int(n / 8); i++) {
-		t = t "\t";
-	}
-	for (i = 0; i < (n % 8); i++) {
+	for (i = 0; i < n; i++) {
 		t = t " ";
 	}	
 
@@ -111,7 +108,7 @@ BEGIN {
 /^[ \t]*\| / {
 	s = convert(1);
 	if (s != "")
-		print (wspace($0, 4) "/**" s " */");
+		print ("/**" wspace($0, 4) s " */");
 
 	print ($0);
 	next;	
