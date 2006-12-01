@@ -81,7 +81,7 @@ BEGIN {
 
 	do {
 		error = cmd | getline;
-		if (DEBUG) {
+		if (DEBUG != "") {
 			print ("\t" $0);
 		}
 		if (error == -1) {

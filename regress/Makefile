@@ -1,7 +1,5 @@
 # $Id$
 
-DEBUG= 0
-
 CLEANFILES= *~
 
 TESTFILES= account.test macros.test options.test proxy.test nested.test
