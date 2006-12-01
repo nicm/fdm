@@ -41,7 +41,7 @@ int	getport(char *);
 struct proxy *
 getproxy(const char *xurl)
 {
-	struct proxy		*pr;
+	struct proxy		*pr = NULL;
 	char			*ptr, *end, *saved, *url;
 	struct {
 		const char	*proto;
@@ -64,72 +64,74 @@ getproxy(const char *xurl)
 		if (strncmp(url, proxyent->proto, strlen(proxyent->proto)) == 0)
 			break;
 	}
-	if (proxyent->proto == NULL) {
-		xfree(saved);
-		return (NULL);
-	}
+	if (proxyent->proto == NULL)
+		goto error;
+	url += strlen(proxyent->proto);
 
-	pr = xmalloc(sizeof *pr);
+	pr = xcalloc(1, sizeof *pr);
 	pr->type = proxyent->type;
 	pr->server.ssl = proxyent->ssl;
 	pr->server.port = xstrdup(proxyent->port);
-	pr->server.ai = NULL;
-	pr->user = pr->pass = NULL;
-	url += strlen(proxyent->proto);
 
 	/* strip trailing '/' characters */
 	ptr = url + strlen(url) - 1;
-	while (ptr > url && *ptr == '/')
+	while (ptr >= url && *ptr == '/')
 		*ptr-- = '\0';
-	if (*url == '\0') {
-		xfree(pr->server.port);
-		xfree(pr);
-		xfree(saved);
-		return (NULL);
-	}
+	if (*url == '\0')
+		goto error;
 
-	pr->user = pr->pass = NULL;
+	/* look for a user/pass */
 	if ((end = strchr(url, '@')) != NULL) {
 		ptr = strchr(url, ':');
-		if (ptr != NULL && ptr < end) {
-			*ptr++ = '\0';
-			pr->user = xstrdup(url);
-			*end++ = '\0';
-			pr->pass = xstrdup(ptr);
-			url = end;
-		} else {
-			xfree(pr->server.port);
-			xfree(pr);
-			xfree(saved);
-			return (NULL);
-		}
+		if (ptr == NULL || ptr >= end)
+			goto error;
+
+		*ptr++ = '\0';
+		pr->user = xstrdup(url);
+		*end++ = '\0';
+		pr->pass = xstrdup(ptr);
+		if (*pr->user == '\0' || *pr->pass == '\0')
+			goto error;
+
+		url = end;
 	}
 
+	/* extract port if available */
 	if ((ptr = strchr(url, ':')) != NULL) {
 		xfree(pr->server.port);
+		pr->server.port = NULL;
+
 		*ptr++ = '\0';
-		if (*ptr == '\0') {
-			if (pr->user != NULL)
-				xfree(pr->user);
-			if (pr->pass != NULL)
-				xfree(pr->pass);
-			xfree(pr);
-			xfree(saved);
-			return (NULL);
-		}
+		if (*ptr == '\0')
+			goto error;
 		pr->server.port = xstrdup(ptr);
 	}
 
-	if (*url == '\0') {
-		xfree(pr->server.port);
-		xfree(pr);
-		xfree(saved);
-		return (NULL);
-	}
+	/* and fill in the host */
+	if (*url == '\0')
+		goto error;
 	pr->server.host = xstrdup(url);
 
 	xfree(saved);
 	return (pr);
+
+error:
+	if (pr != NULL) {
+		if (pr->user != NULL)
+			xfree(pr->user);
+		if (pr->pass != NULL)
+			xfree(pr->pass);
+		
+		if (pr->server.port != NULL)
+			xfree(pr->server.port);
+		if (pr->server.host != NULL)
+			xfree(pr->server.host);
+		
+		xfree(pr);
+	}
+
+	xfree(saved);
+	return (NULL);
 }
 
 struct io *

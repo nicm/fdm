@@ -332,8 +332,18 @@ main(int argc, char **argv)
 
 	/* print proxy info */
 	if (conf.proxy != NULL) {
-		log_debug("using proxy: %s on %s:%s",
-		    conf.proxy->type == PROXY_HTTP ? "HTTP" : "SOCKS5",
+		switch (conf.proxy->type) {
+		case PROXY_HTTP:
+			proxy = "HTTP";
+			break;
+		case PROXY_HTTPS:
+			proxy = "HTTPS";
+			break;
+		case PROXY_SOCKS5:
+			proxy = "SOCKS5";
+			break;
+		}
+		log_debug("using proxy: %s on %s:%s", proxy,
 		    conf.proxy->server.host, conf.proxy->server.port);
 	}
 

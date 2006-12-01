@@ -1,0 +1,948 @@
+# $Id$
+
+set proxy ""
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+# ----------------------------------------------------------------------------
+
+set proxy "http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "http://my.host/"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://my.host"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://my.host:80/"
+@0 ^using proxy: HTTP on my.host:80$
+set proxy "http://my.host:80"
+@0 ^using proxy: HTTP on my.host:80$
+set proxy "http://my.host:http/"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://my.host:http"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http:///"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "http://user@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "http://user:pass@my.host/"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://user:pass@my.host"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://user:pass@my.host:80/"
+@0 ^using proxy: HTTP on my.host:80$
+set proxy "http://user:pass@my.host:80"
+@0 ^using proxy: HTTP on my.host:80$
+set proxy "http://user:pass@my.host:http/"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://user:pass@my.host:http"
+@0 ^using proxy: HTTP on my.host:http$
+set proxy "http://user:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://user:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@:http/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@:http"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "http://:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+# ----------------------------------------------------------------------------
+
+set proxy "https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "https://my.host/"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://my.host"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://my.host:80/"
+@0 ^using proxy: HTTPS on my.host:80$
+set proxy "https://my.host:80"
+@0 ^using proxy: HTTPS on my.host:80$
+set proxy "https://my.host:https/"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://my.host:https"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https:///"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "https://user@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "https://user:pass@my.host/"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://user:pass@my.host"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://user:pass@my.host:80/"
+@0 ^using proxy: HTTPS on my.host:80$
+set proxy "https://user:pass@my.host:80"
+@0 ^using proxy: HTTPS on my.host:80$
+set proxy "https://user:pass@my.host:https/"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://user:pass@my.host:https"
+@0 ^using proxy: HTTPS on my.host:https$
+set proxy "https://user:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://user:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@:https/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@:https"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "https://:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+# ----------------------------------------------------------------------------
+
+set proxy "socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "socks://my.host/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://my.host"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://my.host:80/"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks://my.host:80"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks://my.host:socks/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://my.host:socks"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks:///"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "socks://user@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "socks://user:pass@my.host/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://user:pass@my.host"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://user:pass@my.host:80/"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks://user:pass@my.host:80"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks://user:pass@my.host:socks/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://user:pass@my.host:socks"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks://user:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://user:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks://:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+# ----------------------------------------------------------------------------
+
+set proxy "socks5"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "socks5://my.host/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://my.host"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://my.host:80/"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks5://my.host:80"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks5://my.host:socks/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://my.host:socks"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5:///"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "socks5://user@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+
+set proxy "socks5://user:pass@my.host/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://user:pass@my.host"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://user:pass@my.host:80/"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks5://user:pass@my.host:80"
+@0 ^using proxy: SOCKS5 on my.host:80$
+set proxy "socks5://user:pass@my.host:socks/"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://user:pass@my.host:socks"
+@0 ^using proxy: SOCKS5 on my.host:socks$
+set proxy "socks5://user:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:pass@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://user:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@my.host:"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@:80/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@:80"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@:socks/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@:socks"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@:/"
+@1 ^/dev/stdin: invalid proxy at line 1$
+set proxy "socks5://:@:"
+@1 ^/dev/stdin: invalid proxy at line 1$
