@@ -35,20 +35,20 @@ function convert() {
 	return (n);
 }
 
-function pretty(initial, prefix, n) {
-	s = initial;
+function pretty(prefix, suffix, n) {
+	s = prefix;
 	column = length(s);
 
 	for (i = 0; i < n; i++) {
-		if (column + length(list[i]) + 1 > 79) {
+		if (column + length(list[i]) + length(suffix) + 1 > 79) {
 			column = 0;
-			s = s "\n" prefix;
+			s = substr(s, 1, length(s) - 1) suffix "\n" prefix;
 		}
 		s = s list[i] " ";
 		column += length(list[i]);
 	}
 
-	return (substr(s, 1, length(s) - 1));
+	return (substr(s, 1, length(s) - 1) suffix);
 }
 
 function wspace(s, o) {
@@ -112,7 +112,7 @@ BEGIN {
 		for (i = 0; i < length($1) - 4; i++) {
 			s = " " s;
 		}
-		print ("/**" pretty(s ": ", "     " s, elements) " */");
+		print (pretty("/**" s ": ", " */", elements));
 	}
 
 	next;
@@ -124,7 +124,7 @@ BEGIN {
 	elements = convert();
 	if (elements > 0) {
 		s = wspace($0, 4);
-		print ("/**" pretty(s "| ", "     " s, elements) " */");
+		print (pretty("/**" s "| ", " */" s, elements));
 	}
 
 	next;	

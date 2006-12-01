@@ -433,47 +433,47 @@ time: numv
 	      $$ = $1;
       }
     | numv TOKHOURS
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      if ($1 > LLONG_MAX / TIME_HOUR)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_HOUR;
       }
     | numv TOKMINUTES
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      if ($1 > LLONG_MAX / TIME_MINUTE)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_MINUTE;
       }
     | numv TOKSECONDS
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      $$ = $1;
       }
     | numv TOKDAYS
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      if ($1 > LLONG_MAX / TIME_DAY)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_DAY;
       }
     | numv TOKWEEKS
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      if ($1 > LLONG_MAX / TIME_WEEK)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_WEEK;
       }
     | numv TOKMONTHS
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      if ($1 > LLONG_MAX / TIME_MONTH)
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_MONTH;
       }
     | numv TOKYEARS
-/** | [$1: numv (long long)] */
+/** | [$1: numv (long long)] */ 
       {
 	      if ($1 > LLONG_MAX / TIME_YEAR)
 		      yyerror("time is too long");
@@ -615,7 +615,7 @@ domains: TOKDOMAIN strv
 		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKDOMAINS '{' domainslist '}'
-/**    | [$3: domainslist (struct strings *)] */
+/**    | [$3: domainslist (struct strings *)] */    
 	 {
 		 $$ = $3;
 	 }
@@ -635,7 +635,7 @@ domainslist: domainslist strv
 		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | strv
-/**        | [$1: strv (char *)] */
+/**        | [$1: strv (char *)] */        
 	     {
 		     char	*cp;
 
@@ -665,7 +665,7 @@ headers: TOKHEADER strv
 		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKHEADERS '{' headerslist '}'
-/**    | [$3: headerslist (struct strings *)] */
+/**    | [$3: headerslist (struct strings *)] */    
 	 {
 		 $$ = $3;
 	 }
@@ -685,7 +685,7 @@ headerslist: headerslist strv
 		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | strv
-/**        | [$1: strv (char *)] */
+/**        | [$1: strv (char *)] */        
 	     {
 		     char	*cp;
 
@@ -710,7 +710,7 @@ pathslist: pathslist strv
 		   ARRAY_ADD($$, $2, char *);
 	   }
 	 | strv
-/**      | [$1: strv (char *)] */
+/**      | [$1: strv (char *)] */      
 	   {
 		   if (*$1 == '\0')
 			   yyerror("invalid path");
@@ -732,7 +732,7 @@ maildirs: TOKMAILDIR strv
 		  ARRAY_ADD($$, $2, char *);
 	  }
         | TOKMAILDIRS '{' pathslist '}'
-/**     | [$3: pathslist (struct strings *)] */
+/**     | [$3: pathslist (struct strings *)] */     
 	  {
 		  $$ = $3;
 	  }
@@ -758,7 +758,7 @@ locklist: locklist lock
 		  $$ = $1 | $2;
 	  }
 	| lock
-/**     | [$1: lock (u_int)] */
+/**     | [$1: lock (u_int)] */     
 	  {
 		  $$ = $1;
 	  }
@@ -801,7 +801,7 @@ user: /* empty */
 	      $$ = 0;
       }
     | TOKUSER uid
-/** | [$2: uid (uid_t)] */
+/** | [$2: uid (uid_t)] */ 
       {
 	      $$ = $2;
       }
@@ -823,7 +823,7 @@ users: /* empty */
 	       $$.find_uid = 1;
        }
      | TOKUSER uid
-/**  | [$2: uid (uid_t)] */
+/**  | [$2: uid (uid_t)] */  
        {
 	       $$.users = xmalloc(sizeof *$$.users);
 	       ARRAY_INIT($$.users);
@@ -831,7 +831,7 @@ users: /* empty */
 	       $$.find_uid = 0;
        }
      | TOKUSERS '{' userslist '}'
-/**  | [$3: userslist (struct { ... } users)] */
+/**  | [$3: userslist (struct { ... } users)] */  
        {
 	       $$ = $3;
 	       $$.find_uid = 0;
@@ -845,7 +845,7 @@ userslist: userslist uid
 		   ARRAY_ADD($$.users, $2, uid_t);
 	   }
 	 | uid
-/**      | [$1: uid (uid_t)] */
+/**      | [$1: uid (uid_t)] */      
 	   {
 		   $$.users = xmalloc(sizeof *$$.users);
 		   ARRAY_INIT($$.users);
@@ -904,7 +904,7 @@ port: TOKPORT strv
 	      $$ = $2;
       }
     | TOKPORT numv
-/** | [$2: numv (long long)] */
+/** | [$2: numv (long long)] */ 
       {
 	      if ($2 == 0 || $2 > 65535)
 		      yyerror("invalid port");
@@ -923,7 +923,7 @@ server: TOKSERVER strv port
 		$$.port = $3;
 	}
       | TOKSERVER strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid host");
@@ -958,7 +958,7 @@ action: TOKPIPE strv
 		$$.data = $2;
 	}
       | TOKREWRITE strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid command");
@@ -968,7 +968,7 @@ action: TOKPIPE strv
 		$$.data = $2;
 	}
       | TOKWRITE strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -978,7 +978,7 @@ action: TOKPIPE strv
 		$$.data = $2;
 	}
       | TOKAPPEND strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -988,7 +988,7 @@ action: TOKPIPE strv
 		$$.data = $2;
 	}
       | TOKMAILDIR strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -998,7 +998,7 @@ action: TOKPIPE strv
 		$$.data = $2;
 	}
       | TOKMBOX strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -1008,7 +1008,7 @@ action: TOKPIPE strv
 		$$.data = $2;
 	}
       | TOKSMTP server to
-/**   | [$2: server (struct { ... } server)] [$3: to (char *)] */
+/**   | [$2: server (struct { ... } server)] [$3: to (char *)] */   
 	{
 		struct smtp_data	*data;
 
@@ -1031,11 +1031,10 @@ action: TOKPIPE strv
 		$$.deliver = &deliver_keep;
 	}
 
-           [$4: action (struct action)] */
 /** DEFACTION */
 defaction: TOKACTION strv users action
-/**      : [$2: strv (char *)] [$3: users (struct { ... } users)] 
-           [$4: action (struct action)] */
+/**      : [$2: strv (char *)] [$3: users (struct { ... } users)] */
+/**      : [$4: action (struct action)] */
 	   {
 		   struct action	*t;
 		   char			*s;
@@ -1067,7 +1066,7 @@ accounts: /* empty */
 		  $$ = NULL;
 	  }
         | TOKACCOUNT strv
-/**     | [$2: strv (char *)] */
+/**     | [$2: strv (char *)] */     
 	  {
 		  if (*$2 == '\0')
 			  yyerror("invalid account name");
@@ -1079,7 +1078,7 @@ accounts: /* empty */
 		  ARRAY_ADD($$, $2, char *);
 	  }
 	| TOKACCOUNTS '{' accountslist '}'
-/**     | [$3: accountslist (struct strings *)] */
+/**     | [$3: accountslist (struct strings *)] */     
 	  {
 		  $$ = $3;
 	  }
@@ -1097,7 +1096,7 @@ accountslist: accountslist strv
 		      ARRAY_ADD($$, $2, char *);
 	      }
 	    | strv
-/**         | [$1: strv (char *)] */
+/**         | [$1: strv (char *)] */         
 	      {
 		      if (*$1 == '\0')
 			      yyerror("invalid account name");
@@ -1115,7 +1114,7 @@ actions: TOKACTION TOKNONE
 		 $$ = NULL;
 	 }
        | TOKACTION strv
-/**    | [$2: strv (char *)] */
+/**    | [$2: strv (char *)] */    
 	 {
 		 if (*$2 == '\0')
 			 yyerror("invalid action name");
@@ -1125,7 +1124,7 @@ actions: TOKACTION TOKNONE
 		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKACTIONS '{' actionslist '}'
-/**    | [$3: actionslist (struct strings *)] */
+/**    | [$3: actionslist (struct strings *)] */    
          {
 		 $$ = $3;
 	 }
@@ -1141,7 +1140,7 @@ actionslist: actionslist strv
 		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | strv
-/**        | [$1: strv (char *)] */
+/**        | [$1: strv (char *)] */        
 	     {
 		     if (*$1 == '\0')
 			     yyerror("invalid action name");
@@ -1237,11 +1236,10 @@ exprop: TOKAND
 		$$ = OP_OR;
 	}
 
-          [$4: area (enum area)] */
 /** EXPRITEM: <expritem> (struct expritem *) */
 expritem: not icase strv area
-/**     : [$1: not (int)] [$2: icase (int)] [$3: strv (char *)] 
-          [$4: area (enum area)] */
+/**     : [$1: not (int)] [$2: icase (int)] [$3: strv (char *)] */
+/**     : [$4: area (enum area)] */
           {
 		  struct regexp_data	*data;
 		  int	 		 error, flags;
@@ -1271,10 +1269,9 @@ expritem: not icase strv area
 			  yyerror("%s: %s", $3, buf);
 		  }
 	  }
-          [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
-/**     | [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] 
-          [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */
+/**     | [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */     
+/**     | [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */     
 	  {
 		  struct command_data	*data;
 		  int	 		 error, flags;
@@ -1314,7 +1311,7 @@ expritem: not icase strv area
 
 	  }
 	| not TOKTAGGED strv
-/**     | [$1: not (int)] [$3: strv (char *)] */
+/**     | [$1: not (int)] [$3: strv (char *)] */     
 	  {
 		  struct tagged_data	*data;
 
@@ -1332,7 +1329,7 @@ expritem: not icase strv area
 		  data->tag = $3;
 	  }
         | not TOKSIZE cmp size
-/**     | [$1: not (int)] [$3: cmp (enum cmp)] [$4: size (long long)] */
+/**     | [$1: not (int)] [$3: cmp (enum cmp)] [$4: size (long long)] */     
 	  {
 		  struct size_data	*data;
 
@@ -1351,7 +1348,7 @@ expritem: not icase strv area
 		  data->cmp = $3;
 	  }
         | not TOKSTRING strv TOKTO strv
-/**     | [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
+/**     | [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */     
 	  {
 		  struct string_data	*data;
 		  int	 		 error, flags;
@@ -1383,7 +1380,7 @@ expritem: not icase strv area
 		  }
 	  }
         | not TOKMATCHED
-/**     | [$1: not (int)] */
+/**     | [$1: not (int)] */     
 	  {
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1391,7 +1388,7 @@ expritem: not icase strv area
 		  $$->inverted = $1;
           }
         | not TOKUNMATCHED
-/**     | [$1: not (int)] */
+/**     | [$1: not (int)] */     
 	  {
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1399,7 +1396,7 @@ expritem: not icase strv area
 		  $$->inverted = $1;
           }
         | not TOKAGE cmp time
-/**     | [$1: not (int)] [$3: cmp (enum cmp)] [$4: time (long long)] */
+/**     | [$1: not (int)] [$3: cmp (enum cmp)] [$4: time (long long)] */     
 	  {
 		  struct age_data	*data;
 
@@ -1418,7 +1415,7 @@ expritem: not icase strv area
 		  data->cmp = $3;
 	  }
         | not TOKAGE TOKINVALID
-/**     | [$1: not (int)] */
+/**     | [$1: not (int)] */     
 	  {
 		  struct age_data	*data;
 
@@ -1433,11 +1430,10 @@ expritem: not icase strv area
 		  data->time = -1;
 	  }
 
-          [$3: expritem (struct expritem *)] */
 /** EXPRLIST: <expr> (struct expr *) */
 exprlist: exprlist exprop expritem
-/**     : [$1: exprlist (struct expr *)] [$2: exprop (enum exprop)] 
-          [$3: expritem (struct expritem *)] */
+/**     : [$1: exprlist (struct expr *)] [$2: exprop (enum exprop)] */
+/**     : [$3: expritem (struct expritem *)] */
 	  {
 		  $$ = $1;
 
@@ -1445,7 +1441,7 @@ exprlist: exprlist exprop expritem
 		  TAILQ_INSERT_TAIL($$, $3, entry);
 	  }
         | exprop expritem
-/**     | [$1: exprop (enum exprop)] [$2: expritem (struct expritem *)] */
+/**     | [$1: exprop (enum exprop)] [$2: expritem (struct expritem *)] */     
 	  {
 		  $$ = xmalloc(sizeof *$$);
 		  TAILQ_INIT($$);
@@ -1464,7 +1460,7 @@ expr: expritem
 	      TAILQ_INSERT_HEAD($$, $1, entry);
       }
     | expritem exprlist
-/** | [$1: expritem (struct expritem *)] [$2: exprlist (struct expr *)] */
+/** | [$1: expritem (struct expritem *)] [$2: exprlist (struct expr *)] */ 
       {
 	      $$ = $2;
 
@@ -1504,10 +1500,9 @@ perform: TOKTAG strv
 		 else
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
-         [$3: cont (int)] */
        | users actions cont
-/**    | [$1: users (struct { ... } users)] [$2: actions (struct strings *)] 
-         [$3: cont (int)] */
+/**    | [$1: users (struct { ... } users)] */    
+/**    | [$2: actions (struct strings *)] [$3: cont (int)] */    
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->actions = $2;
@@ -1551,11 +1546,10 @@ close: '}'
 	       ARRAY_TRUNC(&rulestack, 1, struct rule *);
        }
 
-      [$3: perform (struct rule *)] */
 /** RULE */
 rule: match accounts perform
-/** : [$1: match (struct { ... } match)] [$2: accounts (struct strings *)] 
-      [$3: perform (struct rule *)] */
+/** : [$1: match (struct { ... } match)] [$2: accounts (struct strings *)] */
+/** : [$3: perform (struct rule *)] */
       {
 	      struct expritem	*ei;
 	      char		 s1[1024], s2[1024], *s, *sa;
@@ -1613,7 +1607,7 @@ folder: /* empty */
 		$$ = NULL;
         }
       | TOKFOLDER strv
-/**   | [$2: strv (char *)] */
+/**   | [$2: strv (char *)] */   
 	{
 		if (*$2 == '\0')
 			yyerror("invalid folder");
@@ -1641,11 +1635,10 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
-           [$4: strv (char *)] [$6: strv (char *)] */
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
 fetchtype: poptype server TOKUSER strv TOKPASS strv
-/**      : [$1: poptype (int)] [$2: server (struct { ... } server)] 
-           [$4: strv (char *)] [$6: strv (char *)] */
+/**      : [$1: poptype (int)] [$2: server (struct { ... } server)] */
+/**      : [$4: strv (char *)] [$6: strv (char *)] */
            {
 		   struct pop3_data	*data;
 
@@ -1667,10 +1660,9 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
 	   }
-           [$4: strv (char *)] [$6: strv (char *)] [$7: folder (char *)] */
          | imaptype server TOKUSER strv TOKPASS strv folder
-/**      | [$1: imaptype (int)] [$2: server (struct { ... } server)] 
-           [$4: strv (char *)] [$6: strv (char *)] [$7: folder (char *)] */
+/**      | [$1: imaptype (int)] [$2: server (struct { ... } server)] */      
+/**      | [$4: strv (char *)] [$6: strv (char *)] [$7: folder (char *)] */      
            {
 		   struct imap_data	*data;
 
@@ -1705,7 +1697,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.data = data;
 	   }
          | maildirs
-/**      | [$1: maildirs (struct strings *)] */
+/**      | [$1: maildirs (struct strings *)] */      
 	   {
 		   struct maildir_data	*data;
 
@@ -1715,11 +1707,10 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->maildirs = $1;
 	   }
 
-         [$4: fetchtype (struct { ... } fetch)] [$5: keep (int)] */
 /** ACCOUNT */
 account: TOKACCOUNT strv disabled fetchtype keep
-/**    : [$2: strv (char *)] [$3: disabled (int)] 
-         [$4: fetchtype (struct { ... } fetch)] [$5: keep (int)] */
+/**    : [$2: strv (char *)] [$3: disabled (int)] */
+/**    : [$4: fetchtype (struct { ... } fetch)] [$5: keep (int)] */
          {
 		 struct account		*a;
 		 char			*s;
