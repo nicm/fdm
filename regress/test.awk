@@ -17,18 +17,19 @@
 
 function failed(cmd) {
 	failures++;
-	print FILENAME ":" n ": FAILED: " cmd;
+	print (FILENAME ":" n ": FAILED: " cmd);
 }
 function passed(cmd) {
-	print FILENAME ":" n ": PASSED: " cmd;
+	print (FILENAME ":" n ": PASSED: " cmd);
 }
 
 BEGIN {
 	failures = 0;
 	n = 0;
 
-	line = 0;
-	header = 0;
+	nlines = 0;
+	nheaders = 0;
+	nmatches = 0;
 }
 
 /.*/ {
@@ -36,36 +37,48 @@ BEGIN {
 }
 
 /^!.+/ {
-	headers[header] = substr($0, 2);
-	header++;
+	headers[nheaders] = substr($0, 2);
+	nheaders++;
 	next;
 }
 
 /^[^@!\#].+/ {
-	lines[line] = $0;
-	line++;
+	lines[nlines] = $0;
+	nlines++;
+	next;
+}
+
+/^@- .+/ {
+	matches[nmatches] = substr($0, 4);
+	nmatches++;
 	next;
 }
 
 /^@[0-9]( .*)?/ {
 	rc = int(substr($0, 2, 1));
-	re = substr($0, 4);
+
+	matches[nmatches] = substr($0, 4);
+	if (matches[nmatches] != 0 && matches[nmatches] != "") {
+		nmatches++;
+	}
 
 	cmd = "(echo '"
-	for (i = 0; i < header; i++) {
+	for (i = 0; i < nheaders; i++) {
 		cmd = cmd headers[i] "';echo '";
 	}
-	for (i = 0; i < line; i++) {
-		if (i != line - 1) {
+	for (i = 0; i < nlines; i++) {
+		if (i != nlines - 1) {
 			cmd = cmd lines[i] "';echo '";
 		} else {
 			cmd = cmd lines[i];
 		}
 	}
 	cmd = cmd "')|" CMD " 2>&1";
-	line = 0;
 
-	found = 0;
+	for (i = 0; i < nmatches; i++) {
+		found[i] = 0;
+	}
+
 	do {
 		error = cmd | getline;
 		if (DEBUG) {
@@ -74,21 +87,39 @@ BEGIN {
 		if (error == -1) {
 			break;
 		}
-		if (re != 0 && $0 ~ re) {
-			found = 1;
+		for (i = 0; i < nmatches; i++) {
+			if ($0 ~ matches[i]) {
+				found[i] = 1;
+			}
 		}
 	} while (error == 1);
 
 	close(cmd);
-
-	if (!found || error == -1) {
+	if (error == -1) {
 		failed(cmd);
 		next;
 	}
+
+	nlines = 0;
+
+	nfound = 0;
+	for (i = 0; i < nmatches; i++) {
+		if (found[i] == 1) {
+			nfound++;
+		}
+	}
+	if (nfound != nmatches) {
+		nmatches = 0;
+		failed(cmd);
+		next;
+	}
+	nmatches = 0;
+
 	if (system(cmd " 2>/dev/null") != rc) {
 		failed(cmd);
 		next;
 	}
+
 	passed(cmd);
 }
 

@@ -4,7 +4,7 @@ DEBUG= 0
 
 CLEANFILES= *~
 
-TESTFILES= account.test macros.test options.test proxy.test
+TESTFILES= account.test macros.test options.test proxy.test nested.test
 
 TARGETS= 
 .for n in ${TESTFILES}
