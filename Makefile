@@ -62,7 +62,7 @@ LIBS= -lcrypto -lssl
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
-DISTFILES= *.[chyl] Makefile GNUmakefile ${PROG}.conf *.[1-9] README \
+DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] README \
 	`find examples regress compat -type f -and ! -path '*CVS*'`
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
