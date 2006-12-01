@@ -109,6 +109,7 @@ port:
 yannotate:
 		awk -f yannotate.awk parse.y > parse.y.new
 		mv parse.y.new parse.y
+		trim parse.y
 
 upload-index.html:
 		scp index.html nicm@shell.sf.net:index.html
