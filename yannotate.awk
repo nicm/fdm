@@ -112,7 +112,7 @@ BEGIN {
 		for (i = 0; i < length($1) - 4; i++) {
 			s = " " s;
 		}
-		print (pretty("/**" s ": ", " */", elements));
+		print (pretty("/**" s "  ", " */", elements));
 	}
 
 	next;
@@ -124,7 +124,7 @@ BEGIN {
 	elements = convert();
 	if (elements > 0) {
 		s = wspace($0, 4);
-		print (pretty("/**" s "| ", " */" s, elements));
+		print (pretty("/**" s "  ", " */" s, elements));
 	}
 
 	next;	
@@ -152,6 +152,7 @@ BEGIN {
 		#for (i = 1; i <= NF; i++) {
 		#	type = type $i " ";
 		#}
+		next;
 	}
 
 	if (union == 1) {
