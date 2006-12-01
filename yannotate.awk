@@ -17,17 +17,19 @@
 
 # This whole file is pretty crappy and fragile, but it does the job.
 
-function convert(p) {
+function convert() {
 	n = 0;
+	o = 0;
 	s = "";
 
-	for (i = p; i <= NF; i++) {
+	for (i = 2; i <= NF; i++) {
 		type = rules[$i];
 		if (type == 0) {
-			s = s $i " ";
+			o++;
 		} else {
 			n++;
-			s = s "[" $i ": " types[type] "] ";
+			o++;
+			s = s "[$" o  ": " $i " (" types[type] ")] ";
 		}
 	}
 
@@ -86,13 +88,13 @@ BEGIN {
 /^[a-z]+: / {
 	type = rules[substr($1, 1, length($1) - 1)];
 	if (type != 0) {
-		print ("/** " toupper($1) " " type " (" types[type] "). */");
+		print ("/** " toupper($1) " " type " (" types[type] ") */");
 	} else {
 		print ("/** " toupper(substr($1, 1, length($1) - 1)) " */");
 	}
 
 
-	s = convert(2);
+	s = convert();
 	if (s != "") {
 		s = ": " s;
 		for (i = 0; i < length($1) - 4; i++) {
@@ -106,9 +108,9 @@ BEGIN {
 }
 
 /^[ \t]*\| / {
-	s = convert(1);
+	s = convert();
 	if (s != "")
-		print ("/**" wspace($0, 4) s " */");
+		print ("/**" wspace($0, 4) "| " s " */");
 
 	print ($0);
 	next;	
