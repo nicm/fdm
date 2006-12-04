@@ -457,13 +457,15 @@ The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
 .It Xo Op Ic not 
-.Ic exec Ar command Ic returns 
+.Ic exec Ar command Op Ic user Ar user
+.Ic returns 
 .Li (
 .Ar return code ,
 .Ar stdout regexp )
 .Xc
 .It Xo Op Ic not 
-.Ic pipe Ar command Ic returns 
+.Ic pipe Ar command Op Ic user Ar user
+.Ic returns 
 .Li (
 .Ar return code ,
 .Ar stdout regexp )
@@ -482,6 +484,9 @@ The
 version will pipe the mail to the command's 
 .Em stdin
 when executing it.
+If a user is specified,
+.Xr fdm 1
+will change to that user before executing the command, otherwise the current user (or root if started as root) is used.
 .It Xo Op Ic not 
 .Ic size 
 .Li <
