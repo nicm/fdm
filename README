@@ -33,8 +33,7 @@ Local mail can be delivered via stdin. See the fdm(1) man page for an example
 using sendmail, users of other MTAs are on their own for the moment. Man page
 diffs and/or instructions I can format into the man page would be appreciated.
 
-The included fdm.conf(5) is an example of a single-user configuration. Other
-examples may be found in the examples directory.
+The examples directory contains some examples of single-user configuration.
 
 Multi-user ---------------------------------------------------------------------
 
