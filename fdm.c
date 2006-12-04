@@ -35,7 +35,7 @@
 #include "fdm.h"
 
 #ifdef DEBUG
-const char		*malloc_options = "AFGJX";
+const char		*malloc_options = "AFGJPX";
 #endif
 
 extern FILE		*yyin;

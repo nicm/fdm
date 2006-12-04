@@ -13,7 +13,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      <B>fdm </B>- fetch and deliver mail
 
 <B>SYNOPSIS</B>
-     <B>fdm </B>[<B>-lmnv</B>] [<B>-f </B><I>conffile</I>] [<B>-u </B><I>user</I>] [<B>-a </B><I>account</I>] [<B>-x </B><I>account</I>] [<I>fetch </I>|
+     <B>fdm </B>[<B>-klmnv</B>] [<B>-f </B><I>conffile</I>] [<B>-u </B><I>user</I>] [<B>-a </B><I>account</I>] [<B>-x </B><I>account</I>] [<I>fetch </I>|
          <I>poll</I>]
 
 <B>DESCRIPTION</B>
@@ -27,7 +27,12 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
                      glob characters to match multiple accounts.
 
      <B>-f </B><I>conffile     </I>Specify the configuration file location. Default is
-                     <I>~/fdm.conf</I>, or <I>/etc/fdm.conf </I>if it doesn't exist.
+                     <I>~/fdm.conf</I>, or <I>/etc/fdm.conf </I>if that doesn't exist.
+
+     <B>-k              </B>Keep all mail after delivery, regardless of whether it
+                     matches a <B>drop </B>action. Note that mails kept in this way
+                     will be refetched by <B>fdm </B>if it is run again on the same
+                     account.
 
      <B>-l              </B>Log using syslog(3) rather than to <I>stderr</I>.
 
@@ -41,7 +46,10 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
                      <B>default-user </B>option in the configuration file.
 
      <B>-v              </B>Request verbose logging. This option may be specified
-                     multiple times.
+                     multiple times.  <B>-vv </B>will print information on configura-
+                     tion (useful with <B>-n</B>).  <B>-vvvv </B>duplicates all traffic to
+                     and from remote servers to <I>stdout</I>, but note that this
+                     feature is disabled when using the <B>-l </B>flag.
 
      <B>-x </B><I>name         </I>Exclude the named account. Multiple <B>-x </B>options may be
                      specified. As with <B>-a</B>, shell glob characters may be used.
@@ -99,8 +107,8 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      Empty lines and lines beginning with the `#' character are ignored.
 
      Regexps and strings must be enclosed in double quotes.  Special charac-
-     ters in regexps and strings must be escaped.  Note that this may mean
-     double-escaping in regexps.
+     ters in regexps and strings (including passwords) must be escaped.  Note
+     that this may mean double-escaping in regexps.
 
      Possible commands are covered in the following sections.
 
@@ -133,9 +141,9 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>default-user </B><I>user</I>
              This sets the default user to change to before delivering mail,
              if fdm(1) is running as root and no alternative user is specified
-             as part of the action or rule.  This option may be override with
-             the <B>-u </B>switch on the command line.  A default user must be given
-             if running as root.
+             as part of the action or rule.  This option may be overridden
+             with the <B>-u </B>switch on the command line.  A default user must be
+             given if running as root.
 
      <B>lock-types </B><I>type ...</I>
              This specifies the locks to be used for mbox locking.  Possible
@@ -158,6 +166,14 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              <I>http://host[:port] or socks://[user:pass@]host[:port])</I>.  No au-
              thentication is supported for HTTP.  This option may be overrid-
              den by an <I>http_proxy </I>variable in the environment.
+
+     <B>unmatched-mail </B><I>drop </I>| <I>keep</I>
+             This option controls what fdm(1) does with mail that reaches the
+             end of the ruleset (mail that matches no rules or matches only
+             rules with the <B>continue </B>keyword).  <I>drop </I>will cause such mail to
+             be discarded, and <I>keep </I>will attempt to leave the mail on the
+             server.  The default is to keep the mail and log a warning that
+             it reached the end of the ruleset.
 
 <B>INCLUDING FILES</B>
      Further configuration files may be including using the <B>include </B>command:
@@ -185,12 +201,15 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      The <B>account </B>command is used to instruct fdm(1) to fetch mail from an ac-
      count.  The syntax is:
 
-     <B>account </B><I>name </I>[<B>disabled</B>] <I>type </I>[<I>args</I>]
+     <B>account </B><I>name </I>[<B>disabled</B>] <I>type </I>[<I>args</I>] [<B>keep</B>]
 
      The <I>name </I>argument is a string specifying a name for the account.  The
      <B>disabled </B>keyword instructs fdm(1) to ignore this account unless it is ex-
-     plicitly enabled with a <B>-a </B>option on the command line.  Supported account
-     types and arguments are:
+     plicitly enabled with a <B>-a </B>option on the command line.  If the <B>keep </B>key-
+     word is specified, all mail collected from this account is kept (not
+     deleted) even if it matches a <B>drop </B>action.
+
+     Supported account types and arguments are:
 
      <B>stdin   </B>This account type reads mail from <I>stdin</I>, if it is connected to a
              pipe.  This may be used to deliver mail from sendmail(8), see
@@ -212,6 +231,14 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              a POP3 or POP3 account, aside from the additional <B>folder </B>option
              which allows the folder name to be specified (the default is to
              fetch from the inbox).
+
+     <B>maildir </B><I>path</I>
+
+     <B>maildirs </B>{ <I>path ... </I>}
+             These account types instruct fdm(1) to fetch mail from the
+             maildir or maildirs specified.  This allows fdm(1) to be used to
+             filter mail, fetching from a maildir and deleting (dropping) un-
+             wanted mail, or delivering mail to another maildir or to an mbox.
 
 <B>ACTIONS</B>
      The <B>action </B>command is used to define actions.  These may be specified by
@@ -237,9 +264,17 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <I>command </I>or <I>path </I>is specified, the following substitutions are made before
      it is used: <I>%a </I>is replaced by the account name, <I>%h </I>by the current user's
      home directory, <I>%t </I>by the name of the current action, <I>%u </I>by the current
-     user's login name and <I>%n </I>by the UID.
+     user's login name, <I>%n </I>by the UID and <I>%H </I>by the current hour (00-23), <I>%M</I>
+     minute (00-59), <I>%S </I>second (00-59), <I>%d </I>day of the month (00-31), <I>%m </I>month
+     (01-12), <I>%y </I>year, <I>%W </I>day of the week (0-6, Sunday is 0), <I>%Y </I>day of the
+     year (000-365) and <I>%Q </I>quarter (1-4).  In addition, <I>%s </I>is replaced by a
+     string specific to the type of account.  When fetching from a maildir,
+     this is the basename of the maildir path.  With pop3 or imap, it is the
+     hostname of the server, as specified in the account definition.
 
      <B>drop    </B>Discard the mail.
+
+     <B>keep    </B>Keep the mail, do not remove it from the account.
 
      <B>maildir </B><I>path</I>
              Save the mail to the maildir specified by <I>path</I>.
@@ -262,54 +297,96 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              command.  If not, the current user and host names are used.
 
      <B>rewrite </B><I>command</I>
-             Pipe the entire mail through <I>command </I>to generate a new mail.  The
-             modified mail is kept only within the rule the action appears, so
-             it will be used only by subsequent actions in the same rule and
-             not by actions in further rules.  This type of action does not
-             work when running as root (although the command will be executed
-             the mail will remain unchanged).  An example of the <B>rewrite </B>ac-
-             tion is:
+             Pipe the entire mail through <I>command </I>to generate a new mail and
+             use that mail for any following actions or rules.  An example of
+             the <B>rewrite </B>action is:
 
                    action "cat" pipe "cat"
                    action "rewrite" rewrite "sed 's/bob/fred/g'"
-                   # this rule will rewrite the message and then cat it
-                   match all actions { "rewrite" "cat" } continue
-                   # this rule will cat the original message
+                   # this rule will rewrite the message
+                   match all action "rewrite" continue
+                   # this rule will cat the rewritten message
                    match all action "cat"
 
 <B>RULES</B>
-     Rules are specified using the <B>match </B>keyword.  It has the following basic
-     form:
+     Rules are specified using the <B>match </B>keyword.  It has one of the following
+     basic forms:
 
-     <B>match </B><I>conditions </I>[<I>accounts</I>] [<I>users</I>] <I>actions </I>[<B>continue</B>]
+     <B>match </B><I>condition </I>[<B>and </B>| <B>or </B><I>condition ...</I>] [<I>accounts</I>] [<I>users</I>] <I>actions</I>
+             [<B>continue</B>]
+
+     <B>match </B><I>condition </I>[<B>and </B>| <B>or </B><I>condition ...</I>] [<I>accounts</I>] <B>tag </B><I>string</I>
 
      The <I>condition </I>argument may be one of:
 
      <B>all     </B>Matches all mail.
 
-     <B>matched</B>
+     [<B>not</B>] <B>matched</B>
              Matches only mail that has matched a previous rule and been
              passed on with <B>continue</B>.
 
-     <B>unmatched</B>
+     [<B>not</B>] <B>unmatched</B>
              The opposite of <B>matched</B>: matches only mails which have matched no
              previous rules.
 
-     [<B>not</B>] [<B>case</B>] <I>regexp </I>[<B>in headers </B>| <B>in body</B>] [<B>and </B>| <B>or </B><I>...</I>]
+     [<B>not</B>] <B>tagged </B><I>string</I>
+             Matches mails tagged with <I>string</I>.
+
+     [<B>not</B>] [<B>case</B>] <I>regexp </I>[<B>in headers </B>| <B>in body</B>]
              Specifies a list of regexps against which each mail should be
              matched.  The regexp matches may be restricted to either the
              headers or body of the message by specifying either <B>in headers </B>or
-             <B>in body</B>.  If the <B>not </B>keyword is specified, the sense of the reg-
-             exp match is inverted, so the rule will apply to mails only where
-             the regexp does <I>not </I>match.  The <B>case </B>keyword forces the regexp to
-             be matched case-sensitively: the default is case-insensitive
-             matching.  Multiple regexps may be specified by chaining them
-             with <B>and </B>or <B>or </B>keywords.  The regexps are matched from left to
-             right.
+             <B>in body</B>.  The <B>case </B>keyword forces the regexp to be matched case-
+             sensitively: the default is case-insensitive matching.
 
-     The optional <I>users </I>argument has the same syntax as for an <B>action </B>defini-
-     tion.  A rule's user list overrides any users given as part of the ac-
-     tions.
+     [<B>not</B>] <B>exec </B><I>command <B></I>returns </B>(<I>return code</I>, <I>stdout regexp</I>)
+
+     [<B>not</B>] <B>pipe </B><I>command <B></I>returns </B>(<I>return code</I>, <I>stdout regexp</I>)
+             These two conditions execute a <I>command </I>and test its return value
+             and output. The <I>return code </I>argument is the numeric return code
+             expected and <I>stdout regexp </I>is a regexp to be tested against the
+             output of the command to <I>stdout</I>.  Either of these two arguments
+             may be omitted: if both are specified, both must match for the
+             condition to be true.  The <B>pipe </B>version will pipe the mail to the
+             command's <I>stdin </I>when executing it.
+
+     [<B>not</B>] <B>size </B>&lt; <I>number</I>
+
+     [<B>not</B>] <B>size </B>&gt; <I>number</I>
+             Compare the mail size with <I>number</I>.
+
+     [<B>not</B>] <B>string </B><I>string <B></I>to </B><I>regexp</I>
+             Match <I>string </I>against <I>regexp</I>.  If any of %0 to %9 appear in the
+             string, they will be replaced with the contents of any subexpres-
+             sions from the regexp executed as part of the last <B>regexp </B>condi-
+             tion. If no <B>regexp </B>condition has yet been seen, or the mail con-
+             tents has been modified by a <B>rewrite </B>action since the last one,
+             this condition will log a warning and evaluate to false.
+
+     [<B>not</B>] <B>age </B>&lt; <I>time</I>
+
+     [<B>not</B>] <B>age </B>&gt; <I>time</I>
+             The <B>age </B>condition examines the mail's date header to determine
+             its age, and matches if the mail is older (&lt;) or newer (&gt;) than
+             the time specified.  The time may be given as a simple number in
+             seconds, or followed by the word <I>seconds</I>, <I>hours</I>, <I>minutes</I>, <I>days</I>,
+             <I>months </I>or <I>years </I>to specify a time in different units.
+
+     Aside from the <B>all </B>condition, multiple conditions may be chained together
+     using the <B>and </B>or <B>or </B>keywords.  The conditions are tested from left to
+     right.  The <B>not </B>keyword may be specified to invert the sense of a condi-
+     tion.
+
+     The first form of the command specifies a number of actions to take when
+     a mail matches the rule.  The second form tags the mail with <I>string</I>,
+     which may be matched using the <B>tagged </B>condition in later rules. A mail
+     may be tagged with any number of different strings by different rules.
+     Rules which apply a tag do not count as a match for the purposes of the
+     <B>matched </B>or <B>unmatched </B>conditions.
+
+     The optional <I>users </I>argument to the first form has the same syntax as for
+     an <B>action </B>definition.  A rule's user list overrides any users given as
+     part of the actions.
 
      Both the <I>accounts </I>and <I>actions </I>parts consist either of a single name or a
      list of names enclosed in braces:
@@ -329,6 +406,19 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      is matched.  Instead, fdm(1) will continue to match further rules after
      performing any actions for this rule.
 
+<B>NESTED RULES</B>
+     Rules may be nested by specifying further rules in braces:
+
+     <B>match </B><I>condition </I>[<B>and </B>| <B>or </B><I>condition ...</I>] {
+
+     <B>match </B><I>...</I>
+
+     }
+
+     The inner rules will not be evaluated unless the outer one matches. Rules
+     may be multiply nested. Note that the outer rule does not count as a
+     match for the purposes of the <B>matched </B>and <B>unmatched </B>conditions.
+
 <B>FILES</B>
      ~/.fdm.conf          default <B>fdm.conf </B>configuration file
      /etc/fdm.conf        default system-wide configuration file
@@ -341,7 +431,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 <B>AUTHORS</B>
      Nicholas Marriott &lt;nicm@users.sourceforge.net&gt;
 
-OpenBSD 4.0                     August 21, 2006                              4
+OpenBSD 4.0                     August 21, 2006                              6
 </PRE>
 </body>
 </html>
