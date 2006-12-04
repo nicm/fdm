@@ -9,3 +9,4 @@
 - audit man pages for clarity
 - write a manual/expand README
 - finish regression tests
+- test/fix multiuser (X-Envelope-To, weed out duplicate users)
