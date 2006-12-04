@@ -2,7 +2,7 @@
 
 COMMENT=	"fetches and delivers mail"
 
-DISTNAME=	fdm-0.5
+DISTNAME=	fdm-0.6
 CATEGORIES=	mail
 
 MAINTAINER=     Nicholas Marriott <nicm@users.sourceforge.net>
@@ -19,6 +19,7 @@ MASTER_SITES=	${MASTER_SITE_SOURCEFORGE:=fdm/}
 post-install:
 	${INSTALL_DATA_DIR} ${PREFIX}/share/doc/fdm
 	${INSTALL_DATA} ${WRKSRC}/README ${PREFIX}/share/doc/fdm/README
-	${INSTALL_DATA} ${WRKSRC}/fdm.conf ${PREFIX}/share/examples/fdm/fdm.conf.sample
+	${INSTALL_DATA_DIR} ${PREFIX}/share/examples/fdm
+	${INSTALL_DATA} ${WRKSRC}/examples/* ${PREFIX}/share/examples/fdm
 
 .include <bsd.port.mk>

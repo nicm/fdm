@@ -1,7 +1,9 @@
 @comment $Id$
 bin/fdm
-share/doc/fdm/
-share/doc/fdm/README
-share/doc/fdm/fdm.conf.sample
 @man man/man1/fdm.1
 @man man/man5/fdm.conf.5
+share/doc/fdm/
+share/doc/fdm/README
+share/examples/fdm/
+share/examples/fdm/n-marriott.conf
+share/examples/fdm/w-maier.conf
