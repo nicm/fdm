@@ -1,4 +1,4 @@
-fdm ===========================================================================
+fdm ============================================================================
 
 1	Introduction
 2	Installation
@@ -36,7 +36,7 @@ fdm ===========================================================================
 12	Bug reports and queries
 13	Frequently asked questions
 
-Introduction ==================================================================
+Introduction ===================================================================
 
 fdm is a program to fetch mail and deliver it in various ways depending on as
 user-supplied ruleset. Mail may be fetched from stdin, IMAP or POP3 servers, or
@@ -50,7 +50,7 @@ configuration syntax. It is primarily designed for single-user uses but may
 also be configured to deliver mail in a multi-user setup. In this case, it uses
 privilege seperation to minimise the amount of code running as the root user.
 
-Installation ==================================================================
+Installation ===================================================================
 
 Installing fdm is simple. Download the source tarball, and run:
 
@@ -65,7 +65,7 @@ installation location:
     $ export PREFIX=/opt		# defaults to /usr/local
     $ sudo make install
 
-Quick start ===================================================================
+Quick start ====================================================================
 
 A simple ~/.fdm.conf file for a single user fetching from POP3, POP3S and IMAP
 accounts and delivering to one maildir may look similar to:
@@ -114,7 +114,7 @@ To run fdm every half hour from cron, add something like this:
 See the fdm.conf(5) man page or the rest of this manual for more detail of the
 configuration file format.
 
-The configuration file ========================================================
+The configuration file =========================================================
 
 fdm is controlled by its configuration file. It first searches for a .fdm.conf
 file in the invoking user's home directory. If that fails, fdm attempts to use
@@ -155,7 +155,7 @@ Example lines that may appear in a configuration file are:
 		or "^(To:|Cc:):.*@vger.kernel.org" in headers
 		action "linux-kernel"
 
-Including other files ---------------------------------------------------------
+Including other files ----------------------------------------------------------
 
 The fdm configuration may be split into several files. Additional files may
 be referenced using the 'include' keyword:
@@ -164,7 +164,7 @@ be referenced using the 'include' keyword:
 
 	include	"/etc/fdm.d/shared-conf-1.conf"
 
-Macros ------------------------------------------------------------------------
+Macros -------------------------------------------------------------------------
 
 Macros may be defined and used in the configuration file. fdm makes a
 distinction between macros which may hold a number (numeric macros) and
@@ -193,12 +193,12 @@ Or embedded in a string by enclosing the macro name in {}s:
 	%anum = 57
 	include "/etc/file-number-%{anum}"
 
-Invoking fdm ==================================================================
+Invoking fdm ===================================================================
 
 fdm may be invoked manually from the command line or regularly using a program
 such as cron(8).
 
-Command-line arguments --------------------------------------------------------
+Command-line arguments ---------------------------------------------------------
 
 The fdm binary has the following synopsis:
 
@@ -253,7 +253,7 @@ Examples:
 	
 	# fdm -u nicholas -vv f
 
-Running from cron -------------------------------------------------------------
+Running from cron --------------------------------------------------------------
 
 To fetch mail regularly, fdm must be run from cron. This line in a crontab(5)
 will run fdm every 30 minutes:
@@ -270,7 +270,7 @@ Will append extremely verbose fdm output to the ~/.fdm.log file. Note that this
 log file can become pretty large, so another cronjob may be required to remove
 it occasionally!
 
-The lock file -----------------------------------------------------------------
+The lock file ------------------------------------------------------------------
 
 fdm makes use of a lock file to prevent two instances running simultaneously.
 By default, this lock file is .fdm.lock in the home directory of the user who
@@ -286,7 +286,7 @@ Or disabled altogether by being set to the empty string:
 The '-m' command-line option may be used to force fdm to ignore the lock file
 and run regardless of its existence and without attempting to create it.
 
-Testing and debugging ---------------------------------------------------------
+Testing and debugging ----------------------------------------------------------
 
 fdm has some features to assist with testing and debugging a ruleset:
 
@@ -321,7 +321,7 @@ The 'k' command line option (and the 'keep' keywords on actions and accounts,
 covered later) prevent fdm from deleting any mail after delivery. This may be
 used to perform any number of test deliveries without risk of losing mail.
 
-Fetching mail =================================================================
+Fetching mail ==================================================================
 
 fdm fetches mail from a set of 'accounts', defined using the 'account'
 keyword. Each account has a name, a type, a number of account specific
@@ -342,7 +342,7 @@ rules.
 The <type> item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 'maildir' or 'maildirs'.
 
-POP3 and POP3S ----------------------------------------------------------------
+POP3 and POP3S -----------------------------------------------------------------
 
 Mail may be fetched from a POP3 account. A POP3 account is defined by
 specifying the following parameters: the server host and optionally port, and
@@ -368,7 +368,7 @@ for the type, and the default port is 'pop3s' rather than 'pop3':
 
 	account "pop3sacct" pop3s server "pop.isp.com" user "bob" pass "pass"
 
-IMAP and IMAPS ----------------------------------------------------------------
+IMAP and IMAPS -----------------------------------------------------------------
 
 IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
 and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
@@ -389,7 +389,7 @@ Examples of IMAP and IMAPS accounts include:
 	account "workspam" disabled imap server "my-work.ath.cx"
 		user "Nicholas" pass "pass" folder "Junk"
 
-Stdin and local mail ----------------------------------------------------------
+Stdin and local mail -----------------------------------------------------------
 
 fdm may be configured to fetch mail from stdin, by specifying an account of
 type 'stdin', for example:
@@ -405,13 +405,54 @@ To the user's ~/.forward file (including the double quotes). Note the use of
 '-m' to prevent stdin delivery from interfering with any normal cronjob, and
 '-a' to specify that only the disabled "stdin" account should be fetched.
 
-From maildirs -----------------------------------------------------------------
+From maildirs ------------------------------------------------------------------
 
-XXX
+Fetching from maildirs allows fdm to be used to filter mail on the local
+machine. This is covered more detail in a later section on archiving and
+searching.
 
-Frequently asked questions ====================================================
+Maildir accounts are specified as follows:
 
-Why? --------------------------------------------------------------------------
+	account "mymaildir" maildir "/path/to/dir"
+
+	account "mymaildirs" maildirs { "/path/to/dir1" "/path/to/dir2" }
+
+Defining actions ===============================================================
+
+7.1	Drop and keep
+7.2	Maildirs
+7.3	Mboxes
+7.4	SMTP
+7.5 	Rewriting mail
+
+Filtering mail =================================================================
+
+8.1	Syntax and conditions
+8.2	All
+8.3	Matched and unmatched
+8.4	Using a regexp
+8.5	By age or size
+8.6	Based on a shell command
+8.7	Tagging
+
+Setting options ================================================================
+
+Archiving and searching mail ===================================================
+
+Using fdm behind a proxy =======================================================
+
+Bug reports and queries ========================================================
+
+Bug reports, queries, feature and code suggestions are best sent by email to:
+
+	nicm@users.sf.net
+
+Bug reports may also be registered on Sourceforge, but they will be dealt with
+much faster by email.
+
+Frequently asked questions =====================================================
+
+Why? ---------------------------------------------------------------------------
 
 Two main reasons: 
 
@@ -429,9 +470,9 @@ Two main reasons:
    had to have five programs to deal with mail: sendmail, fetchmail, procmail,
    archivemail, mutt; all with different, variously broken configuration file
    syntaxes, and weird quirks. I now have three programs: sendmail, fdm and
-   mutt, and many fewer weird configurations to learn and potential problems.
+   mutt, and fewer weird configurations to learn and potential problems.
 
-Why doesn't fdm run as a daemon? ----------------------------------------------
+Why doesn't fdm run as a daemon? -----------------------------------------------
 
 Because that is what cron is for: it comes as standard with all sensible
 operating systems, and by using it I avoid a lot of code to deal with signals,
@@ -439,17 +480,17 @@ configuration reload, extra configuration options and general other crap
 related to running all the time. Daemonising is for servers, for stuff that
 needs to run periodically, use cron.
 
-Why does fdm fork child processes when not running as root? -------------------
+Why does fdm fork child processes when not running as root? --------------------
 
 Because one design is much cleaner and easier to work with than two. And it
 has a negligable practical effect on performance in any case.
 
-Why do I have to escape \s in regexps and other strings? I hates it. ----------
+Why do I have to escape \s in regexps and other strings? I hates it. -----------
 
 Because otherwise you couldn't include a literal " in the string. It hasn't
 really bothered me enough yet to do it, but allowing use of ' to avoid
 escaping is on the todo list.
 
-===============================================================================
+================================================================================
 $Id$
 
