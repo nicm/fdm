@@ -30,7 +30,31 @@
 int	 smtp_deliver(struct deliver_ctx *, struct action *);
 char	*smtp_desc(struct action *);
 
+int	 smtp_code(char *);
+
 struct deliver deliver_smtp = { DELIVER_ASUSER, smtp_deliver, smtp_desc };
+
+int
+smtp_code(char *line)
+{
+	char		 ch;
+	const char	*errstr;
+	int	 	 n;
+	size_t		 len;
+
+	len = strspn(line, "0123456789");
+	if (len == 0)
+		return (-1);
+	ch = line[len];
+	line[len] = '\0';
+       
+	n = strtonum(line, 100, 999, &errstr);
+	line[len] = ch;
+	if (errstr != NULL)
+		return (-1);
+
+	return (n);
+}
 
 int
 smtp_deliver(struct deliver_ctx *dctx, struct action *t)
@@ -38,11 +62,9 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	struct account		*a = dctx->account;
 	struct mail		*m = dctx->mail;
 	struct smtp_data	*data = t->data;
-	int		 	 done;
-	long			 code;
+	int		 	 done, code;
 	struct io		*io;
 	char			*cause, *to, *from, *line, *ptr;
-	const char		*errstr;
 	enum smtp_state		 state;
 	size_t		 	 len;
 
@@ -77,12 +99,7 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 			line = io_readline(io);
 			if (line == NULL)
 				break;
-			if (isdigit((int) *line)) {
-				code = strtonum(line, 100, 999, &errstr);
-				if (errstr != NULL)
-					code = -1;
-			} else
-				code = -1;
+			code = smtp_code(line);
 
 			switch (state) {
 			case SMTP_CONNECTING:
