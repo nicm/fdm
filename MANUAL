@@ -1,0 +1,330 @@
+fdm ===========================================================================
+
+1	Introduction
+2	Installation
+3	Quick start
+4	The configuration file
+4.1	Macros
+4.2	Including other files
+5	Invoking fdm
+5.1	Command-line arguments
+5.2	Running from cron
+5.3	The lock file
+5.4	Testing and debugging
+6	Fetching mail
+6.1	POP3
+6.2	IMAP
+6.3	Using SSL
+6.4	Stdin and local mail
+7	Defining actions
+7.1	Drop and keep
+7.2	Maildirs
+7.3	Mboxes
+7.4	SMTP
+7.5 	Rewriting mail
+8	Filtering mail
+8.1	Syntax and conditions
+8.2	All
+8.3	Matched and unmatched
+8.4	Using a regexp
+8.5	By age or size
+8.6	Based on a shell command
+8.7	Tagging
+9	Setting options
+10	Archiving and searching mail
+11	Using fdm behind a proxy
+12	Bug reports and queries
+13	Frequently asked questions
+
+Introduction ==================================================================
+
+fdm is a program to fetch mail and deliver it in various ways depending on as
+user-supplied ruleset. Mail may be fetched from stdin, IMAP or POP3 servers, or
+from local maildirs, and filtered based on whether it matches a regexp, its
+size or age, or the output of a shell command. It can be rewritten by an
+external process, dropped, left on the server or delivered into maildirs,
+mboxes, to a file or pipe, or any combination.
+
+fdm is designed to be lightweight but powerful, with a compact but clear
+configuration syntax. It is primarily designed for single-user uses but may
+also be configured to deliver mail in a multi-user setup. In this case, it uses
+privilege seperation to minimise the amount of code running as the root user.
+
+Installation ==================================================================
+
+Installing fdm is simple. Download the source tarball, and run:
+
+$ tar -zxvf fdm-?.?.tar.gz
+$ cd fdm-?.?.tar.gz
+$ make
+
+Then run 'make install' to install to the default locations under /usr/local.
+The PREFIX environment variable may be set to specify an alternative
+installation location:
+
+    $ export PREFIX=/opt		# defaults to /usr/local
+    $ sudo make install
+
+Quick start ===================================================================
+
+A simple ~/.fdm.conf file for a single user fetching from POP3, POP3S and IMAP
+accounts and delivering to one maildir may look similar to:
+
+	# An action to save to the maildir ~/mail/inbox.
+	action "inbox" maildir "%h/mail/inbox"
+
+	# An action to drop unwanted mail.
+	action "drop" drop
+	
+	# Accounts: POP3, POP3S and IMAP. Note the double escaping of the '\'
+	# character in the password. If the port is omitted, the default
+	# ("pop3", "pop3s", "imap" or "imaps" in the services(5) db) is used.
+	account "pop3" pop3 server "my.pop3.server"
+		user "my-username" pass "my-password-with-a-\\-in-it"
+	account "pop3s" pop3 server "pop.googlemail.com" port 995
+		user "my-account@gmail.com" pass "my-password"
+	# If the 'folder "my-folder"' argument is omitted, fdm will fetch mail
+	# from the inbox.
+	account "imap" imap server "my.imap.server"
+		user "my-username" pass "my-pasword" folder "my-folder"
+	
+	# Discard mail from Bob Idiot. Note that the regexp is an extended 
+	# regexp, and case-insensitive by default.
+	match "From:.*bob@idiot\\.net" action "drop"
+
+	# Match all other mail and deliver using the 'inbox' action.
+	match all action "inbox"
+
+A simple initial configuration file without filtering, perhaps to replace
+fetchmail or getmail delivering to maildrop, may look similar to:
+
+	# Action to pipe directly to maildrop.
+	action "maildrop" pipe "/usr/local/bin/maildrop"
+
+	# Account definitions.
+	account ....
+
+	# Send all mail to maildrop.
+	match all action "maildrop"
+
+To run fdm every half hour from cron, add something like this:
+
+*/30    *       *       *       *       /usr/local/bin/fdm -l fetch
+
+See the fdm.conf(5) man page or the rest of this manual for more detail of the
+configuration file format.
+
+The configuration file ========================================================
+
+fdm is controlled by its configuration file. It first searches for a .fdm.conf
+file in the invoking user's home directory. If that fails, fdm attempts to use
+/etc/fdm.conf. The configuration file may also be specified using the '-f'
+command line option, see the section on that subject below.
+
+This section gives an overview of the configuration file syntax. Further
+details of syntax, and specific keywords, are covered in later sections.
+
+The configuration file has the following general rules:
+
+- Keywords are specified as unadorned lowercase words: match, action, all.
+- Strings are enclosed in double quotes ("). Double quotes may be enclosed in
+  strings by escaping them using the backslash character (\). Backslashes must
+  also be escaped ("\\") - this applies to all strings, including regexps and
+  passwords.
+- Comments are prefixed by the hash character (#) and continue to the end of
+  the line.
+- Whitespace is largely ignored. Lines may generarally be split, concatenated
+  or indented as preferred.
+
+Definition/option lines generally follow the following basic form:
+
+	<keyword> <name or command> <parameters>
+
+Example lines that may appear in a configuration file are:
+	
+	# This is a comment.
+
+	set lock-types flock
+
+	account "stdin" disabled stdin
+
+	action "strip-full-disclosure" rewrite
+		"sed 's/Subject:\\(.*\\)\\[Full-disclosure\\]/Subject:\\1/'"
+
+	match "^X-Mailing-List:.*linux-kernel@vger.kernel.org" in headers
+		or "^(To:|Cc:):.*@vger.kernel.org" in headers
+		action "linux-kernel"
+
+Including other files ---------------------------------------------------------
+
+The fdm configuration may be split into several files. Additional files may
+be referenced using the 'include' keyword:
+
+	include "my-include-file.conf"
+
+	include	"/etc/fdm.d/shared-conf-1.conf"
+
+Macros ------------------------------------------------------------------------
+
+Macros may be defined and used in the configuration file. fdm makes a
+distinction between macros which may hold a number (numeric macros) and
+those that hold a string (string macros). Numeric macros are prefixed with
+the percentage sign (%) and string by the dollar sign ($). Macros are 
+defined using the equals operator (=):
+
+	%nummacro = 123
+
+	$strmacro = "a string"
+
+Macros may then be referenced in either a standalone fashion anywhere a string
+or number is expected, depending on the type of macro:
+
+	$myfile = "a-file"
+	include $myfile
+
+	%theage = 12
+	match age < %theage action "old-mail"
+
+Or embedded in a string by enclosing the macro name in {}s:
+
+	$myfile2 = "a-file2"
+	include "/etc/${myfile}"
+
+	%anum = 57
+	include "/etc/file-number-%{anum}"
+
+Invoking fdm ==================================================================
+
+fdm may be invoked manually from the command line or regularly using a program
+such as cron(8).
+
+Command-line arguments --------------------------------------------------------
+
+The fdm binary has the following synopsis:
+
+fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account] [fetch | poll]
+
+The meaning of the flags are covered in the fdm(1) man page, but a brief
+description is given below. The flags are also mentioned at relavent points 
+in the rest of this document.
+
+Flag	Meaning
+-k 	Keep all mail (do not delete it from the server). This is useful for
+	testing delivery rules without risking mailing ending up permanently
+	in the wrong place.
+-l	Log to syslog(3) using the 'mail' facility rather than outputting to
+	stderr.
+-m	Ignore the lock file.
+-n	Run a syntax check on the configuration file and exit without fetch ing
+	any mail.
+-v	Print verbose debugging output. This option may be specified multiple
+	times for increasing levels of verbosity. Useful levels are -vv to
+	display the result of parsing the configuration file, and -vvvv to copy
+	all traffic to and from POP3 or IMAP servers to stdout (note that -l
+	disables this behaviour).
+-f conffile
+	Specify the path of the configuration file.
+-u user	
+	Use 'user' as the default user for delivering mail when started as
+	root.
+-a account
+	Process only accounts with a name matching the given pattern. Note that
+	fnmatch(3) wildcards may be used to match multiple accounts with one
+	option, and that the option may be specified multiple times.
+-x account
+	Process all accounts except those that match the given patteen. Again,
+	fnmatch(3) wildcards may be used, and the -x option may be specified
+	multiple times.
+
+If -n is not specified, the flags must be followed by one of the keywords
+'fetch' or 'poll'. The 'fetch' keyword will fetch and deliver mail, the 'poll'
+keyword print an indication of how many mails are present in each account.
+'fetch' or 'poll' may be abbreviated.
+
+Examples:
+
+	$ fdm -v poll
+
+	$ fdm -vvnf /etc/my-fdm.conf
+
+	$ fdm -lm -a pop3\* fetch
+
+	$ fdm -x stdinacct fetch
+	
+	# fdm -u nicholas -vv f
+
+Running from cron -------------------------------------------------------------
+
+To fetch mail regularly, fdm must be run from cron. This line in a crontab(5)
+will run fdm every 30 minutes:
+
+*/30   *      *      *      *      /usr/local/bin/fdm -l fetch
+
+The '-l' option sends fdm's output to syslog(3) rather than having cron mail
+it. If you want to keep a closer eye, adding '-v' options and removing '-l'
+will have debugging output mailed by cron, or, using a line such as:
+
+*/30   *      *      *      *      fdm -vvvv fetch >>/home/user/.fdm.log 2>&1
+
+Will append extremely verbose fdm output to the ~/.fdm.log file. Note that this
+log file can become pretty large, so another cronjob may be required to remove
+it occasionally!
+
+The lock file -----------------------------------------------------------------
+
+fdm makes use of a lock file to prevent two instances running simultaneously.
+By default, this lock file is .fdm.lock in the home directory of the user who
+runs fdm, or /var/db/fdm.lock for root. This default may be overridden in
+the configuration file with the 'set lock-file' command:
+
+	set lock-file "/path/to/my/lock-file"
+
+Or disabled altogether by being set to the empty string:
+
+	set lock-file ""
+
+The '-m' command-line option may be used to force fdm to ignore the lock file
+and run regardless of its existence and without attempting to create it.
+
+Testing and debugging ---------------------------------------------------------
+
+fdm has some features to assist with testing and debugging a ruleset:
+
+The '-n' command line option. This is particularly useful in conjunction with
+'-vv', for example:
+
+	$ cat test.conf
+	account "pop3" pop3 server "s" user "u" pass "p"
+	action "rw" rewrite "sed 's/\\(Subject:.*\\)\\[Crap\\]/\1/'"
+	action "mbox" mbox "%h/INBOX"
+	match all actions { "rw" "mbox" }
+	$ fdm -vvnf test.conf
+	version is: fdm 0.6 (20061204-1433)
+	starting at: Tue Dec  5 15:45:41 2006
+	user is: nicholas, home is: /home2/nicholas
+	loading configuration from test.conf
+	added account: name=pop3 fetch=pop3 server "s" port pop3 user "u"
+	added action: name=rw deliver=rewrite "sed 's/\(Subject:.*\)\[Crap\]/1/'"
+	added action: name=mbox deliver=mbox "%h/INBOX"
+	finished file test.conf
+	added rule: actions="rw" "mbox" matches=all
+	configuration loaded
+	locking using: flock 
+	headers are: "to" "cc"
+	domains are: "yelena"
+	using tmp directory: /tmp
+
+Looking at the output, the parsed strings used by fdm can be seen, and it is
+possible to spot that an escape character has been missed in the command.
+
+The 'k' command line option (and the 'keep' keywords on actions and accounts,
+covered later) prevent fdm from deleting any mail after delivery. This may be
+used to perform any number of test deliveries without risk of losing mail.
+
+Fetching mail =================================================================
+
+
+
+# =============================================================================
+# $Id$
+
