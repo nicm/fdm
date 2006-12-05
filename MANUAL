@@ -12,10 +12,10 @@ fdm ===========================================================================
 5.3	The lock file
 5.4	Testing and debugging
 6	Fetching mail
-6.1	POP3
-6.2	IMAP
-6.3	Using SSL
-6.4	Stdin and local mail
+6.1	POP3 and POP3S
+6.2	IMAP and IMAPS
+6.3	Stdin and local mail
+6.4 	From maildirs
 7	Defining actions
 7.1	Drop and keep
 7.2	Maildirs
@@ -322,6 +322,90 @@ covered later) prevent fdm from deleting any mail after delivery. This may be
 used to perform any number of test deliveries without risk of losing mail.
 
 Fetching mail =================================================================
+
+fdm fetches mail from a set of 'accounts', defined using the 'account'
+keyword. Each account has a name, a type, a number of account specific
+parameters and a couple of optional flags. The general form is:
+
+	account <name> [disabled] <type> [<parameters>] [keep]
+
+The <name> item is a string by which the account is referred in filtering
+rules, log output and for the '-a' and '-x' command line options.
+
+If the optional 'disabled' keyword is present, fdm ignores the account unless
+it is specified on the command-line using the '-a' flag.
+
+The optional 'keep' keyword instructs fdm to keep all mail from this account
+(not delete it from the server) regardless of the result of the filtering
+rules.
+
+The <type> item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
+'maildir' or 'maildirs'.
+
+POP3 and POP3S ----------------------------------------------------------------
+
+Mail may be fetched from a POP3 account. A POP3 account is defined by
+specifying the following parameters: the server host and optionally port, and
+the user name and password. If the port is not specified, the default port
+('pop3' in the services(5) database) is used. Examples of such an account
+definition are:
+
+	account "pop3acct" pop3 server "pop.isp.com" user "bob" pass "pass"
+	
+	account "gmx" pop3 server "pop.gmx.net" port 110 user "jim" pass "pass"
+
+	account "acct" pop3 server "10.0.0.1" port "pop3"
+		user "nicholas" pass "my-password" keep
+
+	account "lycos" disabled pop3 server $localserver port 10110
+		user "bob@lycos.co.uk" pass "password"
+
+Note that the server string is enclosed in double quotes even if it is an IP,
+and don't forget to escape any " and \ characters in passwords!
+
+POP3S is specified in exactly the same way, except using the 'pop3s' keyword
+for the type, and the default port is 'pop3s' rather than 'pop3':
+
+	account "pop3sacct" pop3s server "pop.isp.com" user "bob" pass "pass"
+
+IMAP and IMAPS ----------------------------------------------------------------
+
+IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
+and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
+port is 'imap' or 'imaps'. There is also an additional, optional 'folder'
+option to specify the folder from which mail should be fetched. If omitted,
+the folder defaults to the inbox.
+
+Note that with IMAP and IMAPS, mail is still removed from the server unless the
+'keep' option is given, or the '-k' command line option used.
+
+Examples of IMAP and IMAPS accounts include:
+
+	account "imapacct" imap server "imap.server.ca" user "bob" pass "pass"
+
+	account "oldimap" disabled imaps server "192.168.0.1" port 10993
+		user "nicholas" pass "pass" folder "Saved"
+
+	account "workspam" disabled imap server "my-work.ath.cx"
+		user "Nicholas" pass "pass" folder "Junk"
+
+Stdin and local mail ----------------------------------------------------------
+
+fdm may be configured to fetch mail from stdin, by specifying an account of
+type 'stdin', for example:
+
+	account "stdin" disabled stdin
+
+This is most useful to have fdm behave as a mail delivery agent. To configure
+it for single-user use with sendmail, the simplest method it to add:
+
+	"|/usr/local/bin/fdm -m -a stdin fetch"
+
+To the user's ~/.forward file (including the double quotes). Note the use of
+'-m' to prevent stdin delivery from interfering with any normal cronjob, and
+'-a' to specify that only the disabled "stdin" account should be fetched.
+
+From maildirs -----------------------------------------------------------------
 
 
 
