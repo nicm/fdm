@@ -10,3 +10,4 @@
 - write a manual/expand README
 - finish regression tests
 - test/fix multiuser (X-Envelope-To, weed out duplicate users)
+- allow strings to use 's to avoid escaping

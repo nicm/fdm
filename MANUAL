@@ -407,8 +407,49 @@ To the user's ~/.forward file (including the double quotes). Note the use of
 
 From maildirs -----------------------------------------------------------------
 
+XXX
 
+Frequently asked questions ====================================================
 
-# =============================================================================
-# $Id$
+Why? --------------------------------------------------------------------------
+
+Two main reasons: 
+
+1. I didn't like the existing tools. I'm not going to do my fetchmail rant
+   since getmail's Charles Cazabon has done his own in greater detail here:
+
+	http://pyropus.ca/software/getmail/faq.html#faq-about-why
+  
+   I'll also spare you my procmail rant, but suffice to say the syntax is 
+   abysmal. getmail and maildrop I was less unhappy with overall, but I was
+   not really comfortable with their configuration file formats. Plus getmail
+   always seemed very slow. And there is reason 2...
+
+2. I disliked the fact that as a home user with a relatively simple setup I
+   had to have five programs to deal with mail: sendmail, fetchmail, procmail,
+   archivemail, mutt; all with different, variously broken configuration file
+   syntaxes, and weird quirks. I now have three programs: sendmail, fdm and
+   mutt, and many fewer weird configurations to learn and potential problems.
+
+Why doesn't fdm run as a daemon? ----------------------------------------------
+
+Because that is what cron is for: it comes as standard with all sensible
+operating systems, and by using it I avoid a lot of code to deal with signals,
+configuration reload, extra configuration options and general other crap
+related to running all the time. Daemonising is for servers, for stuff that
+needs to run periodically, use cron.
+
+Why does fdm fork child processes when not running as root? -------------------
+
+Because one design is much cleaner and easier to work with than two. And it
+has a negligable practical effect on performance in any case.
+
+Why do I have to escape \s in regexps and other strings? I hates it. ----------
+
+Because otherwise you couldn't include a literal " in the string. It hasn't
+really bothered me enough yet to do it, but allowing use of ' to avoid
+escaping is on the todo list.
+
+===============================================================================
+$Id$
 
