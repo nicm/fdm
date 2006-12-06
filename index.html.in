@@ -6,7 +6,13 @@
 </head>
 <body>
 <p>The project page is <a href="http://sf.net/projects/fdm">here.</a></p>
+<hr>
+<pre>
+&&MANUAL
+</pre>
+<hr>
 %%fdm.1.html
+<hr>
 %%fdm.conf.5.html
 </body>
 </html>
