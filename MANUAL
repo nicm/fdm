@@ -217,7 +217,7 @@ The fdm binary has the following synopsis:
 fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account] [fetch | poll]
 
 The meaning of the flags are covered in the fdm(1) man page, but a brief
-description is given below. The flags are also mentioned at relavent points 
+description is given below. The flags are also mentioned at relevant points 
 in the rest of this document.
 
 Flag	Meaning
@@ -227,7 +227,7 @@ Flag	Meaning
 -l	Log to syslog(3) using the 'mail' facility rather than outputting to
 	stderr.
 -m	Ignore the lock file.
--n	Run a syntax check on the configuration file and exit without fetch ing
+-n	Run a syntax check on the configuration file and exit without fetching
 	any mail.
 -v	Print verbose debugging output. This option may be specified multiple
 	times for increasing levels of verbosity. Useful levels are -vv to
