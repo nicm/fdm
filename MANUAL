@@ -144,6 +144,9 @@ The configuration file has the following general rules:
   or indented as preferred.
 - Lists are usually specified as 'singular item' or 'plural { item item }', for
   example: 'user "nicholas"', 'users { "nicholas" "bob" }'.
+- Regexps are specified as normal strings without additional adornment other
+  than the "s (not wrapped in /s). All regexps are extended regexps and 
+  case insensitive by default.
 
 Definition/option lines generally follow the following basic form:
 
@@ -636,8 +639,9 @@ following syntax:
 The 'case' keyword instructs fdm to match the regexp case sensitively rather
 than the default of case insensitivity. The 'in headers' or 'in body' keywords
 in struct fdm to search only the headers or body of each mail, the default is
-to match the regexp against the entire mail. The regexp itself is specified
-as a simple string, but care must be taken to escape \s and "s properly.
+to match the regexp against the entire mail. The regexp itself is an extended
+regexp specified as a simple string, but care must be taken to escape \s and 
+"s properly.
 
 Examples include:
 
@@ -841,6 +845,14 @@ Two main reasons:
    archivemail, mutt; all with different, variously broken configuration file
    syntaxes, and weird quirks. I now have three programs: sendmail, fdm and
    mutt, and fewer weird configurations to learn and potential problems.
+
+How do I write regexps? --------------------------------------------------------
+
+See the re_format(7) man page. It is online here (for OpenBSD):
+
+	http://www.openbsd.org/cgi-bin/man.cgi?re_format
+
+There are also a number of books and probably websites on the subject.
 
 Keep doesn't work with gmail! --------------------------------------------------
 
