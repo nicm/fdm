@@ -21,14 +21,15 @@ fdm ============================================================================
 7.2	Maildirs
 7.3	Mboxes
 7.4	SMTP
-7.5 	Rewriting mail
+7.5	Write, pipe and append
+7.6 	Rewriting mail
 8	Filtering mail
-8.1	Syntax and conditions
-8.2	All
+8.1	Nesting rules
+8.2	The all condition
 8.3	Matched and unmatched
-8.4	Using a regexp
-8.5	By age or size
-8.6	Based on a shell command
+8.4	Matching a regexp
+8.5	Matching by age or size
+8.6	Using a shell command
 8.7	Tagging
 9	Setting options
 10	Archiving and searching mail
@@ -70,6 +71,9 @@ Quick start ====================================================================
 A simple ~/.fdm.conf file for a single user fetching from POP3, POP3S and IMAP
 accounts and delivering to one maildir may look similar to:
 
+ 	# Set the maximum size of mail.
+	set maximum-size 128M
+
 	# An action to save to the maildir ~/mail/inbox.
 	action "inbox" maildir "%h/mail/inbox"
 
@@ -97,6 +101,9 @@ accounts and delivering to one maildir may look similar to:
 
 A simple initial configuration file without filtering, perhaps to replace
 fetchmail or getmail delivering to maildrop, may look similar to:
+
+ 	# Set the maximum size of mail.
+	set maximum-size 128M
 
 	# Action to pipe directly to maildrop.
 	action "maildrop" pipe "/usr/local/bin/maildrop"
@@ -135,6 +142,8 @@ The configuration file has the following general rules:
   the line.
 - Whitespace is largely ignored. Lines may generarally be split, concatenated
   or indented as preferred.
+- Lists are usually specified as 'singular item' or 'plural { item item }', for
+  example: 'user "nicholas"', 'users { "nicholas" "bob" }'.
 
 Definition/option lines generally follow the following basic form:
 
@@ -408,7 +417,7 @@ To the user's ~/.forward file (including the double quotes). Note the use of
 From maildirs ------------------------------------------------------------------
 
 Fetching from maildirs allows fdm to be used to filter mail on the local
-machine. This is covered more detail in a later section on archiving and
+machine. This is covered more detail in the later section on archiving and
 searching.
 
 Maildir accounts are specified as follows:
@@ -419,36 +428,397 @@ Maildir accounts are specified as follows:
 
 Defining actions ===============================================================
 
-7.1	Drop and keep
-7.2	Maildirs
-7.3	Mboxes
-7.4	SMTP
-7.5 	Rewriting mail
+An action is a particular command to execute on a mail when it matches a 
+filtering rule (see the next section on filtering mail). Actions are named,
+similar to accounts, and have a similar form:
+
+	action <name> [<users>] <type> <parameters>
+
+The <users> item may be either:
+
+- the keyword 'user' followed by a single username string or uid, such as:
+
+	user "nicholas"
+
+	user 1000	
+
+- the keyword 'users' followed by a list of users in {}s, for example:
+
+	users { 1001 "nicholas" }
+
+- the keyword 'from-headers', that will attempt to ascertain a set of users
+  from the mail headers (see the 'domains' and 'headers' options in the
+  section on setting options).
+
+If users are specified, the action will be run once for each user, with fdm
+changing to that user before executing the action. Note that fdm will execute
+the action once for each user even when not started as root, but will not be
+able to change to the user. The user keyword is primarily of use in multiuser
+configurations.
+
+If running as root and no user is specified on either the action or on the 
+filtering rule (see the section on filtering below), the default user is
+used, see the '-u' command line option and the 'default-user' option in the
+setting options section
+
+Drop and keep actions ----------------------------------------------------------
+
+The simplest actions are the 'drop' and 'keep' actions. They have no parameters
+and are specified like this:
+
+	action "mydropaction" drop
+
+	action "mykeepaction" keep
+	
+The 'drop' action arranges for mail to be dropped when rule evaluation is
+complete. Note that using 'drop' does not stop further evaluation if the
+filtering rule contains a 'continue' keyword, and it may be overridden by a
+'keep' option on the account or by the '-k' flag on the command line.
+
+The 'keep' action is similar to 'drop', but it arranges for the mail to be
+kept once rule evaluation is complete, rather than dropped.
+
+Maildirs ----------------------------------------------------------------------
+
+Mails may be saved to a maildir through a 'maildir' action, defined like so:
+
+	action "mymaildiraction" maildir "/path/to/maildir"
+
+In the path, the following special tokens are replaced:
+
+Token	Replaced with
+%a	The name of the account this mail was fetched from.
+%s	A string specific to the type of account the mail was fetched from.
+	For maildirs, it is the basename of the maildir, for IMAP and POP3 it
+	is the server hostname as specified in the account definition.
+%h	The delivery user's home directory.
+%n	The delivery user's uid.
+%t	The name of the action.
+%u	The delivery user's username.
+%H	The current hour (00-23).
+%M	The current minute (00-59).
+%S	The current second (00-59).
+%d	The current day of the month (00-31).
+%m	The current month (01-12).
+%y	The current year.
+%W	The current day of the week (0-6, Sunday is 0).
+%Y	The current day of the year (000-365).
+%Q	The current quarter (1-4).
+
+If the maildir does not exist, it is created.
+
+Mboxes -------------------------------------------------------------------------
+
+An action to deliver to an mbox is defined in the same way as for a maildir:
+
+	action "mymboxaction" mbox "/path/to/mbox"
+
+The same % tokens are replaced in the path. If the mbox does not exist, it
+is created.
+
+SMTP ---------------------------------------------------------------------------
+
+An action may be defined to pass mail on over SMTP. The server host must be
+specified and optionally the port and a string to pass to the server with
+the RCPT TO command. If the port is not specified it defaults to "smtp".
+Examples include:
+
+	action "mysmtpaction" smtp server "smtp.server"
+
+	action "mysmtpaction" smtp server "smtp.server" port 587
+
+	action "mysmtpaction" smtp server "smtp.server" port "submission"
+
+	action "mysmtpaction" smtp server "smtp.server" to "me@somewhere"
+
+Write, pipe and append ---------------------------------------------------------
+
+Actions may be defined to write or append a mail to a file, or to pipe it to
+a shell command. The append action appends to and write overwrites the file.
+% tokens are replaced in the file or command as for maildir and mbox actions.
+Examples are:
+
+	action "mywriteaction" write "/tmp/file"
+
+	action "myappendaction" append "/tmp/file"
+
+	action "mypipeaction" pipe "cat > /dev/null"
+
+Rewriting mail -----------------------------------------------------------------
+
+Mail may be altered by passing it to a rewrite action. This is similar to
+the pipe action, but the output of the shell command to stdout is reread by fdm
+and saved as a new mail. This is useful for such things as passing mail
+through a spam filter or removing or altering headers with sed. Note that
+rewrite only makes sense on filtering rules where the continue keyword is
+specified, or where multiple actions are used (see the next section for details
+of this). Possible rewrite action definitions are:
+
+	action "myspamaction" rewrite "bmf -p"
+
+	action "mysedaction" rewrite "sed 's/x/y/'"
 
 Filtering mail =================================================================
 
-8.1	Syntax and conditions
-8.2	All
-8.3	Matched and unmatched
-8.4	Using a regexp
-8.5	By age or size
-8.6	Based on a shell command
-8.7	Tagging
+Mail is filtered by defining a set of filtering rules. These rules tie together
+mail fetched from an account and passed to one or more actions. Rules are
+evaluated from top-to-bottom of the file, and evaluation stops at the first
+matching rule (unless the continue keyword is specified).
+
+The general form of a filtering rule is:
+
+	match <conditions> [<accounts>] [<users>] <actions> [continue]
+
+The optional <users> item is specified as for an action definition. If users
+are specified on a filtering (match) rule, they override any specified on the
+action.
+
+The <conditions> item is set of conditions against which the match may be
+specified, each condition returns true or false. Conditions are described in
+the next few sections. Aside from the 'all' condition, which is a special case,
+conditions may be chained as an expression using 'and' and 'or', in which case
+they are evaluated from left to right at the same precedence, or prepended with
+'not' to invert their outcome.
+
+The optional <accounts> item is a list of accounts for which the rule provided
+applies. It is specified as either a single account ('account "name"') or a list
+of accounts ('accounts { "name1" "name2" }').
+
+The <actions> item is a list of actions to execute when this rule matches.
+It is in the same list format: 'action "name"' or "actions { "name1" "name2" }'.
+
+If a rule with the 'continue' keyword matches, evaluation does not stop after
+the actions are executed, instead subsequent rules are matched.
+
+Nesting rules ------------------------------------------------------------------
+
+Filtering rules may be nested by using the special form:
+
+	match <conditions> [<accounts>] {
+		match ...
+	}
+
+If the conditions on the outer rule match, the inner rules are evaluated. If 
+none of the inner rules match (or they all specify the 'continue' keyword)
+evaluation continues outside to rules following the nested rule, otherwise it
+stops.
+
+The all condition --------------------------------------------------------------
+
+The all condition matches all mail. It may not be used as part of an expression
+with the 'and', 'or' and 'not' operators.
+
+Examples include:
+
+	match all action "default"
+
+	match all rewrite "rewaction" continue
+
+Matched and unmatched ----------------------------------------------------------
+
+The matched and unmatched conditions are used to match mail that has matched
+or has not matched previous rules and been passed on with the 'continue'
+keyword. For example,
+
+	match all action "act1" continue
+	# This rule will match only mails that also matched the first.
+	match matched action "act2"
+	# This rule will match only mails that matched neither of the first two.
+	match unmatched action "act3"
+
+Matching a regexp --------------------------------------------------------------
+
+Matching against a regexp is the most common form of condition. It takes the
+following syntax:
+
+	[case] <regexp> [in headers|in body]
+
+The 'case' keyword instructs fdm to match the regexp case sensitively rather
+than the default of case insensitivity. The 'in headers' or 'in body' keywords
+in struct fdm to search only the headers or body of each mail, the default is
+to match the regexp against the entire mail. The regexp itself is specified
+as a simple string, but care must be taken to escape \s and "s properly.
+
+Examples include:
+
+	match "^From:.*bob@bobland\\.bob" in headers account "pop3" action "act"
+	
+	match ".*YAHOO.*BOOTER.*" in body action "junk"
+
+Matching by age or size --------------------------------------------------------
+
+Mail may be matched based on its age, or its size. An age condition is
+specified as follows:
+
+	age [<|>] <age> [hours|minutes|seconds|days|months|years]
+
+If '<' is used, mail is matched if it is older than the specified age. If '>',
+if it is younger. The <age> item may be a simple number of seconds, or suffixed
+with a unit. Examples are:
+
+	match age < 3 months actions { "act1" "act2" }
+
+	match age > 100 hours action "tooold"
+
+The size condition is similar:
+
+	size [<|>] <size>
+
+Where <size> is a simple number in bytes, or suffixed directly (no space) with
+'K', 'M' or 'G' to specify a size in kilobytes, megabytes or gigabytes, such
+as:
+
+	match size < 1K action "small"
+
+	match size > 2G action "whoa"
+
+Using a shell command ----------------------------------------------------------
+
+Mail may be matched using the result of a shell command. This condition follows
+the form:
+
+	[exec|pipe] <command> returns (<return code>, <stdout regexp>)
+
+If 'exec' is used, the command is executed. If 'pipe', the mail is piped to the
+command's stdin. The <command> is a simple string. % tokens are replaced as
+normal, with the exception of %t.
+
+Any of the <return code> or <stdout regexp> or both may be specified. The
+<return code> is a simple number which is compared against the return code from
+the command, the <stdout regexp> is a regexp that is matched case insensitively
+against each line output by the command on stdout. Any output on stderr is
+logged by fdm, so 2>&1 must be included in the command in order to apply the
+regexp to it too.
+
+Examples:
+
+	match exec "true" (0, ) action "act"
+
+	match not pipe "grep Bob" (1, ) action "act"
+
+	match pipe "myprogram" (, "failed") actions { "act1" "act2" }
+
+	match exec "blah" (12, "^Out") action "meep"
+
+Tagging ------------------------------------------------------------------------
+
+Mails may be assigned one of more tags using a special form of filtering
+rule with the following syntax:
+
+	match <conditions> [<accounts>] tag <tag>
+
+The string <tag> is attached to the mail. A mail may have multiple tags.
+
+The tag may be tested for using the 'tag' condition:
+
+	match tag "mytag" action "a"
+
+	match tag "ohno" and size >1K action "drop"
 
 Setting options ================================================================
 
+fdm has a number of options that control its behaviour. These are defined
+using the set command:
+
+	set <option> [<value>]
+
+The possible options are:
+
+- maximum-size <size>
+
+This specifies the maximum size of mail that fdm will accept. fdm uses /tmp
+(by default) to save mails, it is recommended that this be less than the
+size of the /tmp partition (less than half the size if using rewrite). If
+mail over this size is encountered, fdm will abort with an error, without
+deleting the mail from the server (unless 'delete-oversized' is set).
+
+- delete-oversized
+
+If this option is set, fdm will delete oversized mail from the server rather
+than leaving it for the user to sort out.
+
+- allow-multiple
+
+This option makes fdm ignore the lock file, similar to the '-m' command line
+option.
+
+- lock-file <path>
+
+This option specifies string which should be the path of the file to use as the
+lock file. For example:
+
+	set lock-file "/tmp/my-lock-file"
+
+- default-user <user>
+
+This specifies the default user to use if run as root and no users are specified
+on the action or filtering rule. This option may be overriden with the '-u'
+flag on the command line.
+
+- lock-types [fcntl] [flock] [dotlock]
+
+These specify the type of locking to use when writing to mboxes. fcntl and
+flock locking is mutually exclusive, but dotlock may be used with either.
+Some NFS servers do not support fcntl. The default is flock only. Example:
+
+	set lock-types fcntl dotlock
+
+- [domain|domains] <domains>
+
+This specifies a domain or list of domains to use when searching for users in
+mail headers with the 'from-headers' keyword. Examples include:
+
+	set domain "xyz.ath.cx"
+
+	set domains { "abc.ca" "def.co.uk" }
+
+The default is the hostname of the local machine.
+
+- [header|headers] <headers>
+
+This specifies a header or list of headers to search with the 'from-headers'
+keyword, such as:
+
+	set header { "to" "cc" }
+	
+	set headers "x-envelope-to"
+
+The default is "to" "cc".
+
+- proxy <url>
+
+This specifies a URL to proxy outgoing connections through. See the section
+on proxying below.
+
+- unmatched-mail [drop|keep]
+
+This option controls how fdm should deal with mail that reaches the end of
+the ruleset (doesn't match any rules, or only rules with the 'continue'
+keyword). If 'drop' is specified, such mail is dropped. If 'keep', it is
+kept. The default is to keep the mail, and issue a warning. 
+
+In addition to these options, some environment variables may be used to control
+fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
+temporary files.  If http_proxy is set, fdm will attempt to parse it as for the
+'proxy' option.
+
 Archiving and searching mail ===================================================
+
+XXX
 
 Using fdm behind a proxy =======================================================
 
+XXX
+
 Bug reports and queries ========================================================
 
-Bug reports, queries, feature and code suggestions are best sent by email to:
+Bug reports, queries, suggestions and code are best sent by email to:
 
 	nicm@users.sf.net
 
-Bug reports may also be registered on Sourceforge, but they will be dealt with
-much faster by email.
+Bug reports may also be registered on Sourceforge, but they are likely to be
+dealt with much faster by email, particularly as it is easier to elicit
+further information if it is required.
 
 Frequently asked questions =====================================================
 
@@ -472,6 +842,15 @@ Two main reasons:
    syntaxes, and weird quirks. I now have three programs: sendmail, fdm and
    mutt, and fewer weird configurations to learn and potential problems.
 
+Keep doesn't work with gmail! --------------------------------------------------
+
+This is because gmail is broken, see:
+
+	http://pyropus.ca/software/getmail/faq.html#faq-notabug-gmail-bug
+
+Gmail also consistently gives false sizes when asked using the POP3 LIST
+command, which fdm will warn about.
+
 Why doesn't fdm run as a daemon? -----------------------------------------------
 
 Because that is what cron is for: it comes as standard with all sensible
@@ -490,6 +869,18 @@ Why do I have to escape \s in regexps and other strings? I hates it. -----------
 Because otherwise you couldn't include a literal " in the string. It hasn't
 really bothered me enough yet to do it, but allowing use of ' to avoid
 escaping is on the todo list.
+
+Can I use fdm to get rid of that crap in []s some idiots add to the subject of
+every mail to their mailing lists? ---------------------------------------------
+
+Yes! Rewrite the mail using sed to remove the crap, for example:
+
+action "full-disclosure" maildir "%h/mail/full-disclosure"
+action "strip-full-disclosure"
+	rewrite "sed 's/^\\(Subject:.*\\)\\[Full-disclosure\\] /\\1/'"
+
+match "^List-Id:.*<full-disclosure\\.lists\\.grok\\.org\\.uk>" in headers
+	actions { "strip-full-disclosure" "full-disclosure" }
 
 ================================================================================
 $Id$

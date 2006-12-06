@@ -363,6 +363,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 				return (1);
 			}
 		}
+
 		/* deal with nested rules */
 		if (!TAILQ_EMPTY(&r->rules)) {
 			log_debug2("%s: entering nested rules", a->name);
