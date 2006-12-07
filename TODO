@@ -5,12 +5,9 @@
 - filter based on attachment size, quantity, type?
 - redo chrooting properly (resolver needs to be in parent)
 - fetch from mbox
-- add more examples to the man page
-- audit man pages for clarity
-- write a manual/expand README
 - test/fix multiuser (X-Envelope-To, weed out duplicate users)
 - finish regression tests
 - message-id cache, weed out message duplicates
 - make size match same as age (bytes, kb/kilobytes, etc)
 - tag: add 'match tags { "a" "b" }'. audit for other similar missing plurals
-
+- balance man pahes/manual
