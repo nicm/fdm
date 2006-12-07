@@ -811,6 +811,12 @@ size_t	 		 strlcpy(char *, const char *, size_t);
 size_t	 		 strlcat(char *, const char *, size_t);
 #endif
 
+#ifdef NO_ASPRINTF
+/* asprintf.c */
+int			 asprintf(char **, const char *, ...);
+int			 vasprintf(char **, const char *, va_list);
+#endif
+
 /* shm.c */
 void 			*shm_reopen(struct shm *);
 void			*shm_malloc(struct shm *, size_t);
