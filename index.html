@@ -18,7 +18,7 @@
 4.1	Macros
 4.2	Including other files
 5	Invoking fdm
-5.1	Command-line arguments
+5.1	Command line arguments
 5.2	Running from cron
 5.3	The lock file
 5.4	Testing and debugging
@@ -217,7 +217,7 @@ Or embedded in a string by enclosing the macro name in {}s:
 fdm may be invoked manually from the command line or regularly using a program
 such as cron(8).
 
-<h2>Commandline arguments </h2>
+<h2>Command line arguments </h2>
 The fdm binary has the following synopsis:
 
 fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account] [fetch | poll]
@@ -298,7 +298,7 @@ Or disabled altogether by being set to the empty string:
 
 	set lock-file ""
 
-The '-m' command-line option may be used to force fdm to ignore the lock file
+The '-m' command line option may be used to force fdm to ignore the lock file
 and run regardless of its existence and without attempting to create it.
 
 <h2>Testing and debugging </h2>
@@ -346,7 +346,7 @@ The <lt;name>gt; item is a string by which the account is referred in filtering
 rules, log output and for the '-a' and '-x' command line options.
 
 If the optional 'disabled' keyword is present, fdm ignores the account unless
-it is specified on the command-line using the '-a' flag.
+it is specified on the command line using the '-a' flag.
 
 The optional 'keep' keyword instructs fdm to keep all mail from this account
 (not delete it from the server) regardless of the result of the filtering

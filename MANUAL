@@ -7,7 +7,7 @@ fdm ============================================================================
 4.1	Macros
 4.2	Including other files
 5	Invoking fdm
-5.1	command line arguments
+5.1	Command line arguments
 5.2	Running from cron
 5.3	The lock file
 5.4	Testing and debugging
@@ -213,7 +213,7 @@ Invoking fdm ===================================================================
 fdm may be invoked manually from the command line or regularly using a program
 such as cron(8).
 
-command line arguments ---------------------------------------------------------
+Command line arguments ---------------------------------------------------------
 
 The fdm binary has the following synopsis:
 
