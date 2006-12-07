@@ -118,24 +118,7 @@ upload-index.html:
 update-index.html:
 		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
 		nroff -mdoc fdm.1|m2h -u > fdm.1.html
-		awk ' \
-		{ if ($$0 ~ /^%%/) {					\
-			name = substr($$0, 3);				\
-			while ((getline < name) == 1) {			\
-				print ($$0);				\
-			}						\
-			close(name);					\
-		} else if ($$0 ~ /^&&/) {				\
-			name = substr($$0, 3);				\
-			while ((getline < name) == 1) {			\
-				gsub("\\<", "\\&lt;", $$0);		\
-				gsub("\\>", "\\&gt;", $$0);		\
-				print ($$0);				\
-			}						\
-			close(name);					\
-		} else {						\
-			print ($$0);					\
-		} }' index.html.in > index.html
+		awk -f makeindex.awk index.html.in > index.html
 		rm -f fdm.conf.5.html fdm.1.html
 
 install:	all

@@ -8,8 +8,8 @@
 - add more examples to the man page
 - audit man pages for clarity
 - write a manual/expand README
-- finish regression tests
 - test/fix multiuser (X-Envelope-To, weed out duplicate users)
+- finish regression tests
 - allow strings to use 's to avoid escaping
 - message-id cache, weed out message duplicates
 - make size match same as age (bytes, kb/kilobytes, etc)

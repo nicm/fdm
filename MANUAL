@@ -273,8 +273,8 @@ will run fdm every 30 minutes:
 */30   *      *      *      *      /usr/local/bin/fdm -l fetch
 
 The '-l' option sends fdm's output to syslog(3) rather than having cron mail
-it. If you want to keep a closer eye, adding '-v' options and removing '-l'
-will have debugging output mailed by cron, or, using a line such as:
+it. To keep a closer eye, adding '-v' options and removing '-l' will have
+debugging output mailed by cron, or, using a line such as:
 
 */30   *      *      *      *      fdm -vvvv fetch >>/home/user/.fdm.log 2>&1
 
@@ -882,8 +882,7 @@ Because otherwise you couldn't include a literal " in the string. It hasn't
 really bothered me enough yet to do it, but allowing use of ' to avoid
 escaping is on the todo list.
 
-Can I use fdm to get rid of that crap in []s some idiots add to the subject of
-every mail to their mailing lists? ---------------------------------------------
+Can fdm get rid of that crap in []s added to subjects on some mailing lists? ---
 
 Yes! Rewrite the mail using sed to remove the crap, for example:
 
