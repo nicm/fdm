@@ -10,7 +10,6 @@
 - write a manual/expand README
 - test/fix multiuser (X-Envelope-To, weed out duplicate users)
 - finish regression tests
-- allow strings to use 's to avoid escaping
 - message-id cache, weed out message duplicates
 - make size match same as age (bytes, kb/kilobytes, etc)
 - tag: add 'match tags { "a" "b" }'. audit for other similar missing plurals

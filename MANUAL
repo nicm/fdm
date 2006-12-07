@@ -49,7 +49,7 @@ mboxes, to a file or pipe, or any combination.
 fdm is designed to be lightweight but powerful, with a compact but clear
 configuration syntax. It is primarily designed for single-user uses but may
 also be configured to deliver mail in a multi-user setup. In this case, it uses
-privilege seperation to minimise the amount of code running as the root user.
+privilege separation to minimise the amount of code running as the root user.
 
 Installation ===================================================================
 
@@ -90,7 +90,7 @@ accounts and delivering to one maildir may look similar to:
 	# If the 'folder "my-folder"' argument is omitted, fdm will fetch mail
 	# from the inbox.
 	account "imap" imap server "my.imap.server"
-		user "my-username" pass "my-pasword" folder "my-folder"
+		user "my-username" pass "my-password" folder "my-folder"
 	
 	# Discard mail from Bob Idiot. Note that the regexp is an extended 
 	# regexp, and case-insensitive by default.
@@ -134,13 +134,16 @@ details of syntax, and specific keywords, are covered in later sections.
 The configuration file has the following general rules:
 
 - Keywords are specified as unadorned lowercase words: match, action, all.
-- Strings are enclosed in double quotes ("). Double quotes may be enclosed in
-  strings by escaping them using the backslash character (\). Backslashes must
-  also be escaped ("\\") - this applies to all strings, including regexps and
-  passwords.
+- Strings are enclosed in double quotes (") or single quotes ('). In double
+  quoted strings, double quotes may be included by escaping them using the
+  backslash character (\). Backslashes must also be escaped ("\\") - this
+  applies to all such strings, including regexps and passwords. The special
+  sequence '\t' is replaced by a tab character. In single quoted strings no
+  escaping is necessary, but it is not possible to include a literal ' or a
+  tab character.
 - Comments are prefixed by the hash character (#) and continue to the end of
   the line.
-- Whitespace is largely ignored. Lines may generarally be split, concatenated
+- Whitespace is largely ignored. Lines may generally be split, concatenated
   or indented as preferred.
 - Lists are usually specified as 'singular item' or 'plural { item item }', for
   example: 'user "nicholas"', 'users { "nicholas" "bob" }'.
@@ -244,7 +247,7 @@ Flag	Meaning
 	fnmatch(3) wildcards may be used to match multiple accounts with one
 	option, and that the option may be specified multiple times.
 -x account
-	Process all accounts except those that match the given patteen. Again,
+	Process all accounts except those that match the given pattern. Again,
 	fnmatch(3) wildcards may be used, and the -x option may be specified
 	multiple times.
 
@@ -888,7 +891,7 @@ needs to run periodically, use cron.
 Why does fdm fork child processes when not running as root? --------------------
 
 Because one design is much cleaner and easier to work with than two. And it
-has a negligable practical effect on performance in any case.
+has a negligible practical effect on performance in any case.
 
 Why do I have to escape \s in regexps and other strings? I hates it. -----------
 
