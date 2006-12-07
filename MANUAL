@@ -55,9 +55,9 @@ Installation ===================================================================
 
 Installing fdm is simple. Download the source tarball, and run:
 
-$ tar -zxvf fdm-?.?.tar.gz
-$ cd fdm-?.?.tar.gz
-$ make
+	$ tar -zxvf fdm-?.?.tar.gz
+	$ cd fdm-?.?.tar.gz
+	$ make
 
 Then run 'make install' to install to the default locations under /usr/local.
 The PREFIX environment variable may be set to specify an alternative
@@ -310,7 +310,7 @@ The '-n' command line option. This is particularly useful in conjunction with
 
 	$ cat test.conf
 	account "pop3" pop3 server "s" user "u" pass "p"
-	action "rw" rewrite "sed 's/\\(Subject:.*\\)\\[Crap\\]/\1/'"
+	action "rw" rewrite "sed 's/\\(Subject:.*\\)\\[XYZ\\]/\1/'"
 	action "mbox" mbox "%h/INBOX"
 	match all actions { "rw" "mbox" }
 	$ fdm -vvnf test.conf
