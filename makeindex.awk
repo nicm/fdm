@@ -25,8 +25,8 @@
 	} else if ($0 ~ /^&&/) {				
 		name = substr($0, 3);				
 		while ((getline < name) == 1) {			
-			gsub("\<", "\&lt;", $0);		
-			gsub("\>", "\&gt;", $0);		
+			gsub("\<", "\\&lt;", $0);		
+			gsub("\>", "\\&gt;", $0);		
 			if ($0 ~ /^[A-Za-z].+ ==+/) {	
 				gsub("==+$", "", $0);		
 				print ("<h1>" $0 "</h1>");	

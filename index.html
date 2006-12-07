@@ -160,7 +160,7 @@ The configuration file has the following general rules:
 
 Definition/option lines generally follow the following basic form:
 
-	<lt;keyword>gt; <lt;name or command>gt; <lt;parameters>gt;
+	&lt;keyword&gt; &lt;name or command&gt; &lt;parameters&gt;
 
 Example lines that may appear in a configuration file are:
 	
@@ -203,7 +203,7 @@ or number is expected, depending on the type of macro:
 	include $myfile
 
 	%theage = 12
-	match age <lt; %theage action "old-mail"
+	match age &lt; %theage action "old-mail"
 
 Or embedded in a string by enclosing the macro name in {}s:
 
@@ -281,7 +281,7 @@ The '-l' option sends fdm's output to syslog(3) rather than having cron mail
 it. To keep a closer eye, adding '-v' options and removing '-l' will have
 debugging output mailed by cron, or, using a line such as:
 
-*/30   *      *      *      *      fdm -vvvv fetch >gt;>gt;/home/user/.fdm.log 2>gt;&1
+*/30   *      *      *      *      fdm -vvvv fetch &gt;&gt;/home/user/.fdm.log 2&gt;&1
 
 Will append extremely verbose fdm output to the ~/.fdm.log file. Note that this
 log file can become pretty large, so another cronjob may be required to remove
@@ -341,9 +341,9 @@ fdm fetches mail from a set of 'accounts', defined using the 'account'
 keyword. Each account has a name, a type, a number of account specific
 parameters and a couple of optional flags. The general form is:
 
-	account <lt;name>gt; [disabled] <lt;type>gt; [<lt;parameters>gt;] [keep]
+	account &lt;name&gt; [disabled] &lt;type&gt; [&lt;parameters&gt;] [keep]
 
-The <lt;name>gt; item is a string by which the account is referred in filtering
+The &lt;name&gt; item is a string by which the account is referred in filtering
 rules, log output and for the '-a' and '-x' command line options.
 
 If the optional 'disabled' keyword is present, fdm ignores the account unless
@@ -353,7 +353,7 @@ The optional 'keep' keyword instructs fdm to keep all mail from this account
 (not delete it from the server) regardless of the result of the filtering
 rules.
 
-The <lt;type>gt; item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
+The &lt;type&gt; item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 'maildir' or 'maildirs'.
 
 <h2>POP3 and POP3S </h2>
@@ -432,9 +432,9 @@ An action is a particular command to execute on a mail when it matches a
 filtering rule (see the next section on filtering mail). Actions are named,
 similar to accounts, and have a similar form:
 
-	action <lt;name>gt; [<lt;users>gt;] <lt;type>gt; <lt;parameters>gt;
+	action &lt;name&gt; [&lt;users&gt;] &lt;type&gt; &lt;parameters&gt;
 
-The <lt;users>gt; item may be either:
+The &lt;users&gt; item may be either:
 
 - the keyword 'user' followed by a single username string or uid, such as:
 
@@ -537,7 +537,7 @@ Examples are:
 
 	action "myappendaction" append "/tmp/file"
 
-	action "mypipeaction" pipe "cat >gt; /dev/null"
+	action "mypipeaction" pipe "cat &gt; /dev/null"
 
 <h2>Rewriting mail </h2>
 Mail may be altered by passing it to a rewrite action. This is similar to
@@ -560,24 +560,24 @@ matching rule (unless the continue keyword is specified).
 
 The general form of a filtering rule is:
 
-	match <lt;conditions>gt; [<lt;accounts>gt;] [<lt;users>gt;] <lt;actions>gt; [continue]
+	match &lt;conditions&gt; [&lt;accounts&gt;] [&lt;users&gt;] &lt;actions&gt; [continue]
 
-The optional <lt;users>gt; item is specified as for an action definition. If users
+The optional &lt;users&gt; item is specified as for an action definition. If users
 are specified on a filtering (match) rule, they override any specified on the
 action.
 
-The <lt;conditions>gt; item is set of conditions against which the match may be
+The &lt;conditions&gt; item is set of conditions against which the match may be
 specified, each condition returns true or false. Conditions are described in
 the next few sections. Aside from the 'all' condition, which is a special case,
 conditions may be chained as an expression using 'and' and 'or', in which case
 they are evaluated from left to right at the same precedence, or prepended with
 'not' to invert their outcome.
 
-The optional <lt;accounts>gt; item is a list of accounts for which the rule provided
+The optional &lt;accounts&gt; item is a list of accounts for which the rule provided
 applies. It is specified as either a single account ('account "name"') or a list
 of accounts ('accounts { "name1" "name2" }').
 
-The <lt;actions>gt; item is a list of actions to execute when this rule matches.
+The &lt;actions&gt; item is a list of actions to execute when this rule matches.
 It is in the same list format: 'action "name"' or "actions { "name1" "name2" }'.
 
 If a rule with the 'continue' keyword matches, evaluation does not stop after
@@ -586,7 +586,7 @@ the actions are executed, instead subsequent rules are matched.
 <h2>Nesting rules </h2>
 Filtering rules may be nested by using the special form:
 
-	match <lt;conditions>gt; [<lt;accounts>gt;] {
+	match &lt;conditions&gt; [&lt;accounts&gt;] {
 		match ...
 	}
 
@@ -620,7 +620,7 @@ keyword. For example,
 Matching against a regexp is the most common form of condition. It takes the
 following syntax:
 
-	[case] <lt;regexp>gt; [in headers|in body]
+	[case] &lt;regexp&gt; [in headers|in body]
 
 The 'case' keyword instructs fdm to match the regexp case sensitively rather
 than the default of case insensitivity. The 'in headers' or 'in body' keywords
@@ -639,43 +639,43 @@ Examples include:
 Mail may be matched based on its age, or its size. An age condition is
 specified as follows:
 
-	age [<lt;|>gt;] <lt;age>gt; [hours|minutes|seconds|days|months|years]
+	age [&lt;|&gt;] &lt;age&gt; [hours|minutes|seconds|days|months|years]
 
-If '<lt;' is used, mail is matched if it is older than the specified age. If '>gt;',
-if it is younger. The <lt;age>gt; item may be a simple number of seconds, or suffixed
+If '&lt;' is used, mail is matched if it is older than the specified age. If '&gt;',
+if it is younger. The &lt;age&gt; item may be a simple number of seconds, or suffixed
 with a unit. Examples are:
 
-	match age <lt; 3 months actions { "act1" "act2" }
+	match age &lt; 3 months actions { "act1" "act2" }
 
-	match age >gt; 100 hours action "tooold"
+	match age &gt; 100 hours action "tooold"
 
 The size condition is similar:
 
-	size [<lt;|>gt;] <lt;size>gt;
+	size [&lt;|&gt;] &lt;size&gt;
 
-Where <lt;size>gt; is a simple number in bytes, or suffixed directly (no space) with
+Where &lt;size&gt; is a simple number in bytes, or suffixed directly (no space) with
 'K', 'M' or 'G' to specify a size in kilobytes, megabytes or gigabytes, such
 as:
 
-	match size <lt; 1K action "small"
+	match size &lt; 1K action "small"
 
-	match size >gt; 2G action "whoa"
+	match size &gt; 2G action "whoa"
 
 <h2>Using a shell command </h2>
 Mail may be matched using the result of a shell command. This condition follows
 the form:
 
-	[exec|pipe] <lt;command>gt; returns (<lt;return code>gt;, <lt;stdout regexp>gt;)
+	[exec|pipe] &lt;command&gt; returns (&lt;return code&gt;, &lt;stdout regexp&gt;)
 
 If 'exec' is used, the command is executed. If 'pipe', the mail is piped to the
-command's stdin. The <lt;command>gt; is a simple string. % tokens are replaced as
+command's stdin. The &lt;command&gt; is a simple string. % tokens are replaced as
 normal, with the exception of %t.
 
-Any of the <lt;return code>gt; or <lt;stdout regexp>gt; or both may be specified. The
-<lt;return code>gt; is a simple number which is compared against the return code from
-the command, the <lt;stdout regexp>gt; is a regexp that is matched case insensitively
+Any of the &lt;return code&gt; or &lt;stdout regexp&gt; or both may be specified. The
+&lt;return code&gt; is a simple number which is compared against the return code from
+the command, the &lt;stdout regexp&gt; is a regexp that is matched case insensitively
 against each line output by the command on stdout. Any output on stderr is
-logged by fdm, so 2>gt;&1 must be included in the command in order to apply the
+logged by fdm, so 2&gt;&1 must be included in the command in order to apply the
 regexp to it too.
 
 Examples:
@@ -692,25 +692,25 @@ Examples:
 Mails may be assigned one of more tags using a special form of filtering
 rule with the following syntax:
 
-	match <lt;conditions>gt; [<lt;accounts>gt;] tag <lt;tag>gt;
+	match &lt;conditions&gt; [&lt;accounts&gt;] tag &lt;tag&gt;
 
-The string <lt;tag>gt; is attached to the mail. A mail may have multiple tags.
+The string &lt;tag&gt; is attached to the mail. A mail may have multiple tags.
 
 The tag may be tested for using the 'tag' condition:
 
 	match tag "mytag" action "a"
 
-	match tag "ohno" and size >gt;1K action "drop"
+	match tag "ohno" and size &gt;1K action "drop"
 
 <h1>Setting options </h1>
 fdm has a number of options that control its behaviour. These are defined
 using the set command:
 
-	set <lt;option>gt; [<lt;value>gt;]
+	set &lt;option&gt; [&lt;value&gt;]
 
 The possible options are:
 
-- maximum-size <lt;size>gt;
+- maximum-size &lt;size&gt;
 
 This specifies the maximum size of mail that fdm will accept. fdm uses /tmp
 (by default) to save mails, it is recommended that this be less than the
@@ -728,14 +728,14 @@ than leaving it for the user to sort out.
 This option makes fdm ignore the lock file, similar to the '-m' command line
 option.
 
-- lock-file <lt;path>gt;
+- lock-file &lt;path&gt;
 
 This option specifies string which should be the path of the file to use as the
 lock file. For example:
 
 	set lock-file "/tmp/my-lock-file"
 
-- default-user <lt;user>gt;
+- default-user &lt;user&gt;
 
 This specifies the default user to use if run as root and no users are specified
 on the action or filtering rule. This option may be overriden with the '-u'
@@ -749,7 +749,7 @@ Some NFS servers do not support fcntl. The default is flock only. Example:
 
 	set lock-types fcntl dotlock
 
-- [domain|domains] <lt;domains>gt;
+- [domain|domains] &lt;domains&gt;
 
 This specifies a domain or list of domains to use when searching for users in
 mail headers with the 'from-headers' keyword. Examples include:
@@ -760,7 +760,7 @@ mail headers with the 'from-headers' keyword. Examples include:
 
 The default is the hostname of the local machine.
 
-- [header|headers] <lt;headers>gt;
+- [header|headers] &lt;headers&gt;
 
 This specifies a header or list of headers to search with the 'from-headers'
 keyword, such as:
@@ -771,7 +771,7 @@ keyword, such as:
 
 The default is "to" "cc".
 
-- proxy <lt;url>gt;
+- proxy &lt;url&gt;
 
 This specifies a URL to proxy outgoing connections through. See the section
 on proxying below.
@@ -798,7 +798,7 @@ a single-purpose configuration file):
 
 	account "archive" disabled maildir "source-maildir"
 	action "archive" mbox "%sq%Q"
-	match age >gt; 30 days account "archive" action "archive"
+	match age &gt; 30 days account "archive" action "archive"
 	match all account "archive" action "keep"
 
 Then, fdm may be run:
@@ -899,7 +899,7 @@ action "full-disclosure" maildir "%h/mail/full-disclosure"
 action "strip-full-disclosure"
 	rewrite "sed 's/^\\(Subject:.*\\)\\[Full-disclosure\\] /\\1/'"
 
-match "^List-Id:.*<lt;full-disclosure\\.lists\\.grok\\.org\\.uk>gt;" in headers
+match "^List-Id:.*&lt;full-disclosure\\.lists\\.grok\\.org\\.uk&gt;" in headers
 	actions { "strip-full-disclosure" "full-disclosure" }
 
 ================================================================================
