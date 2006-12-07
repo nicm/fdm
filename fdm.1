@@ -107,32 +107,6 @@ to fetch and deliver messages. The
 command polls the accounts in the configuration file and reports a message count for each.
 .Pp
 .El
-.Sh LOCAL MAIL WITH SENDMAIL
-.Nm
-can be used to deliver local mail from
-.Xr sendmail 8
-by making use of .forward files. An account fetching mail from
-.Em stdin
-should be specified in the user's
-.Pa ~/.fdm.conf
-file,
-.Bd -ragged -offset indent
-account "stdinacct" stdin
-.Ed
-.Pp
-and the user's
-.Pa ~/.forward
-file should be set to contain something like (including quotation marks):
-.Bd -ragged -offset indent
-"|/usr/local/bin/fdm -ml -a stdinacct fetch"
-.Ed
-.Pp
-.Xr sendmail 8
-will then invoke
-.Nm
-to deliver mail and
-.Nm
-will pass it through any filtering rules as normal.
 .Sh FILES
 .Bl -tag -width "/var/db/fdm.lockXXX" -compact
 .It Pa ~/.fdm.conf
