@@ -319,7 +319,7 @@ The '-n' command line option. This is particularly useful in conjunction with
 	user is: nicholas, home is: /home2/nicholas
 	loading configuration from test.conf
 	added account: name=pop3 fetch=pop3 server "s" port pop3 user "u"
-	added action: name=rw deliver=rewrite "sed 's/\(Subject:.*\)\[Crap\]/1/'"
+	added action: name=rw deliver=rewrite "sed 's/\(Subject:.*\)\[XYZ\]/1/'"
 	added action: name=mbox deliver=mbox "%h/INBOX"
 	finished file test.conf
 	added rule: actions="rw" "mbox" matches=all
@@ -810,7 +810,36 @@ temporary files.
 
 Archiving and searching mail ===================================================
 
-XXX
+As fdm can fetch from maildirs, it can be used to filter mail from one maildir
+into another, for example to archive older mail (with drop) or to search for
+mail matching a particular pattern (with keep). The 'age' condition, and the
+%s and time/date % tokens are particularly useful for archiving. For example,
+to archive all mail older than 30 days by quarter, something like this may
+suffice (obviously, the account restriction can be dropped if being used in
+a single-purpose configuration file):
+
+	account "archive" disabled maildir "source-maildir"
+	action "archive" mbox "%sq%Q"
+	match age > 30 days account "archive" action "archive"
+	match all account "archive" action "keep"
+
+Then, fdm may be run:
+
+	fdm -vaarchive fetch
+
+To move the mail.
+
+To search mail, similar rules may be used, but all mail should be kept, in this
+example by marking the account with 'keep' so that mail is kept no matter what
+rules it matches:
+
+	account "search" disabled maildir "source-maildir" keep
+	action "found" mbox "search-results"
+	match "^From.*Bob" in headers account "search" action "found"
+	match all account "search" action "keep"
+
+All mail matching the regexp will be copied to the target mbox. There are
+several other ways to write this ruleset and achieve the same end.
 
 Using fdm behind a proxy =======================================================
 
@@ -892,12 +921,6 @@ Why does fdm fork child processes when not running as root? --------------------
 
 Because one design is much cleaner and easier to work with than two. And it
 has a negligible practical effect on performance in any case.
-
-Why do I have to escape \s in regexps and other strings? I hates it. -----------
-
-Because otherwise you couldn't include a literal " in the string. It hasn't
-really bothered me enough yet to do it, but allowing use of ' to avoid
-escaping is on the todo list.
 
 Can fdm get rid of that crap in []s added to subjects on some mailing lists? ---
 

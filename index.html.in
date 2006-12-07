@@ -7,6 +7,8 @@
 <body>
 <p>The project page is <a href="http://sf.net/projects/fdm">here.</a></p>
 <hr>
+<p>Please note: this manual is for the CVS version of fdm (what will become 0.7). It is here because, well, it is better than what was here before. Most of it applies equally to 0.6, but there are a few differences, most notably that 0.6 does not support using single-quotes (') to avoid escaping in strings.</p>
+<hr>
 <pre>
 &&MANUAL
 </pre>
