@@ -803,8 +803,7 @@ kept. The default is to keep the mail, and issue a warning.
 
 In addition to these options, some environment variables may be used to control
 fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
-temporary files.  If http_proxy is set, fdm will attempt to parse it as for the
-'proxy' option.
+temporary files.
 
 Archiving and searching mail ===================================================
 
@@ -812,7 +811,22 @@ XXX
 
 Using fdm behind a proxy =======================================================
 
-XXX
+fdm may be used behind a proxy by specifying the proxy URL using the 'proxy'
+option. HTTP and SOCKS5 proxies are supported:
+
+	set proxy "http://proxy.server/"
+
+	set proxy "http://proxy.server:port/"
+
+	set proxy "socks5://proxy.server/"
+
+	set proxy "socks5://proxy.server:port/"
+
+	set proxy "socks5://user@proxy.server/"
+
+	set proxy "socks5://user:pass@proxy.server/"
+
+Authentication is not support for HTTP proxies.
 
 Bug reports and queries ========================================================
 

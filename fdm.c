@@ -311,25 +311,6 @@ main(int argc, char **argv)
 	}
 	log_debug("configuration loaded");
 
-	/* fill proxy */
-	proxy = getenv("http_proxy");
-	if (proxy != NULL && *proxy != '\0') {
-		if (conf.proxy != NULL) {
-			xfree(conf.proxy->server.host);
-			xfree(conf.proxy->server.port);
-			if (conf.proxy->user != NULL)
-				xfree(conf.proxy->user);
-			if (conf.proxy->pass != NULL)
-				xfree(conf.proxy->pass);
-		}
-
-		/* note: getenv's return buffer is read-only */
-		if ((conf.proxy = getproxy(proxy)) == NULL) {
-			log_warnx("invalid proxy: %s", proxy);
-			exit(1);
-		}
-	}
-
 	/* print proxy info */
 	if (conf.proxy != NULL) {
 		switch (conf.proxy->type) {
