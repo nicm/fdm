@@ -262,7 +262,7 @@ find_macro(char *name)
 	struct rule		*rule;
 }
 
-%token <number> NUMBER SIZE
+%token <number> NUMBER
 %token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
 %type  <action> action
@@ -421,8 +421,11 @@ include: TOKINCLUDE strv
 
 /** SIZE: <number> (long long) */
 size: numv
+/**   [$1: numv (long long)] */
+      {
+	      $$ = $1;
+      }
     | numv TOKBYTES
-    | SIZE
 /**   [$1: numv (long long)] */
       {
 	      $$ = $1;

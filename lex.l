@@ -57,41 +57,6 @@ char 				*read_str(char, int);
 
         return (NUMBER);
 }
-[0-9]+[BbKkMmGg] {
-	const char	*errstr;
-        char		 ch, *cp;
-
-	cp = yytext + strlen(yytext) - 1;
-	ch = *cp;
-	*cp = '\0';
-
-        yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
-	if (errstr != NULL)
-		yyerror("size is %s", errstr);
-
-        switch (ch) {
-        case 'k':
-	case 'K':
-		if (yylval.number > LLONG_MAX / 1024)
-			yyerror("size is too large");
-                yylval.number *= 1024;
-                break;
-        case 'm':
-	case 'M':
-		if (yylval.number > LLONG_MAX / (1024 * 1024))
-			yyerror("size is too large");
-                yylval.number *= 1024 * 1024;
-                break;
-        case 'g':
-	case 'G':
-		if (yylval.number > LLONG_MAX / (1024 * 1024 * 1024))
-			yyerror("size is too large");
-                yylval.number *= 1024 * 1024 * 1024;
-                break;
-        }
-
-        return (SIZE);
-}
 \' {
 	yylval.string = read_str('\'', 0);
         return (STRING);
