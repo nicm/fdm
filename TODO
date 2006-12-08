@@ -8,6 +8,5 @@
 - test/fix multiuser (X-Envelope-To, weed out duplicate users)
 - finish regression tests
 - message-id cache, weed out message duplicates
-- make size match same as age (bytes, kb/kilobytes, etc)
 - tag: add 'match tags { "a" "b" }'. audit for other similar missing plurals
-- balance man pahes/manual
+- balance man pages/manual
