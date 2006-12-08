@@ -1,94 +1,14 @@
-fdm ----------------------------------------------------------------------------
-
 fdm is a small program designed to fetch mail from POP3 or IMAP servers, or
 receive local mail from stdin, and deliver it in various ways.
 
-Installation -------------------------------------------------------------------
+Please see the included MANUAL file and the fdm(1) and fdm.conf(5) man pages
+for installation and usage instructions. They are online at:
 
-To build fdm, extract the source tarball and run the make(1) program:
+	http://fdm.sf.net
 
-    $ tar xzf fdm-0.6.tar.gz
-    $ cd fdm-0.6
-    $ make
+Some example configurations are included in the examples directory.
 
-Then run 'make install' to copy the newly-built files to the default locations
-under /usr/local. The PREFIX environment variable may be set to specify an
-alternative installation location.
-
-    $ export PREFIX=/opt/		# defaults to /usr/local
-    $ sudo make install
-    $ man fdm
-    $ fdm
-
-Single-user --------------------------------------------------------------------
-
-When fdm is run as a non-root user, it will not attempt to drop privileges and
-all mail will be delivered as the user it is run as - the "user" keyword on
-rules and actions will be ignored. It is best run from cron(8) every so often.
-For example:
-
-*/30    *       *       *       *       /usr/local/bin/fdm -l -x stdin fetch
-
-Local mail can be delivered via stdin. See the fdm(1) man page for an example
-using sendmail, users of other MTAs are on their own for the moment. Man page
-diffs and/or instructions I can format into the man page would be appreciated.
-
-The examples directory contains some examples of single-user configuration.
-
-Multi-user ---------------------------------------------------------------------
-
-When fdm is run as a root user, it will attempt to drop to user _fdm in order
-to fetch mail. This user account must be present on the system or fdm will
-fail. On OpenBSD, it may be added with:
-
-	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
-
-A different user will be used to deliver mail. This user is the first 
-available from the following list:
-
-- a user specified in the rule or action definition in the configuration file,
-  or extracted from the mail headers (controlled by the "from-headers" keyword),
-- the user specified by the -u switch on the command line,
-- the user specified by the "default-user" option.
-
-A multi-user configuration may look something like:
-
-	set default-user "bob"
-	set headers { "to" "cc" "x-custom" }
-	set domains { "my.domain" "localhost" }
-	account ......
-	action "default" user from-headers maildir "%h/mail/inbox"
-	match all action "default"
-
-Alternatively, it could be more limited, perhaps something like this:
-
-	set default-user "bob" # this is required but not used in this file
-	account ......
-	action "jim" user "jim" mbox "/var/mail/jim"
-	action "sam" user "sam" mbox "/var/mail/sam"
-	action "bob" user "bob" mbox "/var/mail/bob"
-	match "^(To:|Cc:).* jim@my.domain" action "jim" continue
-	match "^(To:|Cc:).* sam@my.domain" action "sam" continue
-	match "^(To:|Cc:).* bob@my.domain" action "bob" continue
-	match unmatched action "bob" # all other mail will end up with bob
-
-If POP3 accounts are used, fdm is best run from cron, but it can also be set up
-to deliver mail via stdin from an MTA. Configuring this is left as an exercise
-for the reader ;-). If using some MTA that can invoke fdm with the -u option, 
-something like this would probably work:
-
-	account stdin "stdin"
-	action "default" mbox "/var/mail/%u"
-	match all action "default"
-
-Since fdm will then deliver using the default user from stdin.
-
---------------------------------------------------------------------------------
-
-Look at the fdm(1) and fdm.conf(5) man pages for details of syntax, etc.
-
-This is beta-quality software. There will be bugs. I use it single-user with
-maildirs so this is the most tested.
+This is beta software. There will be bugs.
 
 Feedback, bug reports, suggestions, etc, are welcome.
 
