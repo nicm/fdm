@@ -716,11 +716,11 @@ rule with the following syntax:
 
 The string <tag> is attached to the mail. A mail may have multiple tags.
 
-The tag may be tested for using the 'tag' condition:
+The tag may be tested for using the 'tagged' condition:
 
-	match tag "mytag" action "a"
+	match tagged "mytag" action "a"
 
-	match tag "ohno" and size >1K action "drop"
+	match tagged "ohno" and size >1K action "drop"
 
 Setting options ================================================================
 

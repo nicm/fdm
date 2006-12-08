@@ -8,5 +8,4 @@
 - test/fix multiuser (X-Envelope-To, weed out duplicate users)
 - finish regression tests
 - message-id cache, weed out message duplicates
-- tag: add 'match tags { "a" "b" }'. audit for other similar missing plurals
 - balance man pages/manual
