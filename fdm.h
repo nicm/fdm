@@ -269,6 +269,23 @@ struct mail {
 	ssize_t	 	 body;		/* offset of body */
 };
 
+/* Array of atachments. */
+ARRAY_DECL(attachs, struct attach *);
+
+/* An attachment. */
+struct attach {
+	u_int	 	 idx;
+
+	size_t		 data;
+	size_t	 	 body;
+	size_t   	 size;
+
+	char		*type;
+	char		*name;
+
+	struct attachs	 list;
+};
+
 /* Privsep message types. */
 enum msgtype {
 	MSG_ACTION,
@@ -353,7 +370,7 @@ struct expritem {
 	TAILQ_ENTRY(expritem)	 entry;
 };
 
-/* Expression strut. */
+/* Expression struct. */
 TAILQ_HEAD(expr, expritem);
 
 /* Rule list. */
@@ -836,6 +853,11 @@ int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);
 void			 fill_info(const char *);
+
+/* attach.c */
+void printflike2	 attach_log(struct attach *, const char *, ...);
+struct attach 		*attach_build(struct mail *);
+void			 attach_free(struct attach *);
 
 /* privsep.c */
 int			 privsep_send(struct io *, struct msg *, void *,

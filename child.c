@@ -169,6 +169,7 @@ fetch_account(struct io *io, struct account *a)
 	struct match_ctx mctx;
 	char		*hdr;
 	size_t		 len;
+	struct attach	*at;
 
 	if (a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
@@ -230,6 +231,14 @@ fetch_account(struct io *io, struct account *a)
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
+		/* XXX */
+		at = attach_build(&m);
+		if (at != NULL)
+			attach_log(at, "%s: attachment", a->name);
+		else
+			log_debug("%s: no attachments found", a->name);
+		attach_free(at);
+		
 		/* handle rule evaluation and actions */
 		mctx.matched = mctx.stopped = 0;
 		if (do_rules(&mctx, &conf.rules, &cause) != 0)
