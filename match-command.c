@@ -69,7 +69,7 @@ command_desc(struct expritem *ei)
 	t = data->pipe ? "pipe" : "exec";
 
 	if (data->re_s == NULL) {
-		xasprintf(&s, "%s \"%s\" user %lu returns (%s, )", t, 
+		xasprintf(&s, "%s \"%s\" user %lu returns (%s, )", t,
 		    data->cmd, (u_long) data->uid, ret);
 		return (s);
 	}

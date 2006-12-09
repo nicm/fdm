@@ -121,12 +121,12 @@ error:
 			xfree(pr->user);
 		if (pr->pass != NULL)
 			xfree(pr->pass);
-		
+
 		if (pr->server.port != NULL)
 			xfree(pr->server.port);
 		if (pr->server.host != NULL)
 			xfree(pr->server.host);
-		
+
 		xfree(pr);
 	}
 

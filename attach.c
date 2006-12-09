@@ -76,7 +76,7 @@ attach_free(struct attach *at)
 
 	for (i = 0; i < ARRAY_LENGTH(&at->list); i++)
 		attach_free(ARRAY_ITEM(&at->list, i, struct attach *));
-	
+
 	ARRAY_FREE(&at->list);
 	if (at->type != NULL)
 		xfree(at->type);
@@ -101,7 +101,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	hdr += 13;
 
 	/* skip spaces */
-	while (len > 0 && isspace((int) *hdr)) {	
+	while (len > 0 && isspace((int) *hdr)) {
 		len--;
 		hdr++;
 	}
@@ -159,7 +159,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 		if (ptr - hdr == namelen && strncmp(hdr, name, namelen) == 0) {
  			llen -= (ptr - hdr + 1);
 			hdr = ptr + 1;
-			
+
 			ptr = memchr(hdr, ';', llen);
 			if (ptr != NULL)
 				llen = ptr - hdr;
@@ -190,7 +190,7 @@ error:
 	if (type != NULL)
 		xfree(type);
 	if (*value != NULL) {
-		xfree(*value); 
+		xfree(*value);
 		*value = NULL;
 	}
 	return (NULL);
@@ -283,9 +283,9 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	if (strncmp(atr->type, "multipart/", 10) != 0) {
 		/* skip the remaining headers */
 		while (*ptr != NULL && *len > 1)
-			line_next(m, ptr, len);		
+			line_next(m, ptr, len);
 		if (*ptr == NULL)
-			goto error;	
+			goto error;
 
 		atr->body = *ptr - m->data;
 		for (;;) {
@@ -317,7 +317,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		/* find the first boundary */
 		while (*ptr != NULL) {
 			if ((*ptr)[0] == '-' && (*ptr)[1] == '-') {
-				if (*len - 3 == bl2 && 
+				if (*len - 3 == bl2 &&
 				    strncmp(*ptr + 2, b2, bl2) == 0)
 					break;
 			}
@@ -325,7 +325,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		}
 		if (ptr == NULL)
 			goto error;
-		
+
 		/* now iterate over the rest */
 		last2 = 0;
 		while (*ptr != NULL && !last2) {
@@ -339,7 +339,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		/* and skip on to the end of the multipart */
 		while (*ptr != NULL) {
 			if ((*ptr)[0] == '-' && (*ptr)[1] == '-') {
-				if (*len - 3 == bl && 
+				if (*len - 3 == bl &&
 				    strncmp(*ptr + 2, b, bl) == 0)
 					break;
 			}
@@ -350,9 +350,9 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 
 		xfree(b2);
 	}
-	
+
 	return (atr);
-	
+
 error:
 	if (b2 != NULL)
 		xfree(b2);

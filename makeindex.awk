@@ -15,34 +15,34 @@
 # OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-/^.*$/ { 
-	if ($0 ~ /^%%/) {					
-		name = substr($0, 3);				
-		while ((getline < name) == 1) {			
-			print ($0);				
-		}						
-		close(name);					
-	} else if ($0 ~ /^&&/) {				
-		name = substr($0, 3);				
-		while ((getline < name) == 1) {			
-			gsub("\<", "\\&lt;", $0);		
-			gsub("\>", "\\&gt;", $0);		
-			if ($0 ~ /^[A-Za-z].+ ==+/) {	
-				gsub("==+$", "", $0);		
-				print ("<h1>" $0 "</h1>");	
-				getline < name;			
-				continue;			
-			}					
-			if ($0 ~ /^[A-Za-z].+ --+/) {	
-				gsub("--+$", "", $0);		
-				print ("<h2>" $0 "</h2>");	
-				getline < name;			
-				continue;			
-			}					
-			print ($0);				
-		}						
-		close(name);					
-	} else {						
-		print ($0);					
+/^.*$/ {
+	if ($0 ~ /^%%/) {
+		name = substr($0, 3);
+		while ((getline < name) == 1) {
+			print ($0);
+		}
+		close(name);
+	} else if ($0 ~ /^&&/) {
+		name = substr($0, 3);
+		while ((getline < name) == 1) {
+			gsub("\<", "\\&lt;", $0);
+			gsub("\>", "\\&gt;", $0);
+			if ($0 ~ /^[A-Za-z].+ ==+/) {
+				gsub("==+$", "", $0);
+				print ("<h1>" $0 "</h1>");
+				getline < name;
+				continue;
+			}
+			if ($0 ~ /^[A-Za-z].+ --+/) {
+				gsub("--+$", "", $0);
+				print ("<h2>" $0 "</h2>");
+				getline < name;
+				continue;
+			}
+			print ($0);
+		}
+		close(name);
+	} else {
+		print ($0);
 	}
 }

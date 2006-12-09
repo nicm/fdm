@@ -47,7 +47,7 @@ smtp_code(char *line)
 		return (-1);
 	ch = line[len];
 	line[len] = '\0';
-       
+
 	n = strtonum(line, 100, 999, &errstr);
 	line[len] = ch;
 	if (errstr != NULL)

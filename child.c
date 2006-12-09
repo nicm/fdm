@@ -238,7 +238,7 @@ fetch_account(struct io *io, struct account *a)
 			attach_free(at);
 		} else
 			log_debug("%s: no attachments", a->name);
-		
+
 		/* handle rule evaluation and actions */
 		mctx.matched = mctx.stopped = 0;
 		if (do_rules(&mctx, &conf.rules, &cause) != 0)

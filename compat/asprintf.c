@@ -47,7 +47,7 @@ vasprintf(char **ret, const char *format, va_list ap)
 		xfree(*ret);
 		goto error;
 	}
-	
+
 	return (n);
 
 error:

@@ -54,7 +54,7 @@ function pretty(prefix, suffix, n) {
 function wspace(s, o) {
 	gsub("\t", "        ", s);
 	n = match(s, "[^ ]");
-	
+
 	n -= o;
 	if (n < 0)
 		n = 0;
@@ -62,7 +62,7 @@ function wspace(s, o) {
 	t = "";
 	for (i = 0; i < n; i++) {
 		t = t " ";
-	}	
+	}
 
 	return (t);
 }
@@ -127,7 +127,7 @@ BEGIN {
 		print (pretty("/**" s "  ", " */" s, elements));
 	}
 
-	next;	
+	next;
 }
 
 /.*/ {
