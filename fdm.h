@@ -474,8 +474,8 @@ extern struct conf		 conf;
 
 /* IO buffer size macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
-#define IO_RDSIZE(io) (io->rsize)
-#define IO_WRSIZE(io) (io->wsize)
+#define IO_RDSIZE(io) ((io)->rsize)
+#define IO_WRSIZE(io) ((io)->wsize)
 
 /* IO structure. */
 struct io {
@@ -598,58 +598,58 @@ enum cmp {
 
 /* Match age data. */
 struct age_data {
-	long long		 time;
-	enum cmp		 cmp;
+	long long	 time;
+	enum cmp	 cmp;
 };
 
 /* Match size data. */
 struct size_data {
-	size_t			 size;
-	enum cmp		 cmp;
+	size_t		 size;
+	enum cmp	 cmp;
 };
 
 /* Match tagged data. */
 struct tagged_data {
-	char			*tag;
+	char		*tag;
 };
 
 /* Match string data. */
 struct string_data {
-	char			*re_s;
-	regex_t			 re;
+	char		*re_s;
+	regex_t		 re;
 
-	char			*s;
+	char		*s;
 };
 
 /* Match regexp data. */
 struct regexp_data {
-	char			*re_s;
-	regex_t			 re;
+	char		*re_s;
+	regex_t		 re;
 
-	enum area	 	 area;
+	enum area 	 area;
 };
 
 /* Match command data. */
 struct command_data {
-	char			*cmd;
-	uid_t			 uid;
-	int			 pipe;		/* pipe mail to command */
+	char		*cmd;
+	uid_t		 uid;
+	int		 pipe;		/* pipe mail to command */
 
-	char			*re_s;		/* NULL to not check */
-	regex_t			 re;
-	int			 ret;		/* -1 to not check */
+	char		*re_s;		/* NULL to not check */
+	regex_t		 re;
+	int		 ret;		/* -1 to not check */
 };
 
 /* Fetch maildir data. */
 struct maildir_data {
-	struct strings		*maildirs;
+	struct strings	*maildirs;
 
-	struct strings		*paths;
-	u_int			 index;
+	struct strings	*paths;
+	u_int		 index;
 
-	DIR			*dirp;
-	char			*path;
-	char			*entry;
+	DIR		*dirp;
+	char		*path;
+	char		*entry;
 };
 
 /* Fetch stdin data. */
@@ -709,18 +709,18 @@ enum imap_state {
 
 /* Fetch imap data. */
 struct imap_data {
-	char			*user;
-	char			*pass;
-	char			*folder;
+	char		*user;
+	char		*pass;
+	char		*folder;
 
-	struct server		 server;
+	struct server	 server;
 
-	enum imap_state	 	 state;
-	int			 tag;
-	u_int		 	 cur;
-	u_int		 	 num;
+	enum imap_state	 state;
+	int		 tag;
+	u_int		 cur;
+	u_int		 num;
 
-	struct io		*io;
+	struct io	*io;
 };
 
 /* Deliver smtp states. */
