@@ -233,11 +233,11 @@ fetch_account(struct io *io, struct account *a)
 
 		/* XXX */
 		at = attach_build(&m);
-		if (at != NULL)
+		if (at != NULL) {
 			attach_log(at, "%s: attachment", a->name);
-		else
+			attach_free(at);
+		} else
 			log_debug("%s: no attachments found", a->name);
-		attach_free(at);
 		
 		/* handle rule evaluation and actions */
 		mctx.matched = mctx.stopped = 0;
