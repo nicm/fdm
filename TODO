@@ -18,11 +18,16 @@
 	match attachment any-type "fnmatch"
 	match attachment any-name "fnmatch"
 	match attachment all
+	match attachment
+
+	expressions:
+
 	match attachment (index <> n and size < 200 and type "fnmatch")
 
 must all be in child:
 	action strip-attachments
 	action strip-attachments
 	action pipe-attachments "cmd" 
+
 - move decision into mctx/dctx
 - merge dctx/mctx?

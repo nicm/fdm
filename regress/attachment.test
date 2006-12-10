@@ -7,6 +7,10 @@ match attachment count < 0 action "action"
 @0 ^added rule: actions="action" matches=attachment count < 0 $
 match attachment count > 0 action "action"
 @0 ^added rule: actions="action" matches=attachment count > 0 $
+match attachment count == 0 action "action"
+@0 ^added rule: actions="action" matches=attachment count == 0 $
+match attachment count != 0 action "action"
+@0 ^added rule: actions="action" matches=attachment count != 0 $
 
 match attachment total-size < 0 action "action"
 @0 ^added rule: actions="action" matches=attachment total-size < 0 $

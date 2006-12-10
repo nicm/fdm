@@ -45,6 +45,10 @@ attachment_desc(struct expritem *ei)
 		cmp = "<";
 	else if (data->cmp == CMP_GT)
 		cmp = ">";
+	else if (data->cmp == CMP_EQ)
+		cmp = "==";
+	else if (data->cmp == CMP_NE)
+		cmp = "!=";
 
 	switch (data->op) {
 	case ATTACHOP_COUNT:

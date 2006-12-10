@@ -601,6 +601,8 @@ struct match {
 
 /* Comparison operators. */
 enum cmp {
+	CMP_EQ,
+	CMP_NE,
 	CMP_LT,
 	CMP_GT
 };
@@ -616,7 +618,6 @@ struct attachment_data {
 		ATTACHOP_ALL,
 		ATTACHOP_EXPRESSION /* XXX */
 	} op;
-
 
 	enum cmp	 	 cmp;
 	union {

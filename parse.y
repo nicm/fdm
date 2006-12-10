@@ -227,7 +227,7 @@ find_macro(char *name)
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
-%token TOKANYTYPE TOKANYNAME TOKANYSIZE
+%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -268,7 +268,7 @@ find_macro(char *name)
 
 %type  <action> action
 %type  <area> area
-%type  <cmp> cmp
+%type  <cmp> cmp cmp2
 %type  <expr> expr exprlist
 %type  <expritem> expritem
 %type  <exprop> exprop
@@ -1247,6 +1247,20 @@ cmp: '<'
 	     $$ = CMP_GT;
      }
 
+/** CMP: <cmp> (enum cmp) */
+cmp2: cmp
+      {
+	     $$ = $1;
+      }
+    | TOKEQ
+      {
+	      $$ = CMP_EQ;
+      }
+    | TOKNE
+      {
+	      $$ = CMP_NE;
+      }
+
 /** EXECPIPE: <flag> (int) */
 execpipe: TOKEXEC
 	  {
@@ -1435,7 +1449,7 @@ expritem: not icase strv area
 
 		  data->time = -1;
 	  }
-        | not TOKATTACHMENT TOKCOUNT cmp numv
+        | not TOKATTACHMENT TOKCOUNT cmp2 numv
 /**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: numv (long long)] */
 	  {
 		  struct attachment_data	*data;
