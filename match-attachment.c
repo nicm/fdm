@@ -37,5 +37,35 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 char *
 attachment_desc(struct expritem *ei)
 {
-	return (xstrdup(""));
+	struct attachment_data	*data = ei->data;
+	char			*s;
+	const char 		*cmp = "";
+
+	if (data->cmp == CMP_LT)
+		cmp = "<";
+	else if (data->cmp == CMP_GT)
+		cmp = ">";
+
+	switch (data->op) {
+	case ATTACHOP_COUNT:
+		xasprintf(&s, "attachment count %s %lld", cmp,
+		    data->value.number);
+		return (s);
+	case ATTACHOP_TOTALSIZE:
+		xasprintf(&s, "attachment total-size %s %lld", cmp,
+		    data->value.number);
+		return (s);
+	case ATTACHOP_ANYSIZE:
+		xasprintf(&s, "attachment any-size %s %lld", cmp,
+		    data->value.number);
+		return (s);
+	case ATTACHOP_ANYTYPE:
+		xasprintf(&s, "attachment any-type \"%s\"", data->value.string);
+		return (s);
+	case ATTACHOP_ANYNAME:
+		xasprintf(&s, "attachment any-name \"%s\"", data->value.string);
+		return (s);
+	default:
+		return (xstrdup(""));
+	}
 }
