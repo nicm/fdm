@@ -39,8 +39,7 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	char			*s, *cause;
 
 	if (!mctx->pmatch_valid) {
-		log_warnx("%s: string match but no regexp match data available",
-		    a->name);
+		log_warnx("%s: string match but no regexp match data", a->name);
 		return (MATCH_FALSE);
 	}
 
@@ -49,6 +48,7 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 
 	res = re_simple(&data->re, s, &cause);
 	xfree(s);
+
 	if (res == -1) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
