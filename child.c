@@ -169,7 +169,6 @@ fetch_account(struct io *io, struct account *a)
 	struct match_ctx mctx;
 	char		*hdr;
 	size_t		 len;
-	struct attach	*at;
 
 	if (a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
@@ -192,6 +191,7 @@ fetch_account(struct io *io, struct account *a)
 		mctx.io = io;
 		mctx.account = a;
 		mctx.mail = &m;
+		ARRAY_INIT(&mctx.attach_matches);
 
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
@@ -231,12 +231,11 @@ fetch_account(struct io *io, struct account *a)
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
-		/* XXX */
-		at = attach_build(&m);
-		if (at != NULL) {
-			attach_log(at, "%s: attachment", a->name);
-			attach_free(at);
-		} else
+		/* fill attachments */
+		mctx.attach = attach_build(&m);
+		if (mctx.attach != NULL)
+			attach_log(mctx.attach, "%s: attachment", a->name);
+		else
 			log_debug("%s: no attachments", a->name);
 
 		/* handle rule evaluation and actions */
@@ -294,10 +293,14 @@ fetch_account(struct io *io, struct account *a)
 			fatalx("invalid decision");
 		}
 
+		if (mctx.attach != NULL)
+			attach_free(mctx.attach);
  		free_mail(&m, 1);
 	}
 
 out:
+	if (mctx.attach != NULL)
+		attach_free(mctx.attach);
 	free_mail(&m, 1);
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);

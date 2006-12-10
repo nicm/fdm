@@ -286,6 +286,12 @@ struct attach {
 	struct attachs	 list;
 };
 
+/* Regexp wrapper struct. */
+struct re {
+	char		*s;
+	regex_t		 re;
+};
+
 /* Privsep message types. */
 enum msgtype {
 	MSG_ACTION,
@@ -582,6 +588,9 @@ struct match_ctx {
 
 	int		 pmatch_valid;
 	regmatch_t	 pmatch[NPMATCH];
+
+	struct attach	*attach;
+	struct attachs	 attach_matches;
 };
 
 /* Match functions. */
@@ -594,6 +603,26 @@ struct match {
 enum cmp {
 	CMP_LT,
 	CMP_GT
+};
+
+/* Match attachment data. */
+struct attachment_data {
+	enum {
+		ATTACHOP_COUNT,
+		ATTACHOP_TOTALSIZE,
+		ATTACHOP_ANYSIZE,
+		ATTACHOP_ANYTIME,
+		ATTACHOP_ANYNAME,
+		ATTACHOP_ALL,
+		ATTACHOP_EXPRESSION /* XXX */
+	} op;
+
+
+	enum cmp	 	 cmp;
+	union {
+		long long	 number;
+		char		*string;
+	} value;
 };
 
 /* Match age data. */
@@ -615,16 +644,14 @@ struct tagged_data {
 
 /* Match string data. */
 struct string_data {
-	char		*re_s;
-	regex_t		 re;
+	struct re	 re;
 
 	char		*s;
 };
 
 /* Match regexp data. */
 struct regexp_data {
-	char		*re_s;
-	regex_t		 re;
+	struct re	 re;
 
 	enum area 	 area;
 };
@@ -635,8 +662,7 @@ struct command_data {
 	uid_t		 uid;
 	int		 pipe;		/* pipe mail to command */
 
-	char		*re_s;		/* NULL to not check */
-	regex_t		 re;
+	struct re	 re;		/* re->re NULL to not check */
 	int		 ret;		/* -1 to not check */
 };
 
@@ -742,6 +768,9 @@ struct smtp_data {
 
 /* match-age.c */
 extern struct match	 match_age;
+
+/* match-attachment.c */
+extern struct match	 match_attachment;
 
 /* match-matched.c */
 extern struct match	 match_matched;
@@ -853,6 +882,12 @@ int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);
 void			 fill_info(const char *);
+
+/* re.c */
+int			 re_compile(struct re *, char *, int, char **);
+int			 re_execute(struct re *, char *, int, regmatch_t *,
+			     int, char **);
+int			 re_simple(struct re *, char *, char **);
 
 /* attach.c */
 void printflike2	 attach_log(struct attach *, const char *, ...);

@@ -1272,9 +1272,8 @@ expritem: not icase strv area
 /**       [$4: area (enum area)] */
           {
 		  struct regexp_data	*data;
-		  int	 		 error, flags;
-		  size_t	 	 len;
-		  char			*buf;
+		  int	 		 flags;
+		  char			*cause;
 
 		  if (*$3 == '\0')
 			  yyerror("invalid regexp");
@@ -1286,27 +1285,21 @@ expritem: not icase strv area
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 
-		  data->re_s = $3;
 		  data->area = $4;
 
 		  flags = REG_EXTENDED|REG_NEWLINE;
 		  if ($2)
 			  flags |= REG_ICASE;
-		  if ((error = regcomp(&data->re, $3, flags)) != 0) {
-			  len = regerror(error, &data->re, NULL, 0);
-			  buf = xmalloc(len);
-			  regerror(error, &data->re, buf, len);
-			  yyerror("%s: %s", $3, buf);
-		  }
+		  if (re_compile(&data->re, $3, flags, &cause) != 0)
+			  yyerror("%s: %s", $3, cause);
 	  }
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
 /**       [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */
 	  {
 		  struct command_data	*data;
-		  int	 		 error, flags;
-		  size_t	 	 len;
-		  char			*buf;
+		  int	 		 flags;
+		  char			*cause;
 
 		  if (*$3 == '\0' || ($3[0] == '|' && $3[1] == '\0'))
 			  yyerror("invalid command");
@@ -1327,16 +1320,11 @@ expritem: not icase strv area
 		  data->cmd = $3;
 
 		  data->ret = $7;
-		  data->re_s = $9;
 
 		  if ($9 != NULL) {
 			  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-			  if ((error = regcomp(&data->re, $9, flags)) != 0) {
-				  len = regerror(error, &data->re, NULL, 0);
-				  buf = xmalloc(len);
-				  regerror(error, &data->re, buf, len);
-				  yyerror("%s: %s", $9, buf);
-			  }
+			  if (re_compile(&data->re, $9, flags, &cause) != 0)
+				  yyerror("%s: %s", $9, cause);
 		  }
 
 	  }
@@ -1381,9 +1369,8 @@ expritem: not icase strv area
 /**       [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
 	  {
 		  struct string_data	*data;
-		  int	 		 error, flags;
-		  size_t	 	 len;
-		  char			*buf;
+		  int	 		 flags;
+		  char			*cause;
 
 		  if (*$3 == '\0')
 			  yyerror("invalid string");
@@ -1398,16 +1385,11 @@ expritem: not icase strv area
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 
-		  data->re_s = $5;
 		  data->s = $3;
 
 		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-		  if ((error = regcomp(&data->re, $5, flags)) != 0) {
-			  len = regerror(error, &data->re, NULL, 0);
-			  buf = xmalloc(len);
-			  regerror(error, &data->re, buf, len);
-			  yyerror("%s: %s", $5, buf);
-		  }
+		  if (re_compile(&data->re, $5, flags, &cause) != 0)
+			  yyerror("%s: %s", $5, cause);
 	  }
         | not TOKMATCHED
 /**       [$1: not (int)] */

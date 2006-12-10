@@ -36,7 +36,7 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail		*m = mctx->mail;
         regmatch_t		*pmatch = mctx->pmatch;
 	int			 res;
-	char			*s;
+	char			*s, *cause;
 
 	if (!mctx->pmatch_valid) {
 		log_warnx("%s: string match but no regexp match data available",
@@ -45,17 +45,19 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	}
 
 	s = replacepmatch(data->s, m, pmatch);
-	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re_s);
+	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.s);
 
-	res = regexec(&data->re, s, 0, NULL, 0);
-	if (res != 0 && res != REG_NOMATCH) {
-		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
-		xfree(s);
+	res = re_simple(&data->re, s, &cause);
+	xfree(s);
+	if (res == -1) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
 		return (MATCH_ERROR);
 	}
 
-	xfree(s);
-	return (res == 0 ? MATCH_TRUE : MATCH_FALSE);
+	if (res == 0)
+		return (MATCH_FALSE);
+	return (MATCH_TRUE);
 }
 
 char *
@@ -64,6 +66,6 @@ string_desc(struct expritem *ei)
 	struct string_data	*data = ei->data;
 	char			*s;
 
-	xasprintf(&s, "string \"%s\" to \"%s\"", data->s, data->re_s);
+	xasprintf(&s, "string \"%s\" to \"%s\"", data->s, data->re.s);
 	return (s);
 }

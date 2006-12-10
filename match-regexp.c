@@ -35,6 +35,7 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail		*m = mctx->mail;
 	regmatch_t	        *pmatch = mctx->pmatch;
 	int			 res;
+	char		        *cause;
 
 	if (data->area == AREA_BODY && m->body == -1)
 		return (MATCH_FALSE);
@@ -57,14 +58,18 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 		break;
 	}
 
-	res = regexec(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND);
-	if (res != 0 && res != REG_NOMATCH) {
-		log_warnx("%s: %s: regexec failed", a->name, data->re_s);
+	res = re_execute(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND, 
+	    &cause);
+	if (res == -1) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
 		return (MATCH_ERROR);
 	}
-	mctx->pmatch_valid = 1;
 
-	return (res == 0 ? MATCH_TRUE : MATCH_FALSE);
+	mctx->pmatch_valid = 1;
+	if (res == 0)
+		return (MATCH_FALSE);
+	return (MATCH_TRUE);
 }
 
 char *
@@ -86,6 +91,6 @@ regexp_desc(struct expritem *ei)
 		break;
 	}
 
-	xasprintf(&s, "regexp \"%s\" in %s", data->re_s, area);
+	xasprintf(&s, "regexp \"%s\" in %s", data->re.s, area);
 	return (s);
 }
