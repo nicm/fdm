@@ -244,9 +244,9 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		ptr += len;
 		io_write(io, buf, ptr - buf);
 
-		io_read2(io, buf, 2);
 		if (io_wait(io, 2, cause) != 0)
 			return (1);
+		io_read2(io, buf, 2);
 		if (buf[0] != 5) {
 			xasprintf(cause, "bad protocol version: %d", buf[0]);
 			return (1);
