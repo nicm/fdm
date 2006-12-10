@@ -611,7 +611,7 @@ struct attachment_data {
 		ATTACHOP_COUNT,
 		ATTACHOP_TOTALSIZE,
 		ATTACHOP_ANYSIZE,
-		ATTACHOP_ANYTIME,
+		ATTACHOP_ANYTYPE,
 		ATTACHOP_ANYNAME,
 		ATTACHOP_ALL,
 		ATTACHOP_EXPRESSION /* XXX */
@@ -622,6 +622,7 @@ struct attachment_data {
 	union {
 		long long	 number;
 		char		*string;
+		struct re	 re;
 	} value;
 };
 

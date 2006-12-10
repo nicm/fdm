@@ -226,7 +226,8 @@ find_macro(char *name)
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKSIZE TOKMAILDIRS
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
-%token TOKMEGABYTES TOKGIGABYTES TOKBYTES
+%token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
+%token TOKANYTYPE TOKANYNAME TOKANYSIZE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1434,6 +1435,85 @@ expritem: not icase strv area
 
 		  data->time = -1;
 	  }
+        | not TOKATTACHMENT TOKCOUNT cmp numv
+	  {
+		  struct attachment_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_attachment;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->op = ATTACHOP_COUNT;
+		  data->cmp = $4;
+		  data->value.number = $5;
+	  }
+        | not TOKATTACHMENT TOKTOTALSIZE cmp size
+	  {
+		  struct attachment_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_attachment;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->op = ATTACHOP_TOTALSIZE;
+		  data->cmp = $4;
+		  data->value.number = $5;
+	  }
+        | not TOKATTACHMENT TOKANYSIZE cmp size
+	  {
+		  struct attachment_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_attachment;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->op = ATTACHOP_ANYSIZE;
+		  data->cmp = $4;
+		  data->value.number = $5;
+	  }
+        | not TOKATTACHMENT TOKANYTYPE strv
+	  {
+		  struct attachment_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_attachment;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->op = ATTACHOP_ANYTYPE;
+		  data->value.string = $4;
+	  }
+        | not TOKATTACHMENT TOKANYNAME strv
+	  {
+		  struct attachment_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_attachment;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->op = ATTACHOP_ANYNAME;
+		  data->value.string = $4;
+	  }
+
 
 /** EXPRLIST: <expr> (struct expr *) */
 exprlist: exprlist exprop expritem
