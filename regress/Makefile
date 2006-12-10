@@ -2,7 +2,8 @@
 
 CLEANFILES= *~
 
-TESTFILES= account.test macros.test options.test proxy.test nested.test
+TESTFILES= account.test macros.test options.test proxy.test nested.test \
+	   size.test attachment.test
 
 TARGETS= 
 .for n in ${TESTFILES}

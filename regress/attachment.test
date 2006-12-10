@@ -1,0 +1,29 @@
+# $Id$
+
+!account "account" stdin
+!action "action" drop
+
+match attachment count < 0 action "action"
+@0
+match attachment count > 0 action "action"
+@0
+
+match attachment total-size < 0 action "action"
+@0
+match attachment total-size > 0 action "action"
+@0
+
+match attachment any-size < 0 action "action"
+@0
+match attachment any-size > 0 action "action"
+@0
+
+match attachment any-name "string" action "action"
+@0
+match attachment any-name "" action "action"
+@1 ^/dev/stdin: invalid string at line 3$
+
+match attachment any-type "string" action "action"
+@0
+match attachment any-type "" action "action"
+@1 ^/dev/stdin: invalid string at line 3$
