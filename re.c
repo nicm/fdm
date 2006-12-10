@@ -27,7 +27,7 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 	size_t	 len;
 	char	*buf;
 
-	if (*s == '\0') {
+	if (s == NULL || *s == '\0') {
 		*cause = xstrdup("invalid regexp");
 		return (1);
 	}

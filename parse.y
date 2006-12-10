@@ -1275,9 +1275,6 @@ expritem: not icase strv area
 		  int	 		 flags;
 		  char			*cause;
 
-		  if (*$3 == '\0')
-			  yyerror("invalid regexp");
-
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_regexp;
 		  $$->inverted = $1;
@@ -1291,7 +1288,7 @@ expritem: not icase strv area
 		  if ($2)
 			  flags |= REG_ICASE;
 		  if (re_compile(&data->re, $3, flags, &cause) != 0)
-			  yyerror("%s: %s", $3, cause);
+			  yyerror("%s", cause);
 	  }
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
@@ -1305,8 +1302,6 @@ expritem: not icase strv area
 			  yyerror("invalid command");
 		  if ($7 == -1 && $9 == NULL)
 			  yyerror("return code or regexp must be specified");
-		  if ($9 != NULL && *$9 == '\0')
-			  yyerror("invalid regexp");
 
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_command;
@@ -1324,7 +1319,7 @@ expritem: not icase strv area
 		  if ($9 != NULL) {
 			  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
 			  if (re_compile(&data->re, $9, flags, &cause) != 0)
-				  yyerror("%s: %s", $9, cause);
+				  yyerror("%s", cause);
 		  }
 
 	  }
@@ -1374,8 +1369,6 @@ expritem: not icase strv area
 
 		  if (*$3 == '\0')
 			  yyerror("invalid string");
-		  if (*$5 == '\0')
-			  yyerror("invalid regexp");
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1389,7 +1382,7 @@ expritem: not icase strv area
 
 		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
 		  if (re_compile(&data->re, $5, flags, &cause) != 0)
-			  yyerror("%s: %s", $5, cause);
+			  yyerror("%s", cause);
 	  }
         | not TOKMATCHED
 /**       [$1: not (int)] */
