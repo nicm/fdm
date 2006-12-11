@@ -286,7 +286,7 @@ find_users(struct mail *m)
 		xfree(users);
 		return (NULL);
 	}
-	return (users);
+	return (weed_strings(users));
 }
 
 char *

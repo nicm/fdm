@@ -49,6 +49,14 @@ set domains { "domain1" "domain2" }
 @0 ^domains are: "domain1" "domain2"$
 set domains { }
 @1 ^/dev/stdin: syntax error at line 1$
+set domains { "domain1" "domain2" "domain1" }
+@0 ^domains are: "domain1" "domain2"$
+set domains { "domain1" "domain2" "domain1" "domain2" }
+@0 ^domains are: "domain1" "domain2"$
+set domains { "domain1" "domain1" "domain2" }
+@0 ^domains are: "domain1" "domain2"$
+set domains { "domain1" "domain1" "domain2" "domain2" }
+@0 ^domains are: "domain1" "domain2"$
 
 set header ""
 @1 ^/dev/stdin: invalid header at line 1$
@@ -68,6 +76,12 @@ set headers { "header1" "header2" }
 @0 ^headers are: "header1" "header2"$
 set headers { }
 @1 ^/dev/stdin: syntax error at line 1$
+set headers { "header1" "header2" "header1" "header2" }
+@0 ^headers are: "header1" "header2"$
+set headers { "header1" "header1" "header2" }
+@0 ^headers are: "header1" "header2"$
+set headers { "header1" "header1" "header2" "header2" }
+@0 ^headers are: "header1" "header2"$
 
 set unmatched-mail drop
 @0

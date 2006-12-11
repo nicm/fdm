@@ -115,6 +115,40 @@ yywrap(void)
         return (0);
 }
 
+struct strings *
+weed_strings(struct strings *sp)
+{
+	u_int	 i, j;
+	char	*s;
+
+	if (ARRAY_LENGTH(sp) == 0)
+		return (sp);
+
+	for (i = 0; i < ARRAY_LENGTH(sp) - 1; i++) {
+		s = ARRAY_ITEM(sp, i, char *);
+		if (s == NULL)
+			continue;
+
+		for (j = i + 1; j < ARRAY_LENGTH(sp); j++) {
+			if (ARRAY_ITEM(sp, j, char *) == NULL)
+				continue;
+		
+			if (strcmp(s, ARRAY_ITEM(sp, j, char *)) == 0)
+				ARRAY_ITEM(sp, j, char *) = NULL;
+		}
+	}
+
+	i = 0;
+	while (i < ARRAY_LENGTH(sp)) {
+		if (ARRAY_ITEM(sp, i, char *) == NULL)
+			ARRAY_REMOVE(sp, i, char *);  
+		else
+			i++;
+	}
+
+	return (sp);
+}
+
 char *
 fmt_strings(const char *prefix, struct strings *sp)
 {
@@ -554,7 +588,7 @@ set: TOKSET TOKMAXSIZE size
 		     xfree(conf.domains);
 	     }
 
-	     conf.domains = $2;
+	     conf.domains = weed_strings($2);
      }
    | TOKSET headers
 /**  [$2: headers (struct strings *)] */
@@ -568,7 +602,7 @@ set: TOKSET TOKMAXSIZE size
 		     xfree(conf.headers);
 	     }
 
-	     conf.headers = $2;
+	     conf.headers = weed_strings($2);
      }
    | TOKSET TOKPROXY strv
 /**  [$3: strv (char *)] */
@@ -865,6 +899,7 @@ users: /* empty */
 /**    [$3: userslist (struct { ... } users)] */
        {
 	       $$ = $3;
+	       $$.users = weed_strings($$.users);
 	       $$.find_uid = 0;
        }
 
@@ -1665,7 +1700,7 @@ rule: match accounts perform
 	      struct expritem	*ei;
 	      char		 s1[1024], s2[1024], *s, *sa;
 
-	      $3->accounts = $2;
+	      $3->accounts = weed_strings($2);
 	      $3->expr = $1.expr;
 	      $3->type = $1.type;
 
@@ -1815,7 +1850,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.fetch = &fetch_maildir;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->maildirs = $1;
+		   data->maildirs = weed_strings($1);
 	   }
 
 /** ACCOUNT */
