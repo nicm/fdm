@@ -28,7 +28,7 @@ struct deliver deliver_drop = { DELIVER_INCHILD, drop_deliver, drop_desc };
 int
 drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
 {
-	dctx->mail->decision = DECISION_DROP;
+	*dctx->decision = DECISION_DROP;
 
 	return (DELIVER_SUCCESS);
 }

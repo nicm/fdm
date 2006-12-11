@@ -252,8 +252,6 @@ struct mail {
 	struct strings	 tags;
 	char		*s;		/* fetch-specific string */
 
-	enum decision	 decision;
-
 	struct shm	 shm;
 
 	char		*base;
@@ -550,7 +548,10 @@ struct fetch {
 struct deliver_ctx {
 	struct account	*account;
 	struct mail	*mail;
+
 	struct mail	 wr_mail;
+
+	enum decision	*decision;
 };
 
 /* Deliver return codes. */
@@ -582,6 +583,8 @@ struct match_ctx {
 	struct io	*io;
 	struct account	*account;
 	struct mail     *mail;
+
+	enum decision	 decision;
 
 	int		 matched;
 	int		 stopped;

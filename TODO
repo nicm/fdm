@@ -16,6 +16,5 @@
 	action strip-attachments
 	action strip-attachments
 	action pipe-attachments "cmd" 
-- move decision into mctx/dctx
 - merge dctx/mctx?
 - attach get name from content-disposition

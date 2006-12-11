@@ -184,14 +184,14 @@ fetch_account(struct io *io, struct account *a)
 		memset(&m, 0, sizeof m);
 		m.body = -1;
 		ARRAY_INIT(&m.tags);
-		/* drop mail by default unless something else comes along */
-		m.decision = DECISION_DROP;
 
 		memset(&mctx, 0, sizeof mctx);
 		mctx.io = io;
 		mctx.account = a;
 		mctx.mail = &m;
 		ARRAY_INIT(&mctx.attach_matches);
+		/* drop mail by default unless something else comes along */
+		mctx.decision = DECISION_DROP;
 
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
@@ -249,26 +249,26 @@ fetch_account(struct io *io, struct account *a)
 		case DECISION_NONE:
 			log_warnx("%s: reached end of ruleset. no "
 			    "unmatched-mail option; keeping mail",  a->name);
-			m.decision = DECISION_KEEP;
+			mctx.decision = DECISION_KEEP;
 			break;
 		case DECISION_KEEP:
 			log_debug("%s: reached end of ruleset. keeping mail",
 			    a->name);
-			m.decision = DECISION_KEEP;
+			mctx.decision = DECISION_KEEP;
 			break;
 		case DECISION_DROP:
 			log_debug("%s: reached end of ruleset. dropping mail",
 			    a->name);
-			m.decision = DECISION_DROP;
+			mctx.decision = DECISION_DROP;
 			break;
 		}
 
 	done:
 		if (conf.keep_all || a->keep)
-			m.decision = DECISION_KEEP;
+			mctx.decision = DECISION_KEEP;
 
 		/* finished with the message */
-		switch (m.decision) {
+		switch (mctx.decision) {
 		case DECISION_DROP:
 			dropped++;
 			log_debug("%s: deleting message", a->name);
@@ -506,6 +506,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = a;
 		dctx.mail = m;
+		dctx.decision = &mctx->decision;
 
 		if (t->deliver->deliver(&dctx, t) != DELIVER_SUCCESS)
 			return (1);
@@ -557,8 +558,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 			/* check everything that should be is the same
 			   (not that it matters) */
 			if (m->size != msg.data.mail.size ||
-			    m->body != msg.data.mail.body ||
-			    m->decision != msg.data.mail.decision)
+			    m->body != msg.data.mail.body)
 				fatalx("child: corrupted message");
 			continue;
 		}
@@ -570,9 +570,6 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		ARRAY_INIT(&m->tags);
 		msg.data.mail.s = m->s;
 		m->s = NULL;
-
-		/* save the decision (only in-child delivery can alter it) */
-		msg.data.mail.decision = m->decision;
 
 		/* free the old mail */
 		free_mail(m, 1);

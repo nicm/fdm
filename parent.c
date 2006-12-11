@@ -151,6 +151,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	memset(&dctx, 0, sizeof dctx);
 	dctx.account = a;
 	dctx.mail = m;
+	dctx.decision = NULL;	/* cannot be altered outside child */
 
 	/* if writing back, open a new mail now and set its ownership so it
 	   can be accessed by the child */
