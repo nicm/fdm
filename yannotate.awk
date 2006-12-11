@@ -96,7 +96,7 @@ BEGIN {
 	next;
 }
 
-/^[a-z]+: / {
+/^[a-z0-9]+: / {
 	type = rules[substr($1, 1, length($1) - 1)];
 	if (type != 0) {
 		print ("/** " toupper($1) " " type " (" types[type] ") */");
