@@ -30,6 +30,13 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct attachment_data	*data = ei->data;
 	struct mail		*m = mctx->mail;
+	struct attach		*atp, *at;
+	size_t			 size;
+	u_int			 n, i;
+
+	if (data->op == ATTACHOP_COUNT || data->op == ATTACHOP_TOTALSIZE) {
+		size = n = 0;
+	}
 
 	return (MATCH_ERROR);
 }

@@ -29,28 +29,27 @@ struct attach	*attach_get(struct mail *, char **, size_t *, const char *,
 		    int *);
 
 void
-attach_print(struct attach *at, const char *prefix, u_int n)
+attach_print(struct attach *atr, const char *prefix, u_int n)
 {
-	u_int	i;
+	struct attach	*at;
 
-	if (ARRAY_EMPTY(&at->list)) {
-		if (at->name == NULL) {
+	if (TAILQ_EMPTY(&atr->children)) {
+		if (atr->name == NULL) {
 			log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
-			    "body %zu", prefix, n + 1, " ", at->idx, at->type,
-			    at->data, at->size, at->body);
+			    "body %zu", prefix, n + 1, " ", atr->idx, atr->type,
+			    atr->data, atr->size, atr->body);
 		} else {
 			log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
-			    "body %zu: %s", prefix, n + 1, " ", at->idx,
-			    at->type, at->data, at->size, at->body, at->name);
+			    "body %zu: %s", prefix, n + 1, " ", atr->idx,
+			    atr->type, atr->data, atr->size, atr->body,
+			    atr->name);
 		}
 		return;
 	}
 
-	log_debug("%s:%*s%u, %s", prefix, n  + 1, " ", at->idx, at->type);
-	for (i = 0; i < ARRAY_LENGTH(&at->list); i++) {
-		attach_print(ARRAY_ITEM(&at->list, i, struct attach *),
-		    prefix, n + 1);
-	}
+	log_debug("%s:%*s%u, %s", prefix, n  + 1, " ", atr->idx, atr->type);
+	TAILQ_FOREACH(at, &atr->children, entry)
+		attach_print(at, prefix, n + 1);
 }
 
 void
@@ -70,19 +69,21 @@ attach_log(struct attach *at, const char *fmt, ...)
 }
 
 void
-attach_free(struct attach *at)
+attach_free(struct attach *atr)
 {
-	u_int	i;
+	struct attach	*at;
+	
+	while (!TAILQ_EMPTY(&atr->children)) {
+		at = TAILQ_FIRST(&atr->children);
+		TAILQ_REMOVE(&atr->children, at, entry);
+		attach_free(at);
+	}
 
-	for (i = 0; i < ARRAY_LENGTH(&at->list); i++)
-		attach_free(ARRAY_ITEM(&at->list, i, struct attach *));
-
-	ARRAY_FREE(&at->list);
-	if (at->type != NULL)
-		xfree(at->type);
-	if (at->name != NULL)
-		xfree(at->name);
-	xfree(at);
+	if (atr->type != NULL)
+		xfree(atr->type);
+	if (atr->name != NULL)
+		xfree(atr->name);
+	xfree(atr);
 }
 
 char *
@@ -211,7 +212,7 @@ attach_build(struct mail *m)
 
 	atr = xmalloc(sizeof *atr);
 	memset(atr, 0, sizeof *atr);
-	ARRAY_INIT(&atr->list);
+	TAILQ_INIT(&atr->children);
 
 	atr->type = attach_type(m, hdr, "boundary", &b);
 	if (atr->type == NULL || b == NULL)
@@ -236,8 +237,9 @@ attach_build(struct mail *m)
 		at = attach_get(m, &ptr, &len, b, &last);
 		if (at == NULL)
 			goto error;
-		at->idx = ARRAY_LENGTH(&atr->list);
-		ARRAY_ADD(&atr->list, at, struct attach *);
+		at->idx = 0; /* XXX ARRAY_LENGTH(&atr->list); */
+		at->parent = atr;
+		TAILQ_INSERT_TAIL(&atr->children, at, entry);
 	}
 	if (ptr == NULL)
 		goto error;
@@ -265,7 +267,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 
 	atr = xmalloc(sizeof *atr);
 	memset(atr, 0, sizeof *atr);
-	ARRAY_INIT(&atr->list);
+	TAILQ_INIT(&atr->children);
 
 	atr->data = *ptr - m->data;
 
@@ -337,8 +339,9 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 			at = attach_get(m, ptr, len, b2, &last2);
 			if (at == NULL)
 				goto error;
-			at->idx = ARRAY_LENGTH(&atr->list);
-			ARRAY_ADD(&atr->list, at, struct attach *);
+			at->idx = 0; /* XXX ARRAY_LENGTH(&atr->list); */
+			at->parent = atr;
+			TAILQ_INSERT_TAIL(&atr->children, at, entry);
 		}
 
 		/* and skip on to the end of the multipart */

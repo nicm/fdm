@@ -269,21 +269,21 @@ struct mail {
 	ssize_t	 	 body;		/* offset of body */
 };
 
-/* Array of atachments. */
-ARRAY_DECL(attachs, struct attach *);
-
 /* An attachment. */
 struct attach {
-	u_int	 	 idx;
+	u_int	 	 	 idx;
 
-	size_t		 data;
-	size_t	 	 body;
-	size_t   	 size;
+	size_t		 	 data;
+	size_t	 	 	 body;
+	size_t   	 	 size;
 
-	char		*type;
-	char		*name;
+	char			*type;
+	char			*name;
 
-	struct attachs	 list;
+	struct attach		*parent;
+	TAILQ_HEAD(, attach)	 children;
+
+	TAILQ_ENTRY(attach)	 entry;
 };
 
 /* Regexp wrapper struct. */
@@ -590,7 +590,7 @@ struct match_ctx {
 	regmatch_t	 pmatch[NPMATCH];
 
 	struct attach	*attach;
-	struct attachs	 attach_matches;
+	ARRAY_DECL(, struct attach *)	attach_matches;
 };
 
 /* Match functions. */
