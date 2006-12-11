@@ -437,7 +437,7 @@ set_wrapped(struct mail *m, char ch)
 	u_int	i;
 
 	if (m->wrapped == NULL)
-		fatalx("set_wrapped: unwrapped mail");
+		return;
 
 	for (i = 0; m->wrapped[i] > 0; i++)
 		m->data[m->wrapped[i]] = ch;
