@@ -343,6 +343,8 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		/* XXX avoid doing this twice */
 		xfree(atr->type);
 		atr->type = attach_type(m, *ptr, "boundary", &b2);
+		if (b2 == NULL)
+			goto error;
 
 		bl2 = strlen(b2);
 
