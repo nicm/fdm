@@ -19,4 +19,4 @@
   add "attachment all" to match all attachments
 - attach get name from content-disposition
 - document attach in man page
-
+- tidy xmalloc debug stuff (seperate file and #define wrappers or what?)

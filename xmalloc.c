@@ -70,7 +70,7 @@ xmalloc_dump(const char *hdr)
 	size_t	 		 off;
  	u_int	 		 i, j, n = 0;
 
-	log_debug2("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zd",
+	log_debug2("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zu",
 	    hdr, xmalloc_allocated, xmalloc_freed,
 	    xmalloc_allocated - xmalloc_freed, xmalloc_peak);
 	log_debug2("%s: mallocs=%u, reallocs=%u, frees=%u", hdr,
