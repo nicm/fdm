@@ -226,6 +226,7 @@ attach_build(struct mail *m)
 	char		*hdr, *ptr, *b = NULL;
 	size_t		 len, bl;
 	int		 last;
+	u_int		 n;
 
 	hdr = find_header(m, "content-type:", &len);
 	if (hdr == NULL)
@@ -255,11 +256,12 @@ attach_build(struct mail *m)
 
 	/* now iterate over the rest */
 	last = 0;
+	n = 0;
 	while (ptr != NULL && !last) {
 		at = attach_get(m, &ptr, &len, b, &last);
 		if (at == NULL)
 			goto error;
-		at->idx = 0; /* XXX ARRAY_LENGTH(&atr->list); */
+		at->idx = n++;
 		at->parent = atr;
 		TAILQ_INSERT_TAIL(&atr->children, at, entry);
 	}
@@ -284,6 +286,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	char		*name = NULL, *b2 = NULL;
 	size_t		 bl, bl2;
 	int		 last2;
+	u_int		 n;
 
 	bl = strlen(b);
 
@@ -357,11 +360,12 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 
 		/* now iterate over the rest */
 		last2 = 0;
+		n = 0;
 		while (*ptr != NULL && !last2) {
 			at = attach_get(m, ptr, len, b2, &last2);
 			if (at == NULL)
 				goto error;
-			at->idx = 0; /* XXX ARRAY_LENGTH(&atr->list); */
+			at->idx = n++;
 			at->parent = atr;
 			TAILQ_INSERT_TAIL(&atr->children, at, entry);
 		}
