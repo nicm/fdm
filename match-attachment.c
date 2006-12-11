@@ -29,13 +29,66 @@ int
 attachment_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct attachment_data	*data = ei->data;
-	struct mail		*m = mctx->mail;
-	struct attach		*atp, *at;
+	struct attach		*at;
 	size_t			 size;
-	u_int			 n, i;
+	u_int			 n;
 
 	if (data->op == ATTACHOP_COUNT || data->op == ATTACHOP_TOTALSIZE) {
-		size = n = 0;
+		size = 0;
+		n = 0;
+		at = mctx->attach;
+		while (at != NULL) {
+			size += at->size;
+			n++;
+			at = attach_visit(at, NULL);
+		}
+		switch (data->op) {
+		case ATTACHOP_COUNT:
+			switch (data->cmp) {
+			case CMP_EQ:
+				if (n == data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			case CMP_NE:
+				if (n != data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			case CMP_LT:
+				if (n < data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			case CMP_GT:
+				if (n > data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			}
+			return (MATCH_ERROR);
+		case ATTACHOP_TOTALSIZE:
+			switch (data->cmp) {
+			case CMP_EQ:
+				if (size == data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			case CMP_NE:
+				if (size != data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			case CMP_LT:
+				if (size < data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			case CMP_GT:
+				if (size > data->value.number)
+					return (MATCH_TRUE);
+				return (MATCH_FALSE);
+			}
+			return (MATCH_ERROR);
+		default:
+			return (MATCH_ERROR);
+		}
+	} else {
+		if (mctx->attach == NULL)
+			return (MATCH_FALSE);
 	}
 
 	return (MATCH_ERROR);
