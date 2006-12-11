@@ -14,7 +14,6 @@
 - actions on attachments. keep list of matched attachments for current rule.
   must all be in child:
 	action strip-attachments
-	action strip-attachments
-	action pipe-attachments "cmd" 
-- merge dctx/mctx?
+	action pipe-attachments "cmd" (pass struct attach to parent?)
+  add "attachment all" to match all attachments
 - attach get name from content-disposition
