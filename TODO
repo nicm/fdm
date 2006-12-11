@@ -2,10 +2,8 @@
 - auth on http proxying
 - http (hotmail) fetching
 - look into GSSAPI, POP3's MD5 thing, all that other crap
-- filter based on attachment size, quantity, type?
 - redo chrooting properly (resolver needs to be in parent)
 - fetch from mbox
-- test/fix multiuser (X-Envelope-To, weed out duplicate users)
 - finish regression tests
 - message-id cache, weed out message duplicates
 - balance man pages/manual
@@ -20,3 +18,5 @@
 	action pipe-attachments "cmd" (pass struct attach to parent?)
   add "attachment all" to match all attachments
 - attach get name from content-disposition
+- document attach in man page
+
