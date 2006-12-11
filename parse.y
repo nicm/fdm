@@ -588,7 +588,7 @@ set: TOKSET TOKMAXSIZE size
 		     xfree(conf.domains);
 	     }
 
-	     conf.domains = weed_strings($2);
+	     conf.domains = $2;
      }
    | TOKSET headers
 /**  [$2: headers (struct strings *)] */
@@ -602,7 +602,7 @@ set: TOKSET TOKMAXSIZE size
 		     xfree(conf.headers);
 	     }
 
-	     conf.headers = weed_strings($2);
+	     conf.headers = $2;
      }
    | TOKSET TOKPROXY strv
 /**  [$3: strv (char *)] */
@@ -682,7 +682,7 @@ domains: TOKDOMAIN strv
        | TOKDOMAINS '{' domainslist '}'
 /**      [$3: domainslist (struct strings *)] */
 	 {
-		 $$ = $3;
+		 $$ = weed_strings($3);
 	 }
 
 /** DOMAINSLIST: <strings> (struct strings *) */
@@ -732,7 +732,7 @@ headers: TOKHEADER strv
        | TOKHEADERS '{' headerslist '}'
 /**      [$3: headerslist (struct strings *)] */
 	 {
-		 $$ = $3;
+		 $$ = weed_strings($3);
 	 }
 
 /** HEADERSLIST: <strings> (struct strings *) */
@@ -799,7 +799,7 @@ maildirs: TOKMAILDIR strv
         | TOKMAILDIRS '{' pathslist '}'
 /**       [$3: pathslist (struct strings *)] */
 	  {
-		  $$ = $3;
+		  $$ = weed_strings($3);
 	  }
 
 /** LOCK: <locks> (u_int) */
@@ -1146,7 +1146,7 @@ accounts: /* empty */
 	| TOKACCOUNTS '{' accountslist '}'
 /**       [$3: accountslist (struct strings *)] */
 	  {
-		  $$ = $3;
+		  $$ = weed_strings($3);
 	  }
 
 /** ACCOUNTSLIST: <strings> (struct strings *) */
@@ -1700,7 +1700,7 @@ rule: match accounts perform
 	      struct expritem	*ei;
 	      char		 s1[1024], s2[1024], *s, *sa;
 
-	      $3->accounts = weed_strings($2);
+	      $3->accounts = $2;
 	      $3->expr = $1.expr;
 	      $3->type = $1.type;
 
@@ -1850,7 +1850,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.fetch = &fetch_maildir;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->maildirs = weed_strings($1);
+		   data->maildirs = $1;
 	   }
 
 /** ACCOUNT */
