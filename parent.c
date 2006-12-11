@@ -76,6 +76,7 @@ parent(int fd, pid_t pid)
 
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
+			m->attach = NULL;
 
 			uid = data->uid;
 			error = parent_action(data->account, data->action, m,
@@ -100,6 +101,7 @@ parent(int fd, pid_t pid)
 
 			ARRAY_INIT(&m->tags);
 			m->wrapped = NULL;
+			m->attach = NULL;
 
 			uid = data->uid;
 			error = parent_command(data->account, data->cmddata, m,

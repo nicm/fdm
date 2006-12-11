@@ -254,6 +254,8 @@ struct mail {
 
 	struct shm	 shm;
 
+	struct attach	*attach;
+
 	char		*base;
 
 	char		*data;
@@ -591,9 +593,6 @@ struct match_ctx {
 
 	int		 pmatch_valid;
 	regmatch_t	 pmatch[NPMATCH];
-
-	struct attach	*attach;
-	ARRAY_DECL(, struct attach *)	attach_matches;
 };
 
 /* Match functions. */
