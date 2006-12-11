@@ -892,6 +892,7 @@ int			 re_execute(struct re *, char *, int, regmatch_t *,
 int			 re_simple(struct re *, char *, char **);
 
 /* attach.c */
+struct attach 		*attach_visit(struct attach *, u_int *);
 void printflike2	 attach_log(struct attach *, const char *, ...);
 struct attach 		*attach_build(struct mail *);
 void			 attach_free(struct attach *);

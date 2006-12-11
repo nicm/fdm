@@ -23,47 +23,69 @@
 
 #include "fdm.h"
 
-void		 attach_print(struct attach *, const char *, u_int);
 char 		*attach_type(struct mail *, char *, const char *, char **);
 struct attach	*attach_get(struct mail *, char **, size_t *, const char *,
 		    int *);
 
-void
-attach_print(struct attach *atr, const char *prefix, u_int n)
+struct attach *
+attach_visit(struct attach *atr, u_int *n)
 {
-	struct attach	*at;
+	struct attach	*atn;
+
+	if (atr == NULL)
+		return (NULL);
 
 	if (TAILQ_EMPTY(&atr->children)) {
-		if (atr->name == NULL) {
-			log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
-			    "body %zu", prefix, n + 1, " ", atr->idx, atr->type,
-			    atr->data, atr->size, atr->body);
-		} else {
-			log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
-			    "body %zu: %s", prefix, n + 1, " ", atr->idx,
-			    atr->type, atr->data, atr->size, atr->body,
-			    atr->name);
-		}
-		return;
+		atn = TAILQ_NEXT(atr, entry);
+		if (atn == NULL) {
+			if (n != NULL)
+				(*n)--;
+			atr = atr->parent;
+			if (atr != NULL)
+				atr = TAILQ_NEXT(atr, entry);
+		} else
+			atr = atn;
+	} else {
+		if (n != NULL)
+			(*n)++;
+		atr = TAILQ_FIRST(&atr->children);
 	}
 
-	log_debug("%s:%*s%u, %s", prefix, n  + 1, " ", atr->idx, atr->type);
-	TAILQ_FOREACH(at, &atr->children, entry)
-		attach_print(at, prefix, n + 1);
+	return (atr);
 }
 
 void
-attach_log(struct attach *at, const char *fmt, ...)
+attach_log(struct attach *atr, const char *fmt, ...)
 {
-	va_list	 ap;
-	char	*prefix;
+	va_list	 	 ap;
+	char		*prefix;
+	u_int		 n;
 
 	va_start(ap, fmt);
 	if (vasprintf(&prefix, fmt, ap) < 0)
 		fatalx("vasprintf");
 	va_end(ap);
 
-	attach_print(at, prefix, 0);
+	n = 0;
+	while (atr != NULL) {
+		if (TAILQ_EMPTY(&atr->children)) {
+			if (atr->name == NULL) {
+				log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
+				    "body %zu", prefix, n + 1, " ", atr->idx,
+				    atr->type, atr->data, atr->size, atr->body);
+			} else {
+				log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
+				    "body %zu: %s", prefix, n + 1, " ",
+				    atr->idx, atr->type, atr->data, atr->size,
+				    atr->body, atr->name);
+			}
+		} else {
+			log_debug("%s:%*s%u, %s", prefix, n  + 1, " ", atr->idx,
+			    atr->type);
+		}
+
+		atr = attach_visit(atr, &n);
+	}
 
 	free(prefix);
 }
