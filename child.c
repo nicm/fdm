@@ -344,6 +344,9 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 				continue;
 		}
 
+		/* clear the matched attachments list */
+		ARRAY_FREE(&mctx->attach_matches);
+
 		/* match all the regexps */
 		switch (r->type) {
 		case RULE_EXPRESSION:

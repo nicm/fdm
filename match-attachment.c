@@ -18,6 +18,8 @@
 
 #include <sys/types.h>
 
+#include <fnmatch.h>
+
 #include "fdm.h"
 
 int	attachment_match(struct match_ctx *, struct expritem *);
@@ -40,6 +42,7 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 		while (at != NULL) {
 			size += at->size;
 			n++;
+
 			at = attach_visit(at, NULL);
 		}
 		switch (data->op) {
@@ -61,18 +64,11 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 				if (n > data->value.number)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
+			default:
+				return (MATCH_ERROR);
 			}
-			return (MATCH_ERROR);
 		case ATTACHOP_TOTALSIZE:
 			switch (data->cmp) {
-			case CMP_EQ:
-				if (size == data->value.number)
-					return (MATCH_TRUE);
-				return (MATCH_FALSE);
-			case CMP_NE:
-				if (size != data->value.number)
-					return (MATCH_TRUE);
-				return (MATCH_FALSE);
 			case CMP_LT:
 				if (size < data->value.number)
 					return (MATCH_TRUE);
@@ -81,17 +77,57 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 				if (size > data->value.number)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
+			default:
+				return (MATCH_ERROR);
 			}
-			return (MATCH_ERROR);
 		default:
 			return (MATCH_ERROR);
 		}
 	} else {
+		/* if no attachments, none of these conditions are true */
 		if (mctx->attach == NULL)
 			return (MATCH_FALSE);
-	}
+		
+		at = mctx->attach;
+		while (at != NULL) {
+			switch (data->op) {
+			case ATTACHOP_ANYSIZE:
+				switch (data->cmp) {
+				case CMP_LT:
+					if (at->size < data->value.number)
+						return (MATCH_TRUE);
+					break;
+				case CMP_GT:
+					if (at->size > data->value.number)
+						return (MATCH_TRUE);
+					break;
+				default:
+					return (MATCH_ERROR);
+				}
+				break;
+			case ATTACHOP_ANYTYPE:
+				if (at->type == NULL)
+					break;
+				if (fnmatch(data->value.string, at->type,
+				    FNM_CASEFOLD) == 0)
+					return (MATCH_TRUE);
+				break;
+			case ATTACHOP_ANYNAME:
+				if (at->name == NULL)
+					break;
+				if (fnmatch(data->value.string, at->name,
+				    FNM_CASEFOLD) == 0)
+					return (MATCH_TRUE);
+				break;
+			default:
+				return (MATCH_ERROR);
+			}
 
-	return (MATCH_ERROR);
+			at = attach_visit(at, NULL);
+		}
+		
+		return (MATCH_FALSE);
+	}
 }
 
 char *

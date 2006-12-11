@@ -9,26 +9,13 @@
 - finish regression tests
 - message-id cache, weed out message duplicates
 - balance man pages/manual
-- match:
-	save list of matching attachments in mail
-
-	match attachment count <> n
-	match attachment total-size <> n
-	match attachment any-size <> n
-	match attachment any-type "fnmatch"
-	match attachment any-name "fnmatch"
-	match attachment all
-	match attachment
-
-	expressions:
-
+- match attachment expressions:
 	match attachment (index <> n and size < 200 and type "fnmatch")
-
-must all be in child:
+- actions on attachments. keep list of matched attachments for current rule.
+  must all be in child:
 	action strip-attachments
 	action strip-attachments
 	action pipe-attachments "cmd" 
-
 - move decision into mctx/dctx
 - merge dctx/mctx?
 - attach get name from content-disposition
