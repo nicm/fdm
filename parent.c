@@ -129,7 +129,7 @@ parent(int fd, pid_t pid)
 
 #ifdef DEBUG
 	COUNTFDS("parent");
-	xmalloc_dump("parent");
+	xmalloc_report("parent");
 #endif
 
 	if (waitpid(pid, &status, 0) == -1)
@@ -283,7 +283,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 
 #ifdef DEBUG
 	COUNTFDS("deliver");
-	xmalloc_dump("deliver");
+	xmalloc_report("deliver");
 #endif
 
 	_exit(0);

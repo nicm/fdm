@@ -130,7 +130,7 @@ child(int fd, enum fdmop op)
 
 #ifdef DEBUG
 	COUNTFDS("child");
-	xmalloc_dump("child");
+	xmalloc_report("child");
 #endif
 
 	return (rc);

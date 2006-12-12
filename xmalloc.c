@@ -28,181 +28,6 @@
 
 #include "fdm.h"
 
-#ifdef DEBUG
-size_t	xmalloc_allocated;
-size_t	xmalloc_freed;
-size_t	xmalloc_peak;
-u_int	xmalloc_frees;
-u_int	xmalloc_mallocs;
-u_int	xmalloc_reallocs;
-
-struct xmalloc_block {
-	void	*ptr;
-	size_t	 size;
-};
-#define XMALLOC_SLOTS 8192
-struct xmalloc_block	 xmalloc_array[XMALLOC_SLOTS];
-
-struct xmalloc_block	*xmalloc_find(void *);
-void			 xmalloc_new(void *, size_t);
-void			 xmalloc_change(void *, void *, size_t);
-void			 xmalloc_free(void *);
-
-void
-xmalloc_clear(void)
-{
- 	u_int	i;
-
-	xmalloc_allocated = 0;
-	xmalloc_freed = 0;
-
-	for (i = 0; i < XMALLOC_SLOTS; i++)
-		xmalloc_array[i].ptr = NULL;
-}
-
-void
-xmalloc_dump(const char *hdr)
-{
-	struct xmalloc_block	*p;
-	char	 		 tmp[4096];
-	int			 m;
-	size_t	 		 len;
-	size_t	 		 off;
- 	u_int	 		 i, j, n = 0;
-
-	log_debug2("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zu",
-	    hdr, xmalloc_allocated, xmalloc_freed,
-	    xmalloc_allocated - xmalloc_freed, xmalloc_peak);
-	log_debug2("%s: mallocs=%u, reallocs=%u, frees=%u", hdr,
-	    xmalloc_mallocs, xmalloc_reallocs, xmalloc_frees);
-
-	if (xmalloc_allocated == xmalloc_freed)
-		return;
-
-	len = sizeof tmp;
-	if ((m = xsnprintf(tmp, len, "%s: ", hdr)) < 0)
-		fatal("xsnprintf");
-	off = m;
-	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		n++;
-		if (n > 64)
-			break;
-
-		p = &xmalloc_array[i];
-		if (p->ptr != NULL) {
-			if ((m = xsnprintf(tmp + off, len - off, "[%p %zu:",
-			    p->ptr, p->size)) < 0)
-				break;
-			off += m;
-
-			for (j = 0; j < (p->size > 8 ? 8 : p->size); j++) {
-				if (((char *) p->ptr)[j] > 31) {
-					m = xsnprintf(tmp + off, len - off,
-					    "%c", ((char *) p->ptr)[j]);
-				} else {
-					m = xsnprintf(tmp + off, len - off,
-					    "\\%03o", ((char *) p->ptr)[j]);
-				}
-				if (m < 0)
-					break;
-				off += m;
-			}
-
-			if ((m = xsnprintf(tmp + off, len - off, "] ")) < 0)
-				break;
-			off += m;
-		}
-	}
-	tmp[off - 1] = '\0';
-	log_debug2("%s", tmp);
-}
-
-struct xmalloc_block *
-xmalloc_find(void *ptr)
-{
-	u_int	i;
-
-	/* update peak here since this is called often */
-	if (xmalloc_allocated - xmalloc_freed > xmalloc_peak)
-		xmalloc_peak = xmalloc_allocated - xmalloc_freed;
-
-	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xmalloc_array[i].ptr == ptr)
-			return (&xmalloc_array[i]);
-	}
-	return (NULL);
-}
-
-void
-xmalloc_new(void *ptr, size_t size)
-{
-	struct xmalloc_block	*block;
-
-#if 0
-	log_debug3("xmalloc_new: %p %zu", ptr, size);
-#endif
-
-	if ((block = xmalloc_find(NULL)) == NULL) {
-		log_debug2("xmalloc_new: no space");
-		return;
-	}
-
-	block->ptr = ptr;
-	block->size = size;
-
-	xmalloc_allocated += size;
-}
-
-void
-xmalloc_change(void *oldptr, void *newptr, size_t newsize)
-{
-	struct xmalloc_block	*block;
-	ssize_t			 change;
-
-#if 0
-	log_debug3("xmalloc_change: %p -> %p %zu", oldptr, newptr, newsize);
-#endif
-
-	if (oldptr == NULL) {
-		xmalloc_new(newptr, newsize);
-		return;
-	}
-
-	if ((block = xmalloc_find(oldptr)) == NULL) {
-		log_debug2("xmalloc_change: not found");
-		return;
-	}
-
-	change = newsize - block->size;
-	if (change > 0)
-		xmalloc_allocated += change;
-	else
-		xmalloc_freed -= change;
-
-	block->ptr = newptr;
-	block->size = newsize;
-}
-
-void
-xmalloc_free(void *ptr)
-{
-	struct xmalloc_block	*block;
-
-#if 0
-	log_debug3("xmalloc_free: %p", ptr);
-#endif
-	if ((block = xmalloc_find(ptr)) == NULL) {
-		log_debug2("xmalloc_free: not found (%p)", ptr);
-		return;
-	}
-
-	xmalloc_freed += block->size;
-
-	block->ptr = NULL;
-}
-
-#endif /* DEBUG */
-
 void *
 ensure_for(void *buf, size_t *len, size_t now, size_t nmemb, size_t size)
 {
@@ -257,78 +82,6 @@ xstrdup(const char *s)
         return (strncpy(ptr, s, len));
 }
 
-void *
-xcalloc(size_t nmemb, size_t size)
-{
-        void	*ptr;
-
-        if (size == 0 || nmemb == 0)
-                fatalx("xcalloc: zero size");
-        if (SIZE_MAX / nmemb < size)
-                fatalx("xcalloc: nmemb * size > SIZE_MAX");
-        if ((ptr = calloc(nmemb, size)) == NULL)
-		fatal("xcalloc");
-
-#ifdef DEBUG
-	xmalloc_mallocs++;
-	xmalloc_new(ptr, nmemb * size);
-#endif
-
-        return (ptr);
-}
-
-void *
-xmalloc(size_t size)
-{
-        void	*ptr;
-
-        if (size == 0)
-                fatalx("xmalloc: zero size");
-        if ((ptr = malloc(size)) == NULL)
-		fatal("xmalloc");
-
-#ifdef DEBUG
-	xmalloc_mallocs++;
-	xmalloc_new(ptr, size);
-#endif
-
-        return (ptr);
-}
-
-void *
-xrealloc(void *oldptr, size_t nmemb, size_t size)
-{
-	size_t	 newsize = nmemb * size;
-	void	*newptr;
-
-	if (newsize == 0)
-                fatalx("xrealloc: zero size");
-        if (SIZE_MAX / nmemb < size)
-                fatalx("xrealloc: nmemb * size > SIZE_MAX");
-        if ((newptr = realloc(oldptr, newsize)) == NULL)
-		fatal("xrealloc");
-
-#ifdef DEBUG
-	xmalloc_reallocs++;
-	xmalloc_change(oldptr, newptr, newsize);
-#endif
-
-        return (newptr);
-}
-
-void
-xfree(void *ptr)
-{
-	if (ptr == NULL)
-		fatalx("xfree: null pointer");
-	free(ptr);
-
-#ifdef DEBUG
-	xmalloc_frees++;
-	xmalloc_free(ptr);
-#endif
-}
-
 int printflike3
 xsnprintf(char *str, size_t size, const char *fmt, ...)
 {
@@ -348,23 +101,80 @@ xsnprintf(char *str, size_t size, const char *fmt, ...)
 	return (i);
 }
 
+void *
+xxcalloc(size_t nmemb, size_t size)
+{
+        void	*ptr;
+
+        if (size == 0 || nmemb == 0)
+                fatalx("xcalloc: zero size");
+        if (SIZE_MAX / nmemb < size)
+                fatalx("xcalloc: nmemb * size > SIZE_MAX");
+        if ((ptr = calloc(nmemb, size)) == NULL)
+		fatal("xcalloc");
+
+        return (ptr);
+}
+
+void *
+xxmalloc(size_t size)
+{
+        void	*ptr;
+
+        if (size == 0)
+                fatalx("xmalloc: zero size");
+        if ((ptr = malloc(size)) == NULL)
+		fatal("xmalloc");
+
+        return (ptr);
+}
+
+void *
+xxrealloc(void *oldptr, size_t nmemb, size_t size)
+{
+	size_t	 newsize = nmemb * size;
+	void	*newptr;
+
+	if (newsize == 0)
+                fatalx("xrealloc: zero size");
+        if (SIZE_MAX / nmemb < size)
+                fatalx("xrealloc: nmemb * size > SIZE_MAX");
+        if ((newptr = realloc(oldptr, newsize)) == NULL)
+		fatal("xrealloc");
+
+        return (newptr);
+}
+
+void
+xxfree(void *ptr)
+{
+	if (ptr == NULL)
+		fatalx("xfree: null pointer");
+	free(ptr);
+}
+
 int printflike2
-xasprintf(char **ret, const char *fmt, ...)
+xxasprintf(char **ret, const char *fmt, ...)
 {
         va_list ap;
         int	i;
 
         va_start(ap, fmt);
-        i = vasprintf(ret, fmt, ap);
+        i = xxvasprintf(ret, fmt, ap);
         va_end(ap);
 
-        if (i < 0 || *ret == NULL)
-                fatal("xasprintf");
+	return (i);
+}
 
-#ifdef DEBUG
-	xmalloc_mallocs++;
-	xmalloc_new(*ret, i + 1);
-#endif
+int
+xxvasprintf(char **ret, const char *fmt, va_list ap)
+{
+	int	i;
+
+	i = vasprintf(ret, fmt, ap);
+
+        if (i < 0 || *ret == NULL)
+                fatal("xvasprintf");
 
         return (i);
 }
