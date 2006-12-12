@@ -23,16 +23,17 @@ LEX= lex
 YACC= yacc -d
 
 CC= cc
-CFLAGS+= -std=c99 -DBUILD="\"$(VERSION) ($(DATE))\""
+CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE
 CFLAGS+= -pg
 .endif
 CFLAGS+= -g -ggdb -DDEBUG
-CFLAGS+= -pedantic -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
+#CFLAGS+= -pedantic -std=c99
+#CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-label
+CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
-CFLAGS+= -Wredundant-decls -Wundef -Wshadow -Wbad-function-cast -Winline
-CFLAGS+= -Wdisabled-optimization -Wcast-align -Wendif-labels
+CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
 # NetBSD
 .if ${OS} == "NetBSD"
