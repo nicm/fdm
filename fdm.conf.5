@@ -532,6 +532,65 @@ The time may be given as a simple number in seconds, or followed by the word
 or
 .Em years 
 to specify a time in different units.
+.It Xo Op Ic not
+.Ic attachment Ic count
+.Li <
+.Ar number
+.Xc
+.It Xo Op Ic not
+.Ic attachment Ic count
+.Li >
+.Ar number
+.Xc
+.It Xo Op Ic not
+.Ic attachment Ic count
+.Li ==
+.Ar number
+.Xc
+.It Xo Op Ic not
+.Ic attachment Ic count
+.Li !=
+.Ar number
+.Xc
+These conditions match if the mail possesses a number of attachments less than, greater than, equal to or not equal to 
+.Ar number .
+.It Xo Op Ic not
+.Ic attachment Ic total-size
+.Li <
+.Ar size
+.Xc
+.It Xo Op Ic not
+.Ic attachment Ic total-size
+.Li >
+.Ar size
+.Xc
+Matches if the total size of all attachments is smaller or larger than
+.Ar size .
+.It Xo Op Ic not
+.Ic attachment Ic any-size
+.Li <
+.Ar size
+.Xc
+.It Xo Op Ic not
+.Ic attachment Ic any-size
+.Li >
+.Ar size
+.Xc
+Compare each individual attachment on a mail to
+.Ar size
+and match if any of them are smaller or larger.
+.It Xo Op Ic not
+.Ic attachment Ic any-type
+.Ar string
+.Xc
+.It Xo Op Ic not
+.Ic attachment Ic any-name
+.Ar string
+.Xc
+Match true if any of a mail's attachments possesses a MIME type or filename that matches
+.Ar string .
+.Xr fnmatch 3
+wildcards may be used.
 .El
 .Pp
 Aside from the
