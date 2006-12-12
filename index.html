@@ -7,8 +7,6 @@
 <body>
 <p>The project page is <a href="http://sf.net/projects/fdm">here.</a></p>
 <hr>
-<p>Please note: this manual is for the CVS version of fdm (what will become 0.7). It is here because, well, it is better than what was here before. Most of it applies equally to 0.6, but there are a few differences, most notably that 0.6 does not support using single-quotes (') to avoid escaping in strings.</p>
-<hr>
 <pre>
 <h1>fdm </h1>
 1	Introduction
@@ -39,9 +37,11 @@
 8.2	The all condition
 8.3	Matched and unmatched
 8.4	Matching a regexp
-8.5	Matching by age or size
-8.6	Using a shell command
-8.7	Tagging
+8.5	Matching bracket expressions
+8.6	Matching by age or size
+8.7	Using a shell command
+8.8	Attachments
+8.9	Tagging
 9	Setting options
 10	Archiving and searching mail
 11	Using fdm behind a proxy
@@ -635,6 +635,24 @@ Examples include:
 	
 	match ".*YAHOO.*BOOTER.*" in body action "junk"
 
+<h2>Matching bracket expressions </h2>
+The results of any bracket expressions within the last regexp are remembered,
+and may be made use of using the 'string' condition, or used to construct an
+action name. The bracket expressions may be substituted using the %1 to %9
+tokens. For example,
+
+	match regexp "^From:.*([a-z]*)@domain" in headers action "all" continue
+	match string "%1" to "bob" action "bobmail"
+
+Or:
+
+	match regexp "^From:.*([a-z]*)@domain" in headers action "all" continue
+	match all action "%1mail"
+
+This is particularly useful in combination with nested rules (see later):
+bracket expressions in regexp on the outer rule may be compared on inner
+rules.
+
 <h2>Matching by age or size </h2>
 Mail may be matched based on its age, or its size. An age condition is
 specified as follows:
@@ -687,6 +705,41 @@ Examples:
 	match pipe "myprogram" (, "failed") actions { "act1" "act2" }
 
 	match exec "blah" (12, "^Out") action "meep"
+
+Attachments---------------------------------------------------------------------
+
+There are five conditions available to filter based on the size, quantity, type
+and name of attachments. Thay all specified prefixed with the 'attachment'
+keyword. Two compare the overall number of attachments:
+
+The 'attachment count' conditions matches if the number of attachments is
+equal to, not equal to, less than or greater than the specified number:
+
+	match attachment count == 0 action "action"
+
+	match attachment count != 10 action "action"
+
+	match attachment count &lt; 2 action "action"
+
+	match attachment count &gt; 7 action "action"
+
+The 'attachment total-size' condition is similar, but compares the total
+size of all the attachments in a mail:
+
+	match attachment total-size &lt; 4096 kilobytes action "action"
+
+	match attachment total-size &gt; 1M action "action"
+
+There are also three conditions which matches if any individual attachment
+fulfils the condition: 'any-size' to match if any attachment is less than or
+greater than the given size, and 'any-type' and 'any-name' which compare the
+attachment MIME type and name attribute (if any) using fnmatch(3):
+
+	match attachment any-size &lt; 2K action "action"
+
+	match attachment any-type "*/pdf" action "action"
+	
+	match attachment any-name "*.doc" action "action"
 
 <h2>Tagging </h2>
 Mails may be assigned one of more tags using a special form of filtering
@@ -1259,6 +1312,35 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              the time specified.  The time may be given as a simple number in
              seconds, or followed by the word <I>seconds</I>, <I>hours</I>, <I>minutes</I>, <I>days</I>,
              <I>months </I>or <I>years </I>to specify a time in different units.
+
+     [<B>not</B>] <B>attachment count </B>&lt; <I>number</I>
+
+     [<B>not</B>] <B>attachment count </B>&gt; <I>number</I>
+
+     [<B>not</B>] <B>attachment count </B>== <I>number</I>
+
+     [<B>not</B>] <B>attachment count </B>!= <I>number</I>
+             These conditions match if the mail possesses a number of attach-
+             ments less than, greater than, equal to or not equal to <I>number</I>.
+
+     [<B>not</B>] <B>attachment total-size </B>&lt; <I>size</I>
+
+     [<B>not</B>] <B>attachment total-size </B>&gt; <I>size</I>
+             Matches if the total size of all attachments is smaller or larger
+             than <I>size</I>.
+
+     [<B>not</B>] <B>attachment any-size </B>&lt; <I>size</I>
+
+     [<B>not</B>] <B>attachment any-size </B>&gt; <I>size</I>
+             Compare each individual attachment on a mail to <I>size </I>and match if
+             any of them are smaller or larger.
+
+     [<B>not</B>] <B>attachment any-type </B><I>string</I>
+
+     [<B>not</B>] <B>attachment any-name </B><I>string</I>
+             Match true if any of a mail's attachments possesses a MIME type
+             or filename that matches <I>string</I>.  fnmatch(3) wildcards may be
+             used.
 
      Aside from the <B>all </B>condition, multiple conditions may be chained together
      using the <B>and </B>or <B>or </B>keywords.  The conditions are tested from left to
