@@ -506,6 +506,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	}
 
 	/* figure out the users to use */
+	find = 0;
 	users = NULL;
 	if (r->find_uid) {		/* rule comes first */
 		find = 1;
