@@ -433,12 +433,12 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 int
 do_deliver(struct rule *r, struct match_ctx *mctx)
 {
-
+	struct account	*a = mctx->account;
+	struct mail	*m = mctx->mail;
  	struct action	*t;
 	struct actions	*ta;
 	u_int		 i, j;
 	char		*s, *name;
-	struct account	*a = mctx->account;
 
 	if (r->actions == NULL)
 		return (0);
@@ -447,9 +447,9 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 		name = ARRAY_ITEM(r->actions, i, char *);
 
 		if (mctx->pmatch_valid)
-			s = replacepmatch(name, mctx->mail, mctx->pmatch);
+			s = replacepmatch(name, a, NULL, m->s, m, mctx->pmatch);
 		else
-			s = xstrdup(name);
+			s = replaceinfo(name, a, NULL, m->s);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = find_actions(s);
