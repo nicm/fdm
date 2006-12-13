@@ -20,6 +20,7 @@
 #define FDM_H
 
 #include <sys/param.h>
+#include <sys/cdefs.h>
 
 #ifndef NO_QUEUE_H
 #include <sys/queue.h>
@@ -52,7 +53,10 @@ extern char	*__progname;
 #endif
 
 #ifndef __dead
-#define __dead __attribute__ ((noreturn))
+#define __dead __attribute__ ((__noreturn__))
+#endif
+#ifndef __packed
+#define __packed __attribute__ ((__packed__))
 #endif
 
 #define NFDS 64
@@ -105,6 +109,10 @@ extern char	*__progname;
 		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
 	} else								\
 		ARRAY_FREE(a);						\
+} while (0)
+#define ARRAY_EXTEND(a, n, c) do {					\
+	(a)->list = xrealloc((a)->list, (a)->num + n, sizeof (c));	\
+	(a)->num++;							\
 } while (0)
 #define ARRAY_CONCAT(a, b, c) do {					\
 	size_t	size = sizeof (c);					\
@@ -409,6 +417,47 @@ struct rule {
 	TAILQ_ENTRY(rule)	 entry;
 };
 
+/* Cache file version identifier. */
+#define CACHE_VERSION 0xFFFF0001
+
+/* Cache flags. */
+#define CACHE_NEW 0x1
+
+/* Cache entry flags. */
+#define CACHEENT_UNUSED 0x1
+
+/* Cache file header. */
+struct cachehdr {
+	uint32_t			 version;
+
+	uint32_t			 entries;
+	uint64_t			 size;
+} __packed;
+
+/* Cache entry. */
+struct cacheent {
+	uint16_t			 flags;
+
+	uint64_t			 added;
+
+	uint64_t			 off;
+	uint64_t			 size;
+} __packed;
+
+/* Message-id cache. */
+struct cache {
+	int				 flags;
+
+	char		     	  	*path;
+	int		 		 fd;
+
+	ARRAY_DECL(, struct cacheent)	 list;
+
+	char				*data;
+	size_t				 size;
+	size_t				 space;
+};
+
 /* Lock types. */
 #define LOCK_FCNTL 0x1
 #define LOCK_FLOCK 0x2
@@ -682,6 +731,32 @@ struct maildir_data {
 	char		*entry;
 };
 
+/* Fetch nntp states. */
+enum nntp_state {
+	NNTP_CONNECTING,
+	NNTP_GROUP,
+	NNTP_STAT,
+	NNTP_ARTICLE,
+	NNTP_LINE,
+	NNTP_DONE,
+	NNTP_QUIT
+};
+
+/* Fetch nntp data. */
+struct nntp_data {
+	struct cache	*cache;
+	char		*group;
+
+	struct server	 server;
+
+	enum nntp_state	 state;
+	char		*key;
+	u_int		 cur;
+	u_int		 last;
+
+	struct io	*io;
+};
+
 /* Fetch stdin data. */
 struct stdin_data {
 	int		 complete;
@@ -803,6 +878,9 @@ extern struct fetch 	 fetch_maildir;
 /* fetch-stdin.c */
 extern struct fetch 	 fetch_stdin;
 
+/* fetch-nntp.c */
+extern struct fetch 	 fetch_nntp;
+
 /* fetch-pop3.c */
 extern struct fetch 	 fetch_pop3;
 
@@ -887,6 +965,15 @@ int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);
 void			 fill_info(const char *);
+
+/* cache.c */
+struct cache 		*cache_open(char *, char **);
+int			 cache_load(struct cache *, char **);
+int			 cache_save(struct cache *, char **);
+void			 cache_close(struct cache *);
+int			 cache_compact(struct cache *, time_t);
+void			 cache_add(struct cache *, char *);
+int			 cache_contains(struct cache *, char *);
 
 /* re.c */
 int			 re_compile(struct re *, char *, int, char **);

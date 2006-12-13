@@ -132,7 +132,7 @@ weed_strings(struct strings *sp)
 		for (j = i + 1; j < ARRAY_LENGTH(sp); j++) {
 			if (ARRAY_ITEM(sp, j, char *) == NULL)
 				continue;
-		
+
 			if (strcmp(s, ARRAY_ITEM(sp, j, char *)) == 0)
 				ARRAY_ITEM(sp, j, char *) = NULL;
 		}
@@ -141,7 +141,7 @@ weed_strings(struct strings *sp)
 	i = 0;
 	while (i < ARRAY_LENGTH(sp)) {
 		if (ARRAY_ITEM(sp, i, char *) == NULL)
-			ARRAY_REMOVE(sp, i, char *);  
+			ARRAY_REMOVE(sp, i, char *);
 		else
 			i++;
 	}
@@ -261,7 +261,7 @@ find_macro(char *name)
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
-%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE
+%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1851,6 +1851,37 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->maildirs = $1;
+	   }
+	 | TOKNNTP server TOKGROUP strv TOKCACHE strv
+/**        [$2: server (struct { ... } server)] [$4: strv (char *)] */
+/**        [$6: strv (char *)] */
+           {
+		   struct nntp_data	*data;
+		   char			*path, *cause;
+
+		   if (*$4 == '\0')
+			   yyerror("invalid group");
+		   if (*$6 == '\0')
+			   yyerror("invalid cache");
+
+		   $$.fetch = &fetch_nntp;
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
+		   data->group = $4;
+
+		   path = replaceinfo($6, NULL, NULL, $4);
+		   if (path == NULL || *path == '\0')
+			   yyerror("invalid cache");
+		   data->cache = cache_open(path, &cause);
+		   if (data->cache == NULL)
+			   yyerror("%s", cause);
+
+		   data->server.host = $2.host;
+		   if ($2.port != NULL)
+			   data->server.port = $2.port;
+		   else
+			   data->server.port = xstrdup($$.fetch->ports[0]);
+		   data->server.ai = NULL;
 	   }
 
 /** ACCOUNT */

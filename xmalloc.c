@@ -40,9 +40,11 @@ ensure_for(void *buf, size_t *len, size_t now, size_t nmemb, size_t size)
 		fatalx("ensure_for: SIZE_MAX - now < nmemb * size");
 	now += nmemb * size;
 
-	if (*len == 0)
-		fatalx("ensure_for: *len == 0");
-
+	if (*len == 0) {
+		*len = BUFSIZ;
+		buf = xmalloc(*len);
+	} 
+	
 	while (*len <= now) {
 		buf = xrealloc(buf, 2, *len);
 		*len *= 2;
@@ -59,8 +61,10 @@ ensure_size(void *buf, size_t *len, size_t nmemb, size_t size)
 	if (SIZE_MAX / nmemb < size)
 		fatalx("ensure_size: nmemb * size > SIZE_MAX");
 
-	if (*len == 0)
-		fatalx("ensure_size: *len == 0");
+	if (*len == 0) {
+		*len = BUFSIZ;
+		buf = xmalloc(*len);
+	} 
 
 	while (*len <= nmemb * size) {
 		buf = xrealloc(buf, 2, *len);

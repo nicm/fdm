@@ -11,12 +11,13 @@ REL!= uname -r
 DATE!= date +%Y%m%d-%H%M
 
 SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
-      command.c re.c shm.c fetch-pop3.c fetch-imap.c fetch-stdin.c \
-      fetch-maildir.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
+      command.c shm.c fetch-pop3.c fetch-imap.c fetch-stdin.c fetch-nntp.c \
+      fetch-maildir.c re.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
       deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-write.c \
       deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
       match-tagged.c match-size.c match-string.c match-matched.c match-age.c \
       match-unmatched.c match-attachment.c child.c parent.c privsep.c attach.c \
+      cache.c \
       parse.y lex.l
 
 LEX= lex

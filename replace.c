@@ -62,7 +62,8 @@ replaceinfo(char *src, struct account *a, struct action *t, char *s)
 
 	memset(map, 0, sizeof map);
 
-	map[REPL_IDX('a')] = a->name;
+	if (a != NULL)
+		map[REPL_IDX('a')] = a->name;
 	map[REPL_IDX('s')] = s;
 	map[REPL_IDX('h')] = conf.info.home;
 	map[REPL_IDX('n')] = conf.info.uid;
