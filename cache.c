@@ -85,10 +85,10 @@ cache_compact(struct cache *cc, long long age)
 	n = 0;
 
 	if ((error = cc->db->seq(cc->db, &key, &data, R_FIRST)) == -1)
-		fatalx("db seq");
+		fatal("db seq");
 	while (error == 0) {
 		if (data.size != sizeof *ce)
-			fatalx("db corrupted");
+			fatal("db corrupted");
 		ce = data.data;
 		
 		if (letoh64(ce->added) < threshold) {
@@ -99,7 +99,7 @@ cache_compact(struct cache *cc, long long age)
 		}
 
 		if ((error = cc->db->seq(cc->db, &key, &data, R_NEXT)) == -1)
-			fatalx("db seq");		
+			fatal("db seq");		
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(&keys); i++) {
@@ -107,7 +107,7 @@ cache_compact(struct cache *cc, long long age)
 		key.data = s;
 		key.size = strlen(s);
 		if (cc->db->del(cc->db, &key, 0) == -1)
-			fatalx("db del");
+			fatal("db del");
 		xfree(s);
 	}
 	ARRAY_FREE(&keys);
@@ -136,7 +136,7 @@ cache_add(struct cache *cc, char *item)
 	ce.added = htole64((uint64_t) t);
 
 	if (cc->db->put(cc->db, &key, &data, 0) == -1)
-		fatalx("db put");
+		fatal("db put");
 
 	cc->db->sync(cc->db, 0);
 }
@@ -151,7 +151,7 @@ cache_contains(struct cache *cc, char *item)
 	key.size = strlen(item);
 
 	if ((error = cc->db->get(cc->db, &key, &data, 0)) == -1)
-		fatalx("db get");
+		fatal("db get");
 
 	return (!error);
 }
