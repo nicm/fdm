@@ -95,6 +95,7 @@ nntp_disconnect(struct account *a)
 		xfree(cause);
 		return (1);
 	}
+	cache_close(data->cache);
 
 	return (0);
 }
@@ -103,6 +104,9 @@ void
 nntp_error(struct account *a)
 {
 	struct nntp_data	*data = a->data;
+
+	if (data->key != NULL)
+		xfree(data->key);
 
 	io_writeline(data->io, "QUIT");
 	io_flush(data->io, NULL);
@@ -147,26 +151,6 @@ nntp_fetch(struct account *a, struct mail *m)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	/*
-	 * The main loops rely on the server prompting us with data in order
-	 * to switch state. NNTP doesn't do this after it sends an article,
-	 * and there is no noop command to use in delete/keep to force it to
-	 * do so. So, the DONE state is handled outside the loop. Always
-	 * relying on the server to provide the kicks to us is a bit horrible
-	 * and needs to be rethought, both here and in fetch-{pop3,imap}.c and
-	 * deliver-smtp.c. 
-	 */
-	if (data->state == NNTP_DONE) {
-		data->cur++;
-		if (data->cur > data->last) {
-			data->state = NNTP_QUIT;
-			io_writeline(data->io, "QUIT");
-		} else {
-			data->state = NNTP_STAT;
-			io_writeline(data->io, "STAT %u", data->cur);
-		}
-	}
-
 	flushing = 0;
 	line = cause = NULL;
 	do {
@@ -202,63 +186,52 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (code != 211)
 					goto error;
 
-				if (sscanf(line, "211 %*u %u %u", &data->cur,
-				    &data->last) != 2)
+				if (sscanf(line, "211 %*u %u %*u", &n) != 1)
 					goto error;
 
-				data->state = NNTP_STAT;
-				io_writeline(data->io, "STAT %u", data->cur);
+				data->state = NNTP_NEXT;
+				io_writeline(data->io, "STAT %u", n);
 				break;
-			case NNTP_STAT:
+			case NNTP_NEXT:
 				if (code >= 100 && code <= 199)
 					break;
+				if (code == 421) {
+					data->state = NNTP_QUIT;
+					io_writeline(data->io, "QUIT");
+					break;
+				}
 				if (code == 423 || code == 430) {
-					data->cur++;
-					if (data->cur > data->last) {
-						data->state = NNTP_QUIT;
-						io_writeline(data->io, "QUIT");
-						break;
-					}
-					data->state = NNTP_STAT;
-					io_writeline(data->io, "STAT %u",
-					    data->cur);
+					data->state = NNTP_NEXT;
+					io_writeline(data->io, "NEXT");
 					break;					
 				}
 				if (code != 223)
 					goto error;
 
-				if (sscanf(line, "223 %u <", &n) != 1)
-					goto error;
-				if (n != data->cur)
+				if (sscanf(line, "223 %u", &n) != 1)
 					goto error;
 
 				ptr = strchr(line, '<');
 				if (ptr == NULL)
 					goto error;
-				ptr++;
 				ptr2 = strchr(ptr, '>');
 				if (ptr2 == NULL)
 					goto error;
-				data->key = xmalloc((ptr2 - ptr) + 1);
-				memcpy(data->key, ptr, ptr2 - ptr);
-				data->key[ptr2 - ptr] = '\0';
+				ptr++;
+
+				len = ptr2 - ptr;
+				data->key = xmalloc(len + 1);
+				memcpy(data->key, ptr, len);
+				data->key[len] = '\0';
 
 				if (cache_contains(data->cache, data->key)) {
-					log_debug2("%s: found in cache: %s",
+					log_debug3("%s: found in cache: %s",
 					    a->name, data->key);
 
 					xfree(data->key);
 					data->key = NULL;
 
-					data->cur++;
-					if (data->cur > data->last) {
-						res = FETCH_COMPLETE;
-						break;
-					}
-
-					data->state = NNTP_STAT;
-					io_writeline(data->io, "STAT %u",
-					    data->cur);
+					io_writeline(data->io, "NEXT");
 					break;
 				}
 				log_debug2("%s: new: %s", a->name, data->key);
@@ -267,22 +240,17 @@ nntp_fetch(struct account *a, struct mail *m)
 				init_mail(m, IO_BLOCKSIZE);
 
 				data->state = NNTP_ARTICLE;
-				io_writeline(data->io, "ARTICLE %u",
-				    data->cur);
+				io_writeline(data->io, "ARTICLE %u", n);
 				break;
 			case NNTP_ARTICLE:
 				if (code >= 100 && code <= 199)
 					break;
 				if (code == 423 || code == 430) {
-					data->cur++;
-					if (data->cur > data->last) {
-						data->state = NNTP_QUIT;
-						io_writeline(data->io, "QUIT");
-						break;
-					}
-					data->state = NNTP_STAT;
-					io_writeline(data->io, "STAT %u",
-					    data->cur);
+					xfree(data->key);
+					data->key = NULL;
+
+					data->state = NNTP_NEXT;
+					io_writeline(data->io, "NEXT");
 					break;					
 				}
 				if (code != 220)
@@ -301,7 +269,8 @@ nntp_fetch(struct account *a, struct mail *m)
 						res = FETCH_OVERSIZE;
 					else
 						res = FETCH_SUCCESS;
-					data->state = NNTP_DONE;
+					data->state = NNTP_NEXT;
+					io_writeline(data->io, "NEXT");
 					break;
 				}
 
@@ -326,8 +295,6 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (off + lines > conf.max_size)
 					flushing = 1;
 				break;
-			case NNTP_DONE:
-				fatalx("unexpected state");
 			case NNTP_QUIT:
 				if (code != 205)
 					goto error;
@@ -348,7 +315,6 @@ error:
 		xfree(cause);
 	} else
 		log_warnx("%s: unexpected response: %s", a->name, line);
-	log_warnx("+++ STATE = %d", data->state);
 
 	xfree(lbuf);
 	io_flush(data->io, NULL);

@@ -735,10 +735,9 @@ struct maildir_data {
 enum nntp_state {
 	NNTP_CONNECTING,
 	NNTP_GROUP,
-	NNTP_STAT,
+	NNTP_NEXT,
 	NNTP_ARTICLE,
 	NNTP_LINE,
-	NNTP_DONE,
 	NNTP_QUIT
 };
 
@@ -751,8 +750,6 @@ struct nntp_data {
 
 	enum nntp_state	 state;
 	char		*key;
-	u_int		 cur;
-	u_int		 last;
 
 	struct io	*io;
 };
