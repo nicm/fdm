@@ -129,7 +129,7 @@ nntp_fetch(struct account *a, struct mail *m)
 
 	if (m != NULL) {
 		m->data = NULL;
-		m->s = xstrdup(data->server.host);
+		m->s = xstrdup(data->group);
 	}
 
 	llen = IO_LINESIZE;
@@ -192,9 +192,6 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (code != 223)
 					goto error;
 
-				if (sscanf(line, "223 %u", &n) != 1)
-					goto error;
-
 				ptr = strchr(line, '<');
 				if (ptr == NULL)
 					goto error;
@@ -224,7 +221,7 @@ nntp_fetch(struct account *a, struct mail *m)
 				init_mail(m, IO_BLOCKSIZE);
 
 				data->state = NNTP_ARTICLE;
-				io_writeline(data->io, "ARTICLE %u", n);
+				io_writeline(data->io, "ARTICLE");
 				break;
 			case NNTP_ARTICLE:
 				if (code >= 100 && code <= 199)
