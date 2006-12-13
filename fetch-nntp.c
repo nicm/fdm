@@ -276,7 +276,9 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (off + lines > conf.max_size)
 					flushing = 1;
 				break;
-			case NNTP_QUIT:
+			case NNTP_QUIT
+				if (code >= 100 && code <= 199)
+					break;
 				if (code != 205)
 					goto error;
 
