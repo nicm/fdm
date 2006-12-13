@@ -18,3 +18,4 @@
 	action pipe-attachments "cmd" (pass struct attach to parent?)
   add "attachment all" to match all attachments
 - attach get name from content-disposition
+- document NNTP

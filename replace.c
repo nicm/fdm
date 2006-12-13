@@ -31,8 +31,6 @@ initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
 	struct tm	*tm;
 	time_t		 tt;
 
-	memset(map, 0, sizeof map);
-
 	if (a != NULL)
 		map[REPL_IDX('a')] = a->name;
 	map[REPL_IDX('s')] = s;
@@ -68,14 +66,15 @@ initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
 }
 
 char *
-replacepmatch(char *src, struct account *a, struct action *t, char *s, struct mail *m,
-    regmatch_t pmatch[NPMATCH])
+replacepmatch(char *src, struct account *a, struct action *t, char *s,
+    struct mail *m, regmatch_t pmatch[NPMATCH])
 {
 	char	*map[REPL_LEN];
 	char	*dst, *u;
 	size_t	 len;
 	u_int	 i;
 
+	memset(map, 0, sizeof map);
 	initmap(map, a, t, s);
 
 	for (i = 0; i < NPMATCH; i++) {
@@ -103,6 +102,7 @@ replaceinfo(char *src, struct account *a, struct action *t, char *s)
 {
 	char		*map[REPL_LEN];
 	    
+	memset(map, 0, sizeof map);
 	initmap(map, a, t, s);
 
 	return (replace(src, map));
