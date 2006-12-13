@@ -119,6 +119,7 @@ domains return (TOKDOMAINS);
 dotlock return (LCKDOTLOCK);
 drop return (TOKDROP);
 exec return (TOKEXEC);
+expiry return (TOKEXPIRY);
 fcntl return (LCKFCNTL);
 flock return (LCKFLOCK);
 folder return (TOKFOLDER);

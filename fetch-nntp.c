@@ -52,7 +52,7 @@ nntp_connect(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	char			*cause;
-	u_int 			 i;
+	u_int			 n;
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
@@ -63,20 +63,10 @@ nntp_connect(struct account *a)
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
+	n = cache_compact(data->cache, data->expiry);
+	log_debug("%s: expired %u entries from cache", a->name, n);
+	
 	data->state = NNTP_CONNECTING;
-
-	if (cache_load(data->cache, &cause) != 0) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
-
-	log_debug("%s: cache has %u entries", a->name,
-	    ARRAY_LENGTH(&data->cache->list));
-	for (i = 0; i < ARRAY_LENGTH(&data->cache->list); i++) {
-		log_debug3("%s: %u: %s", a->name, i, data->cache->data + 
-		    (&ARRAY_ITEM(&data->cache->list, i, struct cacheent))->off);
-	}
 
 	return (0);
 }
@@ -85,16 +75,10 @@ int
 nntp_disconnect(struct account *a)
 {
 	struct nntp_data	*data = a->data;
-	char			*cause;
 
 	io_close(data->io);
 	io_free(data->io);
 
-	if (cache_save(data->cache, &cause) != 0) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
 	cache_close(data->cache);
 
 	return (0);
@@ -325,14 +309,8 @@ int
 nntp_delete(struct account *a)
 {
 	struct nntp_data	*data = a->data;
-	char			*cause;
 
 	cache_add(data->cache, data->key);
-	if (cache_save(data->cache, &cause) != 0) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
 
 	xfree(data->key);
 		

@@ -262,6 +262,7 @@ find_macro(char *name)
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
+%token TOKEXPIRY
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -310,7 +311,7 @@ find_macro(char *name)
 %type  <flag> cont icase not disabled keep poptype imaptype execpipe
 %type  <locks> lock locklist
 %type  <match> match
-%type  <number> size time numv retrc
+%type  <number> size time numv retrc expiry
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
@@ -1781,6 +1782,17 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
+/** EXPIRE: <number> (long long) */
+expiry: /* empty */
+	{
+		$$ = DEFEXPIRYTIME;
+	}
+      | TOKEXPIRY time
+/**     [$2: time (long long)] */
+	{
+		$$ = $2;
+	}
+
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
 fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
@@ -1852,9 +1864,9 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.data = data;
 		   data->maildirs = $1;
 	   }
-	 | TOKNNTP server TOKGROUP strv TOKCACHE strv
+	 | TOKNNTP server TOKGROUP strv TOKCACHE strv expiry
 /**        [$2: server (struct { ... } server)] [$4: strv (char *)] */
-/**        [$6: strv (char *)] */
+/**        [$6: strv (char *)] [$7: expire (long long)] */
            {
 		   struct nntp_data	*data;
 		   char			*path, *cause;
@@ -1868,6 +1880,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->group = $4;
+		   data->expiry = $7;
 
 		   path = replaceinfo($6, NULL, NULL, $4);
 		   if (path == NULL || *path == '\0')
@@ -1875,6 +1888,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->cache = cache_open(path, &cause);
 		   if (data->cache == NULL)
 			   yyerror("%s", cause);
+		   xfree($6);
 
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)

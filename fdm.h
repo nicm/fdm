@@ -28,6 +28,7 @@
 #include "compat/queue.h"
 #endif
 
+#include <db.h>
 #include <dirent.h>
 #include <stdarg.h>
 #include <regex.h>
@@ -44,6 +45,7 @@
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	32
+#define DEFEXPIRYTIME	TIME_WEEK
 
 extern char	*__progname;
 
@@ -417,45 +419,18 @@ struct rule {
 	TAILQ_ENTRY(rule)	 entry;
 };
 
-/* Cache file version identifier. */
-#define CACHE_VERSION 0xFFFF0001
-
-/* Cache flags. */
-#define CACHE_NEW 0x1
-
 /* Cache entry flags. */
 #define CACHEENT_UNUSED 0x1
 
-/* Cache file header. */
-struct cachehdr {
-	uint32_t			 version;
-
-	uint32_t			 entries;
-	uint64_t			 size;
-} __packed;
-
 /* Cache entry. */
 struct cacheent {
-	uint16_t			 flags;
-
-	uint64_t			 added;
-
-	uint64_t			 off;
-	uint64_t			 size;
+	uint64_t		 added;
 } __packed;
 
 /* Message-id cache. */
 struct cache {
-	int				 flags;
-
-	char		     	  	*path;
-	int		 		 fd;
-
-	ARRAY_DECL(, struct cacheent)	 list;
-
-	char				*data;
-	size_t				 size;
-	size_t				 space;
+	char			*path;
+	DB			*db;
 };
 
 /* Lock types. */
@@ -745,6 +720,7 @@ enum nntp_state {
 struct nntp_data {
 	struct cache	*cache;
 	char		*group;
+	long long	 expiry;
 
 	struct server	 server;
 
@@ -965,10 +941,8 @@ void			 fill_info(const char *);
 
 /* cache.c */
 struct cache 		*cache_open(char *, char **);
-int			 cache_load(struct cache *, char **);
-int			 cache_save(struct cache *, char **);
 void			 cache_close(struct cache *);
-int			 cache_compact(struct cache *, time_t);
+u_int			 cache_compact(struct cache *, long long);
 void			 cache_add(struct cache *, char *);
 int			 cache_contains(struct cache *, char *);
 
