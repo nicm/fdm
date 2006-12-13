@@ -27,7 +27,7 @@ void	initmap(char *[REPL_LEN], struct account *, struct action *, char *);
 void
 initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
 {
-	char		 H[5], M[5], S[5], d[5], m[5], y[5], W[5], Y[5], Q[5];
+	static char	 H[5], M[5], S[5], d[5], m[5], y[5], W[5], Y[5], Q[5];
 	struct tm	*tm;
 	time_t		 tt;
 
@@ -74,7 +74,7 @@ replacepmatch(char *src, struct account *a, struct action *t, char *s,
 	size_t	 len;
 	u_int	 i;
 
-	memset(map, 0, sizeof map);
+	memset(map, 0, REPL_LEN * sizeof (char *));
 	initmap(map, a, t, s);
 
 	for (i = 0; i < NPMATCH; i++) {
@@ -102,7 +102,7 @@ replaceinfo(char *src, struct account *a, struct action *t, char *s)
 {
 	char		*map[REPL_LEN];
 	    
-	memset(map, 0, sizeof map);
+	memset(map, 0, REPL_LEN * sizeof (char *));
 	initmap(map, a, t, s);
 
 	return (replace(src, map));
