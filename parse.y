@@ -262,7 +262,7 @@ find_macro(char *name)
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
-%token TOKEXPIRY
+%token TOKGROUPS TOKEXPIRY
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -316,7 +316,7 @@ find_macro(char *name)
 %type  <server> server
 %type  <string> port to folder strv retre
 %type  <strings> actions actionslist domains domainslist headers headerslist
-%type  <strings> accounts accountslist pathslist maildirs
+%type  <strings> accounts accountslist pathslist maildirs groupslist groups
 %type  <users> users userslist
 %type  <uid> uid user
 
@@ -1762,6 +1762,44 @@ folder: /* empty */
 		$$ = $2;
 	}
 
+/** GROUPSLIST: <strings> (struct strings *) */
+groupslist: groupslist strv
+/**         [$1: groupslist (struct strings *)] [$2: strv (char *)] */
+ 	    {
+		    if (*$2 == '\0')
+			    yyerror("invalid group");
+
+		    $$ = $1;
+		    ARRAY_ADD($$, $2, char *);
+	    }
+	  | strv
+/**         [$1: strv (char *)] */
+	    {
+		    if (*$1 == '\0')
+			    yyerror("invalid group");
+
+		    $$ = xmalloc(sizeof *$$);
+		    ARRAY_INIT($$);
+		    ARRAY_ADD($$, $1, char *);
+	    }
+
+/** GROUPS: <strings> (struct strings *) */
+groups: TOKGROUP strv
+/**     [$2: strv (char *)] */
+	{
+		if (*$2 == '\0')
+			yyerror("invalid group");
+
+		$$ = xmalloc(sizeof *$$);
+		ARRAY_INIT($$);
+		ARRAY_ADD($$, $2, char *);
+	}
+      | TOKGROUPS '{' groupslist '}'
+/**     [$3: groupslist (struct strings *)] */
+        {
+		$$ = weed_strings($3);
+	}
+
 /** POPTYPE: <flag> (int) */
 poptype: TOKPOP3
          {
@@ -1782,7 +1820,7 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
-/** EXPIRE: <number> (long long) */
+/** EXPIRY: <number> (long long) */
 expiry: /* empty */
 	{
 		$$ = DEFEXPIRYTIME;
@@ -1864,31 +1902,34 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.data = data;
 		   data->maildirs = $1;
 	   }
-	 | TOKNNTP server TOKGROUP strv TOKCACHE strv expiry
-/**        [$2: server (struct { ... } server)] [$4: strv (char *)] */
-/**        [$6: strv (char *)] [$7: expire (long long)] */
+	 | TOKNNTP server groups TOKCACHE strv expiry
+/**        [$2: server (struct { ... } server)] */
+/**        [$3: groups (struct strings *)] [$5: strv (char *)] */
+/**        [$6: expiry (long long)] */
            {
 		   struct nntp_data	*data;
-		   char			*path, *cause;
+		   char			*path, *cause, *group;
 
-		   if (*$4 == '\0')
-			   yyerror("invalid group");
-		   if (*$6 == '\0')
+		   if (*$5 == '\0')
 			   yyerror("invalid cache");
 
 		   $$.fetch = &fetch_nntp;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->group = $4;
-		   data->expiry = $7;
+		   data->groups = $3;
+		   data->expiry = $6;
 
-		   path = replaceinfo($6, NULL, NULL, $4);
+		   if (ARRAY_LENGTH($3) == 1)
+			   group = ARRAY_ITEM($3, 0, char *);
+		   else
+			   group = NULL;
+		   path = replaceinfo($5, NULL, NULL, group);
 		   if (path == NULL || *path == '\0')
 			   yyerror("invalid cache");
 		   data->cache = cache_open(path, &cause);
 		   if (data->cache == NULL)
 			   yyerror("%s", cause);
-		   xfree($6);
+		   xfree($5);
 
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)

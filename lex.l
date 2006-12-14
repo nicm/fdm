@@ -125,6 +125,7 @@ flock return (LCKFLOCK);
 folder return (TOKFOLDER);
 from-headers return (TOKFROMHEADERS);
 group return (TOKGROUP);
+groups return (TOKGROUPS);
 header return (TOKHEADER);
 headers return (TOKHEADERS);
 imap return (TOKIMAP);

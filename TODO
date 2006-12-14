@@ -20,3 +20,4 @@
 - attach get name from content-disposition
 - document NNTP
 - allow fnmatch/glob in maildir paths
+- fnmatch in account "..." test

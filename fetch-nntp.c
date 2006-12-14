@@ -52,7 +52,7 @@ nntp_connect(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	char			*cause;
-	u_int			 n;
+	u_int			 n, total;
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
@@ -63,10 +63,12 @@ nntp_connect(struct account *a)
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
-	n = cache_compact(data->cache, data->expiry);
-	log_debug("%s: expired %u entries from cache", a->name, n);
+	n = cache_compact(data->cache, data->expiry, &total);
+	log_debug("%s: cache has %u entries", a->name, total);
+	log_debug("%s: expired %u entries", a->name, n);
 
 	data->state = NNTP_CONNECTING;
+	data->group = 0;
 
 	return (0);
 }
@@ -123,13 +125,14 @@ nntp_fetch(struct account *a, struct mail *m)
 {
 	struct nntp_data	*data = a->data;
 	int		 	 code, res, flushing;
-	char			*line, *cause, *ptr, *ptr2, *lbuf;
+	char			*line, *cause, *ptr, *ptr2, *lbuf, *group;
 	size_t			 off = 0, len, llen;
 	u_int			 lines = 0, n;
 
+	group = ARRAY_ITEM(data->groups, data->group, char *);
 	if (m != NULL) {
 		m->data = NULL;
-		m->s = xstrdup(data->group);
+		m->s = xstrdup(group);
 	}
 
 	llen = IO_LINESIZE;
@@ -161,8 +164,7 @@ nntp_fetch(struct account *a, struct mail *m)
 					goto error;
 
 				data->state = NNTP_GROUP;
-				io_writeline(data->io, "GROUP %s",
-				    data->group);
+				io_writeline(data->io, "GROUP %s", group);
 				break;
 			case NNTP_GROUP:
 				if (code >= 100 && code <= 199)
@@ -180,8 +182,18 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (code >= 100 && code <= 199)
 					break;
 				if (code == 421) {
-					data->state = NNTP_QUIT;
-					io_writeline(data->io, "QUIT");
+					data->group++;
+					n = ARRAY_LENGTH(data->groups);
+					if (data->group == n) {
+						data->state = NNTP_QUIT;
+						io_writeline(data->io, "QUIT");
+						break;
+					}
+					group = ARRAY_ITEM(data->groups,
+					    data->group, char *);
+					data->state = NNTP_GROUP;
+					io_writeline(data->io, "GROUP %s",
+					    group);
 					break;
 				}
 				if (code == 423 || code == 430) {
@@ -196,7 +208,8 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (ptr != NULL)
 					ptr2 = strchr(ptr, '>');
 				if (ptr == NULL || ptr2 == NULL) {
-					log_warnx("%s: bad response: %s", a->name, line);
+					log_warnx("%s: bad response: %s",
+					    a->name, line);
 					data->state = NNTP_NEXT;
 					io_writeline(data->io, "NEXT");
 					break;
@@ -333,10 +346,12 @@ char *
 nntp_desc(struct account *a)
 {
 	struct nntp_data	*data = a->data;
-	char			*s;
+	char			*s, *groups;
 
-	xasprintf(&s, "nntp server \"%s\" port %s group \"%s\" cache \"%s\"",
-	    data->server.host, data->server.port, data->group,
+	groups = fmt_strings("groups ", data->groups);
+	xasprintf(&s, "nntp server \"%s\" port %s %s cache \"%s\"",
+	    data->server.host, data->server.port, groups,
 	    data->cache->path);
+	xfree(groups);
 	return (s);
 }
