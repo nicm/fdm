@@ -315,7 +315,7 @@ io_fill(struct io *io)
 
 		/* copy out the duplicate fd. errors are irrelevent for this */
 		if (io->dup_fd != -1) {
-			write(io->dup_fd, "< ", 3);
+			write(io->dup_fd, "< ", 2);
 			write(io->dup_fd, io->rbase + io->rsize, n);
 		}
 
@@ -388,7 +388,7 @@ io_push(struct io *io)
 
 		/* copy out the duplicate fd */
 		if (io->dup_fd != -1) {
-			write(io->dup_fd, "> ", 3);
+			write(io->dup_fd, "> ", 2);
 			write(io->dup_fd, io->wbase + io->woff, n);
 		}
 
