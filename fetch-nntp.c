@@ -65,7 +65,7 @@ nntp_connect(struct account *a)
 
 	n = cache_compact(data->cache, data->expiry);
 	log_debug("%s: expired %u entries from cache", a->name, n);
-	
+
 	data->state = NNTP_CONNECTING;
 
 	return (0);
@@ -187,17 +187,20 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (code == 423 || code == 430) {
 					data->state = NNTP_NEXT;
 					io_writeline(data->io, "NEXT");
-					break;					
+					break;
 				}
 				if (code != 223)
 					goto error;
 
 				ptr = strchr(line, '<');
-				if (ptr == NULL)
-					goto error;
-				ptr2 = strchr(ptr, '>');
-				if (ptr2 == NULL)
-					goto error;
+				if (ptr != NULL)
+					ptr2 = strchr(ptr, '>');
+				if (ptr == NULL || ptr2 == NULL) {
+					log_warnx("%s: bad response: %s", a->name, line);
+					data->state = NNTP_NEXT;
+					io_writeline(data->io, "NEXT");
+					break;
+				}
 				ptr++;
 
 				len = ptr2 - ptr;
@@ -216,7 +219,7 @@ nntp_fetch(struct account *a, struct mail *m)
 					break;
 				}
 				log_debug2("%s: new: %s", a->name, data->key);
-				
+
 				off = lines = 0;
 				init_mail(m, IO_BLOCKSIZE);
 
@@ -232,7 +235,7 @@ nntp_fetch(struct account *a, struct mail *m)
 
 					data->state = NNTP_NEXT;
 					io_writeline(data->io, "NEXT");
-					break;					
+					break;
 				}
 				if (code != 220)
 					goto error;
@@ -312,7 +315,7 @@ nntp_delete(struct account *a)
 	cache_add(data->cache, data->key);
 
 	xfree(data->key);
-		
+
 	return (0);
 }
 
