@@ -71,7 +71,7 @@ extern char	*__progname;
 	u_int	fd_i, fd_n;						\
 	fd_n = 0;							\
 	for (fd_i = 0; fd_i < NFDS; fd_i++) {				\
-		if (fcntl(fd_n, F_GETFL) != -1)				\
+		if (fcntl(fd_i, F_GETFL) != -1)				\
 			fd_n++;						\
 	}								\
 	log_debug2("%s: %u file descriptors in use", s, fd_n);		\
