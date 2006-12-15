@@ -34,7 +34,6 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	struct string_data	*data = ei->data;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
-        regmatch_t		*pmatch = mctx->pmatch;
 	int			 res;
 	char			*s, *cause;
 
@@ -43,7 +42,7 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 		return (MATCH_FALSE);
 	}
 
-	s = replacepmatch(data->s, a, NULL, m->s, m, 1, pmatch);
+	s = replacepmatch(data->s, a, NULL, m->s, m, 1, mctx->pmatch);
 	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.s);
 
 	res = re_simple(&data->re, s, &cause);
