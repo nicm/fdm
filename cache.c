@@ -19,7 +19,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#ifdef USE_DB_185_H
+#include <db_185.h>
+#else
 #include <db.h>
+#endif
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -71,7 +75,7 @@ cache_compact(struct cache *cc, long long age, u_int *total)
 	int		 error;
 	u_int		 n, i;
 	time_t		 t;
-	uint64_t	 threshold;
+	uint32_t	 threshold;
 	char		*s;
 	struct strings	 keys;
 
@@ -95,8 +99,8 @@ cache_compact(struct cache *cc, long long age, u_int *total)
 		if (data.size != sizeof *ce)
 			fatal("db corrupted");
 		ce = data.data;
-		
-		if (letoh64(ce->added) < threshold) {
+
+		if (ntohl(ce->added) < threshold) {
 			xasprintf(&s, "%.*s", (int) key.size, 
 			    (char *) key.data);
 			ARRAY_ADD(&keys, s, char *);
@@ -138,7 +142,7 @@ cache_add(struct cache *cc, char *item)
 	data.data = &ce;
 	data.size = sizeof ce;
 
-	ce.added = htole64((uint64_t) t);
+	ce.added = htonl(t);
 
 	if (cc->db->put(cc->db, &key, &data, 0) == -1)
 		fatal("db put");

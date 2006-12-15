@@ -28,9 +28,14 @@
 #include "compat/queue.h"
 #endif
 
+#ifdef USE_DB_185_H
+#include <db_185.h>
+#else
 #include <db.h>
+#endif
 #include <dirent.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <regex.h>
 
 #include <openssl/ssl.h>
@@ -393,7 +398,8 @@ struct rule {
 
 /* Cache entry. */
 struct cacheent {
-	uint64_t		 added;
+	uint32_t	added;
+	uint32_t	reserved;
 } __packed;
 
 /* Message-id cache. */
