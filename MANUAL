@@ -62,7 +62,7 @@ Installing fdm is simple. Download the source tarball, and run:
 	$ make
 
 If using Linux, glibc doesn't come with a Berkeley DB implementation, so one
-must be installed. On Debian, the "libdb4.5-dev" and "libdb4.5" packages work.
+must be installed. On Debian, the "libdb4.3-dev" and "libdb4.3" packages work.
 Alternatively, source may be retrieved at:
 
 http://www.oracle.com/technology/software/products/berkeley-db/db/index.html
