@@ -446,10 +446,8 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		name = ARRAY_ITEM(r->actions, i, char *);
 
-		if (mctx->pmatch_valid)
-			s = replacepmatch(name, a, NULL, m->s, m, mctx->pmatch);
-		else
-			s = replaceinfo(name, a, NULL, m->s);
+		s = replacepmatch(name, a, NULL, m->s, m, mctx->pmatch_valid,
+		    mctx->pmatch);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = find_actions(s);
@@ -499,6 +497,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		dctx.account = a;
 		dctx.mail = m;
 		dctx.decision = &mctx->decision;
+		dctx.pmatch_valid = mctx->pmatch_valid;
+		memcpy(&dctx.pmatch, mctx->pmatch, sizeof dctx.pmatch);
 
 		if (t->deliver->deliver(&dctx, t) != DELIVER_SUCCESS)
 			return (1);
@@ -533,6 +533,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		msg.data.account = a;
 		msg.data.action = t;
 		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
+		msg.data.pmatch_valid = mctx->pmatch_valid;
+		memcpy(&msg.data.pmatch, mctx->pmatch, sizeof msg.data.pmatch);
 		copy_mail(m, &msg.data.mail);
 		slen = m->s != NULL ? strlen(m->s) : 0;
 		if (privsep_send(mctx->io, &msg, m->s, slen) != 0)

@@ -43,7 +43,7 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 		return (MATCH_FALSE);
 	}
 
-	s = replacepmatch(data->s, a, NULL, m->s, m, pmatch);
+	s = replacepmatch(data->s, a, NULL, m->s, m, 1, pmatch);
 	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.s);
 
 	res = re_simple(&data->re, s, &cause);

@@ -27,21 +27,22 @@
 
 #include "fdm.h"
 
-int	parent_action(struct account *, struct action *, struct mail *, uid_t);
-int	parent_command(struct account *, struct command_data *, struct mail *,
-	    uid_t);
+int	parent_action(struct action *, struct deliver_ctx *, uid_t);
+int	parent_command(struct match_ctx *, struct command_data *, uid_t);
 
 int
 parent(int fd, pid_t pid)
 {
-	struct io	*io;
-	struct msg	 msg;
-	struct mail	*m;
-	int		 status, error;
-	struct msgdata	*data;
-	uid_t		 uid;
-	void		*buf;
-	size_t		len;
+	struct io		*io;
+	struct msg	 	 msg;
+	struct msgdata		*data;
+	struct deliver_ctx	 dctx;
+	struct match_ctx	 mctx;
+	struct mail		*m;
+	int			 status, error;
+	uid_t			 uid;
+	void			*buf;
+	size_t			 len;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -79,8 +80,15 @@ parent(int fd, pid_t pid)
 			m->attach = NULL;
 
 			uid = data->uid;
-			error = parent_action(data->account, data->action, m,
-			    uid);
+			memset(&dctx, 0, sizeof dctx);
+			dctx.account = data->account;
+			dctx.mail = m;
+			dctx.decision = NULL;	/* only altered in child */
+			dctx.pmatch_valid = msg.data.pmatch_valid;
+			memcpy(&dctx.pmatch, &msg.data.pmatch,
+			    sizeof dctx.pmatch);
+
+			error = parent_action(data->action, &dctx, uid);
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
@@ -104,8 +112,14 @@ parent(int fd, pid_t pid)
 			m->attach = NULL;
 
 			uid = data->uid;
-			error = parent_command(data->account, data->cmddata, m,
-			    uid);
+			memset(&mctx, 0, sizeof mctx);
+			mctx.account = data->account;
+			mctx.mail = m;
+			mctx.pmatch_valid = msg.data.pmatch_valid;
+			memcpy(&mctx.pmatch, &msg.data.pmatch,
+			    sizeof mctx.pmatch);
+
+			error = parent_command(&mctx, data->cmddata, uid);
 
 			msg.type = MSG_DONE;
 			msg.data.error = error;
@@ -142,24 +156,22 @@ parent(int fd, pid_t pid)
 }
 
 int
-parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
+parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 {
+	struct account		*a = dctx->account;
+	struct mail		*m = dctx->mail;
 	int		 	 status, error, fds[2];
 	pid_t		 	 pid;
 	struct io		*io;
 	struct msg	 	 msg;
-	struct deliver_ctx	 dctx;
 
-	memset(&dctx, 0, sizeof dctx);
-	dctx.account = a;
-	dctx.mail = m;
-	dctx.decision = NULL;	/* cannot be altered outside child */
+	memset(&dctx->wr_mail, 0, sizeof dctx->wr_mail);
 
 	/* if writing back, open a new mail now and set its ownership so it
 	   can be accessed by the child */
 	if (t->deliver->type == DELIVER_WRBACK) {
-		init_mail(&dctx.wr_mail, IO_BLOCKSIZE);
-		if (geteuid() == 0 && fchown(dctx.wr_mail.shm.fd,
+		init_mail(&dctx->wr_mail, IO_BLOCKSIZE);
+		if (geteuid() == 0 && fchown(dctx->wr_mail.shm.fd,
 		    conf.child_uid, conf.child_gid) != 0)
 			fatal("fchown");
 	}
@@ -194,7 +206,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 		/* use new mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
 			if (error == DELIVER_SUCCESS) {
-				free_mail(&dctx.wr_mail, 0);
+				free_mail(&dctx->wr_mail, 0);
 				free_mail(m, 1);
 
 				/* no need to update anything, since the
@@ -207,7 +219,7 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 				    "size %zu, body=%zd", a->name, m->size,
 				    m->body);
 			} else
-				free_mail(&dctx.wr_mail, 1);
+				free_mail(&dctx->wr_mail, 1);
 		}
 
 		/* free the io */
@@ -264,11 +276,11 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 	    conf.info.home);
 
 	/* do the delivery */
-	error = t->deliver->deliver(&dctx, t);
+	error = t->deliver->deliver(dctx, t);
 	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS) {
 		log_debug2("%s: using new mail, size %zu", a->name,
-		    dctx.wr_mail.size);
-		copy_mail(&dctx.wr_mail, &msg.data.mail);
+		    dctx->wr_mail.size);
+		copy_mail(&dctx->wr_mail, &msg.data.mail);
 	}
 
 	/* inform parent we're done */
@@ -291,9 +303,10 @@ parent_action(struct account *a, struct action *t, struct mail *m, uid_t uid)
 }
 
 int
-parent_command(struct account *a, struct command_data *data, struct mail *m,
-    uid_t uid)
+parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 {
+	struct account	*a = mctx->account;
+	struct mail	*m = mctx->mail;
 	int		 status, found;
 	pid_t		 pid;
 	char		*s, *cause, *out, *err;
@@ -348,7 +361,8 @@ parent_command(struct account *a, struct command_data *data, struct mail *m,
 	    conf.info.home);
 
 	/* sort out the command */
-	s = replaceinfo(data->cmd, a, NULL, m->s);
+	s = replacepmatch(data->cmd, a, NULL, m->s, m, mctx->pmatch_valid,
+	    mctx->pmatch);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		_exit(MATCH_ERROR);

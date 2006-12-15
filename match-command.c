@@ -43,6 +43,8 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 	msg.data.account = a;
 	msg.data.cmddata = data;
 	msg.data.uid = data->uid;
+	msg.data.pmatch_valid = mctx->pmatch_valid;
+	memcpy(&msg.data.pmatch, mctx->pmatch, sizeof msg.data.pmatch);
 	copy_mail(m, &msg.data.mail);
 	slen = m->s != NULL ? strlen(m->s) : 0;
 	if (privsep_send(io, &msg, m->s, slen) != 0)

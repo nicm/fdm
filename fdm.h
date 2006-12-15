@@ -303,37 +303,6 @@ struct re {
 	regex_t		 re;
 };
 
-/* Privsep message types. */
-enum msgtype {
-	MSG_ACTION,
-	MSG_EXIT,
-	MSG_DONE,
-	MSG_COMMAND
-};
-
-/* Privsep message data. */
-struct msgdata {
-	int	 	 	 error;
-	struct mail	 	 mail;
-
-	/* these only work so long as they aren't moved in either process */
-	struct account		*account;
-	struct action		*action;
-	struct command_data	*cmddata;
-
-	uid_t		 	 uid;
-};
-
-/* Privsep message. */
-struct msg {
-	u_int		 n;
-
-	enum msgtype	 type;
-	size_t		 size;
-
-	struct msgdata	 data;
-};
-
 /* Account entry. */
 struct account {
 	char			 name[MAXNAMESIZE];
@@ -579,6 +548,9 @@ struct deliver_ctx {
 	struct mail	 wr_mail;
 
 	enum decision	*decision;
+
+	int		 pmatch_valid;
+	regmatch_t	 pmatch[NPMATCH];
 };
 
 /* Deliver return codes. */
@@ -624,6 +596,40 @@ struct match_ctx {
 struct match {
 	int		 (*match)(struct match_ctx *, struct expritem *);
 	char 		*(*desc)(struct expritem *);
+};
+
+/* Privsep message types. */
+enum msgtype {
+	MSG_ACTION,
+	MSG_EXIT,
+	MSG_DONE,
+	MSG_COMMAND
+};
+
+/* Privsep message data. */
+struct msgdata {
+	int	 	 	 error;
+	struct mail	 	 mail;
+
+	int		 	 pmatch_valid;
+	regmatch_t	 	 pmatch[NPMATCH];
+
+	/* these only work so long as they aren't moved in either process */
+	struct account		*account;
+	struct action		*action;
+	struct command_data	*cmddata;
+
+	uid_t		 	 uid;
+};
+
+/* Privsep message. */
+struct msg {
+	u_int		 n;
+
+	enum msgtype	 type;
+	size_t		 size;
+
+	struct msgdata	 data;
 };
 
 /* Comparison operators. */
@@ -1009,7 +1015,7 @@ void			 free_wrapped(struct mail *);
 	(((ch) >= '0' && (ch) <= '9') ? 52 + (ch) - '0' : -1)))
 char 			*replacepmatch(char *, struct account *,
     			     struct action *, char *, struct mail *,
-    			     regmatch_t [NPMATCH]);
+    			     int, regmatch_t [NPMATCH]);
 char			*replaceinfo(char *, struct account *, struct action *,
     			     char *);
 char 			*replace(char *, char *[REPL_LEN]);

@@ -48,7 +48,8 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	ssize_t	 	 n;
 	size_t	 	 first, last;
 
-	path = replaceinfo(t->data, a, t, m->s);
+	path = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid, 
+	    dctx->pmatch);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto out;

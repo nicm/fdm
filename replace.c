@@ -67,12 +67,15 @@ initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
 
 char *
 replacepmatch(char *src, struct account *a, struct action *t, char *s,
-    struct mail *m, regmatch_t pmatch[NPMATCH])
+    struct mail *m, int pmatch_valid, regmatch_t pmatch[NPMATCH])
 {
 	char	*map[REPL_LEN];
 	char	*dst, *u;
 	size_t	 len;
 	u_int	 i;
+
+	if (!pmatch_valid)
+		return (replaceinfo(src, a, t, s));
 
 	memset(map, 0, REPL_LEN * sizeof (char *));
 	initmap(map, a, t, s);
@@ -125,18 +128,16 @@ replace(char *src, char *map[REPL_LEN])
 		switch (*ptr) {
 		case '%':
 			ch = *++ptr;
-			if (ch == '\0') {
-				ENSURE_FOR(dst, len, off, 1);
-				dst[off++] = '%';
+			if (ch == '\0')
 				goto out;
-			}
 			rp = NULL;
 			if (REPL_IDX(ch) != -1)
 				rp = map[REPL_IDX(ch)];
 			if (rp == NULL) {
-				ENSURE_FOR(dst, len, off, 2);
-				dst[off++] = '%';
-				dst[off++] = ch;
+				if (ch == '%') {
+					ENSURE_FOR(dst, len, off, 1);
+					dst[off++] = '%';
+				}
 				break;
 			}
 

@@ -54,7 +54,8 @@ do_write(struct deliver_ctx *dctx, struct action *t, int append)
         char		*path;
         FILE    	*f;
 
-	path = replaceinfo(t->data, a, t, m->s);
+	path = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid, 
+	    dctx->pmatch);
         if (path == NULL || *path == '\0') {
 		if (path != NULL)
 			xfree(path);
