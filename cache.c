@@ -19,6 +19,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <arpa/inet.h>
+
 #ifdef USE_DB_185_H
 #include <db_185.h>
 #else
