@@ -22,6 +22,5 @@
 - allow fnmatch/glob in maildir paths
 - fnmatch in account "..." test
 - lambda actions
-- permit %1 etc in maildir paths etc etc etc
 - script to censor passwords etc
-- is "" better than "%1" for nonexistant bracket exprs?
+- document % changes: maildir paths etc, %%, and nonexistant behaviour change
