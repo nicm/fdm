@@ -75,13 +75,11 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			    (sb.st_mode & S_IROTH ? 4 : 0) +
 			    (sb.st_mode & S_IWOTH ? 2 : 0) +
 			    (sb.st_mode & S_IXOTH ? 1 : 0));
-			goto out;
 		}
 		if (sb.st_uid != getuid()) {
 			log_warnx("%s: %s: bad owner: %lu, should be %lu",
 			    a->name, path,
 			    (u_long) sb.st_uid, (u_long) getuid());
-			goto out;
 		}
 	}
 
