@@ -16,6 +16,7 @@ fdm ============================================================================
 6.2	IMAP and IMAPS
 6.3	Stdin and local mail
 6.4 	From maildirs
+6.5	Using NNTP
 7	Defining actions
 7.1	Drop and keep
 7.2	Maildirs
@@ -448,6 +449,34 @@ Maildir accounts are specified as follows:
 
 	account "mymaildirs" maildirs { "/path/to/dir1" "/path/to/dir2" }
 
+Using NNTP ---------------------------------------------------------------------
+
+fdm can fetch news messages from a news server using NNTP. News accounts are
+specified like so:
+
+	account "news1" server "news.server.sk" port 119
+		group "comp.unix.bsd.openbsd.misc" cache "%h/.fdm.cache/%s"
+
+	account "mynews" server "my.news.server" port "nntp"
+		groups { "alt.test" "alt.humor.best-of-usenet" }
+		cache "%h/.fdm.cache"
+
+The cache is a file used to store the message-id's of previously downloaded and
+dropped articles - those matching a keep action will not be saved in the
+cache. If only one group is supplied in the account definition, %s tokens are
+replaced by the name of the group in the cache path. If multiple groups are
+provided, %s tokens are just removed. Note that the cache is opened or created
+when the configuration file is parsed.
+
+Some news servers can be somewhat buggy, so it may take an initial number of
+fetches spread some time apart before all the existing messages on the server
+are fetched. Subsequent fetches should retrieve new messages as normal. Due to
+limitations in the NNTP protocol and the implementation of it on most servers,
+fetching from NNTP is very time-consuming compared to POP3 or IMAP. It is
+recommended to limit fetches from an NNTP server to at most once every 3-4
+hours. This can be achieved by marking NNTP accounts with 'disabled' and using
+a seperate contrab entry.
+
 Defining actions ===============================================================
 
 An action is a particular command to execute on a mail when it matches a 
@@ -512,7 +541,8 @@ Token	Replaced with
 %a	The name of the account this mail was fetched from.
 %s	A string specific to the type of account the mail was fetched from.
 	For maildirs, it is the basename of the maildir, for IMAP and POP3 it
-	is the server hostname as specified in the account definition.
+	is the server hostname as specified in the account definition. For
+	NNTP it is the name of the group.
 %h	The delivery user's home directory.
 %n	The delivery user's uid.
 %t	The name of the action.
@@ -526,6 +556,8 @@ Token	Replaced with
 %W	The current day of the week (0-6, Sunday is 0).
 %Y	The current day of the year (000-365).
 %Q	The current quarter (1-4).
+%1-%9	The result of any bracket expressions in the last regexp (see later
+	section on regexps).
 
 If the maildir does not exist, it is created.
 
@@ -672,8 +704,8 @@ Matching bracket expressions ---------------------------------------------------
 
 The results of any bracket expressions within the last regexp are remembered,
 and may be made use of using the 'string' condition, or used to construct an
-action name. The bracket expressions may be substituted using the %1 to %9
-tokens. For example,
+action name, maildir or mbox path, etc. The bracket expressions may be
+substituted using the %1 to %9 tokens. For example,
 
 	match regexp "^From:.*([a-z]*)@domain" in headers action "all" continue
 	match string "%1" to "bob" action "bobmail"

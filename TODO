@@ -23,4 +23,4 @@
 - fnmatch in account "..." test
 - lambda actions
 - script to censor passwords etc
-- document % changes: maildir paths etc, %%, and nonexistant behaviour change
+- document nntp/%1-%9 in maildirs in man pages
