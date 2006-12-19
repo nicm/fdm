@@ -99,7 +99,7 @@ cache_compact(struct cache *cc, long long age, u_int *total)
 			(*total)++;
 
 		if (data.size != sizeof *ce)
-			fatal("db corrupted");
+			fatalx("db corrupted");
 		ce = data.data;
 
 		if (ntohl(ce->added) < threshold) {
