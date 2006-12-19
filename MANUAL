@@ -71,8 +71,16 @@ Then run 'make install' to install fdm to the default locations under
 /usr/local.  The PREFIX environment variable may be set to specify an
 alternative installation location:
 
-    $ export PREFIX=/opt		# defaults to /usr/local
-    $ sudo make install
+	$ export PREFIX=/opt		# defaults to /usr/local
+	$ sudo make install
+
+If being run as root, fdm requires a user named "_fdm" to exist. It will drop
+privileges to this user and its primary group. The user may be added on
+OpenBSD with, for example:
+
+	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
+
+It is not necessary to add a user if fdm is always started by a non-root user.
 
 Quick start ====================================================================
 
