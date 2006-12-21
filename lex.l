@@ -152,7 +152,7 @@ port return (TOKPORT);
 proxy return (TOKPROXY);
 returns return (TOKRETURNS);
 rewrite return (TOKREWRITE);
-seconds return (TOKSECONDS);
+(second|seconds) return (TOKSECONDS);
 server return (TOKSERVER);
 set return (TOKSET);
 size return (TOKSIZE);
