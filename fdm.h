@@ -50,7 +50,7 @@
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	32
-#define DEFEXPIRYTIME	TIME_WEEK
+#define DEFEXPIRYTIME	TIME_MONTH
 
 extern char	*__progname;
 
@@ -312,6 +312,7 @@ struct re {
 struct account {
 	char			 name[MAXNAMESIZE];
 
+	int			 error;
 	int			 disabled;
 	int			 keep;
 	struct fetch		*fetch;
@@ -404,7 +405,6 @@ struct cacheent {
 
 /* Message-id cache. */
 struct cache {
-	char			*path;
 	DB			*db;
 };
 
@@ -536,6 +536,7 @@ struct cmd {
 struct fetch {
 	const char	*ports[2];	/* normal port, ssl port */
 
+	int		 (*init)(struct account *);
 	int	 	 (*connect)(struct account *);
 	int 		 (*poll)(struct account *, u_int *);
 	int	 	 (*fetch)(struct account *, struct mail *);
@@ -730,6 +731,7 @@ enum nntp_state {
 
 /* Fetch nntp data. */
 struct nntp_data {
+	char		*path;
 	struct cache	*cache;
 	struct strings	*groups;
 	long long	 expiry;

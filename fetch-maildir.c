@@ -41,6 +41,7 @@ void	 maildir_makepaths(struct account *);
 void	 maildir_freepaths(struct account *);
 
 struct fetch	 fetch_maildir = { { NULL, NULL },
+				   NULL,
 				   maildir_connect,
 				   maildir_poll,
 				   maildir_fetch,

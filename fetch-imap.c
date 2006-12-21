@@ -44,6 +44,7 @@ int	 do_imap(struct account *, u_int *, struct mail *, int);
 #define IMAP_TAG_ERROR -3
 
 struct fetch	fetch_imap = { { "imap", "imaps" },
+			       NULL,
 			       imap_connect,
 			       imap_poll,
 			       imap_fetch,

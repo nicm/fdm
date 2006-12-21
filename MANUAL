@@ -459,14 +459,16 @@ specified like so:
 
 	account "mynews" server "my.news.server" port "nntp"
 		groups { "alt.test" "alt.humor.best-of-usenet" }
-		cache "%h/.fdm.cache"
+		cache "%h/.fdm.cache" expiry 2 weeks
 
 The cache is a file used to store the message-id's of previously downloaded and
 dropped articles - those matching a keep action will not be saved in the
 cache. If only one group is supplied in the account definition, %s tokens are
 replaced by the name of the group in the cache path. If multiple groups are
 provided, %s tokens are just removed. Note that the cache is opened or created
-when the configuration file is parsed.
+when the configuration file is parsed. Entries in the cache are expired if they
+are not used within the specified time. If no expiry time is given, the default
+of one month is used.
 
 Some news servers can be somewhat buggy, so it may take an initial number of
 fetches spread some time apart before all the existing messages on the server

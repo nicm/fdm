@@ -29,12 +29,34 @@
 
 #include "fdm.h"
 
+int	use_account(struct account *);
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
 int	do_action(struct rule *, struct match_ctx *, struct action *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
+
+int
+use_account(struct account *a)
+{
+	if (!check_incl(a->name)) {
+		log_debug("child: account %s is not included", a->name);
+		return (0);
+	}
+	if (check_excl(a->name)) {
+		log_debug("child: account %s is excluded", a->name);
+		return (0);
+	}
+	/* if the account is disabled and no accounts are specified
+	   on the command line (whether or not it is included if there
+	   are is already confirmed), then skip it */
+	if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
+		log_debug("child: account %s is disabled", a->name);
+		return (0);
+	}
+	return (1);
+}
 
 int
 child(int fd, enum fdmop op)
@@ -55,6 +77,22 @@ child(int fd, enum fdmop op)
 	io = io_create(fd, NULL, IO_LF);
 	log_debug("child: started, pid %ld", (long) getpid());
 
+	log_debug("child: initialising accounts");
+	TAILQ_FOREACH(a, &conf.accounts, entry) {
+		if (a->fetch->init == NULL)
+			continue;
+		if (!use_account(a))
+			continue;
+
+		log_debug("child: initialising account %s", a->name);
+		if (a->fetch->init(a) != 0) {
+			log_debug("%s: initialisation error. disabling",
+			    a->name);
+			a->error = 1;
+		}
+	}
+        log_debug("child: finished initialising");
+
 	if (geteuid() != 0)
 		log_debug("child: not root user. not dropping privileges");
 	else {
@@ -71,22 +109,8 @@ child(int fd, enum fdmop op)
 
 	rc = 0;
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (!check_incl(a->name)) {
-			log_debug("child: account %s is not included", a->name);
+		if (!use_account(a) || a->error)
 			continue;
-		}
-		if (check_excl(a->name)) {
-			log_debug("child: account %s is excluded", a->name);
-			continue;
-		}
-		/* if the account is disabled and no accounts are specified
-		   on the command line (whether or not it is included if there
-		   are is already confirmed), then skip it */
-		if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
-			log_debug("child: account %s is disabled", a->name);
-			continue;
-		}
-
 		log_debug("child: processing account %s", a->name);
 
 		/* connect */

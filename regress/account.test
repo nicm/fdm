@@ -121,3 +121,106 @@ account "name" imap server "server" user "" pass "pass"
 @1 ^/dev/stdin: invalid user at line 2$
 account "name" imap server "server" user "user" pass ""
 @1 ^/dev/stdin: invalid pass at line 2$
+
+# ----------------------------------------------------------------------------
+# NNTP
+
+account "name" nntp
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" nntp server
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" nntp server "server"
+@1 ^/dev/stdin: syntax error at line 2$
+
+account "name" nntp server "server" group
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" nntp server "server" group { }
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" nntp server "server" groups
+@1 ^/dev/stdin: syntax error at line 2$
+account "name" nntp server "server" groups "group"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" nntp server "server" groups { }
+@1 ^/dev/stdin: syntax error at line 1$
+
+account "name" nntp server "server" group "group" "cache"
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" nntp server "server" groups { "group" } cache
+@1 ^/dev/stdin: syntax error at line 2$
+
+account "name" nntp server "server" group "group" 1 week
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" nntp server "server" groups { "group" } expiry
+@1 ^/dev/stdin: syntax error at line 1$
+
+account "name" nntp server "server" group "group" "cache" expiry 1 week
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" nntp server "server" groups { "group" } cache expiry 1 week
+@1 ^/dev/stdin: syntax error at line 1$
+
+account "name" nntp server "server" group "group" cache "cache" 1 week
+@1 ^/dev/stdin: syntax error at line 1$
+account "name" nntp server "server" groups { "group" } cache "cache" expiry
+@1 ^/dev/stdin: syntax error at line 2$
+
+account "name" nntp server "server" group "group" cache "cache"
+@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 2419200 seconds$
+account "name" nntp server "server" group "group" cache "cache" expiry 1 week
+@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 604800 seconds$
+account "name" nntp server "server" groups { "group" } cache "cache"
+@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 2419200 seconds$
+account "name" nntp server "server" groups { "group" } cache "cache" expiry 1 week
+@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 604800 seconds$
+
+account "name" nntp server "server" port 123 group "group" cache "cache"
+@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 2419200 seconds$
+account "name" nntp server "server" port "port" group "group" cache "cache"
+@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 2419200 seconds$
+account "name" nntp server "server" port 0 group "group" cache "cache"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port 65536 group "group" cache "cache"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port "" group "group" cache "cache"
+@1 ^/dev/stdin: invalid port at line 1$
+
+account "name" nntp server "server" port 123 groups { "group" } cache "cache"
+@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 2419200 seconds$
+account "name" nntp server "server" port "port" groups { "group" } cache "cache"
+@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 2419200 seconds$
+account "name" nntp server "server" port 0 groups { "group" } cache "cache"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port 65536 groups { "group" } cache "cache"
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port "" groups { "group" } cache "cache"
+@1 ^/dev/stdin: invalid port at line 1$
+
+account "name" nntp server "server" port 123 group "group" cache "cache" expiry 1 second
+@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 1 seconds$
+account "name" nntp server "server" port "port" group "group" cache "cache" expiry 1 second
+@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 1 seconds$
+account "name" nntp server "server" port 0 group "group" cache "cache" expiry 1 second
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port 65536 group "group" cache "cache" expiry 1 second
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port "" group "group" cache "cache" expiry 1 second
+@1 ^/dev/stdin: invalid port at line 1$
+
+account "name" nntp server "server" port 123 groups { "group" } cache "cache" expiry 1 second
+@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 1 seconds$
+account "name" nntp server "server" port "port" groups { "group" } cache "cache" expiry 1 second
+@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 1 seconds$
+account "name" nntp server "server" port 0 groups { "group" } cache "cache" expiry 1 second
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port 65536 groups { "group" } cache "cache" expiry 1 second
+@1 ^/dev/stdin: invalid port at line 1$
+account "name" nntp server "server" port "" groups { "group" } cache "cache" expiry 1 second
+@1 ^/dev/stdin: invalid port at line 1$
+
+account "" nntp server "server" group "group" cache "cache"
+@1 ^/dev/stdin: invalid account name at line 2$
+account "name" nntp server "" group "group" cache "cache"
+@1 ^/dev/stdin: invalid host at line 1$
+account "name" nntp server "server" group "" cache "cache"
+@1 ^/dev/stdin: invalid group at line 1$
+account "name" nntp server "server" group "group" cache ""
+@1 ^/dev/stdin: invalid cache at line 2$

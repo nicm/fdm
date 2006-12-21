@@ -81,11 +81,11 @@ BEGIN {
 
 	do {
 		error = cmd | getline;
-		if (DEBUG != "") {
-			print ("\t" $0);
-		}
 		if (error == -1) {
 			break;
+		}
+		if (DEBUG != "") {
+			print ("\t" $0);
 		}
 		for (i = 0; i < nmatches; i++) {
 			if ($0 ~ matches[i]) {

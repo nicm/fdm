@@ -1908,7 +1908,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$6: expiry (long long)] */
            {
 		   struct nntp_data	*data;
-		   char			*path, *cause, *group;
+		   char			*group;
 
 		   if (*$5 == '\0')
 			   yyerror("invalid cache");
@@ -1923,12 +1923,9 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   group = ARRAY_ITEM($3, 0, char *);
 		   else
 			   group = NULL;
-		   path = replaceinfo($5, NULL, NULL, group);
-		   if (path == NULL || *path == '\0')
+		   data->path = replaceinfo($5, NULL, NULL, group);
+		   if (data->path == NULL || *data->path == '\0')
 			   yyerror("invalid cache");
-		   data->cache = cache_open(path, &cause);
-		   if (data->cache == NULL)
-			   yyerror("%s", cause);
 		   xfree($5);
 
 		   data->server.host = $2.host;

@@ -26,6 +26,7 @@
 
 #include "fdm.h"
 
+int	nntp_init(struct account *);
 int	nntp_connect(struct account *);
 int	nntp_disconnect(struct account *);
 int	nntp_fetch(struct account *, struct mail *);
@@ -37,6 +38,7 @@ char   *nntp_desc(struct account *);
 int	nntp_code(char *);
 
 struct fetch	fetch_nntp = { { "nntp", NULL },
+			       nntp_init,
 			       nntp_connect,
 			       NULL,
 			       nntp_fetch,
@@ -46,6 +48,22 @@ struct fetch	fetch_nntp = { { "nntp", NULL },
 			       nntp_disconnect,
 			       nntp_desc
 };
+
+int
+nntp_init(struct account *a)
+{
+	struct nntp_data	*data = a->data;
+	char			*cause;
+
+	data->cache = cache_open(data->path, &cause);
+	if (data->cache == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (1);
+	}
+
+	return (0);
+}
 
 int
 nntp_connect(struct account *a)
@@ -351,7 +369,7 @@ nntp_desc(struct account *a)
 	groups = fmt_strings("groups ", data->groups);
 	xasprintf(&s, "nntp server \"%s\" port %s %s cache \"%s\" expiry %lld "
 	    "seconds", data->server.host, data->server.port, groups, 
-	    data->cache->path, data->expiry);
+	    data->path, data->expiry);
 	xfree(groups);
 	return (s);
 }

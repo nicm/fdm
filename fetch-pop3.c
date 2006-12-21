@@ -37,6 +37,7 @@ char   *pop3_desc(struct account *);
 int	do_pop3(struct account *, u_int *, struct mail *, int);
 
 struct fetch	fetch_pop3 = { { "pop3", "pop3s" },
+			       NULL,
 			       pop3_connect,
 			       pop3_poll,
 			       pop3_fetch,

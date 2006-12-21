@@ -39,20 +39,19 @@ cache_open(char *path, char **cause)
 	struct cache	*cc;
 
 	cc = xmalloc(sizeof *cc);
-	cc->path = xstrdup(path);
 	
-	cc->db = dbopen(cc->path, O_RDWR, 0, DB_HASH, NULL);
+	cc->db = dbopen(path, O_RDWR, 0, DB_HASH, NULL);
 	if (cc->db == NULL) {
 		if (errno != ENOENT) {
-			xasprintf(cause, "%s: %s", cc->path, strerror(errno));
+			xasprintf(cause, "%s: %s", path, strerror(errno));
  			xfree(cc);
 			return (NULL);
 		}
 		
-		cc->db = dbopen(cc->path, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR,
+		cc->db = dbopen(path, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR,
 		    DB_HASH, NULL);
 		if (cc->db == NULL) {
-			xasprintf(cause, "%s: %s", cc->path, strerror(errno));
+			xasprintf(cause, "%s: %s", path, strerror(errno));
  			xfree(cc);
 			return (NULL);
 		}
@@ -65,7 +64,6 @@ cache_close(struct cache *cc)
 {
 	cc->db->close(cc->db);
 
-	xfree(cc->path);
 	xfree(cc);
 }
 

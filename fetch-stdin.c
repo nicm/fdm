@@ -34,6 +34,7 @@ int	 stdin_delete(struct account *);
 char	*stdin_desc(struct account *);
 
 struct fetch	fetch_stdin = { { NULL, NULL },
+				NULL,
 				stdin_connect,
 				NULL,
 				stdin_fetch,
