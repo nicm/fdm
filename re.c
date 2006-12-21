@@ -18,7 +18,7 @@
 
 #include <sys/types.h>
 
-#include <fdm.h>
+#include "fdm.h"
 
 int
 re_compile(struct re *re, char *s, int flags, char **cause)
