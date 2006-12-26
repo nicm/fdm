@@ -29,7 +29,7 @@
 
 #include "fdm.h"
 
-int	use_account(struct account *);
+int	use_account(struct account *, char **cause);
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct rule *, struct match_ctx *);
@@ -38,23 +38,28 @@ int	do_action(struct rule *, struct match_ctx *, struct action *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
 
 int
-use_account(struct account *a)
+use_account(struct account *a, char **cause)
 {
 	if (!check_incl(a->name)) {
-		log_debug("child: account %s is not included", a->name);
+		if (cause != NULL)
+			xasprintf(cause, "account %s is not included", a->name);
 		return (0);
 	}
 	if (check_excl(a->name)) {
-		log_debug("child: account %s is excluded", a->name);
+		if (cause != NULL)
+			xasprintf(cause, "account %s is excluded", a->name);
 		return (0);
 	}
+
 	/* if the account is disabled and no accounts are specified
 	   on the command line (whether or not it is included if there
 	   are is already confirmed), then skip it */
 	if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
-		log_debug("child: account %s is disabled", a->name);
+		if (cause != NULL)
+			xasprintf(cause, "account %s is disabled", a->name);
 		return (0);
 	}
+
 	return (1);
 }
 
@@ -65,6 +70,7 @@ child(int fd, enum fdmop op)
 	struct msg	 msg;
 	struct account	*a;
 	int		 rc, error;
+	char		*cause;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -81,7 +87,7 @@ child(int fd, enum fdmop op)
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
 		if (a->fetch->init == NULL)
 			continue;
-		if (!use_account(a))
+		if (!use_account(a, NULL))
 			continue;
 
 		log_debug("child: initialising account %s", a->name);
@@ -109,8 +115,13 @@ child(int fd, enum fdmop op)
 
 	rc = 0;
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (!use_account(a) || a->error)
+		if (a->error)
 			continue;
+		if (!use_account(a, &cause)) {
+			log_debug("child: %s", cause);
+			xfree(cause);
+			continue;
+		}
 		log_debug("child: processing account %s", a->name);
 
 		/* connect */
