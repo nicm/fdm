@@ -242,6 +242,7 @@ nntp_fetch(struct account *a, struct mail *m)
 				if (cache_contains(data->cache, data->key)) {
 					log_debug3("%s: found in cache: %s",
 					    a->name, data->key);
+					cache_update(data->cache, data->key);
 
 					xfree(data->key);
 					data->key = NULL;

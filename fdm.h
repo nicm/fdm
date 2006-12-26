@@ -959,6 +959,7 @@ struct cache 		*cache_open(char *, char **);
 void			 cache_close(struct cache *);
 u_int			 cache_compact(struct cache *, long long, u_int *);
 void			 cache_add(struct cache *, char *);
+void			 cache_update(struct cache *, char *);
 int			 cache_contains(struct cache *, char *);
 
 /* re.c */

@@ -150,6 +150,12 @@ cache_add(struct cache *cc, char *item)
 	cc->db->sync(cc->db, 0);
 }
 
+void
+cache_update(struct cache *cc, char *item)
+{
+	cache_add(cc, item);
+}
+
 int
 cache_contains(struct cache *cc, char *item)
 {
