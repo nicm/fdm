@@ -2,19 +2,22 @@ fdm is a small program designed to fetch mail from POP3 or IMAP servers, or
 receive local mail from stdin, and deliver it in various ways.
 
 NOTE: As of fdm 0.8, Linux users need to have a Berkely DB implementation
-installed that is compatible with the one in the *BSD libcs.
+installed that is compatible with the one in the various *BSD libc (v1.85).
 
-On Debian, the "libdb4.3" and "libdb4.3-dev" seem to work. Later versions built
-but then caused segfaults because they seemed to interfere with something else
-(reading the passwd db iirc), possibly because I was linking with them
-incorrectly or possibly because the packages are broken.
+On Debian, the "libdb4.3" and "libdb4.3-dev" packages seem to work. I had a 
+few problems with later versions (they built but then caused segfaults)
+because they seemed to interfere with something else, possibly because I
+was linking with them incorrectly or possibly because the packages are broken.
+
+Slackware's db44 package works fine.
 
 Other Linux distributions should have similar packages, or the source is
 available from:
 
 http://www.oracle.com/technology/software/products/berkeley-db/db/index.html
 
-Comments, instructions, package names etc for other distributions are welcome.
+Comments, instructions, package names etc for other distributions to include
+here are welcome.
 
 See the included MANUAL file and the fdm(1) and fdm.conf(5) man pages for
 installation and usage instructions. They are online at:
