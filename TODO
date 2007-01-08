@@ -26,4 +26,5 @@
 - lambda actions
 - script to censor passwords etc
 - document nntp/%1-%9 in maildirs in man pages
-- document users on account
+- document users on account in man page
+
