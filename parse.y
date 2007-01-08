@@ -1937,9 +1937,10 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 	   }
 
 /** ACCOUNT */
-account: TOKACCOUNT strv disabled fetchtype keep
+account: TOKACCOUNT strv disabled users fetchtype keep
 /**      [$2: strv (char *)] [$3: disabled (int)] */
-/**      [$4: fetchtype (struct { ... } fetch)] [$5: keep (int)] */
+/**      [$4: users (struct { ... } users)] [$5: fetchtype (struct { ... } fetch)] */
+/**      [$6: keep (int)] */
          {
 		 struct account		*a;
 		 char			*s;
@@ -1953,10 +1954,12 @@ account: TOKACCOUNT strv disabled fetchtype keep
 
 		 a = xcalloc(1, sizeof *a);
 		 strlcpy(a->name, $2, sizeof a->name);
-		 a->keep = $5;
+		 a->keep = $6;
 		 a->disabled = $3;
-		 a->fetch = $4.fetch;
-		 a->data = $4.data;
+		 a->users = $4.users;
+		 a->find_uid = $4.find_uid;
+		 a->fetch = $5.fetch;
+		 a->data = $5.data;
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);
 
 		 s = a->fetch->desc(a);
