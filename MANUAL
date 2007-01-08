@@ -359,10 +359,14 @@ fdm fetches mail from a set of 'accounts', defined using the 'account'
 keyword. Each account has a name, a type, a number of account specific
 parameters and a couple of optional flags. The general form is:
 
-	account <name> [disabled] <type> [<parameters>] [keep]
+	account <name> [<users>] [disabled] <type> [<parameters>] [keep]
 
 The <name> item is a string by which the account is referred in filtering
 rules, log output and for the '-a' and '-x' command line options.
+
+The <users> portion specifies the default users to use when delivering mail
+fetched from this account as root. It has the same syntax as discussed in
+detail in the section below on defining actions.
 
 If the optional 'disabled' keyword is present, fdm ignores the account unless
 it is specified on the command line using the '-a' flag.
@@ -506,7 +510,8 @@ If users are specified, the action will be run once for each user, with fdm
 changing to that user before executing the action. Note that fdm will execute
 the action once for each user even when not started as root, but will not be
 able to change to the user. The user keyword is primarily of use in multiuser
-configurations.
+configurations. If users are present on an action, they override any specified
+by the account defintion.
 
 If running as root and no user is specified on either the action or on the 
 filtering rule (see the section on filtering below), the default user is
@@ -626,7 +631,7 @@ The general form of a filtering rule is:
 
 The optional <users> item is specified as for an action definition. If users
 are specified on a filtering (match) rule, they override any specified on the
-action.
+action or account.
 
 The <conditions> item is set of conditions against which the match may be
 specified, each condition returns true or false. Conditions are described in
