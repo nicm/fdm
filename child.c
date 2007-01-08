@@ -23,7 +23,6 @@
 #include <fcntl.h>
 #include <fnmatch.h>
 #include <limits.h>
-#include <signal.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -37,23 +36,6 @@ int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
 int	do_action(struct rule *, struct match_ctx *, struct action *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
-void	sighandler(int);
-
-volatile sig_atomic_t	sigint;
-volatile sig_atomic_t	sigterm;
-
-void
-sighandler(int sig)
-{
-	switch (sig) {
-	case SIGINT:
-		sigint = 1;
-		break;
-	case SIGTERM:
-		sigterm = 1;
-		break;
-	}
-}
 
 int
 use_account(struct account *a, char **cause)
@@ -84,12 +66,11 @@ use_account(struct account *a, char **cause)
 int
 child(int fd, enum fdmop op)
 {
-	struct io		*io;
-	struct msg	 	 msg;
-	struct account		*a;
-	int		 	 rc, error;
-	char			*cause;
-	struct sigaction	 sa;
+	struct io	*io;
+	struct msg	 msg;
+	struct account	*a;
+	int		 rc, error;
+	char		*cause;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -98,14 +79,6 @@ child(int fd, enum fdmop op)
 
         SSL_library_init();
         SSL_load_error_strings();
-
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_RESTART;
-	sa.sa_handler = &sighandler;
-	if (sigaction(SIGINT, &sa, NULL) != 0)
-		fatal("sigaction");
-	if (sigaction(SIGTERM, &sa, NULL) != 0)
-		fatal("sigaction");
 
 	io = io_create(fd, NULL, IO_LF);
 	log_debug("child: started, pid %ld", (long) getpid());
@@ -142,11 +115,6 @@ child(int fd, enum fdmop op)
 
 	rc = 0;
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (sigint || sigterm) {
-			log_debug("child: got signal. exiting");
-			break;
-		}
-
 		if (a->error)
 			continue;
 		if (!use_account(a, &cause)) {
