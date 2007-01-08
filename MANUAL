@@ -458,10 +458,10 @@ Using NNTP ---------------------------------------------------------------------
 fdm can fetch news messages from a news server using NNTP. News accounts are
 specified like so:
 
-	account "news1" server "news.server.sk" port 119
+	account "news1" nntp server "news.server.sk" port 119
 		group "comp.unix.bsd.openbsd.misc" cache "%h/.fdm.cache/%s"
 
-	account "mynews" server "my.news.server" port "nntp"
+	account "mynews" nntp server "my.news.server" port "nntp"
 		groups { "alt.test" "alt.humor.best-of-usenet" }
 		cache "%h/.fdm.cache" expiry 2 weeks
 
@@ -564,6 +564,7 @@ Token	Replaced with
 %Q	The current quarter (1-4).
 %1-%9	The result of any bracket expressions in the last regexp (see later
 	section on regexps).
+%%	Replaced with a literal %.
 
 If the maildir does not exist, it is created.
 

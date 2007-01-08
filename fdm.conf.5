@@ -80,7 +80,8 @@ If this option is specified,
 .Xr fdm 1
 does not attempt to create a lock file and allows multiple instances to run simultaneously.
 .It Ic lock-file Ar path
-This sets an alternative lock file. The default is
+This sets an alternative lock file.
+The default is
 .Pa ~/.fdm.lock
 for non-root users and
 .Pa /var/db/fdm.lock
@@ -157,17 +158,15 @@ The file to include is searched for first as an absolute path and then relative 
 .Sh MACROS
 Macros may be defined using the following syntax:
 .Bl -tag -width Ds
-.It Ar $name Ic = Ar string                                                  
+.It Ar $name Ic = Ar string
 .It Ar %name Ic = Ar number
 .El
 .Pp
-Macros are prefixed with $ to indicate a string value and % to indicate a numeri\
-c value.
-Once defined, a macro may be used in any place a string or number is expected. M\
-acros may be embedded in strings by surrounding their name (after the $ or %) wi\
-th {}s, like so:
-.Bd -ragged -offset indent                                                       
-"abc ${mymacro} %{anothermacro} def"                                             
+Macros are prefixed with $ to indicate a string value and % to indicate a numeric value.
+Once defined, a macro may be used in any place a string or number is expected.
+Macros may be embedded in strings by surrounding their name (after the $ or %) with {}s, like so:
+.Bd -ragged -offset indent
+"abc ${mymacro} %{anothermacro} def"
 .Ed
 .Sh ACCOUNTS
 The
@@ -177,7 +176,9 @@ command is used to instruct
 to fetch mail from an account.
 The syntax is:
 .Bl -tag -width Ds
-.It Xo Ic account Ar name Op Ic disabled 
+.It Xo Ic account Ar name
+.Op Ar users
+.Op Ic disabled
 .Ar type Op Ar args
 .Op Ic keep
 .Xc
@@ -186,6 +187,37 @@ The syntax is:
 The
 .Ar name
 argument is a string specifying a name for the account.
+The optional
+.Ar users
+argument has the following form:
+.Bl -tag -width Ds
+.It Xo Ic user Ar user | Ic users
+.Li {
+.Ar user ...
+.Li } |
+.Ic user Ic from-headers
+.Xc
+.El
+.Pp
+The first two options specify a user or list of users as which the mail should be delivered when an action is executed.
+If
+.Ic user Ic from-headers
+is specified,
+.Xr fdm 1
+attempts to find the users from the mail headers, using the values of the
+.Ic headers
+and
+.Ic domains
+options.
+If no headers are specified, or
+.Xr fdm 1
+fails to find any valid users in the headers, the default user (set with
+.Ic set Ic default-user )
+is used.
+Users specified as part of the account definition may be overridden by similar arguments to action definitions or on match rules. If
+.Xr fdm 1
+is run as non-root, it will still execute any actions once for each user, but will be unable to change to that user so the action will be executed multiple times as the current user.
+.Pp
 The
 .Ic disabled
 keyword instructs
@@ -245,7 +277,7 @@ The parameters are as for a POP3 or POP3 account, aside from the additional
 .Ic folder
 option which allows the folder name to be specified (the default is to fetch from the inbox).
 .It Ic maildir Ar path
-.It Xo Ic maildirs 
+.It Xo Ic maildirs
 .Li {
 .Ar path ...
 .Li }
@@ -256,6 +288,26 @@ to fetch mail from the maildir or maildirs specified.
 This allows
 .Xr fdm 1
 to be used to filter mail, fetching from a maildir and deleting (dropping) unwanted mail, or delivering mail to another maildir or to an mbox.
+.It Xo Ic nntp Ic server Ar host
+.Op Ic port Ar port
+.Ic group Ar group
+.Ic cache Ar cache
+.Op Ic expiry Ar time
+.Xc
+.It Xo Ic nntp Ic server Ar host
+.Op Ic port Ar port
+.Ic groups
+.Li {
+.Ar group ...
+.Li }
+.Ic cache Ar cache
+.Op Ic expiry Ar time
+.Xc
+An NNTP account.
+Articles are fetched from the specified group or groups and delivered if their message-id does not appear in the specified cache file.
+Entries are removed from the cache after the time given with the
+.Ic expiry
+keyword; the default is 1 month.
 .El
 .Sh ACTIONS
 The
@@ -272,37 +324,9 @@ The syntax is:
 The
 .Ar name
 is a string defining a name for the action.
-The optional
+The
 .Ar users
-argument has the following form:
-.Bl -tag -width Ds
-.It Xo Ic user Ar user | Ic users
-.Li {
-.Ar user ...
-.Li } |
-.Ic user Ic from-headers
-.Xc
-.El
-.Pp
-The first two options specify a user or list of users as which the mail should be delivered.
-If
-.Ic user Ic from-headers
-is specified,
-.Xr fdm 1
-attempts to find the users from the mail headers, using the values of the
-.Ic headers
-and
-.Ic domains
-options.
-If no headers are specified, or
-.Xr fdm 1
-fails to find any valid users in the headers, the default user (set with
-.Ic set Ic default-user )
-is used.
-An action's user setting may be overridden in the matching rule.
-This keyword has no effect if
-.Xr fdm 1
-is run as non-root.
+argument has the same form as for an account definition. An action's user setting may be overridden in the matching rule.
 .Pp
 The possible values for
 .Ar action
@@ -337,12 +361,20 @@ year,
 .Em %W
 day of the week (0-6, Sunday is 0),
 .Em %Y
-day of the year (000-365) and
+day of the year (000-365),
 .Em %Q
-quarter (1-4).
+quarter (1-4) and
+.Em %%
+with a literal %.
 In addition,
 .Em %s
-is replaced by a string specific to the type of account.
+is replaced by a string specific to the type of account and 
+.Em %0
+to
+.Em %9
+with the contents of any subexpressions from the regexp executed as part of the last
+.Ic regexp
+condition.
 When fetching from a maildir, this is the basename of the maildir path.
 With pop3 or imap, it is the hostname of the server, as specified in the account definition.
 .Bl -tag -width Ds
@@ -424,21 +456,21 @@ argument may be one of:
 .Bl -tag -width Ds
 .It Ic all
 Matches all mail.
-.It Xo Op Ic not 
+.It Xo Op Ic not
 .Ic matched
 .Xc
 Matches only mail that has matched a previous rule and been passed on with
 .Ic continue .
-.It Xo Op Ic not 
+.It Xo Op Ic not
 .Ic unmatched
 .Xc
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
-.It Xo Op Ic not 
+.It Xo Op Ic not
 .Ic tagged Ar string
 .Xc
-Matches mails tagged with 
+Matches mails tagged with
 .Ar string .
 .It Xo Op Ic not
 .Op Ic case
@@ -453,44 +485,45 @@ or
 The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
-.It Xo Op Ic not 
+.It Xo Op Ic not
 .Ic exec Ar command Op Ic user Ar user
-.Ic returns 
+.Ic returns
 .Li (
 .Ar return code ,
 .Ar stdout regexp )
 .Xc
-.It Xo Op Ic not 
+.It Xo Op Ic not
 .Ic pipe Ar command Op Ic user Ar user
-.Ic returns 
+.Ic returns
 .Li (
 .Ar return code ,
 .Ar stdout regexp )
 .Xc
 These two conditions execute a
-.Ar command 
-and test its return value and output. The
+.Ar command
+and test its return value and output.
+The
 .Ar return code
-argument is the numeric return code expected and 
+argument is the numeric return code expected and
 .Ar stdout regexp
-is a regexp to be tested against the output of the command to 
+is a regexp to be tested against the output of the command to
 .Em stdout .
 Either of these two arguments may be omitted: if both are specified, both must match for the condition to be true.
 The
 .Ic pipe
-version will pipe the mail to the command's 
+version will pipe the mail to the command's
 .Em stdin
 when executing it.
 If a user is specified,
 .Xr fdm 1
 will change to that user before executing the command, otherwise the current user (or root if started as root) is used.
-.It Xo Op Ic not 
-.Ic size 
+.It Xo Op Ic not
+.Ic size
 .Li <
 .Ar number
 .Xc
-.It Xo Op Ic not 
-.Ic size 
+.It Xo Op Ic not
+.Ic size
 .Li >
 .Ar number
 .Xc
@@ -505,18 +538,19 @@ against
 .Ar regexp .
 If any of %0 to %9 appear in the string, they will be replaced with the contents of any subexpressions from the regexp executed as part of the last
 .Ic regexp
-condition. If no 
-.Ic regexp 
+condition.
+If no
+.Ic regexp
 condition has yet been seen, or the mail contents has been modified by a
 .Ic rewrite
 action since the last one, this condition will log a warning and evaluate to false.
-.It Xo Op Ic not 
-.Ic age 
+.It Xo Op Ic not
+.Ic age
 .Li <
 .Ar time
 .Xc
-.It Xo Op Ic not 
-.Ic age 
+.It Xo Op Ic not
+.Ic age
 .Li >
 .Ar time
 .Xc
@@ -530,7 +564,7 @@ The time may be given as a simple number in seconds, or followed by the word
 .Em days ,
 .Em months
 or
-.Em years 
+.Em years
 to specify a time in different units.
 .It Xo Op Ic not
 .Ic attachment Ic count
@@ -552,7 +586,7 @@ to specify a time in different units.
 .Li !=
 .Ar number
 .Xc
-These conditions match if the mail possesses a number of attachments less than, greater than, equal to or not equal to 
+These conditions match if the mail possesses a number of attachments less than, greater than, equal to or not equal to
 .Ar number .
 .It Xo Op Ic not
 .Ic attachment Ic total-size
@@ -606,11 +640,12 @@ The
 keyword may be specified to invert the sense of a condition.
 .Pp
 The first form of the command specifies a number of actions to take when a mail matches the rule.
-The second form tags the mail with 
+The second form tags the mail with
 .Ar string ,
 which may be matched using the
 .Ic tagged
-condition in later rules. A mail may be tagged with any number of different strings by different rules.
+condition in later rules.
+A mail may be tagged with any number of different strings by different rules.
 Rules which apply a tag do not count as a match for the purposes of the
 .Ic matched
 or
@@ -673,7 +708,9 @@ Rules may be nested by specifying further rules in braces:
 .It Li }
 .El
 .Pp
-The inner rules will not be evaluated unless the outer one matches. Rules may be multiply nested. Note that the outer rule does not count as a match for the purposes of the
+The inner rules will not be evaluated unless the outer one matches.
+Rules may be multiply nested.
+Note that the outer rule does not count as a match for the purposes of the
 .Ic matched
 and
 .Ic unmatched
