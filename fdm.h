@@ -659,12 +659,12 @@ struct attachment_data {
 		ATTACHOP_TOTALSIZE,
 		ATTACHOP_ANYSIZE,
 		ATTACHOP_ANYTYPE,
-		ATTACHOP_ANYNAME,
-		ATTACHOP_EXPRESSION /* XXX */
+		ATTACHOP_ANYNAME
 	} op;
 
 	enum cmp	 	 cmp;
 	union {
+		size_t		 size;
 		long long	 number;
 		char		*string;
 		struct re	 re;

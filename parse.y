@@ -1398,8 +1398,10 @@ expritem: not icase strv area
 	  {
 		  struct size_data	*data;
 
+#if SIZE_MAX < LLONG_MAX
 		  if ($4 > SIZE_MAX)
 			  yyerror("size too large");
+#endif
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1508,6 +1510,11 @@ expritem: not icase strv area
 	  {
 		  struct attachment_data	*data;
 
+#if SIZE_MAX < LLONG_MAX
+		  if ($5 > SIZE_MAX)
+			  yyerror("size too large");
+#endif
+	  
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_attachment;
@@ -1518,12 +1525,17 @@ expritem: not icase strv area
 
 		  data->op = ATTACHOP_TOTALSIZE;
 		  data->cmp = $4;
-		  data->value.number = $5;
+		  data->value.size = $5;
 	  }
         | not TOKATTACHMENT TOKANYSIZE cmp size
 /**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: size (long long)] */
 	  {
 		  struct attachment_data	*data;
+
+#if SIZE_MAX < LLONG_MAX
+		  if ($5 > SIZE_MAX)
+			  yyerror("size too large");
+#endif
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1535,7 +1547,7 @@ expritem: not icase strv area
 
 		  data->op = ATTACHOP_ANYSIZE;
 		  data->cmp = $4;
-		  data->value.number = $5;
+		  data->value.size = $5;
 	  }
         | not TOKATTACHMENT TOKANYTYPE strv
 /**       [$1: not (int)] [$4: strv (char *)] */

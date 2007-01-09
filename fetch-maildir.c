@@ -206,7 +206,7 @@ restart:
 	} while (!S_ISREG(sb.st_mode));
 
 	log_debug2("%s: reading mail from: %s", a->name, data->entry);
-	if (sb.st_size == 0) {
+	if (sb.st_size <= 0) {
 		log_warnx("%s: %s: empty file", a->name, data->entry);
 		return (FETCH_ERROR);
 	}

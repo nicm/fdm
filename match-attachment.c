@@ -71,11 +71,11 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 		case ATTACHOP_TOTALSIZE:
 			switch (data->cmp) {
 			case CMP_LT:
-				if (size < data->value.number)
+				if (size < data->value.size)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
 			case CMP_GT:
-				if (size > data->value.number)
+				if (size > data->value.size)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
 			default:
@@ -95,11 +95,11 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 			case ATTACHOP_ANYSIZE:
 				switch (data->cmp) {
 				case CMP_LT:
-					if (at->size < data->value.number)
+					if (at->size < data->value.size)
 						return (MATCH_TRUE);
 					break;
 				case CMP_GT:
-					if (at->size > data->value.number)
+					if (at->size > data->value.size)
 						return (MATCH_TRUE);
 					break;
 				default:
