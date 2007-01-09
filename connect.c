@@ -273,8 +273,8 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	*ptr++ = len;
 	memcpy(ptr, srv->host, len);
 	ptr += len;
-	*((u_int16_t *) ptr) = htons(port);
-	ptr += 2;
+	*ptr++ = (port >> 8) & 0xff;
+	*ptr++ = port & 0xff;
 	io_write(io, buf, ptr - buf);
 
 	/* connect response */
