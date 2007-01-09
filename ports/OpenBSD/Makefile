@@ -2,7 +2,7 @@
 
 COMMENT=	"fetches and delivers mail"
 
-DISTNAME=	fdm-0.8
+DISTNAME=	fdm-0.8a
 CATEGORIES=	mail
 
 MAINTAINER=     Nicholas Marriott <nicm@users.sourceforge.net>
