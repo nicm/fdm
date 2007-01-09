@@ -25,6 +25,7 @@
 6.2	IMAP and IMAPS
 6.3	Stdin and local mail
 6.4 	From maildirs
+6.5	Using NNTP
 7	Defining actions
 7.1	Drop and keep
 7.2	Maildirs
@@ -68,12 +69,26 @@ Installing fdm is simple. Download the source tarball, and run:
 	$ cd fdm-?.?.tar.gz
 	$ make
 
-Then run 'make install' to install to the default locations under /usr/local.
-The PREFIX environment variable may be set to specify an alternative
-installation location:
+If using Linux, glibc doesn't come with a Berkeley DB implementation, so one
+must be installed before building fdm. On Debian, the "libdb4.3-dev" and
+"libdb4.3" packages seem to work. Alternatively, source may be retrieved at:
 
-    $ export PREFIX=/opt		# defaults to /usr/local
-    $ sudo make install
+http://www.oracle.com/technology/software/products/berkeley-db/db/index.html
+
+Then run 'make install' to install fdm to the default locations under
+/usr/local. The PREFIX environment variable may be set to specify an
+alternative installation location:
+
+	$ export PREFIX=/opt		# defaults to /usr/local
+	$ sudo make install
+
+If being run as root, fdm requires a user named "_fdm" to exist. It will drop
+privileges to this user and its primary group. The user may be added on
+OpenBSD with, for example:
+
+	# useradd -u 999 -s /bin/nologin -d /var/empty -g=uid _fdm
+
+It is not necessary to add a user if fdm is always started by a non-root user.
 
 <h1>Quick start </h1>
 A simple ~/.fdm.conf file for a single user fetching from POP3, POP3S and IMAP
@@ -341,10 +356,14 @@ fdm fetches mail from a set of 'accounts', defined using the 'account'
 keyword. Each account has a name, a type, a number of account specific
 parameters and a couple of optional flags. The general form is:
 
-	account &lt;name&gt; [disabled] &lt;type&gt; [&lt;parameters&gt;] [keep]
+	account &lt;name&gt; [&lt;users&gt;] [disabled] &lt;type&gt; [&lt;parameters&gt;] [keep]
 
 The &lt;name&gt; item is a string by which the account is referred in filtering
 rules, log output and for the '-a' and '-x' command line options.
+
+The &lt;users&gt; portion specifies the default users to use when delivering mail
+fetched from this account as root. It has the same syntax as discussed in
+detail in the section below on defining actions.
 
 If the optional 'disabled' keyword is present, fdm ignores the account unless
 it is specified on the command line using the '-a' flag.
@@ -427,6 +446,34 @@ Maildir accounts are specified as follows:
 
 	account "mymaildirs" maildirs { "/path/to/dir1" "/path/to/dir2" }
 
+<h2>Using NNTP </h2>
+fdm can fetch news messages from a news server using NNTP. News accounts are
+specified like so:
+
+	account "news1" nntp server "news.server.sk" port 119
+		group "comp.unix.bsd.openbsd.misc" cache "%h/.fdm.cache/%s"
+
+	account "mynews" nntp server "my.news.server" port "nntp"
+		groups { "alt.test" "alt.humor.best-of-usenet" }
+		cache "%h/.fdm.cache" expiry 2 weeks
+
+The cache is a file used to store the message-id's of previously downloaded and
+dropped articles - those matching a keep action will not be saved in the
+cache. If only one group is supplied in the account definition, %s tokens are
+replaced by the name of the group in the cache path. If multiple groups are
+provided, %s tokens are just removed. Entries in the cache are expired if they
+are not used within the specified time. If no expiry time is given, the default
+of one month is used.
+
+Some news servers can be somewhat buggy, so it may take an initial number of
+fetches spread some time apart before all the existing messages on the server
+are fetched. Subsequent fetches should retrieve new messages as normal. Due to
+limitations in the NNTP protocol and the implementation of it on most servers,
+fetching from NNTP is very time-consuming compared to POP3 or IMAP. It is
+recommended to limit fetches from an NNTP server to at most once every 3-4
+hours. This can be achieved by marking NNTP accounts with 'disabled' and using
+a seperate contrab entry.
+
 <h1>Defining actions </h1>
 An action is a particular command to execute on a mail when it matches a 
 filtering rule (see the next section on filtering mail). Actions are named,
@@ -454,7 +501,8 @@ If users are specified, the action will be run once for each user, with fdm
 changing to that user before executing the action. Note that fdm will execute
 the action once for each user even when not started as root, but will not be
 able to change to the user. The user keyword is primarily of use in multiuser
-configurations.
+configurations. If users are present on an action, they override any specified
+by the account defintion.
 
 If running as root and no user is specified on either the action or on the 
 filtering rule (see the section on filtering below), the default user is
@@ -488,7 +536,8 @@ Token	Replaced with
 %a	The name of the account this mail was fetched from.
 %s	A string specific to the type of account the mail was fetched from.
 	For maildirs, it is the basename of the maildir, for IMAP and POP3 it
-	is the server hostname as specified in the account definition.
+	is the server hostname as specified in the account definition. For
+	NNTP it is the name of the group.
 %h	The delivery user's home directory.
 %n	The delivery user's uid.
 %t	The name of the action.
@@ -502,6 +551,9 @@ Token	Replaced with
 %W	The current day of the week (0-6, Sunday is 0).
 %Y	The current day of the year (000-365).
 %Q	The current quarter (1-4).
+%1-%9	The result of any bracket expressions in the last regexp (see later
+	section on regexps).
+%%	Replaced with a literal %.
 
 If the maildir does not exist, it is created.
 
@@ -564,7 +616,7 @@ The general form of a filtering rule is:
 
 The optional &lt;users&gt; item is specified as for an action definition. If users
 are specified on a filtering (match) rule, they override any specified on the
-action.
+action or account.
 
 The &lt;conditions&gt; item is set of conditions against which the match may be
 specified, each condition returns true or false. Conditions are described in
@@ -638,8 +690,8 @@ Examples include:
 <h2>Matching bracket expressions </h2>
 The results of any bracket expressions within the last regexp are remembered,
 and may be made use of using the 'string' condition, or used to construct an
-action name. The bracket expressions may be substituted using the %1 to %9
-tokens. For example,
+action name, maildir or mbox path, etc. The bracket expressions may be
+substituted using the %1 to %9 tokens. For example,
 
 	match regexp "^From:.*([a-z]*)@domain" in headers action "all" continue
 	match string "%1" to "bob" action "bobmail"
@@ -1075,7 +1127,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              lock file and allows multiple instances to run simultaneously.
 
      <B>lock-file </B><I>path</I>
-             This sets an alternative lock file. The default is <I>~/.fdm.lock</I>
+             This sets an alternative lock file.  The default is <I>~/.fdm.lock</I>
              for non-root users and <I>/var/db/fdm.lock </I>for root.
 
      <B>default-user </B><I>user</I>
@@ -1131,7 +1183,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      Macros are prefixed with $ to indicate a string value and % to indicate a
      numeric value.  Once defined, a macro may be used in any place a string
-     or number is expected. Macros may be embedded in strings by surrounding
+     or number is expected.  Macros may be embedded in strings by surrounding
      their name (after the $ or %) with {}s, like so:
 
            "abc ${mymacro} %{anothermacro} def"
@@ -1140,12 +1192,28 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      The <B>account </B>command is used to instruct fdm(1) to fetch mail from an ac-
      count.  The syntax is:
 
-     <B>account </B><I>name </I>[<B>disabled</B>] <I>type </I>[<I>args</I>] [<B>keep</B>]
+     <B>account </B><I>name </I>[<I>users</I>] [<B>disabled</B>] <I>type </I>[<I>args</I>] [<B>keep</B>]
 
-     The <I>name </I>argument is a string specifying a name for the account.  The
-     <B>disabled </B>keyword instructs fdm(1) to ignore this account unless it is ex-
-     plicitly enabled with a <B>-a </B>option on the command line.  If the <B>keep </B>key-
-     word is specified, all mail collected from this account is kept (not
+     The <I>name </I>argument is a string specifying a name for the account.  The op-
+     tional <I>users </I>argument has the following form:
+
+     <B>user </B><I>user </I>| <B>users </B>{ <I>user ... </I>} | <B>user from-headers</B>
+
+     The first two options specify a user or list of users as which the mail
+     should be delivered when an action is executed.  If <B>user from-headers </B>is
+     specified, fdm(1) attempts to find the users from the mail headers, using
+     the values of the <B>headers </B>and <B>domains </B>options.  If no headers are speci-
+     fied, or fdm(1) fails to find any valid users in the headers, the default
+     user (set with <B>set default-user</B>) is used.  Users specified as part of the
+     account definition may be overridden by similar arguments to action defi-
+     nitions or on match rules. If fdm(1) is run as non-root, it will still
+     execute any actions once for each user, but will be unable to change to
+     that user so the action will be executed multiple times as the current
+     user.
+
+     The <B>disabled </B>keyword instructs fdm(1) to ignore this account unless it is
+     explicitly enabled with a <B>-a </B>option on the command line.  If the <B>keep</B>
+     keyword is specified, all mail collected from this account is kept (not
      deleted) even if it matches a <B>drop </B>action.
 
      Supported account types and arguments are:
@@ -1179,6 +1247,16 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              filter mail, fetching from a maildir and deleting (dropping) un-
              wanted mail, or delivering mail to another maildir or to an mbox.
 
+     <B>nntp server </B><I>host </I>[<B>port </B><I>port</I>] <B>group </B><I>group <B></I>cache </B><I>cache </I>[<B>expiry </B><I>time</I>]
+
+     <B>nntp server </B><I>host </I>[<B>port </B><I>port</I>] <B>groups </B>{ <I>group ... </I>} <B>cache </B><I>cache </I>[<B>expiry</B>
+             <I>time</I>]
+             An NNTP account.  Articles are fetched from the specified group
+             or groups and delivered if their message-id does not appear in
+             the specified cache file.  Entries are removed from the cache af-
+             ter the time given with the <B>expiry </B>keyword; the default is 1
+             month.
+
 <B>ACTIONS</B>
      The <B>action </B>command is used to define actions.  These may be specified by
      name in rules (see below) to perform some action on a mail.  The syntax
@@ -1186,18 +1264,9 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      <B>action </B><I>name </I>[<I>users</I>] <I>action</I>
 
-     The <I>name </I>is a string defining a name for the action.  The optional <I>users</I>
-     argument has the following form:
-
-     <B>user </B><I>user </I>| <B>users </B>{ <I>user ... </I>} | <B>user from-headers</B>
-
-     The first two options specify a user or list of users as which the mail
-     should be delivered.  If <B>user from-headers </B>is specified, fdm(1) attempts
-     to find the users from the mail headers, using the values of the <B>headers</B>
-     and <B>domains </B>options.  If no headers are specified, or fdm(1) fails to
-     find any valid users in the headers, the default user (set with <B>set</B>
-     <B>default-user</B>) is used.  An action's user setting may be overridden in the
-     matching rule.  This keyword has no effect if fdm(1) is run as non-root.
+     The <I>name </I>is a string defining a name for the action.  The <I>users </I>argument
+     has the same form as for an account definition. An action's user setting
+     may be overridden in the matching rule.
 
      The possible values for <I>action </I>are listed below.  In actions for which a
      <I>command </I>or <I>path </I>is specified, the following substitutions are made before
@@ -1206,10 +1275,12 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      user's login name, <I>%n </I>by the UID and <I>%H </I>by the current hour (00-23), <I>%M</I>
      minute (00-59), <I>%S </I>second (00-59), <I>%d </I>day of the month (00-31), <I>%m </I>month
      (01-12), <I>%y </I>year, <I>%W </I>day of the week (0-6, Sunday is 0), <I>%Y </I>day of the
-     year (000-365) and <I>%Q </I>quarter (1-4).  In addition, <I>%s </I>is replaced by a
-     string specific to the type of account.  When fetching from a maildir,
-     this is the basename of the maildir path.  With pop3 or imap, it is the
-     hostname of the server, as specified in the account definition.
+     year (000-365), <I>%Q </I>quarter (1-4) and <I>%% </I>with a literal %.  In addition,
+     <I>%s </I>is replaced by a string specific to the type of account and <I>%0 </I>to <I>%9</I>
+     with the contents of any subexpressions from the regexp executed as part
+     of the last <B>regexp </B>condition.  When fetching from a maildir, this is the
+     basename of the maildir path.  With pop3 or imap, it is the hostname of
+     the server, as specified in the account definition.
 
      <B>drop    </B>Discard the mail.
 
@@ -1282,7 +1353,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      [<B>not</B>] <B>pipe </B><I>command </I>[<B>user </B><I>user</I>] <B>returns </B>(<I>return code</I>, <I>stdout regexp</I>)
              These two conditions execute a <I>command </I>and test its return value
-             and output. The <I>return code </I>argument is the numeric return code
+             and output.  The <I>return code </I>argument is the numeric return code
              expected and <I>stdout regexp </I>is a regexp to be tested against the
              output of the command to <I>stdout</I>.  Either of these two arguments
              may be omitted: if both are specified, both must match for the
@@ -1300,7 +1371,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              Match <I>string </I>against <I>regexp</I>.  If any of %0 to %9 appear in the
              string, they will be replaced with the contents of any subexpres-
              sions from the regexp executed as part of the last <B>regexp </B>condi-
-             tion. If no <B>regexp </B>condition has yet been seen, or the mail con-
+             tion.  If no <B>regexp </B>condition has yet been seen, or the mail con-
              tents has been modified by a <B>rewrite </B>action since the last one,
              this condition will log a warning and evaluate to false.
 
@@ -1349,7 +1420,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      The first form of the command specifies a number of actions to take when
      a mail matches the rule.  The second form tags the mail with <I>string</I>,
-     which may be matched using the <B>tagged </B>condition in later rules. A mail
+     which may be matched using the <B>tagged </B>condition in later rules.  A mail
      may be tagged with any number of different strings by different rules.
      Rules which apply a tag do not count as a match for the purposes of the
      <B>matched </B>or <B>unmatched </B>conditions.
@@ -1385,9 +1456,9 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 
      }
 
-     The inner rules will not be evaluated unless the outer one matches. Rules
-     may be multiply nested. Note that the outer rule does not count as a
-     match for the purposes of the <B>matched </B>and <B>unmatched </B>conditions.
+     The inner rules will not be evaluated unless the outer one matches.
+     Rules may be multiply nested.  Note that the outer rule does not count as
+     a match for the purposes of the <B>matched </B>and <B>unmatched </B>conditions.
 
 <B>FILES</B>
      ~/.fdm.conf          default <B>fdm.conf </B>configuration file
