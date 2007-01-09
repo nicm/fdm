@@ -210,7 +210,7 @@ restart:
 		log_warnx("%s: %s: empty file", a->name, data->entry);
 		return (FETCH_ERROR);
 	}
-	if (sb.st_size > conf.max_size)
+	if (sb.st_size > SIZE_MAX || sb.st_size > conf.max_size)
 		return (FETCH_OVERSIZE);
 
 	if ((fd = open(data->entry, O_RDONLY, 0)) < 0) {
