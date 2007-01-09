@@ -223,6 +223,7 @@ nntp_fetch(struct account *a, struct mail *m)
 					goto error;
 
 				ptr = strchr(line, '<');
+				ptr2 = NULL;
 				if (ptr != NULL)
 					ptr2 = strchr(ptr, '>');
 				if (ptr == NULL || ptr2 == NULL) {
