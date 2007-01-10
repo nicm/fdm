@@ -40,7 +40,7 @@ pipe_deliver(struct deliver_ctx *dctx, struct action *t)
         FILE    	*f;
 	int	 	 error;
 
-	cmd = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid, 
+	cmd = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid,
 	    dctx->pmatch);
         if (cmd == NULL || *cmd == '\0') {
 		log_warnx("%s: empty command", a->name);

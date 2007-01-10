@@ -40,7 +40,7 @@ cache_open(char *path, char **cause)
 	struct cache	*cc;
 
 	cc = xmalloc(sizeof *cc);
-	
+
 	cc->db = dbopen(path, O_RDWR, 0, DB_HASH, NULL);
 	if (cc->db == NULL) {
 		if (errno != ENOENT) {
@@ -48,7 +48,7 @@ cache_open(char *path, char **cause)
  			xfree(cc);
 			return (NULL);
 		}
-		
+
 		cc->db = dbopen(path, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR,
 		    DB_HASH, NULL);
 		if (cc->db == NULL) {
@@ -57,7 +57,7 @@ cache_open(char *path, char **cause)
 			return (NULL);
 		}
 	}
-	       
+
 	return (cc);
 }
 void
@@ -102,14 +102,14 @@ cache_compact(struct cache *cc, long long age, u_int *total)
 		ce = data.data;
 
 		if (ntohl(ce->added) < threshold) {
-			xasprintf(&s, "%.*s", (int) key.size, 
+			xasprintf(&s, "%.*s", (int) key.size,
 			    (char *) key.data);
 			ARRAY_ADD(&keys, s, char *);
 			n++;
 		}
 
 		if ((error = cc->db->seq(cc->db, &key, &data, R_NEXT)) == -1)
-			fatal("db seq");		
+			fatal("db seq");
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(&keys); i++) {

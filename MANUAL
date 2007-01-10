@@ -96,7 +96,7 @@ accounts and delivering to one maildir may look similar to:
 
 	# An action to drop unwanted mail.
 	action "drop" drop
-	
+
 	# Accounts: POP3, POP3S and IMAP. Note the double escaping of the '\'
 	# character in the password. If the port is omitted, the default
 	# ("pop3", "pop3s", "imap" or "imaps" in the services(5) db) is used.
@@ -108,8 +108,8 @@ accounts and delivering to one maildir may look similar to:
 	# from the inbox.
 	account "imap" imap server "my.imap.server"
 		user "my-username" pass "my-password" folder "my-folder"
-	
-	# Discard mail from Bob Idiot. Note that the regexp is an extended 
+
+	# Discard mail from Bob Idiot. Note that the regexp is an extended
 	# regexp, and case-insensitive by default.
 	match "From:.*bob@idiot\\.net" action "drop"
 
@@ -165,7 +165,7 @@ The configuration file has the following general rules:
 - Lists are usually specified as 'singular item' or 'plural { item item }', for
   example: 'user "nicholas"', 'users { "nicholas" "bob" }'.
 - Regexps are specified as normal strings without additional adornment other
-  than the "s (not wrapped in /s). All regexps are extended regexps and 
+  than the "s (not wrapped in /s). All regexps are extended regexps and
   case insensitive by default.
 
 Definition/option lines generally follow the following basic form:
@@ -173,7 +173,7 @@ Definition/option lines generally follow the following basic form:
 	<keyword> <name or command> <parameters>
 
 Example lines that may appear in a configuration file are:
-	
+
 	# This is a comment.
 
 	set lock-types flock
@@ -201,7 +201,7 @@ Macros -------------------------------------------------------------------------
 Macros may be defined and used in the configuration file. fdm makes a
 distinction between macros which may hold a number (numeric macros) and
 those that hold a string (string macros). Numeric macros are prefixed with
-the percentage sign (%) and string by the dollar sign ($). Macros are 
+the percentage sign (%) and string by the dollar sign ($). Macros are
 defined using the equals operator (=):
 
 	%nummacro = 123
@@ -237,7 +237,7 @@ The fdm binary has the following synopsis:
 fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account] [fetch | poll]
 
 The meaning of the flags are covered in the fdm(1) man page, but a brief
-description is given below. The flags are also mentioned at relevant points 
+description is given below. The flags are also mentioned at relevant points
 in the rest of this document.
 
 Flag	Meaning
@@ -256,7 +256,7 @@ Flag	Meaning
 	disables this behaviour).
 -f conffile
 	Specify the path of the configuration file.
--u user	
+-u user
 	Use 'user' as the default user for delivering mail when started as
 	root.
 -a account
@@ -282,7 +282,7 @@ Examples:
 	$ fdm -lm -a pop3\* fetch
 
 	$ fdm -x stdinacct fetch
-	
+
 	# fdm -u nicholas -vv f
 
 Running from cron --------------------------------------------------------------
@@ -341,7 +341,7 @@ The '-n' command line option. This is particularly useful in conjunction with
 	finished file test.conf
 	added rule: actions="rw" "mbox" matches=all
 	configuration loaded
-	locking using: flock 
+	locking using: flock
 	headers are: "to" "cc"
 	domains are: "yelena"
 	using tmp directory: /tmp
@@ -387,7 +387,7 @@ the user name and password. If the port is not specified, the default port
 definition are:
 
 	account "pop3acct" pop3 server "pop.isp.com" user "bob" pass "pass"
-	
+
 	account "gmx" pop3 server "pop.gmx.net" port 110 user "jim" pass "pass"
 
 	account "acct" pop3 server "10.0.0.1" port "pop3"
@@ -484,7 +484,7 @@ a seperate contrab entry.
 
 Defining actions ===============================================================
 
-An action is a particular command to execute on a mail when it matches a 
+An action is a particular command to execute on a mail when it matches a
 filtering rule (see the next section on filtering mail). Actions are named,
 similar to accounts, and have a similar form:
 
@@ -496,7 +496,7 @@ The <users> item may be either:
 
 	user "nicholas"
 
-	user 1000	
+	user 1000
 
 - the keyword 'users' followed by a list of users in {}s, for example:
 
@@ -513,7 +513,7 @@ able to change to the user. The user keyword is primarily of use in multiuser
 configurations. If users are present on an action, they override any specified
 by the account defintion.
 
-If running as root and no user is specified on either the action or on the 
+If running as root and no user is specified on either the action or on the
 filtering rule (see the section on filtering below), the default user is
 used, see the '-u' command line option and the 'default-user' option in the
 setting options section
@@ -526,7 +526,7 @@ and are specified like this:
 	action "mydropaction" drop
 
 	action "mykeepaction" keep
-	
+
 The 'drop' action arranges for mail to be dropped when rule evaluation is
 complete. Note that using 'drop' does not stop further evaluation if the
 filtering rule contains a 'continue' keyword, and it may be overridden by a
@@ -659,7 +659,7 @@ Filtering rules may be nested by using the special form:
 		match ...
 	}
 
-If the conditions on the outer rule match, the inner rules are evaluated. If 
+If the conditions on the outer rule match, the inner rules are evaluated. If
 none of the inner rules match (or they all specify the 'continue' keyword)
 evaluation continues outside to rules following the nested rule, otherwise it
 stops.
@@ -698,13 +698,13 @@ The 'case' keyword instructs fdm to match the regexp case sensitively rather
 than the default of case insensitivity. The 'in headers' or 'in body' keywords
 in struct fdm to search only the headers or body of each mail, the default is
 to match the regexp against the entire mail. The regexp itself is an extended
-regexp specified as a simple string, but care must be taken to escape \s and 
+regexp specified as a simple string, but care must be taken to escape \s and
 "s properly.
 
 Examples include:
 
 	match "^From:.*bob@bobland\\.bob" in headers account "pop3" action "act"
-	
+
 	match ".*YAHOO.*BOOTER.*" in body action "junk"
 
 Matching bracket expressions ---------------------------------------------------
@@ -813,7 +813,7 @@ attachment MIME type and name attribute (if any) using fnmatch(3):
 	match attachment any-size < 2K action "action"
 
 	match attachment any-type "*/pdf" action "action"
-	
+
 	match attachment any-name "*.doc" action "action"
 
 Tagging ------------------------------------------------------------------------
@@ -896,7 +896,7 @@ This specifies a header or list of headers to search with the 'from-headers'
 keyword, such as:
 
 	set header { "to" "cc" }
-	
+
 	set headers "x-envelope-to"
 
 The default is "to" "cc".
@@ -911,7 +911,7 @@ on proxying below.
 This option controls how fdm should deal with mail that reaches the end of
 the ruleset (doesn't match any rules, or only rules with the 'continue'
 keyword). If 'drop' is specified, such mail is dropped. If 'keep', it is
-kept. The default is to keep the mail, and issue a warning. 
+kept. The default is to keep the mail, and issue a warning.
 
 In addition to these options, some environment variables may be used to control
 fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
@@ -983,14 +983,14 @@ Frequently asked questions =====================================================
 
 Why? ---------------------------------------------------------------------------
 
-Two main reasons: 
+Two main reasons:
 
 1. I didn't like the existing tools. I'm not going to do my fetchmail rant
    since getmail's Charles Cazabon has done his own in greater detail here:
 
 	http://pyropus.ca/software/getmail/faq.html#faq-about-why
-  
-   I'll also spare you my procmail rant, but suffice to say the syntax is 
+
+   I'll also spare you my procmail rant, but suffice to say the syntax is
    abysmal. getmail and maildrop I was less unhappy with overall, but I was
    not really comfortable with their configuration file formats. Plus getmail
    always seemed very slow. And there is reason 2...

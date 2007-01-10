@@ -61,7 +61,7 @@ void			 xmalloc_change(struct xmalloc_ctx *, const char *,
 			     u_int, void *, void *, size_t);
 void			 xmalloc_free(struct xmalloc_ctx *, const char *, u_int,
 			     void *);
-	
+
 struct xmalloc_blk *
 xmalloc_find(struct xmalloc_ctx *xctx, void *ptr)
 {
@@ -291,7 +291,7 @@ dxvasprintf(const char *file, u_int line, char **ret, const char *fmt,
 	i = xxvasprintf(ret, fmt, ap);
 
 	xmalloc_default.mallocs++;
-	xmalloc_new(&xmalloc_default, file, line, *ret, i);	
+	xmalloc_new(&xmalloc_default, file, line, *ret, i);
 
 	return (i);
 }

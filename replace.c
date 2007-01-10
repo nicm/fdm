@@ -104,7 +104,7 @@ char *
 replaceinfo(char *src, struct account *a, struct action *t, char *s)
 {
 	char		*map[REPL_LEN];
-	    
+
 	memset(map, 0, REPL_LEN * sizeof (char *));
 	initmap(map, a, t, s);
 

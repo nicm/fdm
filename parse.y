@@ -1514,7 +1514,7 @@ expritem: not icase strv area
 		  if ($5 > SIZE_MAX)
 			  yyerror("size too large");
 #endif
-	  
+
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_attachment;

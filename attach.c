@@ -94,7 +94,7 @@ void
 attach_free(struct attach *atr)
 {
 	struct attach	*at;
-	
+
 	while (!TAILQ_EMPTY(&atr->children)) {
 		at = TAILQ_FIRST(&atr->children);
 		TAILQ_REMOVE(&atr->children, at, entry);

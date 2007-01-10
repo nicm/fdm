@@ -5,7 +5,7 @@ CLEANFILES= *~
 TESTFILES= account.test macros.test options.test proxy.test nested.test \
 	   size.test attachment.test
 
-TARGETS= 
+TARGETS=
 .for n in ${TESTFILES}
 TARGETS+= ${n}
 ${n}:

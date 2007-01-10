@@ -88,7 +88,7 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 		/* if no attachments, none of these conditions are true */
 		if (m->attach == NULL)
 			return (MATCH_FALSE);
-		
+
 		at = m->attach;
 		while (at != NULL) {
 			switch (data->op) {
@@ -126,7 +126,7 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 
 			at = attach_visit(at, NULL);
 		}
-		
+
 		return (MATCH_FALSE);
 	}
 }

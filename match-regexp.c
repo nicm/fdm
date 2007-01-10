@@ -58,7 +58,7 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 		break;
 	}
 
-	res = re_execute(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND, 
+	res = re_execute(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND,
 	    &cause);
 	if (res == -1) {
 		log_warnx("%s: %s", a->name, cause);

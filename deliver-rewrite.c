@@ -45,7 +45,7 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 	int	 	 status;
 	struct cmd	*cmd;
 
-	s = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid, 
+	s = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid,
 	    dctx->pmatch);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);

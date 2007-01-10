@@ -370,7 +370,7 @@ nntp_desc(struct account *a)
 
 	groups = fmt_strings("groups ", data->groups);
 	xasprintf(&s, "nntp server \"%s\" port %s %s cache \"%s\" expiry %lld "
-	    "seconds", data->server.host, data->server.port, groups, 
+	    "seconds", data->server.host, data->server.port, groups,
 	    data->path, data->expiry);
 	xfree(groups);
 	return (s);

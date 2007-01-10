@@ -43,8 +43,8 @@ ensure_for(void *buf, size_t *len, size_t now, size_t nmemb, size_t size)
 	if (*len == 0) {
 		*len = BUFSIZ;
 		buf = xmalloc(*len);
-	} 
-	
+	}
+
 	while (*len <= now) {
 		buf = xrealloc(buf, 2, *len);
 		*len *= 2;
@@ -64,7 +64,7 @@ ensure_size(void *buf, size_t *len, size_t nmemb, size_t size)
 	if (*len == 0) {
 		*len = BUFSIZ;
 		buf = xmalloc(*len);
-	} 
+	}
 
 	while (*len <= nmemb * size) {
 		buf = xrealloc(buf, 2, *len);
