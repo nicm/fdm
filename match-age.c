@@ -27,7 +27,7 @@
 int	age_match(struct match_ctx *, struct expritem *);
 char   *age_desc(struct expritem *);
 
-int	age_tzlookup(const char *);
+int	age_tzlookup(const char *, int *);
 
 struct match match_age = { age_match, age_desc };
 
@@ -39,12 +39,11 @@ struct match match_age = { age_match, age_desc };
  * using tzset, which catches the few most common abbreviations.
  */
 int
-age_tzlookup(const char *tz)
+age_tzlookup(const char *tz, int *off)
 {
 	char		*saved_tz;
 	struct tm	*tm;
 	time_t		 t;
-	int		 off = INT_MAX;
 
 	saved_tz = getenv("TZ");
 	if (saved_tz != NULL)
@@ -52,7 +51,7 @@ age_tzlookup(const char *tz)
 
 	/* set the new timezone */
 	if (setenv("TZ", tz, 1) != 0)
-		return (INT_MAX);
+		return (1);
 	tzset();
 
 	/* get the time at epoch + one year */
@@ -61,18 +60,18 @@ age_tzlookup(const char *tz)
 
 	/* and work out the timezone */
 	if (strcmp(tz, tm->tm_zone) == 0)
-		off = tm->tm_gmtoff;
+		*off = tm->tm_gmtoff;
 
 	/* restore the old timezone */
 	if (saved_tz != NULL) {
 		if (setenv("TZ", saved_tz, 1) != 0)
-			return (INT_MAX);
+			return (1);
 		xfree(saved_tz);
 	} else
 		unsetenv("TZ");
 	tzset();
 
-	return (off);
+	return (0);
 }
 
 int
@@ -128,7 +127,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	tz = strtonum(endptr, -2359, 2359, &errstr);
 	if (errstr != NULL) {
 		/* try it using tzset */
-		if ((tz = age_tzlookup(endptr)) == INT_MAX) {
+		if (age_tzlookup(endptr, &tz) != 0) {
 			xfree(s);
 			goto invalid;
 		}
