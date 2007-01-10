@@ -81,7 +81,7 @@ int
 yywrap(void)
 {
 	struct macro		*macro;
-	struct fileent	*top;
+	struct fileent		*top;
 	char			*file;
 
 	file = curfile == NULL ? conf.conf_file : curfile;
@@ -427,7 +427,7 @@ include: TOKINCLUDE strv
 /**      [$2: strv (char *)] */
 	 {
 		 char			*path;
-		 struct fileent	*top;
+		 struct fileent		*top;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid include file");
