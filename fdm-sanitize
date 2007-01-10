@@ -1,0 +1,55 @@
+#!/usr/bin/awk -f
+# $Id$
+
+#
+# If the output of fdm -vvvv is piped to this script, it will remove usernames
+# and passwords from IMAP/POP3 output, for example:
+#
+# fdm -vvvv f 2>&1|fdm-sanitize >saved-output
+#
+
+BEGIN {
+	imap_user = 0
+	imap_pass = 0
+}
+
+/\> [0-9]+ LOGIN \{[0-9]+\}/ {
+	imap_user = 1;
+	print ($0);
+	next;
+}
+
+/\> .+ \{[0-9]+\}/ {
+	if (imap_user) {
+		print ("> * " $3);
+		imap_user = 0;
+		imap_pass = 1;
+		next;
+	}
+	print ($0);
+	next;
+}
+
+/\> USER .+/ {
+	print ("> USER *");
+	next;
+}
+
+/\> PASS .+/ {
+	print ("> PASS *");
+	next;
+}
+
+/\> .+/ {
+	if (imap_pass) {
+		print ("> *");
+		imap_pass = 0;
+		next;
+	}
+	print ($0);
+	next;
+}
+
+/.*/ {
+	print ($0);
+}
