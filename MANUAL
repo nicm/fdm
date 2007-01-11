@@ -349,7 +349,19 @@ The '-n' command line option. This is particularly useful in conjunction with
 Looking at the output, the parsed strings used by fdm can be seen, and it is
 possible to spot that an escape character has been missed in the command.
 
-The 'k' command line option (and the 'keep' keywords on actions and accounts,
+If '-vvvv' is used, fdm will print all data sent to and received from remote
+servers to stdout. Note that this is disabled if the '-l' option is given, and
+includes passwords, usernames and hostnames unmodified. The 'fdm-sanitize'
+script provided with fdm may be used to remove passwords and usernames from
+this output, either while it is being collected:
+
+	fdm -vvvv f 2>&1|./fdm-sanitize|tee my-output
+
+Or afterwards:
+	
+	./fdm-sanitize <vvvv-output >my-output
+
+The '-k' command line option (and the 'keep' keywords on actions and accounts,
 covered later) prevent fdm from deleting any mail after delivery. This may be
 used to perform any number of test deliveries without risk of losing mail.
 
