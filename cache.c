@@ -60,6 +60,7 @@ cache_open(char *path, char **cause)
 
 	return (cc);
 }
+
 void
 cache_close(struct cache *cc)
 {
