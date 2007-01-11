@@ -20,7 +20,7 @@
 # If the output of fdm -vvvv is piped to this script, it will remove usernames
 # and passwords from IMAP/POP3 output, for example:
 #
-# fdm -vvvv f 2>&1|fdm-sanitize >saved-output
+# fdm -vvvv f 2>&1|fdm-sanitize|tee saved-output
 #
 
 BEGIN {
@@ -31,40 +31,48 @@ BEGIN {
 /\> [0-9]+ LOGIN \{[0-9]+\}/ {
 	imap_user = 1;
 	print ($0);
+	fflush
 	next;
 }
 
 /\> .+ \{[0-9]+\}/ {
 	if (imap_user) {
 		print ("> * " $3);
+		fflush
 		imap_user = 0;
 		imap_pass = 1;
 		next;
 	}
 	print ($0);
+	fflush
 	next;
 }
 
 /\> USER .+/ {
 	print ("> USER *");
+	fflush
 	next;
 }
 
 /\> PASS .+/ {
 	print ("> PASS *");
+	fflush
 	next;
 }
 
 /\> .+/ {
 	if (imap_pass) {
 		print ("> *");
+		fflush
 		imap_pass = 0;
 		next;
 	}
 	print ($0);
+	fflush
 	next;
 }
 
 /.*/ {
 	print ($0);
+	fflush
 }
