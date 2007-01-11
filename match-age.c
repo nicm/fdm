@@ -136,9 +136,9 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	log_debug2("%s: mail timezone is: %+.4d", a->name, tz);
 	then -= (tz / 100) * TIME_HOUR + (tz % 100) * TIME_MINUTE;
 	if (then < 0) {
-			xfree(s);
-			goto invalid;
-		}
+		xfree(s);
+		goto invalid;
+	}
 
 	xfree(s);
 
