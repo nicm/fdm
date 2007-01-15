@@ -368,7 +368,9 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		if (!ARRAY_EMPTY(aa)) {
 			for (i = 0; i < ARRAY_LENGTH(aa); i++) {
 				name = ARRAY_ITEM(aa, i, char *);
-				if (name_match(name, a->name))
+				/* match the rule account list against the
+				   current account name */
+				if (name_match(a->name, name))
 					break;
 			}
 			if (i == ARRAY_LENGTH(aa))
@@ -486,10 +488,10 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 		    mctx->pmatch);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
-		ta = find_actions(s);
+		ta = match_actions(s);
 		if (ARRAY_EMPTY(ta)) {
-			log_warnx("%s: can't any find actions matching: %s "
-			    "(was %s)", a->name, s, name);
+			log_warnx("%s: no actions matching: %s (was %s)",
+			    a->name, s, name);
 			xfree(s);
 			ARRAY_FREEALL(ta);
 			return (1);

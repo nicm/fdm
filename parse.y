@@ -60,6 +60,8 @@ __dead printflike1 void  	 yyerror(const char *, ...);
 int 			 	 yywrap(void);
 
 struct account 			*find_account(char *);
+int				 have_accounts(char *);
+struct action  			*find_action(char *);
 
 __dead printflike1 void
 yyerror(const char *fmt, ...)
@@ -201,10 +203,23 @@ find_account(char *name)
 	struct account	*a;
 
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (name_match(name, a->name))
+		if (strcmp(a->name, name) == 0)
 			return (a);
 	}
 	return (NULL);
+}
+
+int
+have_accounts(char *name)
+{
+	struct account	*a;
+
+	TAILQ_FOREACH(a, &conf.accounts, entry) {
+		if (name_match(name, a->name))
+			return (1);
+	}
+
+	return (0);
 }
 
 struct action *
@@ -220,7 +235,7 @@ find_action(char *name)
 }
 
 struct actions *
-find_actions(char *name)
+match_actions(char *name)
 {
 	struct action	*t;
 	struct actions	*ta;
@@ -1137,11 +1152,11 @@ accounts: /* empty */
 	  {
 		  if (*$2 == '\0')
 			  yyerror("invalid account name");
+		  if (!have_accounts($2))
+			  yyerror("no matching accounts: %s", $2);
 
 		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
-		  if (find_account($2) == NULL)
-			  yyerror("no matching accounts: %s", $2);
 		  ARRAY_ADD($$, $2, char *);
 	  }
 	| TOKACCOUNTS '{' accountslist '}'
@@ -1156,10 +1171,10 @@ accountslist: accountslist strv
  	      {
 		      if (*$2 == '\0')
 			      yyerror("invalid account name");
+		      if (!have_accounts($2))
+			      yyerror("no matching accounts: %s", $2);
 
 		      $$ = $1;
-		      if (find_account($2) == NULL)
-			      yyerror("no matching accounts: %s", $2);
 		      ARRAY_ADD($$, $2, char *);
 	      }
 	    | strv
@@ -1167,11 +1182,11 @@ accountslist: accountslist strv
 	      {
 		      if (*$1 == '\0')
 			      yyerror("invalid account name");
+		      if (!have_accounts($1))
+			      yyerror("no matching accounts: %s", $1);
 
 		      $$ = xmalloc(sizeof *$$);
 		      ARRAY_INIT($$);
-		      if (find_account($1) == NULL)
-			      yyerror("no matching accounts: %s", $1);
 		      ARRAY_ADD($$, $1, char *);
 	      }
 

@@ -950,8 +950,7 @@ extern struct macros	 macros;
 struct strings 		*weed_strings(struct strings *);
 char 			*fmt_strings(const char *, struct strings *);
 struct macro		*find_macro(char *);
-struct action  		*find_action(char *);
-struct actions		*find_actions(char *);
+struct actions		*match_actions(char *);
 
 /* fdm.c */
 int			 dropto(uid_t);
