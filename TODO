@@ -12,16 +12,7 @@
 - balance man pages/manual
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
-- match attachments by command...
-	match attachment pipe "..." returns (, "")
-  ...probably bloat
-- actions on attachments. keep list of matched attachments for current rule.
-  must all be in child:
-	action strip-attachments
-	action pipe-attachments "cmd" (pass struct attach to parent?)
-  add "attachment all" to match all attachments
 - attach get name from content-disposition
 - allow fnmatch/glob in maildir paths
-- fnmatch in account "..." test
 - lambda actions
 - IMAP over ssh. hmm
