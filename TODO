@@ -14,5 +14,4 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - allow fnmatch/glob in maildir paths
-- lambda actions
 - IMAP over ssh. hmm
