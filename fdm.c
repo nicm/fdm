@@ -19,6 +19,7 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/utsname.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -190,6 +191,7 @@ main(int argc, char **argv)
 	char		*user = NULL, *lock = NULL;
 	long		 n;
 	pid_t		 pid;
+	struct utsname	 un;
 	struct passwd	*pw;
 	struct stat	 sb;
 	time_t		 t;
@@ -285,6 +287,13 @@ main(int argc, char **argv)
 	/* log the start time */
 	t = time(NULL);
 	log_debug("starting at: %.24s", ctime(&t));
+
+	/* and the OS version */
+	if (uname(&un) == 0) {
+		log_debug("running on: %s %s %s %s", un.sysname, un.release,
+		    un.version, un.machine);
+	} else 
+		log_debug("running on: (%s)", strerror(errno));
 
 	/* save the home dir and misc user info */
 	fill_info(getenv("HOME"));
