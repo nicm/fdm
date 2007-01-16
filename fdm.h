@@ -157,11 +157,8 @@ extern char	*__progname;
 #define ENSURE_SIZE2(buf, len, nmemb, size) do {			\
 	(buf) = ensure_size(buf, &(len), nmemb, size);			\
 } while (0)
-#define ENSURE_FOR(buf, len, now, size) do {				\
-	(buf) = ensure_for(buf, &(len), now, 1, size);			\
-} while (0)
-#define ENSURE_FOR2(buf, len, now, nmemb, size) do {			\
-	(buf) = ensure_for(buf, &(len), now, nmemb, size);		\
+#define ENSURE_FOR(buf, len, size, adj) do {				\
+	(buf) = ensure_for(buf, &(len), size, adj);			\
 } while (0)
 
 /* Lengths of time. */
@@ -1066,7 +1063,7 @@ __dead void		 fatalx(const char *);
 
 /* xmalloc.c */
 void		*ensure_size(void *, size_t *, size_t, size_t);
-void		*ensure_for(void *, size_t *, size_t, size_t, size_t);
+void		*ensure_for(void *, size_t *, size_t, size_t);
 char		*xstrdup(const char *);
 int printflike3	 xsnprintf(char *, size_t, const char *, ...);
 void		*xxcalloc(size_t, size_t);
