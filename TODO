@@ -15,3 +15,6 @@
 - attach get name from content-disposition
 - allow fnmatch/glob in maildir paths
 - IMAP over ssh. hmm
+- flush deleted mail every so often
+- simple default fdm.conf somewhere (/etc/fdm.conf?)
+- parent fork a child for each account
