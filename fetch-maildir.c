@@ -22,6 +22,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +38,7 @@ int	 maildir_fetch(struct account *, struct mail *);
 int	 maildir_delete(struct account *);
 char	*maildir_desc2(struct account *); /* conflicts with deliver-maildir.c */
 
-void	 maildir_makepaths(struct account *);
+int	 maildir_makepaths(struct account *);
 void	 maildir_freepaths(struct account *);
 
 struct fetch	 fetch_maildir = { { NULL, NULL },
@@ -53,34 +54,66 @@ struct fetch	 fetch_maildir = { { NULL, NULL },
 };
 
 /* Make an array of all the paths to visit. */
-void
+int
 maildir_makepaths(struct account *a)
 {
 	struct maildir_data	*data = a->data;
 	char			*s, *path;
 	u_int			 i;
+	int			 j;
+	glob_t			 g;
+	struct stat		 sb;
 
 	data->paths = xmalloc(sizeof *data->paths);
 	ARRAY_INIT(data->paths);
 
 	for (i = 0; i < ARRAY_LENGTH(data->maildirs); i++) {
-		s = replaceinfo(ARRAY_ITEM(data->maildirs, i, char *), a, NULL,
-		    NULL);
+		path = ARRAY_ITEM(data->maildirs, i, char *);
+		s = replaceinfo(path, a, NULL, NULL);
 		if (s == NULL || *s == '\0') {
-			if (s != NULL)
-				xfree(s);
-			ARRAY_ADD(data->paths, NULL, char *);
-			continue;
+			log_warnx("%s: empty path", a->name);
+			goto error;
 		}
-
-		xasprintf(&path, "%s/cur", s);
-		ARRAY_ADD(data->paths, path, char *);
-
-		xasprintf(&path, "%s/new", s);
-		ARRAY_ADD(data->paths, path, char *);
-
+		if (glob(s, GLOB_BRACE|GLOB_NOCHECK, NULL, &g) != 0) {
+			log_warn("%s: glob(\"%s\")", a->name, s);
+			goto error;
+		}
 		xfree(s);
+
+		for (j = 0; j < g.gl_pathc; j++) {
+			xasprintf(&path, "%s/cur", g.gl_pathv[i]);
+			ARRAY_ADD(data->paths, path, char *);
+			if (stat(path, &sb) != 0) {
+				log_warn("%s: %s", a->name, path);
+				goto error;
+			}
+			if (!S_ISDIR(sb.st_mode)) {
+				errno = ENOTDIR;
+				log_warn("%s: %s", a->name, path);
+				goto error;
+			}
+
+			xasprintf(&path, "%s/new", g.gl_pathv[i]);
+			ARRAY_ADD(data->paths, path, char *);
+			if (stat(path, &sb) != 0) {
+				log_warn("%s", path);
+				goto error;
+			}
+			if (!S_ISDIR(sb.st_mode)) {
+				errno = ENOTDIR;
+				log_warn("%s", path);
+				goto error;
+			}
+		}
 	}
+
+	return (0);
+
+error:
+	if (s != NULL)
+		xfree(s);
+	maildir_freepaths(a);
+	return (1);
 }
 
 /* Free the array. */
@@ -89,9 +122,13 @@ maildir_freepaths(struct account *a)
 {
 	struct maildir_data	*data = a->data;
 	u_int			 i;
+	char			*path;
 
-	for (i = 0; i < ARRAY_LENGTH(data->paths); i++)
-		xfree(ARRAY_ITEM(data->paths, i, char *));
+	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
+		path = ARRAY_ITEM(data->paths, i, char *);
+		if (path != NULL)
+			xfree(path);
+	}
 
 	ARRAY_FREEALL(data->paths);
 }
@@ -106,7 +143,8 @@ maildir_connect(struct account *a)
 	data->path = NULL;
 	data->entry = NULL;
 
-	maildir_makepaths(a);
+	if (maildir_makepaths(a) != 0)
+		return (1);
 	data->index = 0;
 
 	return (0);
@@ -125,11 +163,8 @@ maildir_poll(struct account *a, u_int *n)
 	*n = 0;
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
 		path = ARRAY_ITEM(data->paths, i, char *);
-		if (path == NULL) {
-			log_warnx("%s: empty path", a->name);
-			return (POLL_ERROR);
-		}
 
+		log_debug("%s: trying path: %s", a->name, path);
 		if ((dirp = opendir(path)) == NULL) {
 			log_warn("%s: %s: opendir", a->name, path);
 			return (POLL_ERROR);
@@ -169,10 +204,6 @@ maildir_fetch(struct account *a, struct mail *m)
 restart:
 	if (data->dirp == NULL) {
 		data->path = ARRAY_ITEM(data->paths, data->index, char *);
-		if (data->path == NULL) {
-			log_warnx("%s: empty path", a->name);
-			return (FETCH_ERROR);
-		}
 
 		log_debug("%s: trying path: %s", a->name, data->path);
 		if ((data->dirp = opendir(data->path)) == NULL) {

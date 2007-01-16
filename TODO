@@ -13,8 +13,7 @@
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
-- allow fnmatch/glob in maildir paths
 - IMAP over ssh. hmm
-- flush deleted mail every so often
+- flush deleted mail every so often (IMAP: EXPUNGE, POP3: quit/reconnect?)
 - simple default fdm.conf somewhere (/etc/fdm.conf?)
-- parent fork a child for each account
+- document glob in maildir paths
