@@ -393,12 +393,12 @@ io_push(struct io *io)
 		}
 
 		io->woff += n;
+		io->wsize -= n;
 		if ((io->flags & IO_FIXED) == 0 && io->woff > IO_BLOCKSIZE) {
 			/* move the unwritten data down */
-			memmove(io->wbase, io->wbase + n, io->wsize - n);
+			memmove(io->wbase, io->wbase + io->woff, io->wsize);
 			io->woff = 0;
 		}
-		io->wsize -= n;
 
 		/* reset the need flags */
 		io->flags &= ~IO_NEEDPUSH;

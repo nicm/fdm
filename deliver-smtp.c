@@ -142,6 +142,7 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 				}
 				state = SMTP_DONE;
 				io_writeline(io, ".");
+				io_flush(io, NULL);
 				break;
 			case SMTP_DONE:
 				if (code != 250)
