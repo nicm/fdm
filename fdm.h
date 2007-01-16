@@ -436,7 +436,8 @@ struct conf {
 	struct strings		*headers; /* headers to search for users */
 
 	struct {
-		uid_t		 uid_n;
+		int		 valid;
+		uid_t		 last_uid;
 
 		char		*home;
 		char		*user;

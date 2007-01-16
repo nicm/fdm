@@ -68,9 +68,10 @@ fill_info(const char *home)
 	char		 host[MAXHOSTNAMELEN];
 
 	uid = getuid();
-	if (conf.info.uid_n == uid)
+	if (conf.info.valid && conf.info.last_uid == uid)
 		return;
-	conf.info.uid_n = uid;
+	conf.info.valid = 1;
+	conf.info.last_uid = uid;
 
 	if (conf.info.uid != NULL) {
 		xfree(conf.info.uid);
