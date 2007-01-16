@@ -151,7 +151,11 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 				io_writeline(io, "QUIT");
 				break;
 			case SMTP_QUIT:
-				if (code != 221)
+				/* Exchange sometimes refuses to accept QUIT
+				   as a valid command, but since we got a 250
+				   the mail has been accepted. So, allow 500
+				   here too. */
+				if (code != 500 && code != 221)
 					goto error;
 				done = 1;
 				break;
