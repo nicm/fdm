@@ -394,13 +394,13 @@ fill_wrapped(struct mail *m)
 {
 	char		*ptr;
 	size_t	 	 off, end, size;
-	u_int		 p;
+	u_int		 pos;
 
 	if (m->wrapped != NULL)
 		fatalx("fill_wrapped: wrapped mail");
 
 	size = 128 * sizeof (size_t);
-	p = 0;
+	pos = 0;
 	m->wrapped = xmalloc(size);
 
 	end = m->body == -1 ? m->size : (size_t) m->body;
@@ -419,18 +419,18 @@ fill_wrapped(struct mail *m)
 			continue;
 
 		/* save the position */
-		ENSURE_FOR2(m->wrapped, size, p, 2, sizeof (size_t));
-		m->wrapped[p] = off - 1;
-		p++;
-		m->wrapped[p] = 0;
+		ENSURE_SIZE2(m->wrapped, size, pos + 2, sizeof (size_t));
+		m->wrapped[pos] = off - 1;
+		pos++;
+		m->wrapped[pos]= 0;
 	}
 
-	if (p == 0) {
+	if (pos == 0) {
 		xfree(m->wrapped);
 		m->wrapped = NULL;
 	}
 
-	return (p);
+	return (pos);
 }
 
 void
