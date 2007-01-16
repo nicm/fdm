@@ -78,7 +78,6 @@ maildir_makepaths(struct account *a)
 			log_warn("%s: glob(\"%s\")", a->name, s);
 			goto error;
 		}
-		xfree(s);
 
 		for (j = 0; j < g.gl_pathc; j++) {
 			xasprintf(&path, "%s/cur", g.gl_pathv[i]);
@@ -105,6 +104,8 @@ maildir_makepaths(struct account *a)
 				goto error;
 			}
 		}
+
+		xfree(s);
 	}
 
 	return (0);
