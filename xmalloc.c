@@ -35,7 +35,7 @@ ensure_for(void *buf, size_t *len, size_t size, size_t adj)
 		fatalx("ensure_for: zero adj");
 
 	if (SIZE_MAX - size < adj)
-		fatalx("ensure_for: SIZE_MAX - size < adj");
+		fatalx("ensure_for: size + adj > SIZE_MAX");
 	size += adj;
 
 	if (*len == 0) {
