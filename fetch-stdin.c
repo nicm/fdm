@@ -93,16 +93,8 @@ stdin_delete(struct account *a)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	for (;;) {
-		if (io_poll(data->io, NULL) != 1)
-			break;
-
-		for (;;) {
-			line = io_readline2(data->io, &lbuf, &llen);
-			if (line == NULL)
-				break;
-		}
-	}
+	while (io_pollline2(data->io, &line, &lbuf, &llen, NULL) == 1)
+		;
 
 	xfree(lbuf);
 	return (0);
@@ -128,39 +120,34 @@ stdin_fetch(struct account *a, struct mail *m)
 	lbuf = xmalloc(llen);
 
 	for (;;) {
-		if ((error = io_poll(data->io, &cause)) != 1) {
+		error = io_pollline2(data->io, &line, &lbuf, &llen, &cause);
+		if (error != 1) {
 			/* normal close (error == 0) is fine */
 			if (error == 0)
 				break;
-			log_warnx("%s: io_poll: %s", a->name, cause);
+			log_warnx("%s: %s", a->name, cause);
 			xfree(cause);
 			xfree(lbuf);
 			return (FETCH_ERROR);
 		}
+		
+		len = strlen(line);
+		if (len == 0 && m->body == -1)
+			m->body = m->size + 1;
+		
+		resize_mail(m, m->size + len + 1);
+		
+		if (len > 0)
+			memcpy(m->data + m->size, line, len);
 
-		for (;;) {
-			line = io_readline2(data->io, &lbuf, &llen);
-			if (line == NULL)
-				break;
-
-			len = strlen(line);
-			if (len == 0 && m->body == -1)
-				m->body = m->size + 1;
-
-			resize_mail(m, m->size + len + 1);
-
-			if (len > 0)
-				memcpy(m->data + m->size, line, len);
-
-			/* append an LF */
-			m->data[m->size + len] = '\n';
-			m->size += len + 1;
-
-			if (m->size > conf.max_size) {
-				data->complete = 1;
-				xfree(lbuf);
-				return (FETCH_OVERSIZE);
-			}
+		/* append an LF */
+		m->data[m->size + len] = '\n';
+		m->size += len + 1;
+		
+		if (m->size > conf.max_size) {
+			data->complete = 1;
+			xfree(lbuf);
+			return (FETCH_OVERSIZE);
 		}
 	}
 
