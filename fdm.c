@@ -473,6 +473,8 @@ main(int argc, char **argv)
 
 	/* set up signal handlers */
 	sigemptyset(&act.sa_mask);
+	sigaddset(&act.sa_mask, SIGINT);
+	sigaddset(&act.sa_mask, SIGTERM);
 	act.sa_flags = SA_RESTART;
 
 	act.sa_handler = SIG_IGN;
