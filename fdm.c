@@ -684,7 +684,12 @@ main(int argc, char **argv)
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i,struct child *);
 			kill(child->pid, SIGTERM);
+
+			io_close(child->io);
+			io_free(child->io);
+			xfree(child);
 		}
+		ARRAY_FREE(&children);
 
 		/* and wait for them */
 		for (;;) {
