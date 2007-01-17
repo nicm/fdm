@@ -313,10 +313,12 @@ pop3_keep(struct account *a)
 
 	data->state = POP3_DONE;
 
-	/* we don't need to /do/ anything here, but we need to poke the POP3
-	   server so the response in the POP3_DONE state is a) there and
-	   b) valid. this is not ideal, maybe it should be structured
-	   differently */
+	/* 
+	 * We don't need to /do/ anything here, but we need to poke the POP3
+	 * server so the response in the POP3_DONE state is a) there and
+	 * b) valid. This is not ideal, maybe it should be structured
+	 * differently,
+	 */
 	io_writeline(data->io, "NOOP");
 
 	return (0);
