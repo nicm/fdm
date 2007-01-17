@@ -42,7 +42,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 {
 	struct io	*io;
 	struct msg	 msg;
-	int		 error, rc = 0;
+	int		 error, res = 0;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -57,7 +57,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 		if (a->fetch->init(a) != 0) {
 			log_debug("%s: initialisation error. aborting",
 			    a->name);
-			rc = 1;
+			res = 1;
 			goto out;
 		}
 		log_debug("%s: finished initialising", a->name);
@@ -82,7 +82,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	if (a->fetch->connect != NULL) {
 		if (a->fetch->connect(a) != 0) {
 			log_debug("%s: connection error. aborting", a->name);
-			rc = 1;
+			res = 1;
 			goto out;
 		}
 	}
@@ -102,7 +102,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	if (error != 0) {
 		if (a->fetch->error != NULL)
 			a->fetch->error(a);
-		rc = 1;
+		res = 1;
 	}
 	
 	/* disconnect */
@@ -123,7 +123,7 @@ out:
 	xmalloc_report(a->name);
 #endif
 	
-	return (rc);
+	return (res);
 }
 
 int
