@@ -156,6 +156,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 	/* do the poll */
 	error = poll(pfds, n, INFTIM);
 	if (error == 0 || error == -1) {
+		xfree(pfds);
 		*rio = NULL;
 		if (errno == EINTR)
 			return (1);
