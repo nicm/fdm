@@ -650,15 +650,14 @@ io_pollline(struct io *io, char **line, char **cause)
 	return (res);
 }
 
-/* Poll until a line is received. */
+/* Poll until a line is received, using a user buffer. */
 int
-io_pollline2(struct io *io, char **line, char **lbuf, size_t *llen,
-    char **cause)
+io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
 {
 	int	res;
 
 	for (;;) {
-		*line = io_readline2(io, lbuf, llen);
+		*line = io_readline2(io, buf, len);
 		if (*line != NULL)
 			return (1);
 		
