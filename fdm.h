@@ -322,8 +322,6 @@ ARRAY_DECL(children, struct child *);
 struct account {
 	char			 name[MAXNAMESIZE];
 
-	int			 error;
-
 	struct strings		*users;
 	int			 find_uid;
 
