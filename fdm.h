@@ -34,6 +34,7 @@
 #include <db.h>
 #endif
 #include <dirent.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <regex.h>
@@ -99,9 +100,9 @@ extern char	*__progname;
 		exit(1);						\
 	}								\
 	if (i < (a)->num - 1) {						\
-		size_t	 size = sizeof (c);				\
-		c 	*ptr = (a)->list + i;				\
-		memmove(ptr, ptr + 1, size * ((a)->num - (i) - 1)); 	\
+		size_t	 asize = sizeof (c);				\
+		c 	*aptr = (a)->list + i;				\
+		memmove(aptr, aptr + 1, asize * ((a)->num - (i) - 1)); 	\
 	}								\
 	(a)->num--;							\
         if ((a)->num == 0) {						\
@@ -122,9 +123,9 @@ extern char	*__progname;
 	(a)->num++;							\
 } while (0)
 #define ARRAY_CONCAT(a, b, c) do {					\
-	size_t	size = sizeof (c);					\
-	(a)->list = xrealloc((a)->list, (a)->num + (b)->num, size);	\
-	memcpy((a)->list + (a)->num, (b)->list, (b)->num * size);  	\
+	size_t	asize = sizeof (c);					\
+	(a)->list = xrealloc((a)->list, (a)->num + (b)->num, asize);	\
+	memcpy((a)->list + (a)->num, (b)->list, (b)->num * asize);  	\
 	(a)->num += (b)->num;						\
 } while (0)
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
@@ -262,24 +263,24 @@ enum decision {
 
 /* A single mail. */
 struct mail {
-	struct strings	 tags;
-	char		*s;		/* fetch-specific string */
+	struct strings		 tags;
+	char			*s;		/* fetch-specific string */
 
-	struct shm	 shm;
+	struct shm		 shm;
 
-	struct attach	*attach;
+	struct attach		*attach;
 
-	char		*base;
+	char			*base;
 
-	char		*data;
-	size_t		 off;
+	char			*data;
+	size_t			 off;
 
-	size_t	 	 size;		/* size of mail */
-	size_t	 	 space;		/* size of malloc'd area */
+	size_t	 	 	size;		/* size of mail */
+	size_t	 	 	space;		/* size of malloc'd area */
 
-	size_t		*wrapped;	/* list of wrapped lines */
-
-	ssize_t	 	 body;		/* offset of body */
+	ARRAY_DECL(, size_t *)	wrapped;	/* list of wrapped lines */
+	
+	ssize_t		 	 body;		/* offset of body */
 };
 
 /* An attachment. */
@@ -304,6 +305,18 @@ struct re {
 	char		*s;
 	regex_t		 re;
 };
+
+/* A single child. */
+struct child {
+	int		 broken;
+
+	pid_t		 pid;
+	struct io	*io;
+	struct account	*account;
+};
+
+/* List of children. */
+ARRAY_DECL(children, struct child *);
 
 /* Account entry. */
 struct account {
@@ -954,6 +967,7 @@ struct actions		*match_actions(char *);
 int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);
+int			 use_account(struct account *, char **);
 void			 fill_info(const char *);
 
 /* cache.c */
@@ -979,7 +993,8 @@ void			 attach_free(struct attach *);
 /* privsep.c */
 int			 privsep_send(struct io *, struct msg *, void *,
 			     size_t);
-int			 privsep_recv(struct io *, struct msg *, void **buf,
+int			 privsep_check(struct io *);
+int			 privsep_recv(struct io *, struct msg *, void **,
 			     size_t *);
 
 /* command.c */
@@ -989,10 +1004,10 @@ int			 cmd_poll(struct cmd *, char **, char **, char **);
 void			 cmd_free(struct cmd *);
 
 /* child.c */
-int			 child(int, enum fdmop);
+int			 do_child(int, enum fdmop, struct account *);
 
 /* parent.c */
-int			 parent(int, pid_t);
+int			 do_parent(struct child *);
 
 /* connect.c */
 struct proxy 		*getproxy(const char *);
@@ -1016,7 +1031,6 @@ void			 trim_from(struct mail *);
 char 		        *make_from(struct mail *);
 u_int			 fill_wrapped(struct mail *);
 void			 set_wrapped(struct mail *, char);
-void			 free_wrapped(struct mail *);
 
 /* replace.c */
 #define REPL_LEN 62

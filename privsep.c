@@ -42,6 +42,12 @@ privsep_send(struct io *io, struct msg *msg, void *buf, size_t len)
 }
 
 int
+privsep_check(struct io *io)
+{
+	return (IO_RDSIZE(io) >= sizeof (struct msg));
+}
+
+int
 privsep_recv(struct io *io, struct msg *msg, void **buf, size_t *len)
 {
 	if (len != NULL)

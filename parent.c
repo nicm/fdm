@@ -31,128 +31,98 @@ int	parent_action(struct action *, struct deliver_ctx *, uid_t);
 int	parent_command(struct match_ctx *, struct command_data *, uid_t);
 
 int
-parent(int fd, pid_t pid)
+do_parent(struct child *child)
 {
-	struct io		*io;
 	struct msg	 	 msg;
 	struct msgdata		*data;
 	struct deliver_ctx	 dctx;
 	struct match_ctx	 mctx;
 	struct mail		*m;
-	int			 status, error;
+	int			 error;
 	uid_t			 uid;
 	void			*buf;
 	size_t			 len;
 
-#ifdef DEBUG
-	xmalloc_clear();
-	COUNTFDS("parent");
-#endif
-
-	io = io_create(fd, NULL, IO_LF);
-	log_debug("parent: started, pid %ld", (long) getpid());
-
-#ifndef NO_SETPROCTITLE
-	setproctitle("parent");
-#endif
-
 	data = &msg.data;
 	m = &data->mail;
-	do {
-		memset(m, 0, sizeof *m);
+	memset(m, 0, sizeof *m);
 
-		if (privsep_recv(io, &msg, &buf, &len) != 0)
-			fatalx("parent: privsep_recv error");
-		log_debug2("parent: got message type %d", msg.type);
+	if (privsep_recv(child->io, &msg, &buf, &len) != 0)
+		fatalx("parent: privsep_recv error");
+	log_debug2("parent: got message type %d from child %ld (%s)", msg.type,
+	    (long) child->pid, child->account->name);
 
-		switch (msg.type) {
-		case MSG_ACTION:
-			m->base = shm_reopen(&m->shm);
-			m->data = m->base + m->off;
-
-			if (buf != NULL) {
-				m->s = xrealloc(buf, 1, len + 1);
-				m->s[len] = '\0';
-			}
-
-			ARRAY_INIT(&m->tags);
-			m->wrapped = NULL;
-			m->attach = NULL;
-
-			uid = data->uid;
-			memset(&dctx, 0, sizeof dctx);
-			dctx.account = data->account;
-			dctx.mail = m;
-			dctx.decision = NULL;	/* only altered in child */
-			dctx.pmatch_valid = msg.data.pmatch_valid;
-			memcpy(&dctx.pmatch, &msg.data.pmatch,
-			    sizeof dctx.pmatch);
-
-			error = parent_action(data->action, &dctx, uid);
-
-			msg.type = MSG_DONE;
-			msg.data.error = error;
-			/* msg.data.mail is already m */
-			if (privsep_send(io, &msg, NULL, 0) != 0)
-				fatalx("parent: privsep_send error");
-
-			free_mail(m, 0);
-			break;
-		case MSG_COMMAND:
-			m->base = shm_reopen(&m->shm);
-			m->data = m->base + m->off;
-
-			if (buf != NULL) {
-				m->s = xrealloc(buf, 1, len + 1);
-				m->s[len] = '\0';
-			}
-
-			ARRAY_INIT(&m->tags);
-			m->wrapped = NULL;
-			m->attach = NULL;
-
-			uid = data->uid;
-			memset(&mctx, 0, sizeof mctx);
-			mctx.account = data->account;
-			mctx.mail = m;
-			mctx.pmatch_valid = msg.data.pmatch_valid;
-			memcpy(&mctx.pmatch, &msg.data.pmatch,
-			    sizeof mctx.pmatch);
-
-			error = parent_command(&mctx, data->cmddata, uid);
-
-			msg.type = MSG_DONE;
-			msg.data.error = error;
-			/* msg.data.mail is already m */
-			if (privsep_send(io, &msg, NULL, 0) != 0)
-				fatalx("parent: privsep_send error");
-
-			free_mail(m, 0);
-			break;
-		case MSG_DONE:
-			fatalx("parent: unexpected message");
-		case MSG_EXIT:
-			if (buf != NULL)
-				fatalx("parent: unexpected data");
-			break;
+	switch (msg.type) {
+	case MSG_ACTION:
+		m->base = shm_reopen(&m->shm);
+		m->data = m->base + m->off;
+		
+		if (buf != NULL) {
+			m->s = xrealloc(buf, 1, len + 1);
+			m->s[len] = '\0';
 		}
-	} while (msg.type != MSG_EXIT);
-
-	io_close(io);
-	io_free(io);
-
-#ifdef DEBUG
-	COUNTFDS("parent");
-	xmalloc_report("parent");
-#endif
-
-	if (waitpid(pid, &status, 0) == -1)
-		fatal("waitpid");
-	if (WIFSIGNALED(status))
+		
+		ARRAY_INIT(&m->tags);
+		ARRAY_INIT(&m->wrapped);
+		m->attach = NULL;
+		
+		uid = data->uid;
+		memset(&dctx, 0, sizeof dctx);
+		dctx.account = data->account;
+		dctx.mail = m;
+		dctx.decision = NULL;	/* only altered in child */
+		dctx.pmatch_valid = msg.data.pmatch_valid;
+		memcpy(&dctx.pmatch, &msg.data.pmatch,
+		    sizeof dctx.pmatch);
+		
+		error = parent_action(data->action, &dctx, uid);
+		
+		msg.type = MSG_DONE;
+		msg.data.error = error;
+		/* msg.data.mail is already m */
+		if (privsep_send(child->io, &msg, NULL, 0) != 0)
+			fatalx("parent: privsep_send error");
+		
+		free_mail(m, 0);
+		break;
+	case MSG_COMMAND:
+		m->base = shm_reopen(&m->shm);
+		m->data = m->base + m->off;
+		
+		if (buf != NULL) {
+			m->s = xrealloc(buf, 1, len + 1);
+			m->s[len] = '\0';
+		}
+		
+		ARRAY_INIT(&m->tags);
+		ARRAY_INIT(&m->wrapped);
+		m->attach = NULL;
+		
+		uid = data->uid;
+		memset(&mctx, 0, sizeof mctx);
+		mctx.account = data->account;
+		mctx.mail = m;
+		mctx.pmatch_valid = msg.data.pmatch_valid;
+		memcpy(&mctx.pmatch, &msg.data.pmatch,
+		    sizeof mctx.pmatch);
+		
+		error = parent_command(&mctx, data->cmddata, uid);
+		
+		msg.type = MSG_DONE;
+		msg.data.error = error;
+			/* msg.data.mail is already m */
+		if (privsep_send(child->io, &msg, NULL, 0) != 0)
+			fatalx("parent: privsep_send error");
+		
+		free_mail(m, 0);
+		break;
+	case MSG_DONE:
+		fatalx("parent: unexpected message");
+	case MSG_EXIT:
 		return (1);
-	if (!WIFEXITED(status))
-		return (1);
-	return (WEXITSTATUS(status));
+	}
+
+	return (0);
 }
 
 int

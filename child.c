@@ -17,6 +17,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 
@@ -29,7 +30,6 @@
 
 #include "fdm.h"
 
-int	use_account(struct account *, char **cause);
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *);
 int	do_expr(struct rule *, struct match_ctx *);
@@ -38,137 +38,91 @@ int	do_action(struct rule *, struct match_ctx *, struct action *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
 
 int
-use_account(struct account *a, char **cause)
-{
-	if (!check_incl(a->name)) {
-		if (cause != NULL)
-			xasprintf(cause, "account %s is not included", a->name);
-		return (0);
-	}
-	if (check_excl(a->name)) {
-		if (cause != NULL)
-			xasprintf(cause, "account %s is excluded", a->name);
-		return (0);
-	}
-
-	/* if the account is disabled and no accounts are specified
-	   on the command line (whether or not it is included if there
-	   are is already confirmed), then skip it */
-	if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
-		if (cause != NULL)
-			xasprintf(cause, "account %s is disabled", a->name);
-		return (0);
-	}
-
-	return (1);
-}
-
-int
-child(int fd, enum fdmop op)
+do_child(int fd, enum fdmop op, struct account *a)
 {
 	struct io	*io;
 	struct msg	 msg;
-	struct account	*a;
-	int		 rc, error;
-	char		*cause;
+	int		 error, rc = 0;
 
 #ifdef DEBUG
 	xmalloc_clear();
-	COUNTFDS("child");
+	COUNTFDS(a->name);
 #endif
 
-        SSL_library_init();
-        SSL_load_error_strings();
-
 	io = io_create(fd, NULL, IO_LF);
-	log_debug("child: started, pid %ld", (long) getpid());
+	log_debug("%s: started, pid %ld", a->name, (long) getpid());
 
-	log_debug("child: initialising accounts");
-	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (a->fetch->init == NULL)
-			continue;
-		if (!use_account(a, NULL))
-			continue;
-
-		log_debug("child: initialising account %s", a->name);
+	if (a->fetch->init != NULL) {
+		log_debug("%s: initialising", a->name);
 		if (a->fetch->init(a) != 0) {
-			log_debug("%s: initialisation error. disabling",
+			log_debug("%s: initialisation error. aborting",
 			    a->name);
-			a->error = 1;
+			rc = 1;
+			goto out;
 		}
+		log_debug("%s: finished initialising", a->name);
 	}
-        log_debug("child: finished initialising");
 
-	if (geteuid() != 0)
-		log_debug("child: not root user. not dropping privileges");
-	else {
-		log_debug("child: changing to user %lu",
+	if (geteuid() != 0) {
+		log_debug("%s: not root user. not dropping privileges",
+		    a->name);
+	} else {
+		log_debug("%s: changing to user %lu", a->name,
 		    (u_long) conf.child_uid);
 		if (dropto(conf.child_uid) != 0)
 			fatal("dropto");
         }
 #ifndef NO_SETPROCTITLE
-	setproctitle("child");
+	setproctitle("child: %s", a->name);
 #endif
 
-        log_debug("child: processing accounts");
+	log_debug("%s: processing", a->name);
 
-	rc = 0;
-	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (a->error)
-			continue;
-		if (!use_account(a, &cause)) {
-			log_debug("child: %s", cause);
-			xfree(cause);
-			continue;
-		}
-		log_debug("child: processing account %s", a->name);
-
-		/* connect */
-		if (a->fetch->connect != NULL) {
-			if (a->fetch->connect(a) != 0) {
-				rc = 1;
-				continue;
-			}
-		}
-
-		/* process */
-		error = 0;
-		switch (op) {
-		case FDMOP_POLL:
-			error = poll_account(io, a);
-			break;
-		case FDMOP_FETCH:
-			error = fetch_account(io, a);
-			break;
-		default:
-			fatalx("child: unexpected command");
-		}
-		if (error != 0) {
-			if (a->fetch->error != NULL)
-				a->fetch->error(a);
+	/* connect */
+	if (a->fetch->connect != NULL) {
+		if (a->fetch->connect(a) != 0) {
+			log_debug("%s: connection error. aborting", a->name);
 			rc = 1;
+			goto out;
 		}
-
-		/* disconnect */
-		if (a->fetch->disconnect != NULL)
-			a->fetch->disconnect(a);
 	}
+	
+	/* process */
+	error = 0;
+	switch (op) {
+	case FDMOP_POLL:
+		error = poll_account(io, a);
+		break;
+	case FDMOP_FETCH:
+		error = fetch_account(io, a);
+		break;
+	default:
+		fatalx("child: unexpected command");
+	}
+	if (error != 0) {
+		if (a->fetch->error != NULL)
+			a->fetch->error(a);
+		rc = 1;
+	}
+	
+	/* disconnect */
+	if (a->fetch->disconnect != NULL)
+		a->fetch->disconnect(a);
 
-	if (a == NULL)
-		log_debug("child: finished processing. exiting");
+	log_debug("%s: finished processing. exiting", a->name);
 
+out:
 	msg.type = MSG_EXIT;
 	if (privsep_send(io, &msg, NULL, 0) != 0)
-		fatalx("parent: privsep_send error");
-
+		fatalx("child: privsep_send error");
+	
 	io_free(io);
-
+	
 #ifdef DEBUG
-	COUNTFDS("child");
-	xmalloc_report("child");
+	COUNTFDS(a->name);
+	xmalloc_report(a->name);
 #endif
-
+	
 	return (rc);
 }
 

@@ -19,7 +19,9 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -28,6 +30,7 @@
 #include <limits.h>
 #include <paths.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,10 +45,27 @@ const char		*malloc_options = "AFGJPX";
 extern FILE		*yyin;
 extern int 		 yyparse(void);
 
+void			 sighandler(int);
 int			 load_conf(void);
 void			 usage(void);
 
 struct conf		 conf;
+
+volatile sig_atomic_t	 sigint;
+volatile sig_atomic_t	 sigterm;
+
+void
+sighandler(int sig)
+{
+	switch (sig) {
+	case SIGINT:
+		sigint = 1;
+		break;
+	case SIGTERM:
+		sigterm = 1;
+		break;
+	}
+}
 
 int
 load_conf(void)
@@ -172,6 +192,32 @@ check_excl(char *name)
 	return (0);
 }
 
+int
+use_account(struct account *a, char **cause)
+{
+	if (!check_incl(a->name)) {
+		if (cause != NULL)
+			xasprintf(cause, "account %s is not included", a->name);
+		return (0);
+	}
+	if (check_excl(a->name)) {
+		if (cause != NULL)
+			xasprintf(cause, "account %s is excluded", a->name);
+		return (0);
+	}
+
+	/* if the account is disabled and no accounts are specified
+	   on the command line (whether or not it is included if there
+	   are is already confirmed), then skip it */
+	if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
+		if (cause != NULL)
+			xasprintf(cause, "account %s is disabled", a->name);
+		return (0);
+	}
+
+	return (1);
+}
+
 __dead void
 usage(void)
 {
@@ -183,19 +229,27 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, fds[2], lockfd, rc;
+        int		 opt, fds[2], lockfd, status, errors, rc;
+	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*errstr;
 	char		 tmp[512], *ptr, *s;
 	const char	*proxy = NULL;
 	char		*user = NULL, *lock = NULL;
 	long		 n;
-	pid_t		 pid;
 	struct utsname	 un;
 	struct passwd	*pw;
 	struct stat	 sb;
 	time_t		 t;
-
+	struct account	*a;
+	pid_t		 pid;
+	struct children	 children;
+	struct child	*child;
+	struct io      **ios, *io;
+	struct timeval	 tv;
+	double		 tim;
+	struct sigaction act;
+	
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
 	TAILQ_INIT(&conf.rules);
@@ -417,6 +471,24 @@ main(int argc, char **argv)
 		}
 	}
 
+	/* set up signal handlers */
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = SA_RESTART;
+
+	act.sa_handler = SIG_IGN;
+	if (sigaction(SIGPIPE, &act, NULL) < 0)
+		fatal("sigaction");
+	if (sigaction(SIGUSR1, &act, NULL) < 0)
+		fatal("sigaction");
+	if (sigaction(SIGUSR2, &act, NULL) < 0)
+		fatal("sigaction");
+
+	act.sa_handler = sighandler;
+	if (sigaction(SIGINT, &act, NULL) < 0)
+		fatal("sigaction");	
+	if (sigaction(SIGTERM, &act, NULL) < 0)
+		fatal("sigaction");
+
 	/* check lock file */
 	lock = conf.lock_file;
 	if (lock == NULL) {
@@ -438,19 +510,205 @@ main(int argc, char **argv)
 	}
 	conf.lock_file = lock;
 
-	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
-		fatal("socketpair");
-	switch (pid = fork()) {
-	case -1:
-		fatal("fork");
-	case 0:
-		close(fds[0]);
-		_exit(child(fds[1], op));
-	default:
+        SSL_library_init();
+        SSL_load_error_strings();
+
+#ifdef DEBUG
+	xmalloc_clear();
+	COUNTFDS("parent");
+#endif
+
+	/* start the children and build the array */
+	ARRAY_INIT(&children);
+	child = NULL;
+	TAILQ_FOREACH(a, &conf.accounts, entry) {
+		if (!use_account(a, NULL))
+			continue;
+
+		if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
+			fatal("socketpair");
+		switch (pid = fork()) {
+		case -1:
+			fatal("fork");
+		case 0:
+			act.sa_handler = SIG_IGN;
+			if (sigaction(SIGINT, &act, NULL) < 0)
+				fatal("sigaction");
+
+			act.sa_handler = SIG_DFL;
+			if (sigaction(SIGTERM, &act, NULL) < 0)
+				fatal("sigaction");
+
+			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+				child = ARRAY_ITEM(&children, i, 
+				    struct child *);
+				io_close(child->io);
+				io_free(child->io);
+				xfree(child);
+			}
+			close(fds[0]);
+
+			rc = do_child(fds[1], op, a);
+#ifdef PROFILE
+			/*
+			 * We want to use _exit rather than exit in the child
+			 * process, and it doesn't run atexit handlers, so run
+			 * _mcleanup manually to force the profiler to dump its
+			 * statistics.
+			 *
+			 * This is icky but it works, and is only for profiling.
+			 */
+			extern void _mcleanup(void); 
+			_mcleanup();
+#endif
+			_exit(rc);
+		}
+
+		log_debug("parent: child %ld (%s) started", (long) pid,
+		    a->name);
+
+		child = xcalloc(1, sizeof *child);
+		ARRAY_ADD(&children, child, struct child *);
 		close(fds[1]);
-		rc = parent(fds[0], pid);
-		if (*conf.lock_file != '\0' && !conf.allow_many)
-			unlink(conf.lock_file);
-		exit(rc);
+		child->io = io_create(fds[0], NULL, IO_CRLF);
+		child->pid = pid;
+		child->account = a;
 	}
+
+	if (ARRAY_EMPTY(&children)) {
+                log_warnx("no accounts found");
+		errors = 1;
+		goto out;
+	}
+
+#ifndef NO_SETPROCTITLE
+	setproctitle("parent");
+#endif
+	log_debug("parent: started");
+
+	gettimeofday(&tv, NULL);
+	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
+
+	errors = 0;
+	ios = xcalloc(ARRAY_LENGTH(&children), sizeof (struct io *));
+	while (!ARRAY_EMPTY(&children)) {
+		if (sigint || sigterm)
+			break;
+
+		/* fill the io list */
+		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+			child = ARRAY_ITEM(&children, i, struct child *);
+			ios[i] = child->io;
+		}
+		
+		/* poll the io list */
+		switch (io_polln(ios, ARRAY_LENGTH(&children), &io, NULL)) {
+		case -1:
+			fatal("parent: child socket error");
+			break;
+		case 0:
+			/* find the broken child */
+			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+				child = ARRAY_ITEM(&children, i,struct child *);
+				if (child->io == io) {
+					child->broken = 1;
+					break;
+				}
+			}
+		}
+
+		while (!ARRAY_EMPTY(&children)) {
+			/* check all children for pending privsep messages */
+			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+				child = ARRAY_ITEM(&children, i,struct child *);
+				if (privsep_check(child->io))
+					break;
+				if (child->broken) {
+					/*
+					 * Pipe broken and no privsep messages
+					 * outstanding that could be MSG_EXIT.
+					 */
+					fatalx("child socket closed");
+				}
+			}
+			if (i == ARRAY_LENGTH(&children))
+				break;
+
+			/* and handle them if necessary */
+			if (do_parent(child) == 0)
+				continue;
+
+			/* the child has finished. wait for it */
+			if (waitpid(child->pid, &status, 0) == -1)
+				fatal("waitpid");
+			if (WIFSIGNALED(status)) {
+				errors++;
+				log_debug("parent: child %ld (%s) done, got"
+				    "signal %d", (long) child->pid, 
+				    child->account->name, WTERMSIG(status));
+			} else if (!WIFEXITED(status)) {
+				errors++;
+				log_debug("parent: child %ld (%s) done, didn't"
+				    "exit normally", (long) child->pid,
+				    child->account->name);
+			} else {
+				if (WEXITSTATUS(status) != 0)
+					errors++;
+				log_debug("parent: child %ld (%s) done, "
+				    "returned %d", (long) child->pid,
+				    child->account->name, WEXITSTATUS(status));
+			}
+			
+			ARRAY_REMOVE(&children, i, struct child *);
+
+			io_close(child->io);
+			io_free(child->io);
+			xfree(child);
+		}
+	}
+	xfree(ios);
+
+	if (sigint || sigterm) {
+		act.sa_handler = SIG_IGN;
+		if (sigaction(SIGINT, &act, NULL) < 0)
+			fatal("sigaction");
+		if (sigaction(SIGTERM, &act, NULL) < 0)
+			fatal("sigaction");
+
+		if (sigint)
+			log_warnx("parent: caught SIGINT. stopping");
+		else if (sigterm)
+			log_warnx("parent: caught SIGTERM. stopping");
+
+		/* kill the children */
+		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+			child = ARRAY_ITEM(&children, i,struct child *);
+			kill(child->pid, SIGTERM);
+		}
+
+		/* and wait for them */
+		for (;;) {
+			if ((pid = wait(&status)) == -1) {
+				if (errno == ECHILD)
+					break;
+				fatal("wait");
+			}
+			log_debug2("parent: child %ld killed", (long) pid);
+		}
+	}
+
+	if (gettimeofday(&tv, NULL) != 0)
+		fatal("gettimeofday");
+	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
+	log_debug("parent: finished, total time %.3f seconds", tim);
+
+out:
+#ifdef DEBUG
+	COUNTFDS("parent");
+	xmalloc_report("parent");
+#endif
+
+	if (*conf.lock_file != '\0' && !conf.allow_many)
+		unlink(conf.lock_file);
+	exit(errors);
 }

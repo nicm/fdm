@@ -45,6 +45,8 @@ init_mail(struct mail *m, size_t size)
 
 	m->off = 0;
 	m->data = m->base + m->off;
+
+	ARRAY_INIT(&m->wrapped);
 }
 
 void
@@ -52,7 +54,7 @@ copy_mail(struct mail *src, struct mail *dst)
 {
 	memcpy(dst, src, sizeof *dst);
 	ARRAY_INIT(&dst->tags);
-	dst->wrapped = NULL;
+	ARRAY_INIT(&dst->wrapped);
 }
 
 void
@@ -62,9 +64,12 @@ free_mail(struct mail *m, int final)
 		attach_free(m->attach);
 	if (m->s != NULL)
 		xfree(m->s);
-	if (!ARRAY_EMPTY(&m->tags))
+	if (!ARRAY_EMPTY(&m->tags)) {
+		/* contents is just copies of pointers in the rules, so just
+		   free the array not the pointers */
 		ARRAY_FREE(&m->tags);
-	free_wrapped(m);
+	}
+	ARRAY_FREE(&m->wrapped);
 	if (m->base != NULL) {
 		if (final)
 			shm_destroy(&m->shm);
@@ -393,18 +398,18 @@ u_int
 fill_wrapped(struct mail *m)
 {
 	char		*ptr;
-	size_t	 	 off, end, size;
-	u_int		 pos;
+	size_t	 	 end, off;
+	u_int		 n;
 
-	if (m->wrapped != NULL)
-		fatalx("fill_wrapped: wrapped mail");
+	if (!ARRAY_EMPTY(&m->wrapped))
+		fatalx("fill_wrapped: mail already wrapped");
 
-	size = 128 * sizeof (size_t);
-	pos = 0;
-	m->wrapped = xmalloc(size);
+	ARRAY_INIT(&m->wrapped);
 
 	end = m->body == -1 ? m->size : (size_t) m->body;
 	ptr = m->data;
+
+	n = 0;
 	for (;;) {
 		ptr = memchr(ptr, '\n', m->size - (ptr - m->data));
 		if (ptr == NULL)
@@ -419,18 +424,11 @@ fill_wrapped(struct mail *m)
 			continue;
 
 		/* save the position */
-		ENSURE_SIZE2(m->wrapped, size, pos + 2, sizeof (size_t));
-		m->wrapped[pos] = off - 1;
-		pos++;
-		m->wrapped[pos]= 0;
+		ARRAY_ADD(&m->wrapped, off - 1, size_t);
+		n++;
 	}
 
-	if (pos == 0) {
-		xfree(m->wrapped);
-		m->wrapped = NULL;
-	}
-
-	return (pos);
+	return (n);
 }
 
 void
@@ -438,17 +436,6 @@ set_wrapped(struct mail *m, char ch)
 {
 	u_int	i;
 
-	if (m->wrapped == NULL)
-		return;
-
-	for (i = 0; m->wrapped[i] > 0; i++)
-		m->data[m->wrapped[i]] = ch;
-}
-
-void
-free_wrapped(struct mail *m)
-{
-	if (m->wrapped != NULL)
-		xfree(m->wrapped);
-	m->wrapped = NULL;
+	for (i = 0; i < ARRAY_LENGTH(&m->wrapped); i++)
+		m->data[ARRAY_ITEM(&m->wrapped, i, size_t)] = ch;
 }

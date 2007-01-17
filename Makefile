@@ -26,7 +26,7 @@ YACC= yacc -d
 CC= cc
 CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE
-CFLAGS+= -pg
+CFLAGS+= -pg -DPROFILE
 .endif
 CFLAGS+= -g -ggdb -DDEBUG
 #CFLAGS+= -pedantic -std=c99
