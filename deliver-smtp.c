@@ -92,7 +92,7 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	do {
 		switch (io_pollline2(io, &line, &lbuf, &llen, &cause)) {
 		case 0:
-			cause = xstrdup("connect unexpectedly closed");
+			cause = xstrdup("connection unexpectedly closed");
 			break;
 		case -1:
 			goto error;

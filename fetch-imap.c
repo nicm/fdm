@@ -167,7 +167,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	do {
 		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
 		case 0:
-			cause = xstrdup("connect unexpectedly closed");
+			cause = xstrdup("connection unexpectedly closed");
 			break;
 		case -1:
 			goto error;

@@ -162,7 +162,7 @@ nntp_fetch(struct account *a, struct mail *m)
 	do {
 		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
 		case 0:
-			cause = xstrdup("connect unexpectedly closed");
+			cause = xstrdup("connection unexpectedly closed");
 			break;
 		case -1:
 			goto error;
