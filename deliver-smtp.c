@@ -64,9 +64,9 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	struct smtp_data	*data = t->data;
 	int		 	 done, code;
 	struct io		*io;
-	char			*cause, *to, *from, *line, *ptr;
+	char			*cause, *to, *from, *line, *ptr, *lbuf;
 	enum smtp_state		 state;
-	size_t		 	 len;
+	size_t		 	 len, llen;
 
 	io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (io == NULL) {
@@ -83,90 +83,85 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	else
 		to = data->to;
 
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
 	state = SMTP_CONNECTING;
 	line = cause = NULL;
-	for (;;) {
-		switch (io_poll(io, &cause)) {
+	done = 0;
+	do {
+		switch (io_pollline2(io, &line, &lbuf, &llen, &cause)) {
+		case 0:
+			cause = xstrdup("connect unexpectedly closed");
+			break;
 		case -1:
 			goto error;
-		case 0:
-			cause = xstrdup("connection unexpectedly closed");
-			goto error;
 		}
-
-		done = 0;
-		while (!done) {
-			line = io_readline(io);
-			if (line == NULL)
-				break;
-			code = smtp_code(line);
-
-			switch (state) {
-			case SMTP_CONNECTING:
-				if (code != 220)
-					goto error;
-				state = SMTP_HELO;
-				io_writeline(io, "HELO %s", conf.info.host);
-				break;
-			case SMTP_HELO:
-				if (code != 250)
-					goto error;
-				state = SMTP_FROM;
-				io_writeline(io, "MAIL FROM:%s", from);
-				break;
-			case SMTP_FROM:
-				if (code != 250)
-					goto error;
-				state = SMTP_TO;
-				io_writeline(io, "RCPT TO:%s", to);
-				break;
-			case SMTP_TO:
-				if (code != 250)
-					goto error;
-				state = SMTP_DATA;
-				io_writeline(io, "DATA");
-				break;
-			case SMTP_DATA:
-				if (code != 354)
-					goto error;
-				line_init(m, &ptr, &len);
-				while (ptr != NULL) {
-					io_write(io, ptr, len - 1);
-					io_writeline(io, NULL);
-
-					/* update if necessary */
-					if (io_update(io, &cause) != 1)
-						goto error;
-
-					line_next(m, &ptr, &len);
-				}
-				state = SMTP_DONE;
-				io_writeline(io, ".");
-				io_flush(io, NULL);
-				break;
-			case SMTP_DONE:
-				if (code != 250)
-					goto error;
-				state = SMTP_QUIT;
-				io_writeline(io, "QUIT");
-				break;
-			case SMTP_QUIT:
-				/* Exchange sometimes refuses to accept QUIT
-				   as a valid command, but since we got a 250
-				   the mail has been accepted. So, allow 500
-				   here too. */
-				if (code != 500 && code != 221)
-					goto error;
-				done = 1;
-				break;
-			}
-
-			xfree(line);
-		}
-		if (done)
+		code = smtp_code(line);
+		
+		switch (state) {
+		case SMTP_CONNECTING:
+			if (code != 220)
+				goto error;
+			state = SMTP_HELO;
+			io_writeline(io, "HELO %s", conf.info.host);
 			break;
-	}
+		case SMTP_HELO:
+			if (code != 250)
+				goto error;
+			state = SMTP_FROM;
+			io_writeline(io, "MAIL FROM:%s", from);
+			break;
+		case SMTP_FROM:
+			if (code != 250)
+				goto error;
+			state = SMTP_TO;
+			io_writeline(io, "RCPT TO:%s", to);
+			break;
+		case SMTP_TO:
+			if (code != 250)
+				goto error;
+			state = SMTP_DATA;
+			io_writeline(io, "DATA");
+			break;
+		case SMTP_DATA:
+			if (code != 354)
+				goto error;
+			line_init(m, &ptr, &len);
+			while (ptr != NULL) {
+				io_write(io, ptr, len - 1);
+				io_writeline(io, NULL);
+				
+				/* update if necessary */
+				if (io_update(io, &cause) != 1)
+					goto error;
+				
+				line_next(m, &ptr, &len);
+			}
+			state = SMTP_DONE;
+			io_writeline(io, ".");
+			io_flush(io, NULL);
+			break;
+		case SMTP_DONE:
+			if (code != 250)
+				goto error;
+			state = SMTP_QUIT;
+			io_writeline(io, "QUIT");
+			break;
+		case SMTP_QUIT:
+			/* 
+			 * Exchange sometimes refuses to accept QUIT as a valid
+			 * command, but since we got a 250 the mail has been
+			 * accepted. So, allow 500 here too.
+			 */
+			if (code != 500 && code != 221)
+				goto error;
+			done = 1;
+			break;
+		}
+	} while (!done);
 
+	xfree(lbuf);	
 	xfree(from);
 
 	io_close(io);
@@ -183,7 +178,8 @@ error:
 
 	io_writeline(io, "QUIT");
 	io_flush(io, NULL);
-
+	
+	xfree(lbuf);
 	xfree(from);
 
 	io_close(io);

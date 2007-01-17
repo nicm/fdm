@@ -150,7 +150,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 	char			*line, *cause, *lbuf, *folder;
 	size_t			 off = 0, len, llen, size;
 	u_int			 u, lines = 0;
-
+	
 	if (m != NULL) {
 		m->data = NULL;
 		m->s = xstrdup(data->server.host);
@@ -163,235 +163,226 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 
 	flushing = 0;
 	line = cause = NULL;
+	res = -1;
 	do {
-		switch (io_poll(data->io, &cause)) {
-		case -1:
-			goto error;
+		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
 		case 0:
-			cause = xstrdup("connection unexpectedly closed");
+			cause = xstrdup("connect unexpectedly closed");
+			break;
+		case -1:
 			goto error;
 		}
 
-		res = -1;
-		do {
-			line = io_readline2(data->io, &lbuf, &llen);
-			if (line == NULL)
-				break;
+		switch (data->state) {
+		case IMAP_CONNECTING:
+			if (imap_tag(line) != IMAP_TAG_NONE)
+				goto error;
+			
+			data->state = IMAP_USER;
+			io_writeline(data->io, "%u LOGIN {%zu}", ++data->tag,
+			    strlen(data->user));
+			break;
+		case IMAP_USER:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != IMAP_TAG_CONTINUE)
+				goto error;
+			
+			data->state = IMAP_PASS;
+			io_writeline(data->io, "%s {%zu}", data->user,
+			    strlen(data->pass));
+			break;
+		case IMAP_PASS:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != IMAP_TAG_CONTINUE)
+				goto error;
+			
+			data->state = IMAP_LOGIN;
+			io_writeline(data->io, "%s", data->pass);
+			break;
+		case IMAP_LOGIN:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+			
+			data->state = IMAP_SELECT;
+			if (is_poll) {
+				io_writeline(data->io, "%u EXAMINE %s",
+				    ++data->tag, folder);
+			} else {
+				io_writeline(data->io, "%u SELECT %s",
+				    ++data->tag, folder);
+			}
+			break;
+		case IMAP_SELECT:
+			tag = imap_tag(line);
+			if (tag != IMAP_TAG_NONE)
+				goto error;
 
-			switch (data->state) {
-			case IMAP_CONNECTING:
-				if (imap_tag(line) != IMAP_TAG_NONE)
-					goto error;
-
-				data->state = IMAP_USER;
-				io_writeline(data->io,
-				    "%u LOGIN {%zu}", ++data->tag,
-				    strlen(data->user));
-				break;
-			case IMAP_USER:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
+			v = sscanf(line, "* %u EXISTS", &data->num);
+			if (v != 1)
+				continue;
+			data->state = IMAP_SELECTWAIT;
+			break;
+		case IMAP_SELECTWAIT:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
 					continue;
-				if (tag != IMAP_TAG_CONTINUE)
-					goto error;
-
-				data->state = IMAP_PASS;
-				io_writeline(data->io, "%s {%zu}", data->user,
-				    strlen(data->pass));
-				break;
-			case IMAP_PASS:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != IMAP_TAG_CONTINUE)
-					goto error;
-
-				data->state = IMAP_LOGIN;
-				io_writeline(data->io, "%s", data->pass);
-				break;
-			case IMAP_LOGIN:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != data->tag)
-					goto error;
-				if (!imap_okay(line))
-					goto error;
-
-				data->state = IMAP_SELECT;
-				if (is_poll)
-					io_writeline(data->io, "%u EXAMINE %s",
-					    ++data->tag, folder);
-				else
-					io_writeline(data->io, "%u SELECT %s",
-					    ++data->tag, folder);
-				break;
-			case IMAP_SELECT:
-				tag = imap_tag(line);
-				if (tag != IMAP_TAG_NONE)
-					goto error;
-
-				v = sscanf(line, "* %u EXISTS", &data->num);
-				if (v != 1)
-					continue;
-				data->state = IMAP_SELECTWAIT;
-				break;
-			case IMAP_SELECTWAIT:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != data->tag)
-					goto error;
-				if (!imap_okay(line))
-					goto error;
-
-				if (is_poll) {
-					*n = data->num;
-					data->state = IMAP_LOGOUT;
-					io_writeline(data->io, "%u LOGOUT",
-					    ++data->tag);
-					break;
-				}
-
-				line = strchr(line, ' ');
-				if (line == NULL)
-					goto error;
-				line++;
-				if (strncmp(line, "OK [READ-WRITE]", 15) != 0) {
-					xasprintf(&cause, "can't open folder "
-					    "read/write: %s", folder);
-					goto error;
-				}
-
-				if (data->num == 0) {
-					data->state = IMAP_CLOSE;
-					io_writeline(data->io, "%u CLOSE",
-					    ++data->tag);
-					break;
-				}
-
-				data->cur = 1;
-				data->state = IMAP_SIZE;
-				io_writeline(data->io, "%u FETCH %u BODY[]",
-				    ++data->tag, data->cur);
-				break;
-			case IMAP_SIZE:
-				tag = imap_tag(line);
-				if (tag != IMAP_TAG_NONE)
-					goto error;
-
-				if (sscanf(line, "* %u FETCH (BODY[] {%zu}",
-				    &u, &size) != 2)
-					goto error;
-				if (u != data->cur) {
-					cause = xstrdup("wrong message index");
-					goto error;
-				}
-
-				if (size == 0) {
-					cause = xstrdup("zero-length message");
-					goto error;
-				}
-
-				if (size > conf.max_size)
-					flushing = 1;
-
-				off = lines = 0;
-				init_mail(m, IO_ROUND(size));
-
-				data->state = IMAP_LINE;
-				break;
-			case IMAP_LINE:
-				len = strlen(line);
-				if (len == 0 && m->body == -1)
-					m->body = off + 1;
-
-				if (!flushing) {
-					resize_mail(m, off + len + 1);
-					memcpy(m->data + off, line, len);
-					/* append an LF */
-					m->data[off + len] = '\n';
-				}
-				lines++;
-				off += len + 1;
-
-				if (off + lines >= size)
-					data->state = IMAP_LINEWAIT;
-				break;
-			case IMAP_LINEWAIT:
-				if (strcmp(line, ")") != 0)
-					goto error;
-				data->state = IMAP_LINEWAIT2;
-				break;
-			case IMAP_LINEWAIT2:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != data->tag)
-					goto error;
-				if (!imap_okay(line))
-					goto error;
-
-				if (off + lines != size) {
-					cause = xstrdup("too much data");
-					goto error;
-				}
-				m->size = off;
-
-				if (flushing)
-					res = FETCH_OVERSIZE;
-				else
-					res = FETCH_SUCCESS;
-
-				/* state set in keep/delete */
-				break;
-			case IMAP_DONE:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != data->tag)
-					goto error;
-				if (!imap_okay(line))
-					goto error;
-
-				data->cur++;
-				if (data->cur > data->num) {
-					data->state = IMAP_CLOSE;
-					io_writeline(data->io, "%u CLOSE",
-					    ++data->tag);
-					break;
-				}
-
-				data->state = IMAP_SIZE;
-				io_writeline(data->io, "%u FETCH %u BODY[]",
-				    ++data->tag, data->cur);
-				break;
-			case IMAP_CLOSE:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != data->tag)
-					goto error;
-				if (!imap_okay(line))
-					goto error;
-
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+			
+			if (is_poll) {
+				*n = data->num;
 				data->state = IMAP_LOGOUT;
- 				io_writeline(data->io, "%u LOGOUT",
+				io_writeline(data->io, "%u LOGOUT", 
 				    ++data->tag);
 				break;
-			case IMAP_LOGOUT:
-				tag = imap_tag(line);
-				if (tag == IMAP_TAG_NONE)
-					continue;
-				if (tag != data->tag)
-					goto error;
-				if (!imap_okay(line))
-					goto error;
+			}
 
-				res = FETCH_COMPLETE;
+			line = strchr(line, ' ');
+			if (line == NULL)
+				goto error;
+			line++;
+			if (strncmp(line, "OK [READ-WRITE]", 15) != 0) {
+				xasprintf(&cause, "can't open folder "
+				    "read/write: %s", folder);
+				goto error;
+			}
+			
+			if (data->num == 0) {
+				data->state = IMAP_CLOSE;
+				io_writeline(data->io, "%u CLOSE", ++data->tag);
 				break;
 			}
-		} while (res == -1);
+
+			data->cur = 1;
+			data->state = IMAP_SIZE;
+			io_writeline(data->io, "%u FETCH %u BODY[]",
+			    ++data->tag, data->cur);
+			break;
+		case IMAP_SIZE:
+			tag = imap_tag(line);
+			if (tag != IMAP_TAG_NONE)
+				goto error;
+			
+			if (sscanf(line, "* %u FETCH (BODY[] {%zu}", &u,
+			    &size) != 2)
+				goto error;
+			if (u != data->cur) {
+				cause = xstrdup("wrong message index");
+				goto error;
+			}
+			
+			if (size == 0) {
+				cause = xstrdup("zero-length message");
+				goto error;
+			}
+
+			if (size > conf.max_size)
+				flushing = 1;
+			
+			off = lines = 0;
+			init_mail(m, IO_ROUND(size));
+			
+			data->state = IMAP_LINE;
+			break;
+		case IMAP_LINE:
+			len = strlen(line);
+			if (len == 0 && m->body == -1)
+				m->body = off + 1;
+			
+			if (!flushing) {
+				resize_mail(m, off + len + 1);
+				memcpy(m->data + off, line, len);
+				/* append an LF */
+				m->data[off + len] = '\n';
+			}
+			lines++;
+			off += len + 1;
+			
+			if (off + lines >= size)
+				data->state = IMAP_LINEWAIT;
+			break;
+		case IMAP_LINEWAIT:
+			if (strcmp(line, ")") != 0)
+				goto error;
+			data->state = IMAP_LINEWAIT2;
+			break;
+		case IMAP_LINEWAIT2:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+
+			if (off + lines != size) {
+				cause = xstrdup("too much data");
+				goto error;
+			}
+			m->size = off;
+
+			if (flushing)
+				res = FETCH_OVERSIZE;
+			else
+				res = FETCH_SUCCESS;
+
+			/* state set in keep/delete */
+			break;
+		case IMAP_DONE:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+
+			data->cur++;
+			if (data->cur > data->num) {
+				data->state = IMAP_CLOSE;
+				io_writeline(data->io, "%u CLOSE", ++data->tag);
+				break;
+			}
+			
+			data->state = IMAP_SIZE;
+			io_writeline(data->io, "%u FETCH %u BODY[]",
+			    ++data->tag, data->cur);
+			break;
+		case IMAP_CLOSE:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+			
+			data->state = IMAP_LOGOUT;
+			io_writeline(data->io, "%u LOGOUT", ++data->tag);
+			break;
+		case IMAP_LOGOUT:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+			
+			res = FETCH_COMPLETE;
+			break;
+		}
 	} while (res == -1);
 
 	xfree(lbuf);

@@ -633,6 +633,40 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	io_write(io, io->eol, strlen(io->eol));
 }
 
+/* Poll until a line is received. */
+int
+io_pollline(struct io *io, char **line, char **cause)
+{
+	size_t	 llen;
+	char	*lbuf;
+	int	 res;
+	
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	if ((res = io_pollline2(io, line, &lbuf, &llen, cause)) != 1)
+		xfree(lbuf);
+
+	return (res);
+}
+
+/* Poll until a line is received. */
+int
+io_pollline2(struct io *io, char **line, char **lbuf, size_t *llen,
+    char **cause)
+{
+	int	res;
+
+	for (;;) {
+		*line = io_readline2(io, lbuf, llen);
+		if (*line != NULL)
+			return (1);
+		
+		if ((res = io_poll(io, cause)) != 1)
+			return (res);
+	}
+}
+
 /* Poll until all data in the write buffer has been written to the socket. */
 int
 io_flush(struct io *io, char **cause)

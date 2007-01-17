@@ -1058,6 +1058,9 @@ char 			*io_readline2(struct io *, char **, size_t *);
 char 			*io_readline(struct io *);
 void printflike2	 io_writeline(struct io *, const char *, ...);
 void			 io_vwriteline(struct io *, const char *, va_list);
+int			 io_pollline(struct io *, char **, char **);
+int			 io_pollline2(struct io *, char **, char **, size_t *,
+			     char **);
 int			 io_flush(struct io *, char **);
 int			 io_wait(struct io *, size_t, char **);
 
