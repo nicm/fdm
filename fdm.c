@@ -206,9 +206,11 @@ use_account(struct account *a, char **cause)
 		return (0);
 	}
 
-	/* if the account is disabled and no accounts are specified
-	   on the command line (whether or not it is included if there
-	   are is already confirmed), then skip it */
+	/* 
+	 * If the account is disabled and no accounts are specified
+	 * on the command line (whether or not it is included if there
+	 * are is already confirmed), then skip it.
+	 */
 	if (a->disabled && ARRAY_EMPTY(&conf.incl)) {
 		if (cause != NULL)
 			xasprintf(cause, "account %s is disabled", a->name);
