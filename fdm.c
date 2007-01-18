@@ -619,7 +619,7 @@ main(int argc, char **argv)
 			/* child has said it is ready to exit, tell it to */
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
-			if (privsep_send(io, &msg, NULL, 0) != 0)
+			if (privsep_send(child->io, &msg, NULL, 0) != 0)
 				fatalx("child: privsep_send error");		
 
 			/* wait for the child  */

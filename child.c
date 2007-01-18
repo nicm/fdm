@@ -164,8 +164,10 @@ do_child(int fd, enum fdmop op, struct account *a)
 out:
 	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_EXIT;
+	log_debug3("%s: sending exit message to parent", a->name);
 	if (privsep_send(io, &msg, NULL, 0) != 0)
 		fatalx("child: privsep_send error");
+	log_debug3("%s: waiting for exit message from parent", a->name);
 	if (privsep_recv(io, &msg, NULL, 0) != 0)
 		fatalx("child: privsep_recv error");
 	if (msg.type != MSG_EXIT)
