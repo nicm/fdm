@@ -162,10 +162,16 @@ do_child(int fd, enum fdmop op, struct account *a)
 	log_debug("%s: finished processing. exiting", a->name);
 
 out:
+	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_EXIT;
 	if (privsep_send(io, &msg, NULL, 0) != 0)
 		fatalx("child: privsep_send error");
+	if (privsep_recv(io, &msg, NULL, 0) != 0)
+		fatalx("child: privsep_recv error");
+	if (msg.type != MSG_EXIT)
+		fatalx("child: unexpected message");
 	
+	io_close(io);
 	io_free(io);
 	
 #ifdef DEBUG
@@ -575,6 +581,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(users); i++) {
+		memset(&msg, 0, sizeof msg);
 		msg.type = MSG_ACTION;
 		msg.data.account = a;
 		msg.data.action = t;

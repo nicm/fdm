@@ -308,8 +308,6 @@ struct re {
 
 /* A single child. */
 struct child {
-	int		 broken;
-
 	pid_t		 pid;
 	struct io	*io;
 	struct account	*account;

@@ -251,6 +251,7 @@ main(int argc, char **argv)
 	struct timeval	 tv;
 	double		 tim;
 	struct sigaction act;
+	struct msg	 msg;
 	
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -597,16 +598,8 @@ main(int argc, char **argv)
 		switch (io_polln(ios, ARRAY_LENGTH(&children), &io, NULL)) {
 		case -1:
 			fatal("parent: child socket error");
-			break;
 		case 0:
-			/* find the broken child */
-			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-				child = ARRAY_ITEM(&children, i,struct child *);
-				if (child->io == io) {
-					child->broken = 1;
-					break;
-				}
-			}
+			fatalx("child socket closed");
 		}
 
 		while (!ARRAY_EMPTY(&children)) {
@@ -615,13 +608,6 @@ main(int argc, char **argv)
 				child = ARRAY_ITEM(&children, i,struct child *);
 				if (privsep_check(child->io))
 					break;
-				if (child->broken) {
-					/*
-					 * Pipe broken and no privsep messages
-					 * outstanding that could be MSG_EXIT.
-					 */
-					fatalx("child socket closed");
-				}
 			}
 			if (i == ARRAY_LENGTH(&children))
 				break;
@@ -630,7 +616,13 @@ main(int argc, char **argv)
 			if (do_parent(child) == 0)
 				continue;
 
-			/* the child has finished. wait for it */
+			/* child has said it is ready to exit, tell it to */
+			memset(&msg, 0, sizeof msg);
+			msg.type = MSG_EXIT;
+			if (privsep_send(io, &msg, NULL, 0) != 0)
+				fatalx("child: privsep_send error");		
+
+			/* wait for the child  */
 			if (waitpid(child->pid, &status, 0) == -1)
 				fatal("waitpid");
 			if (WIFSIGNALED(status)) {
