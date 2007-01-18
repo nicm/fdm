@@ -46,10 +46,12 @@ struct fetch	 fetch_maildir = { { NULL, NULL },
 				   maildir_connect,
 				   maildir_poll,
 				   maildir_fetch,
+				   NULL,
 				   maildir_delete,
 				   NULL,
 				   NULL,
 				   maildir_disconnect,
+				   NULL,
 				   maildir_desc2
 };
 

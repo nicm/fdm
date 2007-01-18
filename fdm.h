@@ -456,6 +456,7 @@ struct conf {
 	int			 check_only;
 	int			 allow_many;
 	int			 keep_all;
+	u_int			 purge_after;
 	enum decision		 impl_act;
 
 	size_t			 max_size;
@@ -552,10 +553,12 @@ struct fetch {
 	int	 	 (*connect)(struct account *);
 	int 		 (*poll)(struct account *, u_int *);
 	int	 	 (*fetch)(struct account *, struct mail *);
+	int		 (*purge)(struct account *);
 	int		 (*delete)(struct account *);
 	int		 (*keep)(struct account *);
 	void		 (*error)(struct account *);
 	int		 (*disconnect)(struct account *);
+	int		 (*free)(struct account *);
 	char		*(*desc)(struct account *);
 };
 
@@ -764,36 +767,21 @@ struct stdin_data {
 	struct io	*io;
 };
 
-/* Fetch pop3 states. */
-enum pop3_state {
-	POP3_CONNECTING,
-	POP3_USER,
-	POP3_PASS,
-	POP3_STAT,
-	POP3_LIST,
-	POP3_RETR,
-	POP3_LINE,
-	POP3_DONE,
-	POP3_QUIT
-};
-
 /* Fetch pop3 data. */
 struct pop3_data {
 	char		*user;
 	char		*pass;
 
 	struct server	 server;
-
-	enum pop3_state	 state;
+	
 	u_int		 cur;
 	u_int		 num;
 
+	char		*uid;
+	struct strings	 kept;
+
 	struct io	*io;
 };
-
-/* Fetch pop3 macros. */
-#define pop3_isOK(s) (strncmp(s, "+OK", 3) == 0)
-#define pop3_isERR(s) (strncmp(s, "+ERR", 4) == 0)
 
 /* Fetch imap states. */
 enum imap_state {
@@ -808,6 +796,7 @@ enum imap_state {
 	IMAP_LINEWAIT,
 	IMAP_LINEWAIT2,
 	IMAP_DONE,
+	IMAP_EXPUNGE,
 	IMAP_CLOSE,
 	IMAP_LOGOUT
 };

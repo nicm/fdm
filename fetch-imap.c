@@ -31,6 +31,7 @@ int	 imap_connect(struct account *);
 int	 imap_disconnect(struct account *);
 int	 imap_poll(struct account *, u_int *);
 int	 imap_fetch(struct account *, struct mail *);
+int	 imap_purge(struct account *);
 int	 imap_delete(struct account *);
 int	 imap_keep(struct account *);
 void	 imap_error(struct account *);
@@ -48,6 +49,7 @@ struct fetch	fetch_imap = { { "imap", "imaps" },
 			       imap_connect,
 			       imap_poll,
 			       imap_fetch,
+			       imap_purge,
 			       imap_delete,
 			       imap_keep,
 			       imap_error,
@@ -106,6 +108,81 @@ int
 imap_fetch(struct account *a, struct mail *m)
 {
 	return (do_imap(a, NULL, m, 0));
+}
+
+int
+imap_purge(struct account *a)
+{
+	struct imap_data	*data = a->data;
+	char			*line, *cause, *lbuf;
+	size_t			 llen;
+	long			 tag;
+	enum { STORE, EXPUNGE,
+	       DONE }		 state;
+
+	/* 
+	 * XXX This sucks.
+	 */
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	state = STORE;
+	do {
+		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
+		case 0:
+			cause = xstrdup("connection unexpectedly closed");
+			goto error;
+		case -1:
+			goto error;
+		}
+
+		switch (state) {
+		case STORE:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+
+			io_writeline(data->io, "%u EXPUNGE", ++data->tag);
+			state = EXPUNGE;
+			break;
+		case EXPUNGE:
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag != data->tag)
+				goto error;
+			if (!imap_okay(line))
+				goto error;
+
+			state = DONE;
+			break;
+		case DONE:
+			break;
+		}
+	} while (state != DONE);
+	xfree(lbuf);
+
+	/* prompt the server and reenter at SELECT */
+	io_writeline(data->io, "%u SELECT %s", ++data->tag, data->folder);
+	data->state = IMAP_SELECT;
+
+	return (0);
+
+error:
+	if (cause != NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+	} else
+		log_warnx("%s: unexpected response: %s", a->name, line);
+
+	xfree(lbuf);
+	io_flush(data->io, NULL);
+	return (1);
 }
 
 int

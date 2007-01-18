@@ -158,6 +158,8 @@ do_child(int fd, enum fdmop op, struct account *a)
 	/* disconnect */
 	if (a->fetch->disconnect != NULL)
 		a->fetch->disconnect(a);
+	if (a->fetch->free != NULL)
+		a->fetch->free(a);
 
 	log_debug("%s: finished processing. exiting", a->name);
 
@@ -227,7 +229,7 @@ fetch_account(struct io *io, struct account *a)
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
-	dropped = kept = 0;
+	n = dropped = kept = 0;
         for (;;) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
@@ -317,7 +319,6 @@ fetch_account(struct io *io, struct account *a)
 		/* finished with the message */
 		switch (mctx.decision) {
 		case DECISION_DROP:
-			dropped++;
 			log_debug("%s: deleting message", a->name);
 			if (a->fetch->delete != NULL) {
 				if (a->fetch->delete(a) != 0) {
@@ -325,9 +326,9 @@ fetch_account(struct io *io, struct account *a)
 					goto out;
 				}
 			}
+			dropped++;
 			break;
 		case DECISION_KEEP:
-			kept++;
 			log_debug("%s: keeping message", a->name);
 			if (a->fetch->keep != NULL) {
 				if (a->fetch->keep(a) != 0) {
@@ -335,9 +336,24 @@ fetch_account(struct io *io, struct account *a)
 					goto out;
 				}
 			}
+			kept++;
 			break;
 		default:
 			fatalx("invalid decision");
+		}
+
+		if (conf.purge_after > 0 && a->fetch->purge != NULL) {
+			n++;
+			if (n >= conf.purge_after) {
+				log_debug("%s: %u mails, purging", a->name, n);
+				
+				if (a->fetch->purge(a) != 0) {
+					cause = "purging";
+					goto out;
+				}
+				
+				n = 0;
+			}
 		}
 
  		mail_destroy(&m);

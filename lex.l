@@ -150,6 +150,7 @@ pop3 return (TOKPOP3);
 pop3s return (TOKPOP3S);
 port return (TOKPORT);
 proxy return (TOKPROXY);
+purge-after return (TOKPURGEAFTER);
 returns return (TOKRETURNS);
 rewrite return (TOKREWRITE);
 (second|seconds) return (TOKSECONDS);

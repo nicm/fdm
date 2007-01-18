@@ -260,6 +260,7 @@ main(int argc, char **argv)
 	conf.max_size = DEFMAILSIZE;
 	conf.lock_types = LOCK_FLOCK;
 	conf.impl_act = DECISION_NONE;
+	conf.purge_after = 0;
 
 	log_init(1);
 

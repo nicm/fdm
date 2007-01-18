@@ -42,10 +42,12 @@ struct fetch	fetch_nntp = { { "nntp", NULL },
 			       nntp_connect,
 			       NULL,
 			       nntp_fetch,
+			       NULL,
 			       nntp_delete,
 			       nntp_keep,
 			       nntp_error,
 			       nntp_disconnect,
+			       NULL,
 			       nntp_desc
 };
 

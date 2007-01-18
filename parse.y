@@ -277,7 +277,7 @@ find_macro(char *name)
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
-%token TOKGROUPS TOKEXPIRY
+%token TOKGROUPS TOKEXPIRY TOKPURGEAFTER
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -642,6 +642,19 @@ set: TOKSET TOKMAXSIZE size
    | TOKSET TOKIMPLACT TOKDROP
      {
 	     conf.impl_act = DECISION_DROP;
+     }
+   | TOKSET TOKPURGEAFTER numv
+     {
+	     if ($3 == 0)
+		     yyerror("invalid purge-after value: 0");
+	     if ($3 > UINT_MAX)
+		     yyerror("purge-after value too large: %lld", $3);
+
+	     conf.purge_after = $3;
+     }
+   | TOKSET TOKPURGEAFTER TOKNONE
+     {
+	     conf.purge_after = 0;
      }
 
 /** DEFMACRO */
@@ -1908,7 +1921,6 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   data->server.port = $2.port;
 		   else
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
-
 		   data->server.ai = NULL;
 	   }
 	 | TOKSTDIN
