@@ -37,15 +37,14 @@ do_parent(struct child *child)
 	struct msgdata		*data;
 	struct deliver_ctx	 dctx;
 	struct match_ctx	 mctx;
-	struct mail		*m;
+	struct mail		 m;
 	int			 error;
 	uid_t			 uid;
 	void			*buf;
 	size_t			 len;
 
+	memset(&m, 0, sizeof m);
 	data = &msg.data;
-	m = &data->mail;
-	memset(m, 0, sizeof *m);
 
 	if (privsep_recv(child->io, &msg, &buf, &len) != 0)
 		fatalx("parent: privsep_recv error");
@@ -54,28 +53,45 @@ do_parent(struct child *child)
 
 	switch (msg.type) {
 	case MSG_ACTION:
-		m->base = shm_reopen(&m->shm);
-		m->data = m->base + m->off;
-		
+		mail_receive(&m, &msg);
 		if (buf != NULL) {
-			m->s = xrealloc(buf, 1, len + 1);
-			m->s[len] = '\0';
+			m.s = xrealloc(buf, 1, len + 1);
+			m.s[len] = '\0';
 		}
-		
-		ARRAY_INIT(&m->tags);
-		ARRAY_INIT(&m->wrapped);
-		m->attach = NULL;
 		
 		uid = data->uid;
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = data->account;
-		dctx.mail = m;
+		dctx.mail = &m;
 		dctx.decision = NULL;	/* only altered in child */
 		dctx.pmatch_valid = msg.data.pmatch_valid;
-		memcpy(&dctx.pmatch, &msg.data.pmatch,
-		    sizeof dctx.pmatch);
+		memcpy(&dctx.pmatch, &msg.data.pmatch, sizeof dctx.pmatch);
 		
 		error = parent_action(data->action, &dctx, uid);
+		
+		msg.type = MSG_DONE;
+		msg.data.error = error;
+		mail_send(&m, &msg);
+		if (privsep_send(child->io, &msg, NULL, 0) != 0)
+			fatalx("parent: privsep_send error");
+		
+		mail_close(&m);
+		break;
+	case MSG_COMMAND:
+		mail_receive(&m, &msg);
+		if (buf != NULL) {
+			m.s = xrealloc(buf, 1, len + 1);
+			m.s[len] = '\0';
+		}
+		
+		uid = data->uid;
+		memset(&mctx, 0, sizeof mctx);
+		mctx.account = data->account;
+		mctx.mail = &m;
+		mctx.pmatch_valid = msg.data.pmatch_valid;
+		memcpy(&mctx.pmatch, &msg.data.pmatch, sizeof mctx.pmatch);
+		
+		error = parent_command(&mctx, data->cmddata, uid);
 		
 		msg.type = MSG_DONE;
 		msg.data.error = error;
@@ -83,38 +99,7 @@ do_parent(struct child *child)
 		if (privsep_send(child->io, &msg, NULL, 0) != 0)
 			fatalx("parent: privsep_send error");
 		
-		free_mail(m, 0);
-		break;
-	case MSG_COMMAND:
-		m->base = shm_reopen(&m->shm);
-		m->data = m->base + m->off;
-		
-		if (buf != NULL) {
-			m->s = xrealloc(buf, 1, len + 1);
-			m->s[len] = '\0';
-		}
-		
-		ARRAY_INIT(&m->tags);
-		ARRAY_INIT(&m->wrapped);
-		m->attach = NULL;
-		
-		uid = data->uid;
-		memset(&mctx, 0, sizeof mctx);
-		mctx.account = data->account;
-		mctx.mail = m;
-		mctx.pmatch_valid = msg.data.pmatch_valid;
-		memcpy(&mctx.pmatch, &msg.data.pmatch,
-		    sizeof mctx.pmatch);
-		
-		error = parent_command(&mctx, data->cmddata, uid);
-		
-		msg.type = MSG_DONE;
-		msg.data.error = error;
-			/* msg.data.mail is already m */
-		if (privsep_send(child->io, &msg, NULL, 0) != 0)
-			fatalx("parent: privsep_send error");
-		
-		free_mail(m, 0);
+		mail_close(&m);
 		break;
 	case MSG_DONE:
 		fatalx("parent: unexpected message");
@@ -136,21 +121,18 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	struct msg	 	 msg;
 
 	memset(&dctx->wr_mail, 0, sizeof dctx->wr_mail);
-
 	/* if writing back, open a new mail now and set its ownership so it
 	   can be accessed by the child */
 	if (t->deliver->type == DELIVER_WRBACK) {
-		init_mail(&dctx->wr_mail, IO_BLOCKSIZE);
-		if (geteuid() == 0 && fchown(dctx->wr_mail.shm.fd,
+		mail_open(&dctx->wr_mail, IO_BLOCKSIZE);
+		if (geteuid() == 0 && fchown(dctx->wr_mail.shm.fd, 
 		    conf.child_uid, conf.child_gid) != 0)
 			fatal("fchown");
 	}
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 		fatal("socketpair");
-	pid = fork();
-	if (pid == -1)
-		fatal("fork");
+	pid = child_fork();
 	if (pid != 0) {
 		/* create privsep io */
 		close(fds[1]);
@@ -176,20 +158,14 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 		/* use new mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
 			if (error == DELIVER_SUCCESS) {
-				free_mail(&dctx->wr_mail, 0);
-				free_mail(m, 1);
+				mail_close(&dctx->wr_mail);
 
-				/* no need to update anything, since the
-				   important stuff is all the same */
-				copy_mail(&msg.data.mail, m);
-				m->base = shm_reopen(&m->shm);
-				m->data = m->base + m->off;
-
+				mail_receive(m, &msg);
 				log_debug2("%s: got new mail from delivery: "
 				    "size %zu, body=%zd", a->name, m->size,
 				    m->body);
 			} else
-				free_mail(&dctx->wr_mail, 1);
+				mail_destroy(&dctx->wr_mail);
 		}
 
 		/* free the io */
@@ -218,7 +194,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 
 #ifdef DEBUG
 	xmalloc_clear();
-	COUNTFDS("deliver");
+	COUNTFDS(a->name);
 #endif
 
 	/* create privsep io */
@@ -230,7 +206,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	if (geteuid() == 0) {
 		if (dropto(uid) != 0) {
 			log_warnx("%s: can't drop privileges", a->name);
-			_exit(DELIVER_FAILURE);
+			child_exit(DELIVER_FAILURE);
 		}
 	} else {
 		log_debug("%s: not root. using current user", a->name);
@@ -250,7 +226,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	if (t->deliver->type == DELIVER_WRBACK && error == DELIVER_SUCCESS) {
 		log_debug2("%s: using new mail, size %zu", a->name,
 		    dctx->wr_mail.size);
-		copy_mail(&dctx->wr_mail, &msg.data.mail);
+		mail_send(&dctx->wr_mail, &msg);
 	}
 
 	/* inform parent we're done */
@@ -264,11 +240,11 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	io_free(io);
 
 #ifdef DEBUG
-	COUNTFDS("deliver");
-	xmalloc_report("deliver");
+	COUNTFDS(a->name);
+	xmalloc_report(a->name);
 #endif
 
-	_exit(0);
+	child_exit(0);
 	return (DELIVER_FAILURE);
 }
 
@@ -282,9 +258,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	char		*s, *cause, *out, *err;
 	struct cmd	*cmd;
 
-	pid = fork();
-	if (pid == -1)
-		fatal("fork");
+	pid = child_fork();
 	if (pid != 0) {
  		/* parent process. wait for child */
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
@@ -317,7 +291,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	if (geteuid() == 0) {
 		if (dropto(uid) != 0) {
 			log_warnx("%s: can't drop privileges", a->name);
-			_exit(MATCH_ERROR);
+			child_exit(MATCH_ERROR);
 		}
 	} else
 		log_debug("%s: not root. using current user", a->name);
@@ -335,7 +309,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	    mctx->pmatch);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
-		_exit(MATCH_ERROR);
+		child_exit(MATCH_ERROR);
         }
 
 	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, data->ret,
@@ -346,7 +320,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);
 		xfree(s);
-		_exit(MATCH_ERROR);
+		child_exit(MATCH_ERROR);
 	}
 
 	found = 0;
@@ -357,7 +331,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 			xfree(cause);
 			cmd_free(cmd);
 			xfree(s);
-			_exit(MATCH_ERROR);
+			child_exit(MATCH_ERROR);
 		}
        		if (status == 0) {
 			if (err != NULL) {
@@ -373,7 +347,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 					log_warnx("%s: %s", a->name, cause);
 					cmd_free(cmd);
 					xfree(s);
-					_exit(MATCH_ERROR);
+					child_exit(MATCH_ERROR);
 				}
 
 				xfree(out);
@@ -388,10 +362,10 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 
 	status = data->ret == status;
 	if (data->ret != -1 && data->re.s != NULL)
-		_exit((found && status) ? MATCH_TRUE : MATCH_FALSE);
+		child_exit((found && status) ? MATCH_TRUE : MATCH_FALSE);
 	else if (data->ret != -1 && data->re.s == NULL)
-		_exit(status ? MATCH_TRUE : MATCH_FALSE);
+		child_exit(status ? MATCH_TRUE : MATCH_FALSE);
 	else if (data->ret == -1 && data->re.s != NULL)
-		_exit(found ? MATCH_TRUE : MATCH_FALSE);
+		child_exit(found ? MATCH_TRUE : MATCH_FALSE);
 	return (MATCH_ERROR);
 }

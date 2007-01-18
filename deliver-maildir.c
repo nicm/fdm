@@ -133,11 +133,14 @@ restart:
 			goto out;
 		}
 
+		cleanup_register(src);
 		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1 && errno != EEXIST) {
+			cleanup_deregister(src);
 			log_warn("%s: %s: open", a->name, src);
 			goto out;
-		}
+		} else if (fd == -1)
+			cleanup_deregister(src);
 
 		delivered++;
 	} while (fd == -1);
@@ -149,6 +152,7 @@ restart:
 		log_warn("%s: write", a->name);
 		close(fd);
 		unlink(src);
+		cleanup_deregister(src);
 		goto out;
 	}
 	close(fd);
@@ -163,6 +167,7 @@ restart:
 	    src + strlen(path) + 1, dst + strlen(path) + 1);
 	if (link(src, dst) != 0) {
 		unlink(src);
+		cleanup_deregister(src);
 		if (errno == EEXIST) {
 			log_debug2("%s: link failed", a->name);
 			goto restart;
@@ -174,9 +179,11 @@ restart:
 	/* unlink the original tmp file */
 	log_debug2("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
 	if (unlink(src) != 0) {
+		cleanup_deregister(src);
 		log_warn("%s: %s: unlink", a->name, src);
 		goto out;
 	}
+	cleanup_deregister(src);
 
 	res = DELIVER_SUCCESS;
 out:

@@ -194,7 +194,7 @@ do_pop3(struct account *a, u_int *n, struct mail *m, int is_poll)
 			}
 			
 			off = lines = 0;
-			init_mail(m, IO_ROUND(size));
+			mail_open(m, IO_ROUND(size));
 			
 			data->state = POP3_RETR;
 			io_writeline(data->io, "RETR %u", data->cur);

@@ -1002,6 +1002,8 @@ int			 cmd_poll(struct cmd *, char **, char **, char **);
 void			 cmd_free(struct cmd *);
 
 /* child.c */
+int			 child_fork(void);
+__dead void		 child_exit(int);
 int			 do_child(int, enum fdmop, struct account *);
 
 /* parent.c */
@@ -1014,9 +1016,12 @@ struct io 		*connectproxy(struct server *, struct proxy *,
 struct io		*connectio(struct server *, const char *, char **);
 
 /* mail.c */
-void			 init_mail(struct mail *, size_t);
-void			 copy_mail(struct mail *, struct mail *);
-void			 free_mail(struct mail *, int);
+void			 mail_open(struct mail *, size_t);
+void			 mail_send(struct mail *, struct msg *);
+void			 mail_receive(struct mail *, struct msg *);
+void			 mail_reopen(struct mail *, char *);
+void			 mail_close(struct mail *);
+void			 mail_destroy(struct mail *);
 void			 resize_mail(struct mail *, size_t);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
@@ -1029,6 +1034,13 @@ void			 trim_from(struct mail *);
 char 		        *make_from(struct mail *);
 u_int			 fill_wrapped(struct mail *);
 void			 set_wrapped(struct mail *, char);
+
+/* cleanup.c */
+void			 cleanup_check(void);
+void			 cleanup_flush(void);
+void			 cleanup_purge(void);
+void			 cleanup_register(char *);
+void			 cleanup_deregister(char *);
 
 /* replace.c */
 #define REPL_LEN 62

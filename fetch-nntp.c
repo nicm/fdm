@@ -249,7 +249,7 @@ nntp_fetch(struct account *a, struct mail *m)
 			log_debug2("%s: new: %s", a->name, data->key);
 
 			off = lines = 0;
-			init_mail(m, IO_BLOCKSIZE);
+			mail_open(m, IO_BLOCKSIZE);
 
 			data->state = NNTP_ARTICLE;
 			io_writeline(data->io, "ARTICLE");

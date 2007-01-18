@@ -478,7 +478,7 @@ main(int argc, char **argv)
 	sigaddset(&act.sa_mask, SIGINT);
 	sigaddset(&act.sa_mask, SIGTERM);
 	act.sa_flags = SA_RESTART;
-
+	
 	act.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &act, NULL) < 0)
 		fatal("sigaction");
@@ -486,7 +486,7 @@ main(int argc, char **argv)
 		fatal("sigaction");
 	if (sigaction(SIGUSR2, &act, NULL) < 0)
 		fatal("sigaction");
-
+	
 	act.sa_handler = sighandler;
 	if (sigaction(SIGINT, &act, NULL) < 0)
 		fatal("sigaction");	
@@ -531,21 +531,9 @@ main(int argc, char **argv)
 
 		if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
 			fatal("socketpair");
-		switch (pid = fork()) {
-		case -1:
-			fatal("fork");
-		case 0:
-			act.sa_handler = SIG_IGN;
-			if (sigaction(SIGINT, &act, NULL) < 0)
-				fatal("sigaction");
-
-			act.sa_handler = SIG_DFL;
-			if (sigaction(SIGTERM, &act, NULL) < 0)
-				fatal("sigaction");
-
+		if ((pid = child_fork()) == 0) {
 			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-				child = ARRAY_ITEM(&children, i, 
-				    struct child *);
+				child = ARRAY_ITEM(&children, i,struct child *);
 				io_close(child->io);
 				io_free(child->io);
 				xfree(child);
@@ -565,7 +553,7 @@ main(int argc, char **argv)
 			extern void _mcleanup(void); 
 			_mcleanup();
 #endif
-			_exit(res);
+			child_exit(res);
 		}
 
 		log_debug("parent: child %ld (%s) started", (long) pid,
@@ -588,7 +576,7 @@ main(int argc, char **argv)
 #ifndef NO_SETPROCTITLE
 	setproctitle("parent");
 #endif
-	log_debug("parent: started");
+	log_debug("parent: started, pid is %ld", (long) getpid());
 
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;

@@ -112,7 +112,7 @@ stdin_fetch(struct account *a, struct mail *m)
 		return (FETCH_COMPLETE);
 
 	if (m->data == NULL) {
-		init_mail(m, IO_BLOCKSIZE);
+		mail_open(m, IO_BLOCKSIZE);
 		m->size = 0;
 	}
 

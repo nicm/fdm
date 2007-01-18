@@ -37,6 +37,56 @@ int	do_deliver(struct rule *, struct match_ctx *);
 int	do_action(struct rule *, struct match_ctx *, struct action *);
 int	do_rules(struct match_ctx *, struct rules *, const char **);
 
+void	child_sighandler(int);
+
+void
+child_sighandler(int sig)
+{
+	switch (sig) {
+	case SIGTERM:
+		cleanup_purge();
+		_exit(1);
+	}
+}
+
+int
+child_fork(void)
+{
+	pid_t		 pid;
+	struct sigaction act;
+
+	switch (pid = fork()) {
+	case -1:
+		fatal("fork");
+	case 0:
+		cleanup_flush();
+
+		sigemptyset(&act.sa_mask);
+		sigaddset(&act.sa_mask, SIGINT);
+		sigaddset(&act.sa_mask, SIGTERM);
+		act.sa_flags = SA_RESTART;
+
+		act.sa_handler = SIG_IGN;
+		if (sigaction(SIGINT, &act, NULL) < 0)
+			fatal("sigaction");
+		
+		act.sa_handler = child_sighandler;
+		if (sigaction(SIGTERM, &act, NULL) < 0)
+			fatal("sigaction");		
+		
+		return (0);
+	default:
+		return (pid);
+	}
+}
+
+__dead void
+child_exit(int status)
+{
+	cleanup_check();
+	_exit(status);
+}
+
 int
 do_child(int fd, enum fdmop op, struct account *a)
 {
@@ -201,7 +251,7 @@ fetch_account(struct io *io, struct account *a)
 
 		trim_from(&m);
 		if (m.size == 0) {
-			free_mail(&m, 1);
+			mail_destroy(&m);
 			log_warnx("%s: got empty message. ignored", a->name);
 			continue;
 		}
@@ -282,11 +332,11 @@ fetch_account(struct io *io, struct account *a)
 			fatalx("invalid decision");
 		}
 
- 		free_mail(&m, 1);
+ 		mail_destroy(&m);
 	}
 
 out:
-	free_mail(&m, 1);
+	mail_destroy(&m);
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
 
@@ -529,9 +579,12 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		msg.data.account = a;
 		msg.data.action = t;
 		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
+
 		msg.data.pmatch_valid = mctx->pmatch_valid;
 		memcpy(&msg.data.pmatch, mctx->pmatch, sizeof msg.data.pmatch);
-		copy_mail(m, &msg.data.mail);
+
+		mail_send(m, &msg);
+
 		slen = m->s != NULL ? strlen(m->s) : 0;
 		if (privsep_send(mctx->io, &msg, m->s, slen) != 0)
 			fatalx("child: privsep_send error");
@@ -546,32 +599,14 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		}
 
 		if (t->deliver->type != DELIVER_WRBACK) {
-			/* check everything that should be is the same
-			   (not that it matters) */
+			/* check everything that should be is the same */
 			if (m->size != msg.data.mail.size ||
 			    m->body != msg.data.mail.body)
 				fatalx("child: corrupted message");
 			continue;
 		}
 
-		/* copy the tags, string and attachmentss to the new mail and
-		   clear them from old to stop them being freed */
-		memcpy(&msg.data.mail.tags, &m->tags,
-		    sizeof msg.data.mail.tags);
-		ARRAY_INIT(&m->tags);
-		msg.data.mail.s = m->s;
-		m->s = NULL;
-		msg.data.mail.attach = m->attach;
-		m->attach = NULL;
-
-		/* free the old mail */
-		free_mail(m, 1);
-
-		/* copy the new mail in and reopen it */
-		memcpy(m, &msg.data.mail, sizeof *m);
-		m->base = shm_reopen(&m->shm);
-		m->data = m->base + m->off;
-
+		mail_receive(m, &msg);
 		log_debug("%s: received modified mail: size %zu, body=%zd",
 		    a->name, m->size, m->body);
 

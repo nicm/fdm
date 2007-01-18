@@ -32,8 +32,10 @@
 
 #include "fdm.h"
 
+void	mail_free(struct mail *);
+
 void
-init_mail(struct mail *m, size_t size)
+mail_open(struct mail *m, size_t size)
 {
 	memset(m, 0, sizeof m);
 
@@ -42,41 +44,90 @@ init_mail(struct mail *m, size_t size)
 	m->body = -1;
 
 	m->base = shm_malloc(&m->shm, m->size);
+	cleanup_register(m->shm.name);
 
 	m->off = 0;
 	m->data = m->base + m->off;
 
+	ARRAY_INIT(&m->tags);
+	ARRAY_INIT(&m->wrapped);
+	/* XXX m->s = NULL;   filled by fetch before open */
+	m->attach = NULL;
+}
+
+void
+mail_send(struct mail *m, struct msg *msg)
+{
+	struct mail	*mm = &msg->data.mail;
+
+	memcpy(mm, m, sizeof *mm);
+	ARRAY_INIT(&mm->tags);
+	ARRAY_INIT(&mm->wrapped);
+	mm->s = NULL;
+	mm->attach = NULL;
+}
+
+void
+mail_receive(struct mail *m, struct msg *msg)
+{
+	struct mail	*mm = &msg->data.mail;
+
+	memcpy(&mm->tags, &m->tags, sizeof mm->tags);
+	ARRAY_INIT(&m->tags);
+	mm->s = m->s;
+	m->s = NULL;
+	mm->attach = m->attach;
+	m->attach = NULL;
+
+	mail_destroy(m);
+
+	memcpy(m, mm, sizeof *m);
+
+	m->base = shm_reopen(&m->shm);
+	cleanup_register(m->shm.name);
+
+	m->data = m->base + m->off;
 	ARRAY_INIT(&m->wrapped);
 }
 
 void
-copy_mail(struct mail *src, struct mail *dst)
-{
-	memcpy(dst, src, sizeof *dst);
-	ARRAY_INIT(&dst->tags);
-	ARRAY_INIT(&dst->wrapped);
-}
-
-void
-free_mail(struct mail *m, int final)
+mail_free(struct mail *m)
 {
 	if (m->attach != NULL)
 		attach_free(m->attach);
 	if (m->s != NULL)
 		xfree(m->s);
-	if (!ARRAY_EMPTY(&m->tags)) {
-		/* contents is just copies of pointers in the rules, so just
-		   free the array not the pointers */
-		ARRAY_FREE(&m->tags);
-	}
+	/* copies of the pointers in rules, so free the array only */
+	ARRAY_FREE(&m->tags);
 	ARRAY_FREE(&m->wrapped);
+}
+
+void
+mail_close(struct mail *m)
+{
+	char	path[MAXPATHLEN];
+
+	mail_free(m);
 	if (m->base != NULL) {
-		if (final)
-			shm_destroy(&m->shm);
-		else
-			shm_free(&m->shm);
+		strlcpy(path, m->shm.name, sizeof path);
+		shm_free(&m->shm);
+		cleanup_deregister(path);
 	}
 }
+
+void
+mail_destroy(struct mail *m)
+{
+	char	path[MAXPATHLEN];
+
+	mail_free(m);
+	if (m->base != NULL) {
+		strlcpy(path, m->shm.name, sizeof path);
+		shm_destroy(&m->shm);
+		cleanup_deregister(path);
+	}
+}
+
 void
 resize_mail(struct mail *m, size_t size)
 {
@@ -98,7 +149,8 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
-		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		cleanup_register(lock);
+ 		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1) {
 			if (errno == EEXIST)
 				errno = EAGAIN;
@@ -153,6 +205,7 @@ closelock(int fd, char *path, u_int locks)
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
 		unlink(lock);
+		cleanup_deregister(lock);
 		xfree(lock);
 	}
 

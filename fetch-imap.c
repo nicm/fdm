@@ -291,7 +291,7 @@ do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
 				flushing = 1;
 			
 			off = lines = 0;
-			init_mail(m, IO_ROUND(size));
+			mail_open(m, IO_ROUND(size));
 			
 			data->state = IMAP_LINE;
 			break;
