@@ -33,7 +33,6 @@ int	nntp_disconnect(struct account *);
 int	nntp_fetch(struct account *, struct mail *);
 int	nntp_delete(struct account *);
 int	nntp_keep(struct account *);
-void	nntp_error(struct account *);
 char   *nntp_desc(struct account *);
 
 int	nntp_code(char *);
