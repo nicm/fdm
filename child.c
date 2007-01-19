@@ -126,6 +126,20 @@ do_child(int fd, enum fdmop op, struct account *a)
 	setproctitle("child: %s", a->name);
 #endif
 
+	switch (op) {
+	case FDMOP_POLL:
+		if (a->fetch->poll != NULL)
+			break;
+		log_info("%s: polling not supported", a->name);
+		goto out;
+	case FDMOP_FETCH:
+		if (a->fetch->fetch != NULL)
+			break;
+		log_info("%s: fetching not supported", a->name);
+		goto out;
+	default:
+		fatalx("child: unexpected command");
+	}
 	log_debug("%s: processing", a->name);
 
 	/* connect */
@@ -192,10 +206,6 @@ poll_account(unused struct io *io, struct account *a)
 {
 	u_int	n;
 
-	if (a->fetch->poll == NULL) {
-		log_info("%s: polling not supported", a->name);
-		return (1);
-	}
 	log_debug("%s: polling", a->name);
 
 	if (a->fetch->poll(a, &n) == POLL_ERROR) {
@@ -221,10 +231,6 @@ fetch_account(struct io *io, struct account *a)
 	char		*hdr;
 	size_t		 len;
 
-	if (a->fetch->fetch == NULL) {
-		log_info("%s: fetching not supported", a->name);
-		return (1);
-	}
 	log_debug("%s: fetching", a->name);
 
 	gettimeofday(&tv, NULL);
