@@ -142,8 +142,8 @@ do_child(int fd, enum fdmop op, struct account *a)
 	default:
 		fatalx("child: unexpected command");
 	}
-	log_debug("%s: processing", a->name);
 
+	log_debug("%s: processing", a->name);
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
