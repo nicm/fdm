@@ -141,8 +141,11 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 		log_warnx("%s: GROUP: invalid response: %s", a->name, line);
 		return (1);
 	}
-
-	io_writeline(data->io, "STAT %u", n);
+	if (n > UINT_MAX) {
+		log_warnx("%s: GROUP: bad message index: %s", a->name, line);
+		return (1);
+	}	
+	data->first = n;
 
 	return (0);
 }
@@ -271,6 +274,11 @@ nntp_fetch(struct account *a, struct mail *m)
 	lbuf = xmalloc(llen);
 
 restart:
+	if (data->first > 0) {
+		io_writeline(data->io, "STAT %llu", data->first);
+		data->first = -1;
+	} else
+		io_writeline(data->io, "NEXT");
 	if ((line = nntp_check(a, &lbuf, &llen, "NEXT", &code)) == NULL)
 		goto error;
 	if (code == 421) {
@@ -297,7 +305,6 @@ restart:
 		ptr2 = strchr(ptr, '>');
 	if (ptr == NULL || ptr2 == NULL) {
 		log_warnx("%s: NEXT: bad response: %s", a->name, line);
-		io_writeline(data->io, "NEXT");
 		goto restart;
 	}
 
@@ -313,8 +320,6 @@ restart:
 
 		xfree(data->key);
 		data->key = NULL;
-
-		io_writeline(data->io, "NEXT");
 		goto restart;
 	}
 	log_debug2("%s: new: %s", a->name, data->key);
@@ -326,8 +331,6 @@ restart:
 	if (code == 423 || code == 430) {
 		xfree(data->key);
 		data->key = NULL;
-
-		io_writeline(data->io, "NEXT");
 		goto restart;
 	}		
 	if (!nntp_is(a, line, "ARTICLE", code, 220))
@@ -364,9 +367,6 @@ restart:
 		if (off + lines > conf.max_size)
 			flushing = 1;
 	}
-
-	/* move to next message */
-	io_writeline(data->io, "NEXT");
 
 	xfree(lbuf);
 	if (flushing)
