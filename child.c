@@ -149,17 +149,18 @@ do_child(int fd, enum fdmop op, struct account *a)
 	default:
 		fatalx("child: unexpected command");
 	}
-	if (error != 0) {
-		if (a->fetch->error != NULL)
-			a->fetch->error(a);
+	if (error != 0)
 		res = 1;
-	}
 	
 	/* disconnect */
-	if (a->fetch->disconnect != NULL)
-		a->fetch->disconnect(a);
-	if (a->fetch->free != NULL)
-		a->fetch->free(a);
+	if (a->fetch->disconnect != NULL) {
+		if (a->fetch->disconnect(a) != 0)
+			res = 1;
+	}
+	if (a->fetch->free != NULL) {
+		if (a->fetch->free(a) != 0)
+			res = 1;
+	}
 
 	log_debug("%s: finished processing. exiting", a->name);
 

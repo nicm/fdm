@@ -37,8 +37,8 @@ int	pop3_delete(struct account *);
 int	pop3_keep(struct account *);
 char   *pop3_desc(struct account *);
 
-char   *pop3_check(struct account *, char **, size_t *, const char *);
 char   *pop3_line(struct account *, char **, size_t *, const char *);
+char   *pop3_check(struct account *, char **, size_t *, const char *);
 
 struct fetch	fetch_pop3 = { { "pop3", "pop3s" },
 			       pop3_init,
@@ -48,27 +48,10 @@ struct fetch	fetch_pop3 = { { "pop3", "pop3s" },
 			       pop3_purge,
 			       pop3_delete,
 			       pop3_keep,
-			       NULL,
 			       pop3_disconnect,
 			       pop3_free,
 			       pop3_desc
 };
-
-char *
-pop3_check(struct account *a, char **lbuf, size_t *llen, const char *s)
-{
-	char	*line;
-
-	if ((line = pop3_line(a, lbuf, llen, s)) == NULL)
-		return (NULL);
-
-	if (strncmp(line, "+OK", 3) != 0) {
-		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
-		return (NULL);
-	}
-
-	return (line);
-}
 
 char *
 pop3_line(struct account *a, char **lbuf, size_t *llen, const char *s)
@@ -83,6 +66,22 @@ pop3_line(struct account *a, char **lbuf, size_t *llen, const char *s)
 	case -1:
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);
+		return (NULL);
+	}
+
+	return (line);
+}
+
+char *
+pop3_check(struct account *a, char **lbuf, size_t *llen, const char *s)
+{
+	char	*line;
+
+	if ((line = pop3_line(a, lbuf, llen, s)) == NULL)
+		return (NULL);
+
+	if (strncmp(line, "+OK", 3) != 0) {
+		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
 		return (NULL);
 	}
 
@@ -228,7 +227,7 @@ pop3_fetch(struct account *a, struct mail *m)
 	lbuf = xmalloc(llen);
 
 restart:
-	/* list the current message to get its size*/
+	/* list the current message to get its size */
 	io_writeline(data->io, "LIST %u", data->cur);
 	if ((line = pop3_check(a, &lbuf, &llen, "LIST")) == NULL)
 		goto error;
@@ -245,8 +244,6 @@ restart:
 		xfree(lbuf);
 		return (FETCH_OVERSIZE);
 	}
-	if (m->base == NULL)
-		mail_open(m, IO_ROUND(size));
 
 	/* find and store the UID */
 	io_writeline(data->io, "UIDL %u", data->cur);
@@ -293,6 +290,7 @@ restart:
 	if (pop3_check(a, &lbuf, &llen, "RETR") == NULL)
 		goto error;
 
+	mail_open(m, IO_ROUND(size));
 	flushing = 0;
 	off = lines = 0;
 	for (;;) {

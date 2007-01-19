@@ -57,7 +57,6 @@ struct fetch	fetch_imap = { { "imap", "imaps" },
 			       imap_purge,
 			       imap_delete,
 			       imap_keep,
-			       NULL,
 			       imap_disconnect,
 			       imap_free,
 			       imap_desc
@@ -210,15 +209,15 @@ imap_connect(struct account *a)
 	char			*lbuf, *line, *cause;
 	size_t			 llen;
 
-	io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
-	if (io == NULL) {
+	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
+	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (1);
 	}
 	if (conf.debug > 3 && !conf.syslog)
-		io->dup_fd = STDOUT_FILENO;
-	data->io = io;
+		data->io->dup_fd = STDOUT_FILENO;
+	io = data->io;
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
@@ -367,13 +366,12 @@ restart:
 		log_warnx("%s: FETCH: zero-length message", a->name);
 		goto error;
 	}
-	mail_open(m, IO_ROUND(size));
 
+	/* read the message */
+	mail_open(m, IO_ROUND(size));
 	flushing = 0;
 	if (size > conf.max_size)
 		flushing = 1;
-	
-	/* read the message */
 	off = lines = 0;
 	for (;;) {
 		if ((line = imap_line(a, &lbuf, &llen, "FETCH")) == NULL)

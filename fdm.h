@@ -556,7 +556,6 @@ struct fetch {
 	int		 (*purge)(struct account *);
 	int		 (*delete)(struct account *);
 	int		 (*keep)(struct account *);
-	void		 (*error)(struct account *);
 	int		 (*disconnect)(struct account *);
 	int		 (*free)(struct account *);
 	char		*(*desc)(struct account *);
@@ -734,16 +733,6 @@ struct maildir_data {
 	char		*entry;
 };
 
-/* Fetch nntp states. */
-enum nntp_state {
-	NNTP_CONNECTING,
-	NNTP_GROUP,
-	NNTP_NEXT,
-	NNTP_ARTICLE,
-	NNTP_LINE,
-	NNTP_QUIT
-};
-
 /* Fetch nntp data. */
 struct nntp_data {
 	char		*path;
@@ -753,7 +742,6 @@ struct nntp_data {
 
 	struct server	 server;
 
-	enum nntp_state	 state;
 	u_int		 group;
 	char		*key;
 

@@ -41,7 +41,6 @@ struct fetch	fetch_stdin = { { NULL, NULL },
 				NULL,
 				stdin_delete,
 				NULL,
-				NULL,
 				stdin_disconnect,
 				NULL,
 				stdin_desc

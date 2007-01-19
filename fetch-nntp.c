@@ -27,6 +27,7 @@
 #include "fdm.h"
 
 int	nntp_init(struct account *);
+int	nntp_free(struct account *);
 int	nntp_connect(struct account *);
 int	nntp_disconnect(struct account *);
 int	nntp_fetch(struct account *, struct mail *);
@@ -36,6 +37,10 @@ void	nntp_error(struct account *);
 char   *nntp_desc(struct account *);
 
 int	nntp_code(char *);
+char   *nntp_line(struct account *, char **, size_t *, const char *);
+char   *nntp_check(struct account *, char **, size_t *, const char *, u_int *);
+int	nntp_is(struct account *, char *, const char *, u_int, u_int);
+int	nntp_group(struct account *, char **, size_t *);
 
 struct fetch	fetch_nntp = { { "nntp", NULL },
 			       nntp_init,
@@ -45,78 +50,10 @@ struct fetch	fetch_nntp = { { "nntp", NULL },
 			       NULL,
 			       nntp_delete,
 			       nntp_keep,
-			       nntp_error,
 			       nntp_disconnect,
-			       NULL,
+			       nntp_free,
 			       nntp_desc
 };
-
-int
-nntp_init(struct account *a)
-{
-	struct nntp_data	*data = a->data;
-	char			*cause;
-
-	data->cache = cache_open(data->path, &cause);
-	if (data->cache == NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
-
-	return (0);
-}
-
-int
-nntp_connect(struct account *a)
-{
-	struct nntp_data	*data = a->data;
-	char			*cause;
-	u_int			 n, total;
-
-	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
-	if (data->io == NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
-	if (conf.debug > 3 && !conf.syslog)
-		data->io->dup_fd = STDOUT_FILENO;
-
-	n = cache_compact(data->cache, data->expiry, &total);
-	log_debug("%s: cache has %u entries", a->name, total);
-	log_debug("%s: expired %u entries", a->name, n);
-
-	data->state = NNTP_CONNECTING;
-	data->group = 0;
-
-	return (0);
-}
-
-int
-nntp_disconnect(struct account *a)
-{
-	struct nntp_data	*data = a->data;
-
-	io_close(data->io);
-	io_free(data->io);
-
-	cache_close(data->cache);
-
-	return (0);
-}
-
-void
-nntp_error(struct account *a)
-{
-	struct nntp_data	*data = a->data;
-
-	if (data->key != NULL)
-		xfree(data->key);
-
-	io_writeline(data->io, "QUIT");
-	io_flush(data->io, NULL);
-}
 
 int
 nntp_code(char *line)
@@ -140,199 +77,304 @@ nntp_code(char *line)
 	return (n);
 }
 
-int
-nntp_fetch(struct account *a, struct mail *m)
+char *
+nntp_line(struct account *a, char **lbuf, size_t *llen, const char *s)
 {
 	struct nntp_data	*data = a->data;
-	int		 	 code, res, flushing;
-	char			*line, *cause, *ptr, *ptr2, *lbuf, *group;
-	size_t			 off = 0, len, llen;
-	u_int			 lines = 0, n;
+	char			*line, *cause;
+
+	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
+	case 0:
+		log_warnx("%s: %s: connection unexpectedly closed", a->name, s);
+		return (NULL);
+	case -1:
+		log_warnx("%s: %s: %s", a->name, s, cause);
+		xfree(cause);
+		return (NULL);
+	}
+
+	return (line);
+}
+
+char *
+nntp_check(struct account *a, char **lbuf, size_t *llen, const char *s,
+    u_int *code)
+{
+	char	*line;
+
+restart:
+	if ((line = nntp_line(a, lbuf, llen, s)) == NULL)
+		return (NULL);
+
+	*code = nntp_code(line);
+	if (*code >= 100 && *code <= 199)
+		goto restart;
+
+	return (line);
+}
+
+int
+nntp_is(struct account *a, char *line, const char *s, u_int code, u_int n)
+{
+	if (code != n) {
+		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
+		return (0);
+	}
+	return (1);
+}
+
+int
+nntp_group(struct account *a, char **lbuf, size_t *llen)
+{
+	struct nntp_data	*data = a->data;
+	char			*line, *group;
+	u_int			 code, n;
 
 	group = ARRAY_ITEM(data->groups, data->group, char *);
-	if (m != NULL) {
-		m->data = NULL;
-		m->s = xstrdup(group);
+	io_writeline(data->io, "GROUP %s", group);
+
+	if ((line = nntp_check(a, lbuf, llen, "GROUP", &code)) == NULL)
+		return (1);
+	if (!nntp_is(a, line, "GROUP", code, 211))
+		return (1);
+	if (sscanf(line, "211 %*u %u %*u", &n) != 1) {
+		log_warnx("%s: GROUP: invalid response: %s", a->name, line);
+		return (1);
 	}
+
+	io_writeline(data->io, "STAT %u", n);
+
+	return (0);
+}
+
+int
+nntp_init(struct account *a)
+{
+	struct nntp_data	*data = a->data;
+	char			*cause;
+
+	data->cache = cache_open(data->path, &cause);
+	if (data->cache == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (1);
+	}
+
+	data->group = 0;
+
+	return (0);
+}
+
+int
+nntp_free(struct account *a)
+{
+	struct nntp_data	*data = a->data;
+
+	if (data->key != NULL)
+		xfree(data->key);
+
+	return (0);
+}
+
+int
+nntp_connect(struct account *a)
+{
+	struct nntp_data	*data = a->data;
+	char			*lbuf, *line, *cause;
+	size_t			 llen;
+	u_int			 n, total, code;
+
+	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
+	if (data->io == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (1);
+	}
+	if (conf.debug > 3 && !conf.syslog)
+		data->io->dup_fd = STDOUT_FILENO;
+
+	n = cache_compact(data->cache, data->expiry, &total);
+	log_debug("%s: cache has %u entries", a->name, total);
+	log_debug("%s: expired %u entries", a->name, n);
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	flushing = 0;
-	line = cause = NULL;
-	res = -1;
-	do {
-		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
-		case 0:
-			cause = xstrdup("connection unexpectedly closed");
-			goto error;
-		case -1:
-			goto error;
+	if ((line = nntp_check(a, &lbuf, &llen, "CONNECT", &code)) == NULL)
+		goto error;
+	if (!nntp_is(a, line, "CONNECT", code, 200))
+		goto error;
+
+	if (nntp_group(a, &lbuf, &llen) != 0)
+		goto error;
+	
+	xfree(lbuf);
+	return (0);
+
+error:
+	io_writeline(data->io, "QUIT");
+	io_flush(data->io, NULL);
+
+	io_close(data->io);
+	io_free(data->io);
+
+	xfree(lbuf);
+	return (1);
+}
+
+int
+nntp_disconnect(struct account *a)
+{
+	struct nntp_data	*data = a->data;
+	char			*lbuf, *line;
+	size_t			 llen;
+	u_int			 code;
+
+	cache_close(data->cache);
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+	
+	io_writeline(data->io, "QUIT");
+	if ((line = nntp_check(a, &lbuf, &llen, "QUIT", &code)) == NULL)
+		goto error;
+	if (!nntp_is(a, line, "QUIT", code, 205))
+		goto error;
+
+	io_close(data->io);
+	io_free(data->io);
+	
+	xfree(lbuf);
+	return (0);
+
+error:
+	io_writeline(data->io, "QUIT");
+	io_flush(data->io, NULL);
+
+	io_close(data->io);
+	io_free(data->io);
+
+	xfree(lbuf);
+	return (1);
+}
+
+int
+nntp_fetch(struct account *a, struct mail *m)
+{
+	struct nntp_data	*data = a->data;
+	char			*lbuf, *line, *ptr, *ptr2;
+	size_t			 llen, off, len;
+	u_int			 lines, code;
+	int			 flushing;
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+restart:
+	if ((line = nntp_check(a, &lbuf, &llen, "NEXT", &code)) == NULL)
+		goto error;
+	if (code == 421) {
+		data->group++;
+		if (data->group == ARRAY_LENGTH(data->groups)) {
+			xfree(lbuf);
+			return (FETCH_COMPLETE);
 		}
-		code = nntp_code(line);
+		if (nntp_group(a, &lbuf, &llen) != 0)
+			goto error;
+		goto restart;
+	}
+	if (code == 423 || code == 430) {
+		io_writeline(data->io, "NEXT");
+		goto restart;
+	}
+	if (!nntp_is(a, line, "NEXT", code, 223))
+		goto error;
 
-		switch (data->state) {
-		case NNTP_CONNECTING:
-			if (code >= 100 && code <= 199)
-				break;
-			if (code != 200)
-				goto error;
+	/* find message-id */
+	ptr = strchr(line, '<');
+	ptr2 = NULL;
+	if (ptr != NULL)
+		ptr2 = strchr(ptr, '>');
+	if (ptr == NULL || ptr2 == NULL) {
+		log_warnx("%s: NEXT: bad response: %s", a->name, line);
+		io_writeline(data->io, "NEXT");
+		goto restart;
+	}
 
-			data->state = NNTP_GROUP;
-			io_writeline(data->io, "GROUP %s", group);
+	ptr++;
+	len = ptr2 - ptr;
+	data->key = xmalloc(len + 1);
+	memcpy(data->key, ptr, len);
+	data->key[len] = '\0';
+	
+	if (cache_contains(data->cache, data->key)) {
+		log_debug3("%s: found in cache: %s", a->name, data->key);
+		cache_update(data->cache, data->key);
+
+		xfree(data->key);
+		data->key = NULL;
+
+		io_writeline(data->io, "NEXT");
+		goto restart;
+	}
+	log_debug2("%s: new: %s", a->name, data->key);
+
+	/* retrieve the article */
+	io_writeline(data->io, "ARTICLE");
+	if ((line = nntp_check(a, &lbuf, &llen, "ARTICLE", &code)) == NULL)
+		goto error;
+	if (code == 423 || code == 430) {
+		xfree(data->key);
+		data->key = NULL;
+
+		io_writeline(data->io, "NEXT");
+		goto restart;
+	}		
+	if (!nntp_is(a, line, "ARTICLE", code, 220))
+		goto error;
+
+	mail_open(m, IO_BLOCKSIZE);
+	flushing = 0;
+	off = lines = 0;
+	for (;;) {
+		if ((line = nntp_line(a, &lbuf, &llen, "ARTICLE")) == NULL)
+			goto error;
+
+		if (line[0] == '.' && line[1] == '.')
+			line++;
+		else if (line[0] == '.') {
+			m->size = off;
 			break;
-		case NNTP_GROUP:
-			if (code >= 100 && code <= 199)
-				break;
-			if (code != 211)
-				goto error;
-
-			if (sscanf(line, "211 %*u %u %*u", &n) != 1)
-				goto error;
-
-			data->state = NNTP_NEXT;
-			io_writeline(data->io, "STAT %u", n);
-			break;
-		case NNTP_NEXT:
-			if (code >= 100 && code <= 199)
-				break;
-			if (code == 421) {
-				data->group++;
-				n = ARRAY_LENGTH(data->groups);
-				if (data->group == n) {
-					data->state = NNTP_QUIT;
-					io_writeline(data->io, "QUIT");
-					break;
-				}
-				group = ARRAY_ITEM(data->groups,
-				    data->group, char *);
-				data->state = NNTP_GROUP;
-				io_writeline(data->io, "GROUP %s",
-				    group);
-				break;
-			}
-			if (code == 423 || code == 430) {
-				data->state = NNTP_NEXT;
-				io_writeline(data->io, "NEXT");
-				break;
-			}
-			if (code != 223)
-				goto error;
-
-			ptr = strchr(line, '<');
-			ptr2 = NULL;
-			if (ptr != NULL)
-				ptr2 = strchr(ptr, '>');
-			if (ptr == NULL || ptr2 == NULL) {
-				log_warnx("%s: bad response: %s", a->name,
-				    line);
-				data->state = NNTP_NEXT;
-				io_writeline(data->io, "NEXT");
-				break;
-			}
-			ptr++;
-
-			len = ptr2 - ptr;
-			data->key = xmalloc(len + 1);
-			memcpy(data->key, ptr, len);
-			data->key[len] = '\0';
-
-			if (cache_contains(data->cache, data->key)) {
-				log_debug3("%s: found in cache: %s", a->name,
-				    data->key);
-				cache_update(data->cache, data->key);
-
-				xfree(data->key);
-				data->key = NULL;
-
-				io_writeline(data->io, "NEXT");
-				break;
-			}
-			log_debug2("%s: new: %s", a->name, data->key);
-
-			off = lines = 0;
-			mail_open(m, IO_BLOCKSIZE);
-
-			data->state = NNTP_ARTICLE;
-			io_writeline(data->io, "ARTICLE");
-			break;
-		case NNTP_ARTICLE:
-			if (code >= 100 && code <= 199)
-				break;
-			if (code == 423 || code == 430) {
-				xfree(data->key);
-				data->key = NULL;
-
-				data->state = NNTP_NEXT;
-				io_writeline(data->io, "NEXT");
-				break;
-			}
-			if (code != 220)
-				goto error;
-
-			data->state = NNTP_LINE;
-			break;
-		case NNTP_LINE:
-			ptr = line;
-			if (ptr[0] == '.' && ptr[1] != '\0')
-				ptr++;
-			else if (ptr[0] == '.') {
-				m->size = off;
-
-				if (flushing)
-					res = FETCH_OVERSIZE;
-				else
-					res = FETCH_SUCCESS;
-				data->state = NNTP_NEXT;
-				io_writeline(data->io, "NEXT");
-				break;
-			}
-
-			len = strlen(ptr);
-			if (len == 0 && m->body == -1)
-				m->body = off + 1;
-
-			if (flushing) {
-				off += len + 1;
-				break;
-			}
-
+		}
+		
+		len = strlen(line);
+		if (len == 0 && m->body == -1)
+			m->body = off + 1;
+		
+		if (!flushing) {
 			resize_mail(m, off + len + 1);
 
 			if (len > 0)
-				memcpy(m->data + off, ptr, len);
-			/* append an LF */
+				memcpy(m->data + off, line, len);
 			m->data[off + len] = '\n';
-			lines++;
-			off += len + 1;
-
-			if (off + lines > conf.max_size)
-				flushing = 1;
-			break;
-		case NNTP_QUIT:
-			if (code >= 100 && code <= 199)
-				break;
-			if (code != 205)
-				goto error;
-
-			res = FETCH_COMPLETE;
-			break;
 		}
-	} while (res == -1);
+
+		lines++;
+		off += len + 1;	
+		if (off + lines > conf.max_size)
+			flushing = 1;
+	}
+
+	/* move to next message */
+	io_writeline(data->io, "NEXT");
 
 	xfree(lbuf);
-	io_flush(data->io, NULL);
-	return (res);
+	if (flushing)
+		return (FETCH_OVERSIZE);
+	return (FETCH_SUCCESS);
 
 error:
-	if (cause != NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-	} else
-		log_warnx("%s: unexpected response: %s", a->name, line);
-
 	xfree(lbuf);
-	io_flush(data->io, NULL);
 	return (FETCH_ERROR);
 }
 

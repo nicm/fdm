@@ -49,7 +49,6 @@ struct fetch	 fetch_maildir = { { NULL, NULL },
 				   NULL,
 				   maildir_delete,
 				   NULL,
-				   NULL,
 				   maildir_disconnect,
 				   NULL,
 				   maildir_desc2
