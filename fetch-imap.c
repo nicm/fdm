@@ -321,8 +321,6 @@ imap_fetch(struct account *a, struct mail *m)
 	if (data->cur > data->num)
 		return (FETCH_COMPLETE);
 
-	m->s = xstrdup(data->server.host);
-
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
@@ -367,8 +365,10 @@ restart:
 		goto error;
 	}
 
-	/* read the message */
 	mail_open(m, IO_ROUND(size));
+	m->s = xstrdup(data->server.host);
+
+	/* read the message */
 	flushing = 0;
 	if (size > conf.max_size)
 		flushing = 1;

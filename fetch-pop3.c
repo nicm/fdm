@@ -221,8 +221,6 @@ pop3_fetch(struct account *a, struct mail *m)
 	if (data->cur > data->num)
 		return (FETCH_COMPLETE);
 
-	m->s = xstrdup(data->server.host);
-
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
@@ -291,6 +289,8 @@ restart:
 		goto error;
 
 	mail_open(m, IO_ROUND(size));
+	m->s = xstrdup(data->server.host);
+
 	flushing = 0;
 	off = lines = 0;
 	for (;;) {

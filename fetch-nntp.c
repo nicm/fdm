@@ -336,6 +336,8 @@ restart:
 		goto error;
 
 	mail_open(m, IO_BLOCKSIZE);
+	m->s = xstrdup(ARRAY_ITEM(data->groups, data->group, char *));
+
 	flushing = 0;
 	off = lines = 0;
 	for (;;) {

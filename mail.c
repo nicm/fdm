@@ -51,7 +51,7 @@ mail_open(struct mail *m, size_t size)
 
 	ARRAY_INIT(&m->tags);
 	ARRAY_INIT(&m->wrapped);
-	/* XXX m->s = NULL;   filled by fetch before open */
+	m->s = NULL;
 	m->attach = NULL;
 }
 
