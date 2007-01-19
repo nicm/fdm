@@ -312,7 +312,7 @@ int
 imap_fetch(struct account *a, struct mail *m)
 {
 	struct imap_data	*data = a->data;
-	char			*lbuf, *line;
+	char			*lbuf, *line, *ptr;
 	size_t			 llen, size, off, len;
 	u_int			 lines, n, i;
 	int			 flushing;
@@ -352,7 +352,15 @@ restart:
 	io_writeline(data->io, "%u FETCH %u BODY[]", ++data->tag, data->cur);
 	if ((line = imap_check_none(a, &lbuf, &llen, "FETCH")) == NULL)
 		goto error;
-	if (sscanf(line, "* %u FETCH (BODY[] {%zu}", &n, &size) != 2) {
+	if (sscanf(line, "* %u FETCH (", &n) != 1) {
+ 		log_warnx("%s: FETCH: invalid response: %s", a->name, line);
+		goto error;
+	}
+	if ((ptr = strstr(line, "BODY[] {")) == NULL) {
+ 		log_warnx("%s: FETCH: invalid response: %s", a->name, line);
+		goto error;
+	}
+	if (sscanf(ptr, "BODY[] {%zu}", &size) != 1) {
  		log_warnx("%s: FETCH: invalid response: %s", a->name, line);
 		goto error;
 	}
