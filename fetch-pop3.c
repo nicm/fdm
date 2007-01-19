@@ -190,6 +190,12 @@ pop3_disconnect(struct account *a)
 	return (0);
 
 error:
+	io_writeline(data->io, "QUIT");
+	io_flush(data->io, NULL);
+
+	io_close(data->io);
+	io_free(data->io);
+
 	xfree(lbuf);
 	return (1);
 }
