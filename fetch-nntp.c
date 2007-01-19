@@ -143,7 +143,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	if (n > UINT_MAX) {
 		log_warnx("%s: GROUP: bad message index: %s", a->name, line);
 		return (1);
-	}	
+	}
 	data->first = n;
 
 	return (0);
@@ -209,7 +209,7 @@ nntp_connect(struct account *a)
 
 	if (nntp_group(a, &lbuf, &llen) != 0)
 		goto error;
-	
+
 	xfree(lbuf);
 	return (0);
 
@@ -236,7 +236,7 @@ nntp_disconnect(struct account *a)
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
-	
+
 	io_writeline(data->io, "QUIT");
 	if ((line = nntp_check(a, &lbuf, &llen, "QUIT", &code)) == NULL)
 		goto error;
@@ -245,7 +245,7 @@ nntp_disconnect(struct account *a)
 
 	io_close(data->io);
 	io_free(data->io);
-	
+
 	xfree(lbuf);
 	return (0);
 
@@ -312,7 +312,7 @@ restart:
 	data->key = xmalloc(len + 1);
 	memcpy(data->key, ptr, len);
 	data->key[len] = '\0';
-	
+
 	if (cache_contains(data->cache, data->key)) {
 		log_debug3("%s: found in cache: %s", a->name, data->key);
 		cache_update(data->cache, data->key);
@@ -331,7 +331,7 @@ restart:
 		xfree(data->key);
 		data->key = NULL;
 		goto restart;
-	}		
+	}
 	if (!nntp_is(a, line, "ARTICLE", code, 220))
 		goto error;
 
@@ -348,11 +348,11 @@ restart:
 			m->size = off;
 			break;
 		}
-		
+
 		len = strlen(line);
 		if (len == 0 && m->body == -1)
 			m->body = off + 1;
-		
+
 		if (!flushing) {
 			resize_mail(m, off + len + 1);
 
@@ -362,7 +362,7 @@ restart:
 		}
 
 		lines++;
-		off += len + 1;	
+		off += len + 1;
 		if (off + lines > conf.max_size)
 			flushing = 1;
 	}

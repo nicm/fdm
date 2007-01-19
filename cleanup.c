@@ -26,7 +26,7 @@
 
 struct cleanent {
 	char			*path;
-	
+
 	TAILQ_ENTRY(cleanent)	 entry;
 };
 TAILQ_HEAD(, cleanent)		 cleanlist;
@@ -67,7 +67,7 @@ cleanup_flush(void)
 		xfree(cent->path);
 		xfree(cent);
 	}
-	
+
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
 		fatal("sigprocmask");
 }
@@ -90,11 +90,11 @@ cleanup_register(char *path)
 		fatal("sigprocmask");
 
 	TAILQ_INSERT_HEAD(&cleanlist, cent, entry);
-	
+
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
 		fatal("sigprocmask");
 }
-	
+
 void
 cleanup_deregister(char *path)
 {
@@ -108,7 +108,7 @@ cleanup_deregister(char *path)
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
 		fatal("sigprocmask");
-	
+
  	TAILQ_FOREACH(cent, &cleanlist, entry) {
 		if (strcmp(cent->path, path) == 0) {
 			TAILQ_REMOVE(&cleanlist, cent, entry);
@@ -119,8 +119,8 @@ cleanup_deregister(char *path)
 	}
 
 	fatalx("cleanup_deregister: entry not found");
-	
-out:	
+
+out:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
 		fatal("sigprocmask");
 }

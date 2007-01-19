@@ -126,7 +126,7 @@ imap_check_none(struct account *a, char **lbuf, size_t *llen, const char *s)
 
 	if ((line = imap_line(a, lbuf, llen, s)) == NULL)
 		return (NULL);
-	
+
 	if (imap_tag(line) == IMAP_TAG_NONE)
 		return (line);
 
@@ -142,7 +142,7 @@ imap_check_continue(struct account *a, char **lbuf, size_t *llen, const char *s)
 restart:
 	if ((line = imap_line(a, lbuf, llen, s)) == NULL)
 		return (NULL);
-	
+
 	switch (imap_tag(line)) {
 	case IMAP_TAG_NONE:
 		goto restart;
@@ -164,7 +164,7 @@ imap_check_normal(struct account *a, char **lbuf, size_t *llen, const char *s)
 restart:
 	if ((line = imap_line(a, lbuf, llen, s)) == NULL)
 		return (NULL);
-	
+
 	tag = imap_tag(line);
 	switch (tag) {
 	case IMAP_TAG_NONE:
@@ -187,7 +187,7 @@ imap_init(struct account *a)
 	struct imap_data	*data = a->data;
 
 	ARRAY_INIT(&data->kept);
-	
+
 	return (0);
 }
 
@@ -221,7 +221,7 @@ imap_connect(struct account *a)
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
-	
+
 	/* log the user in */
 	if (imap_check_none(a, &lbuf, &llen, "CONNECT") == NULL)
 		goto error;
@@ -236,7 +236,7 @@ imap_connect(struct account *a)
 		goto error;
 	if (!imap_okay(a, line, "LOGIN"))
 		goto error;
-	
+
 	/* select the folder */
 	io_writeline(data->io, "%u SELECT %s", ++data->tag, data->folder);
 	do {
@@ -249,7 +249,7 @@ imap_connect(struct account *a)
 	if (!imap_okay(a, line, "SELECT"))
 		goto error;
 	data->cur = 0;
-	
+
 	xfree(lbuf);
 	return (0);
 
@@ -271,12 +271,12 @@ imap_disconnect(struct account *a)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	io_writeline(data->io, "%u CLOSE", ++data->tag);	
+	io_writeline(data->io, "%u CLOSE", ++data->tag);
 	if ((line = imap_check_normal(a, &lbuf, &llen, "CLOSE")) == NULL)
 		goto error;
 	if (!imap_okay(a, line, "CLOSE"))
 		goto error;
-	io_writeline(data->io, "%u LOGOUT", ++data->tag);	
+	io_writeline(data->io, "%u LOGOUT", ++data->tag);
 	if ((line = imap_check_normal(a, &lbuf, &llen, "LOGOUT")) == NULL)
 		goto error;
 	if (!imap_okay(a, line, "LOGOUT"))
@@ -338,7 +338,7 @@ restart:
 	if ((line = imap_check_normal(a, &lbuf, &llen, "FETCH")) == NULL)
 		goto error;
 	if (!imap_okay(a, line, "FETCH"))
-		goto error;	
+		goto error;
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
 		if (ARRAY_ITEM(&data->kept, i, u_int) == data->uid) {
 			/* seen this message before and kept it, so skip it */
@@ -349,7 +349,7 @@ restart:
 			}
 			goto restart;
 		}
-	}	
+	}
 
 	io_writeline(data->io, "%u FETCH %u BODY[]", ++data->tag, data->cur);
 	if ((line = imap_check_none(a, &lbuf, &llen, "FETCH")) == NULL)
@@ -380,7 +380,7 @@ restart:
 		len = strlen(line);
 		if (len == 0 && m->body == -1)
 			m->body = off + 1;
-		
+
 		if (!flushing) {
 			resize_mail(m, off + len + 1);
 
@@ -390,7 +390,7 @@ restart:
 		}
 
 		lines++;
-		off += len + 1;	
+		off += len + 1;
 		if (off + lines >= size)
 			break;
 	}
@@ -404,10 +404,10 @@ restart:
 	if ((line = imap_check_normal(a, &lbuf, &llen, "FETCH")) == NULL)
 		goto error;
 	if (!imap_okay(a, line, "FETCH"))
-		goto error;	
+		goto error;
 	if (off + lines != size) {
  		log_warnx("%s: FETCH: received too much data", a->name);
-		goto error;	
+		goto error;
 	}
 	m->size = off;
 
@@ -432,7 +432,7 @@ imap_purge(struct account *a)
 	lbuf = xmalloc(llen);
 
 	/* expunge deleted messages */
-	io_writeline(data->io, "%u EXPUNGE", ++data->tag);	
+	io_writeline(data->io, "%u EXPUNGE", ++data->tag);
 	if ((line = imap_check_normal(a, &lbuf, &llen, "EXPUNGE")) == NULL)
 		goto error;
 	if (!imap_okay(a, line, "EXPUNGE"))
@@ -474,7 +474,7 @@ imap_delete(struct account *a)
 	if ((line = imap_check_normal(a, &lbuf, &llen, "STORE")) == NULL)
 		goto error;
 	if (!imap_okay(a, line, "STORE"))
-		goto error;	
+		goto error;
 
 	xfree(lbuf);
 	return (0);

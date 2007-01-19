@@ -131,20 +131,20 @@ stdin_fetch(struct account *a, struct mail *m)
 			xfree(lbuf);
 			return (FETCH_ERROR);
 		}
-		
+
 		len = strlen(line);
 		if (len == 0 && m->body == -1)
 			m->body = m->size + 1;
-		
+
 		resize_mail(m, m->size + len + 1);
-		
+
 		if (len > 0)
 			memcpy(m->data + m->size, line, len);
 
 		/* append an LF */
 		m->data[m->size + len] = '\n';
 		m->size += len + 1;
-		
+
 		if (m->size > conf.max_size) {
 			data->complete = 1;
 			xfree(lbuf);

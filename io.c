@@ -640,7 +640,7 @@ io_pollline(struct io *io, char **line, char **cause)
 	size_t	 llen;
 	char	*lbuf;
 	int	 res;
-	
+
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
@@ -660,7 +660,7 @@ io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
 		*line = io_readline2(io, buf, len);
 		if (*line != NULL)
 			return (1);
-		
+
 		if ((res = io_poll(io, cause)) != 1)
 			return (res);
 	}

@@ -94,7 +94,7 @@ pop3_init(struct account *a)
 	struct pop3_data	*data = a->data;
 
 	ARRAY_INIT(&data->kept);
-	
+
 	return (0);
 }
 
@@ -177,14 +177,14 @@ pop3_disconnect(struct account *a)
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
-	
+
 	io_writeline(data->io, "QUIT");
 	if (pop3_check(a, &lbuf, &llen, "QUIT") == NULL)
 		goto error;
 
 	io_close(data->io);
 	io_free(data->io);
-	
+
 	xfree(lbuf);
 	return (0);
 
@@ -284,7 +284,7 @@ restart:
 			goto restart;
 		}
 	}
-	    
+
 	/* retrieve the message */
 	io_writeline(data->io, "RETR %u", data->cur);
 	if (pop3_check(a, &lbuf, &llen, "RETR") == NULL)
@@ -309,11 +309,11 @@ restart:
 			    off + lines, lines);
 			break;
 		}
-		
+
 		len = strlen(line);
 		if (len == 0 && m->body == -1)
 			m->body = off + 1;
-		
+
 		if (!flushing) {
 			resize_mail(m, off + len + 1);
 
@@ -323,7 +323,7 @@ restart:
 		}
 
 		lines++;
-		off += len + 1;	
+		off += len + 1;
 		if (off + lines > conf.max_size)
 			flushing = 1;
 	}

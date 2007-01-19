@@ -206,7 +206,7 @@ use_account(struct account *a, char **cause)
 		return (0);
 	}
 
-	/* 
+	/*
 	 * If the account is disabled and no accounts are specified
 	 * on the command line (whether or not it is included if there
 	 * are is already confirmed), then skip it.
@@ -252,7 +252,7 @@ main(int argc, char **argv)
 	double		 tim;
 	struct sigaction act;
 	struct msg	 msg;
-	
+
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
 	TAILQ_INIT(&conf.rules);
@@ -350,7 +350,7 @@ main(int argc, char **argv)
 	if (uname(&un) == 0) {
 		log_debug("running on: %s %s %s %s", un.sysname, un.release,
 		    un.version, un.machine);
-	} else 
+	} else
 		log_debug("running on: (%s)", strerror(errno));
 
 	/* save the home dir and misc user info */
@@ -480,7 +480,7 @@ main(int argc, char **argv)
 	sigaddset(&act.sa_mask, SIGINT);
 	sigaddset(&act.sa_mask, SIGTERM);
 	act.sa_flags = SA_RESTART;
-	
+
 	act.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &act, NULL) < 0)
 		fatal("sigaction");
@@ -488,10 +488,10 @@ main(int argc, char **argv)
 		fatal("sigaction");
 	if (sigaction(SIGUSR2, &act, NULL) < 0)
 		fatal("sigaction");
-	
+
 	act.sa_handler = sighandler;
 	if (sigaction(SIGINT, &act, NULL) < 0)
-		fatal("sigaction");	
+		fatal("sigaction");
 	if (sigaction(SIGTERM, &act, NULL) < 0)
 		fatal("sigaction");
 
@@ -552,7 +552,7 @@ main(int argc, char **argv)
 			 *
 			 * This is icky but it works, and is only for profiling.
 			 */
-			extern void _mcleanup(void); 
+			extern void _mcleanup(void);
 			_mcleanup();
 #endif
 			child_exit(res);
@@ -594,7 +594,7 @@ main(int argc, char **argv)
 			child = ARRAY_ITEM(&children, i, struct child *);
 			ios[i] = child->io;
 		}
-		
+
 		/* poll the io list */
 		switch (io_polln(ios, ARRAY_LENGTH(&children), &io, NULL)) {
 		case -1:
@@ -621,7 +621,7 @@ main(int argc, char **argv)
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL, 0) != 0)
-				fatalx("child: privsep_send error");		
+				fatalx("child: privsep_send error");
 
 			/* wait for the child  */
 			if (waitpid(child->pid, &status, 0) == -1)
@@ -629,7 +629,7 @@ main(int argc, char **argv)
 			if (WIFSIGNALED(status)) {
 				errors++;
 				log_debug("parent: child %ld (%s) done, got"
-				    "signal %d", (long) child->pid, 
+				    "signal %d", (long) child->pid,
 				    child->account->name, WTERMSIG(status));
 			} else if (!WIFEXITED(status)) {
 				errors++;
@@ -643,7 +643,7 @@ main(int argc, char **argv)
 				    "returned %d", (long) child->pid,
 				    child->account->name, WEXITSTATUS(status));
 			}
-			
+
 			ARRAY_REMOVE(&children, i, struct child *);
 
 			io_close(child->io);

@@ -58,7 +58,7 @@ do_parent(struct child *child)
 			m.s = xrealloc(buf, 1, len + 1);
 			m.s[len] = '\0';
 		}
-		
+
 		uid = data->uid;
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = data->account;
@@ -66,16 +66,16 @@ do_parent(struct child *child)
 		dctx.decision = NULL;	/* only altered in child */
 		dctx.pmatch_valid = msg.data.pmatch_valid;
 		memcpy(&dctx.pmatch, &msg.data.pmatch, sizeof dctx.pmatch);
-		
+
 		error = parent_action(data->action, &dctx, uid);
-		
+
 		memset(&msg, 0, sizeof msg);
 		msg.type = MSG_DONE;
 		msg.data.error = error;
 		mail_send(&m, &msg);
 		if (privsep_send(child->io, &msg, NULL, 0) != 0)
 			fatalx("parent: privsep_send error");
-		
+
 		mail_close(&m);
 		break;
 	case MSG_COMMAND:
@@ -84,22 +84,22 @@ do_parent(struct child *child)
 			m.s = xrealloc(buf, 1, len + 1);
 			m.s[len] = '\0';
 		}
-		
+
 		uid = data->uid;
 		memset(&mctx, 0, sizeof mctx);
 		mctx.account = data->account;
 		mctx.mail = &m;
 		mctx.pmatch_valid = msg.data.pmatch_valid;
 		memcpy(&mctx.pmatch, &msg.data.pmatch, sizeof mctx.pmatch);
-		
+
 		error = parent_command(&mctx, data->cmddata, uid);
 
-		memset(&msg, 0, sizeof msg);		
+		memset(&msg, 0, sizeof msg);
 		msg.type = MSG_DONE;
 		msg.data.error = error;
 		if (privsep_send(child->io, &msg, NULL, 0) != 0)
 			fatalx("parent: privsep_send error");
-		
+
 		mail_close(&m);
 		break;
 	case MSG_DONE:
@@ -126,7 +126,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	   can be accessed by the child */
 	if (t->deliver->type == DELIVER_WRBACK) {
 		mail_open(&dctx->wr_mail, IO_BLOCKSIZE);
-		if (geteuid() == 0 && fchown(dctx->wr_mail.shm.fd, 
+		if (geteuid() == 0 && fchown(dctx->wr_mail.shm.fd,
 		    conf.child_uid, conf.child_gid) != 0)
 			fatal("fchown");
 	}

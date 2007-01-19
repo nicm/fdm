@@ -279,7 +279,7 @@ struct mail {
 	size_t	 	 	space;		/* size of malloc'd area */
 
 	ARRAY_DECL(, size_t *)	wrapped;	/* list of wrapped lines */
-	
+
 	ssize_t		 	 body;		/* offset of body */
 };
 
@@ -762,7 +762,7 @@ struct pop3_data {
 	char		*pass;
 
 	struct server	 server;
-	
+
 	u_int		 cur;
 	u_int		 num;
 

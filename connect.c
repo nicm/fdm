@@ -362,7 +362,7 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 			return (1);
 
 		if (header == 0) {
-			if (strlen(line) < 12 || 
+			if (strlen(line) < 12 ||
 			    strncmp(line, "HTTP/", 5) != 0 ||
 			    strncmp(line + 8, " 200", 4) != 0) {
 				xfree(line);
@@ -374,7 +374,7 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 			if (*line == '\0')
 				return (0);
 		}
-		
+
 		xfree(line);
 	}
 }

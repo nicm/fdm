@@ -644,6 +644,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.impl_act = DECISION_DROP;
      }
    | TOKSET TOKPURGEAFTER numv
+/**  [$3: numv (long long)] */
      {
 	     if ($3 == 0)
 		     yyerror("invalid purge-after value: 0");

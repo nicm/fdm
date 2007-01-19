@@ -69,11 +69,11 @@ child_fork(void)
 		act.sa_handler = SIG_IGN;
 		if (sigaction(SIGINT, &act, NULL) < 0)
 			fatal("sigaction");
-		
+
 		act.sa_handler = child_sighandler;
 		if (sigaction(SIGTERM, &act, NULL) < 0)
-			fatal("sigaction");		
-		
+			fatal("sigaction");
+
 		return (0);
 	default:
 		return (pid);
@@ -155,7 +155,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 			goto out;
 		}
 	}
-	
+
 	/* process */
 	error = 0;
 	switch (op) {
@@ -170,7 +170,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	}
 	if (error != 0)
 		res = 1;
-	
+
 	/* disconnect */
 	if (a->fetch->disconnect != NULL) {
 		if (a->fetch->disconnect(a) != 0)
@@ -194,15 +194,15 @@ out:
 		fatalx("child: privsep_recv error");
 	if (msg.type != MSG_EXIT)
 		fatalx("child: unexpected message");
-	
+
 	io_close(io);
 	io_free(io);
-	
+
 #ifdef DEBUG
 	COUNTFDS(a->name);
 	xmalloc_report(a->name);
 #endif
-	
+
 	return (res);
 }
 
@@ -354,12 +354,12 @@ fetch_account(struct io *io, struct account *a, double tim)
 			n++;
 			if (n >= conf.purge_after) {
 				log_debug("%s: %u mails, purging", a->name, n);
-				
+
 				if (a->fetch->purge(a) != 0) {
 					cause = "purging";
 					goto out;
 				}
-				
+
 				n = 0;
 			}
 		}

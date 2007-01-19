@@ -98,7 +98,7 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 			goto error;
 		}
 		code = smtp_code(line);
-		
+
 		switch (state) {
 		case SMTP_CONNECTING:
 			if (code != 220)
@@ -131,11 +131,11 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 			while (ptr != NULL) {
 				io_write(io, ptr, len - 1);
 				io_writeline(io, NULL);
-				
+
 				/* update if necessary */
 				if (io_update(io, &cause) != 1)
 					goto error;
-				
+
 				line_next(m, &ptr, &len);
 			}
 			state = SMTP_DONE;
@@ -149,7 +149,7 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 			io_writeline(io, "QUIT");
 			break;
 		case SMTP_QUIT:
-			/* 
+			/*
 			 * Exchange sometimes refuses to accept QUIT as a valid
 			 * command, but since we got a 250 the mail has been
 			 * accepted. So, allow 500 here too.
@@ -161,7 +161,7 @@ smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 		}
 	} while (!done);
 
-	xfree(lbuf);	
+	xfree(lbuf);
 	xfree(from);
 
 	io_close(io);
@@ -178,7 +178,7 @@ error:
 
 	io_writeline(io, "QUIT");
 	io_flush(io, NULL);
-	
+
 	xfree(lbuf);
 	xfree(from);
 
