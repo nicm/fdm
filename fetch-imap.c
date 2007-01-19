@@ -27,6 +27,7 @@
 
 #include "fdm.h"
 
+int	 imap_init(struct account *);
 int	 imap_connect(struct account *);
 int	 imap_disconnect(struct account *);
 int	 imap_poll(struct account *, u_int *);
@@ -34,157 +35,33 @@ int	 imap_fetch(struct account *, struct mail *);
 int	 imap_purge(struct account *);
 int	 imap_delete(struct account *);
 int	 imap_keep(struct account *);
-void	 imap_error(struct account *);
-int	 imap_tag(char *);
-int	 imap_okay(char *);
+int	 imap_free(struct account *);
 char	*imap_desc(struct account *);
-int	 do_imap(struct account *, u_int *, struct mail *, int);
+
+int	 imap_tag(char *);
+int	 imap_okay(struct account *, char *, const char *);
+char	*imap_line(struct account *, char **, size_t *, const char *);
+char 	*imap_check_none(struct account *, char **, size_t *, const char *);
+char 	*imap_check_continue(struct account *, char **, size_t *, const char *);
+char 	*imap_check_normal(struct account *, char **, size_t *, const char *);
 
 #define IMAP_TAG_NONE -1
 #define IMAP_TAG_CONTINUE -2
 #define IMAP_TAG_ERROR -3
 
 struct fetch	fetch_imap = { { "imap", "imaps" },
-			       NULL,
+			       imap_init,
 			       imap_connect,
 			       imap_poll,
 			       imap_fetch,
 			       imap_purge,
 			       imap_delete,
 			       imap_keep,
-			       imap_error,
-			       imap_disconnect,
 			       NULL,
+			       imap_disconnect,
+			       imap_free,
 			       imap_desc
 };
-
-int
-imap_connect(struct account *a)
-{
-	struct imap_data	*data = a->data;
-	char			*cause;
-
-	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
-	if (data->io == NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
-	if (conf.debug > 3 && !conf.syslog)
-		data->io->dup_fd = STDOUT_FILENO;
-
-	data->state = IMAP_CONNECTING;
-	data->tag = 0;
-
-	return (0);
-}
-
-int
-imap_disconnect(struct account *a)
-{
-	struct imap_data	*data = a->data;
-
-	io_close(data->io);
-	io_free(data->io);
-
-	return (0);
-}
-
-void
-imap_error(struct account *a)
-{
-	struct imap_data	*data = a->data;
-
-        io_writeline(data->io, "%u LOGOUT", ++data->tag);
-        io_flush(data->io, NULL);
-}
-
-int
-imap_poll(struct account *a, u_int *n)
-{
-	return (do_imap(a, n, NULL, 1));
-}
-
-int
-imap_fetch(struct account *a, struct mail *m)
-{
-	return (do_imap(a, NULL, m, 0));
-}
-
-int
-imap_purge(struct account *a)
-{
-	struct imap_data	*data = a->data;
-	char			*line, *cause, *lbuf;
-	size_t			 llen;
-	long			 tag;
-	enum { STORE, EXPUNGE,
-	       DONE }		 state;
-
-	/* 
-	 * XXX This sucks.
-	 */
-
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-
-	state = STORE;
-	do {
-		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
-		case 0:
-			cause = xstrdup("connection unexpectedly closed");
-			goto error;
-		case -1:
-			goto error;
-		}
-
-		switch (state) {
-		case STORE:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-
-			io_writeline(data->io, "%u EXPUNGE", ++data->tag);
-			state = EXPUNGE;
-			break;
-		case EXPUNGE:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-
-			state = DONE;
-			break;
-		case DONE:
-			break;
-		}
-	} while (state != DONE);
-	xfree(lbuf);
-
-	/* prompt the server and reenter at SELECT */
-	io_writeline(data->io, "%u SELECT %s", ++data->tag, data->folder);
-	data->state = IMAP_SELECT;
-
-	return (0);
-
-error:
-	if (cause != NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-	} else
-		log_warnx("%s: unexpected response: %s", a->name, line);
-
-	xfree(lbuf);
-	io_flush(data->io, NULL);
-	return (1);
-}
 
 int
 imap_tag(char *line)
@@ -211,298 +88,396 @@ imap_tag(char *line)
 }
 
 int
-imap_okay(char *line)
+imap_okay(struct account *a, char *line, const char *s)
 {
-	line = strchr(line, ' ');
-	if (line == NULL)
+	char	*ptr;
+
+	ptr = strchr(line, ' ');
+	if (ptr == NULL || strncmp(ptr + 1, "OK ", 3) != 0) {
+		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
 		return (0);
-	return (strncmp(line + 1, "OK ", 3) == 0);
+	}
+
+	return (1);
+}
+
+char *
+imap_line(struct account *a, char **lbuf, size_t *llen, const char *s)
+{
+	struct imap_data	*data = a->data;
+	char			*line, *cause;
+
+	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
+	case 0:
+		log_warnx("%s: %s: connection unexpectedly closed", a->name, s);
+		return (NULL);
+	case -1:
+		log_warnx("%s: %s: %s", a->name, s, cause);
+		xfree(cause);
+		return (NULL);
+	}
+
+	return (line);
+}
+
+char *
+imap_check_none(struct account *a, char **lbuf, size_t *llen, const char *s)
+{
+	char	*line;
+
+	if ((line = imap_line(a, lbuf, llen, s)) == NULL)
+		return (NULL);
+	
+	if (imap_tag(line) == IMAP_TAG_NONE)
+		return (line);
+
+	log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
+	return (NULL);
+}
+
+char *
+imap_check_continue(struct account *a, char **lbuf, size_t *llen, const char *s)
+{
+	char	*line;
+
+restart:
+	if ((line = imap_line(a, lbuf, llen, s)) == NULL)
+		return (NULL);
+	
+	switch (imap_tag(line)) {
+	case IMAP_TAG_NONE:
+		goto restart;
+	case IMAP_TAG_CONTINUE:
+		return (line);
+	}
+
+	log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
+	return (NULL);
+}
+
+char *
+imap_check_normal(struct account *a, char **lbuf, size_t *llen, const char *s)
+{
+	struct imap_data	*data = a->data;
+	char			*line;
+	long	 		 tag;
+
+restart:
+	if ((line = imap_line(a, lbuf, llen, s)) == NULL)
+		return (NULL);
+	
+	tag = imap_tag(line);
+	switch (tag) {
+	case IMAP_TAG_NONE:
+		goto restart;
+	case IMAP_TAG_CONTINUE:
+		break;
+	default:
+		if (data->tag != tag)
+			break;
+		return (line);
+	}
+
+	log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
+	return (NULL);
 }
 
 int
-do_imap(struct account *a, u_int *n, struct mail *m, int is_poll)
+imap_init(struct account *a)
 {
 	struct imap_data	*data = a->data;
-	int		 	 v, res, flushing;
-	long			 tag;
-	char			*line, *cause, *lbuf, *folder;
-	size_t			 off = 0, len, llen, size;
-	u_int			 u, lines = 0;
+
+	ARRAY_INIT(&data->kept);
 	
-	if (m != NULL) {
-		m->data = NULL;
-		m->s = xstrdup(data->server.host);
+	return (0);
+}
+
+int
+imap_free(struct account *a)
+{
+	struct imap_data	*data = a->data;
+
+	ARRAY_FREE(&data->kept);
+
+	return (0);
+}
+
+int
+imap_connect(struct account *a)
+{
+	struct imap_data	*data = a->data;
+	struct io		*io;
+	char			*lbuf, *line, *cause;
+	size_t			 llen;
+
+	io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
+	if (io == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (1);
 	}
+	if (conf.debug > 3 && !conf.syslog)
+		io->dup_fd = STDOUT_FILENO;
+	data->io = io;
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+	
+	/* log the user in */
+	if (imap_check_none(a, &lbuf, &llen, "CONNECT") == NULL)
+		goto error;
+	io_writeline(io, "%u LOGIN {%zu}", ++data->tag, strlen(data->user));
+	if (imap_check_continue(a, &lbuf, &llen, "LOGIN") == NULL)
+		goto error;
+	io_writeline(io, "%s {%zu}", data->user, strlen(data->pass));
+	if (imap_check_continue(a, &lbuf, &llen, "LOGIN") == NULL)
+		goto error;
+	io_writeline(io, "%s", data->pass);
+	if ((line = imap_check_normal(a, &lbuf, &llen, "LOGIN")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "LOGIN"))
+		goto error;
+	
+	/* select the folder */
+	io_writeline(data->io, "%u SELECT %s", ++data->tag, data->folder);
+	do {
+		line = imap_check_none(a, &lbuf, &llen, "SELECT");
+		if (line == NULL)
+			goto error;
+	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
+	if ((line = imap_check_normal(a, &lbuf, &llen, "SELECT")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "SELECT"))
+		goto error;
+	data->cur = 0;
+	
+	xfree(lbuf);
+	return (0);
+
+error:
+	io_writeline(data->io, "%u LOGOUT", ++data->tag);
+	io_flush(data->io, NULL);
+
+	xfree(lbuf);
+	return (1);
+}
+
+int
+imap_disconnect(struct account *a)
+{
+	struct imap_data	*data = a->data;
+	char			*lbuf, *line;
+	size_t			 llen;
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	folder = data->folder;
+	io_writeline(data->io, "%u CLOSE", ++data->tag);	
+	if ((line = imap_check_normal(a, &lbuf, &llen, "CLOSE")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "CLOSE"))
+		goto error;
+	io_writeline(data->io, "%u LOGOUT", ++data->tag);	
+	if ((line = imap_check_normal(a, &lbuf, &llen, "LOGOUT")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "LOGOUT"))
+		goto error;
 
-	flushing = 0;
-	line = cause = NULL;
-	res = -1;
-	do {
-		switch (io_pollline2(data->io, &line, &lbuf, &llen, &cause)) {
-		case 0:
-			cause = xstrdup("connection unexpectedly closed");
-			goto error;
-		case -1:
-			goto error;
-		}
-
-		switch (data->state) {
-		case IMAP_CONNECTING:
-			if (imap_tag(line) != IMAP_TAG_NONE)
-				goto error;
-			
-			data->state = IMAP_USER;
-			io_writeline(data->io, "%u LOGIN {%zu}", ++data->tag,
-			    strlen(data->user));
-			break;
-		case IMAP_USER:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != IMAP_TAG_CONTINUE)
-				goto error;
-			
-			data->state = IMAP_PASS;
-			io_writeline(data->io, "%s {%zu}", data->user,
-			    strlen(data->pass));
-			break;
-		case IMAP_PASS:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != IMAP_TAG_CONTINUE)
-				goto error;
-			
-			data->state = IMAP_LOGIN;
-			io_writeline(data->io, "%s", data->pass);
-			break;
-		case IMAP_LOGIN:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-			
-			data->state = IMAP_SELECT;
-			if (is_poll) {
-				io_writeline(data->io, "%u EXAMINE %s",
-				    ++data->tag, folder);
-			} else {
-				io_writeline(data->io, "%u SELECT %s",
-				    ++data->tag, folder);
-			}
-			break;
-		case IMAP_SELECT:
-			tag = imap_tag(line);
-			if (tag != IMAP_TAG_NONE)
-				goto error;
-
-			v = sscanf(line, "* %u EXISTS", &data->num);
-			if (v != 1)
-				continue;
-			data->state = IMAP_SELECTWAIT;
-			break;
-		case IMAP_SELECTWAIT:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-					continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-			
-			if (is_poll) {
-				*n = data->num;
-				data->state = IMAP_LOGOUT;
-				io_writeline(data->io, "%u LOGOUT", 
-				    ++data->tag);
-				break;
-			}
-
-			line = strchr(line, ' ');
-			if (line == NULL)
-				goto error;
-			line++;
-			if (strncmp(line, "OK [READ-WRITE]", 15) != 0) {
-				xasprintf(&cause, "can't open folder "
-				    "read/write: %s", folder);
-				goto error;
-			}
-			
-			if (data->num == 0) {
-				data->state = IMAP_CLOSE;
-				io_writeline(data->io, "%u CLOSE", ++data->tag);
-				break;
-			}
-
-			data->cur = 1;
-			data->state = IMAP_SIZE;
-			io_writeline(data->io, "%u FETCH %u BODY[]",
-			    ++data->tag, data->cur);
-			break;
-		case IMAP_SIZE:
-			tag = imap_tag(line);
-			if (tag != IMAP_TAG_NONE)
-				goto error;
-			
-			if (sscanf(line, "* %u FETCH (BODY[] {%zu}", &u,
-			    &size) != 2)
-				goto error;
-			if (u != data->cur) {
-				cause = xstrdup("wrong message index");
-				goto error;
-			}
-			
-			if (size == 0) {
-				cause = xstrdup("zero-length message");
-				goto error;
-			}
-
-			if (size > conf.max_size)
-				flushing = 1;
-			
-			off = lines = 0;
-			mail_open(m, IO_ROUND(size));
-			
-			data->state = IMAP_LINE;
-			break;
-		case IMAP_LINE:
-			len = strlen(line);
-			if (len == 0 && m->body == -1)
-				m->body = off + 1;
-			
-			if (!flushing) {
-				resize_mail(m, off + len + 1);
-				memcpy(m->data + off, line, len);
-				/* append an LF */
-				m->data[off + len] = '\n';
-			}
-			lines++;
-			off += len + 1;
-			
-			if (off + lines >= size)
-				data->state = IMAP_LINEWAIT;
-			break;
-		case IMAP_LINEWAIT:
-			if (strcmp(line, ")") != 0)
-				goto error;
-			data->state = IMAP_LINEWAIT2;
-			break;
-		case IMAP_LINEWAIT2:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-
-			if (off + lines != size) {
-				cause = xstrdup("too much data");
-				goto error;
-			}
-			m->size = off;
-
-			if (flushing)
-				res = FETCH_OVERSIZE;
-			else
-				res = FETCH_SUCCESS;
-
-			/* state set in keep/delete */
-			break;
-		case IMAP_DONE:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-
-			data->cur++;
-			if (data->cur > data->num) {
-				data->state = IMAP_EXPUNGE;
-				io_writeline(data->io, "%u EXPUNGE",
-				    ++data->tag);
-				break;
-			}
-			
-			data->state = IMAP_SIZE;
-			io_writeline(data->io, "%u FETCH %u BODY[]",
-			    ++data->tag, data->cur);
-			break;
-		case IMAP_EXPUNGE:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-			
-			data->state = IMAP_CLOSE;
-			io_writeline(data->io, "%u CLOSE", ++data->tag);
-			break;
-		case IMAP_CLOSE:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-			
-			data->state = IMAP_LOGOUT;
-			io_writeline(data->io, "%u LOGOUT", ++data->tag);
-			break;
-		case IMAP_LOGOUT:
-			tag = imap_tag(line);
-			if (tag == IMAP_TAG_NONE)
-				continue;
-			if (tag != data->tag)
-				goto error;
-			if (!imap_okay(line))
-				goto error;
-			
-			res = FETCH_COMPLETE;
-			break;
-		}
-	} while (res == -1);
+	io_close(data->io);
+	io_free(data->io);
 
 	xfree(lbuf);
-	io_flush(data->io, NULL);
-	return (res);
+	return (0);
 
 error:
-	if (cause != NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-	} else
-		log_warnx("%s: unexpected response: %s", a->name, line);
+	xfree(lbuf);
+	return (1);
+}
+
+int
+imap_poll(struct account *a, u_int *n)
+{
+	struct imap_data	*data = a->data;
+
+	*n = data->num;
+	return (0);
+}
+
+int
+imap_fetch(struct account *a, struct mail *m)
+{
+	struct imap_data	*data = a->data;
+	char			*lbuf, *line;
+	size_t			 llen, size, off, len;
+	u_int			 lines, n, i;
+	int			 flushing;
+
+	data->cur++;
+	if (data->cur > data->num)
+		return (FETCH_COMPLETE);
+
+	m->s = xstrdup(data->server.host);
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+restart:
+	/* find message UID */
+	io_writeline(data->io, "%u FETCH %u UID", ++data->tag, data->cur);
+	if ((line = imap_check_none(a, &lbuf, &llen, "FETCH")) == NULL)
+		goto error;
+	if (sscanf(line, "* %u FETCH (UID %u)", &n, &data->uid) != 2) {
+ 		log_warnx("%s: FETCH: invalid response: %s", a->name, line);
+		goto error;
+	}
+	if ((line = imap_check_normal(a, &lbuf, &llen, "FETCH")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "FETCH"))
+		goto error;	
+	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
+		if (ARRAY_ITEM(&data->kept, i, u_int) == data->uid) {
+			/* seen this message before and kept it, so skip it */
+			data->cur++;
+			if (data->cur > data->num) {
+				xfree(lbuf);
+				return (FETCH_COMPLETE);
+			}
+			goto restart;
+		}
+	}	
+
+	io_writeline(data->io, "%u FETCH %u BODY[]", ++data->tag, data->cur);
+	if ((line = imap_check_none(a, &lbuf, &llen, "FETCH")) == NULL)
+		goto error;
+	if (sscanf(line, "* %u FETCH (BODY[] {%zu}", &n, &size) != 2) {
+ 		log_warnx("%s: FETCH: invalid response: %s", a->name, line);
+		goto error;
+	}
+	if (n != data->cur) {
+		log_warnx("%s: FETCH: incorrect message index", a->name);
+		goto error;
+	}
+	if (size == 0) {
+		log_warnx("%s: FETCH: zero-length message", a->name);
+		goto error;
+	}
+	mail_open(m, IO_ROUND(size));
+
+	flushing = 0;
+	if (size > conf.max_size)
+		flushing = 1;
+	
+	/* read the message */
+	off = lines = 0;
+	for (;;) {
+		if ((line = imap_line(a, &lbuf, &llen, "FETCH")) == NULL)
+			goto error;
+
+		len = strlen(line);
+		if (len == 0 && m->body == -1)
+			m->body = off + 1;
+		
+		if (!flushing) {
+			resize_mail(m, off + len + 1);
+
+			if (len > 0)
+				memcpy(m->data + off, line, len);
+			m->data[off + len] = '\n';
+		}
+
+		lines++;
+		off += len + 1;	
+		if (off + lines >= size)
+			break;
+	}
+	if ((line = imap_line(a, &lbuf, &llen, "FETCH")) == NULL)
+		goto error;
+	if (strcmp(line, ")") != 0) {
+ 		log_warnx("%s: FETCH: invalid response: %s", a->name, line);
+		goto error;
+	}
+
+	if ((line = imap_check_normal(a, &lbuf, &llen, "FETCH")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "FETCH"))
+		goto error;	
+	if (off + lines != size) {
+ 		log_warnx("%s: FETCH: received too much data", a->name);
+		goto error;	
+	}
+	m->size = off;
 
 	xfree(lbuf);
-	io_flush(data->io, NULL);
+	if (flushing)
+		return (FETCH_OVERSIZE);
+	return (FETCH_SUCCESS);
+
+error:
+	xfree(lbuf);
 	return (FETCH_ERROR);
+}
+
+int
+imap_purge(struct account *a)
+{
+	struct imap_data	*data = a->data;
+	char			*lbuf, *line;
+	size_t			 llen;
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	/* expunge deleted messages */
+	io_writeline(data->io, "%u EXPUNGE", ++data->tag);	
+	if ((line = imap_check_normal(a, &lbuf, &llen, "EXPUNGE")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "EXPUNGE"))
+		goto error;
+
+	/* reselect the folder */
+	io_writeline(data->io, "%u SELECT %s", ++data->tag, data->folder);
+	do {
+		line = imap_check_none(a, &lbuf, &llen, "SELECT");
+		if (line == NULL)
+			goto error;
+	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
+	if ((line = imap_check_normal(a, &lbuf, &llen, "SELECT")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "SELECT"))
+		goto error;
+	data->cur = 0;
+
+	xfree(lbuf);
+	return (0);
+
+error:
+	xfree(lbuf);
+	return (1);
 }
 
 int
 imap_delete(struct account *a)
 {
 	struct imap_data	*data = a->data;
+	char			*lbuf, *line;
+	size_t			 llen;
 
-	data->state = IMAP_DONE;
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
 
 	io_writeline(data->io, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
 	    data->cur);
+	if ((line = imap_check_normal(a, &lbuf, &llen, "STORE")) == NULL)
+		goto error;
+	if (!imap_okay(a, line, "STORE"))
+		goto error;	
 
+	xfree(lbuf);
 	return (0);
+
+error:
+	xfree(lbuf);
+	return (1);
 }
 
 int
@@ -510,14 +485,7 @@ imap_keep(struct account *a)
 {
 	struct imap_data	*data = a->data;
 
-	data->state = IMAP_DONE;
-
-	/*
-	 * We don't need to /do/ anything here, but we need to poke the IMAP
-	 * server so the response in the IMAP_DONE state is a) there and
-	 * b) valid.
-	 */
-	io_writeline(data->io, "%u NOOP", ++data->tag);
+	ARRAY_ADD(&data->kept, data->uid, u_int);
 
 	return (0);
 }
