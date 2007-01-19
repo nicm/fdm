@@ -54,6 +54,7 @@ struct fetch	fetch_imap = { { "imap", "imaps" },
 			       imap_keep,
 			       imap_error,
 			       imap_disconnect,
+			       NULL,
 			       imap_desc
 };
 

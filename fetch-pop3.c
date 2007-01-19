@@ -323,7 +323,6 @@ restart:
 		if (off + lines > conf.max_size)
 			flushing = 1;
 	}
-	data->cur++;
 
 	xfree(lbuf);
 	if (flushing)
