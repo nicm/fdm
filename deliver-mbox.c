@@ -40,9 +40,21 @@ struct deliver deliver_mbox = { DELIVER_ASUSER, mbox_deliver, mbox_desc };
 int
 mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 {
+	ssize_t	n;
+
 	if (gzf == NULL)
-		return (write(fd, buf, len));
-	return (gzwrite(gzf, buf, len));
+		n = write(fd, buf, len);
+	else 
+		n = gzwrite(gzf, buf, len);
+	
+	if (n < 0)
+		return (-1);
+	if (n != len) {
+		errno = EIO;
+		return (-1);
+	}
+
+	return (0);
 }
 
 int
@@ -109,7 +121,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	do {
 		fd = openlock(path, conf.lock_types,
 		    O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
-		if (fd == -1) {
+		if (fd < 0) {
 			if (errno == EAGAIN) {
 				log_warnx("%s: %s: couldn't obtain lock. "
 				    "sleeping", a->name, path);
@@ -119,13 +131,16 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 				goto out;
 			}
 		}
-	} while (fd == -1);
+	} while (fd < 0);
 
 	/* open for compressed writing if necessary */
 	if (data->compress) {
 		if ((fd2 = dup(fd)) < 0)
 			fatal("dup");
+		errno = 0;
 		if ((gzf = gzdopen(fd2, "a")) == NULL) {
+			if (errno == 0)
+				errno = ENOMEM;
 			close(fd2);
 			log_warn("%s: %s: gzdopen", a->name, path);
 			goto out;			
@@ -133,11 +148,11 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	}
 
 	/* write the from line */
-	if (mbox_write(fd, gzf, from, strlen(from)) == -1) {
+	if (mbox_write(fd, gzf, from, strlen(from)) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
-	if (mbox_write(fd, gzf, "\n", 1) == -1) {
+	if (mbox_write(fd, gzf, "\n", 1) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
@@ -156,7 +171,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			if (len2 >= 5 && strncmp(ptr2, "From ", 5) == 0) {
 				log_debug2("%s: quoting from line: %.*s",
 				    a->name, (int) len - 1, ptr);
-				if (mbox_write(fd, gzf, ">", 1) == -1) {
+				if (mbox_write(fd, gzf, ">", 1) < 0) {
 					log_warn("%s: %s: write", a->name,
 					    path);
 					goto out;
@@ -164,7 +179,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			}
 		}
 
-		if (mbox_write(fd, gzf, ptr, len) == -1) {
+		if (mbox_write(fd, gzf, ptr, len) < 0) {
 			log_warn("%s: %s: write", a->name, path);
 			goto out;
 		}
@@ -172,7 +187,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 		line_next(m, &ptr, &len);
 	}
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
-	if (mbox_write(fd, gzf, "\n\n", len) == -1) {
+	if (mbox_write(fd, gzf, "\n\n", len) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
