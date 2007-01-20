@@ -154,6 +154,7 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 		if (fd == -1) {
 			if (errno == EEXIST)
 				errno = EAGAIN;
+			cleanup_deregister(lock);
 			xfree(lock);
 			return (-1);
 		}
@@ -191,6 +192,7 @@ error:
 	close(fd);
 	if (locks & LOCK_DOTLOCK) {
 		unlink(lock);
+		cleanup_deregister(lock);
 		xfree(lock);
 	}
 	errno = error;
