@@ -127,7 +127,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 {
 	struct nntp_data	*data = a->data;
 	char			*line, *group;
-	u_int			 code, n;
+	u_int			 code;
 
 	group = ARRAY_ITEM(data->groups, data->group, char *);
 	io_writeline(data->io, "GROUP %s", group);
@@ -136,15 +136,6 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 		return (1);
 	if (!nntp_is(a, line, "GROUP", code, 211))
 		return (1);
-	if (sscanf(line, "211 %*u %u %*u", &n) != 1) {
-		log_warnx("%s: GROUP: invalid response: %s", a->name, line);
-		return (1);
-	}
-	if (n > UINT_MAX) {
-		log_warnx("%s: GROUP: bad message index: %s", a->name, line);
-		return (1);
-	}
-	data->first = n;
 
 	return (0);
 }
@@ -273,11 +264,7 @@ nntp_fetch(struct account *a, struct mail *m)
 	lbuf = xmalloc(llen);
 
 restart:
-	if (data->first > 0) {
-		io_writeline(data->io, "STAT %llu", data->first);
-		data->first = -1;
-	} else
-		io_writeline(data->io, "NEXT");
+	io_writeline(data->io, "NEXT");
 	if ((line = nntp_check(a, &lbuf, &llen, "NEXT", &code)) == NULL)
 		goto error;
 	if (code == 421) {

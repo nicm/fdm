@@ -743,7 +743,6 @@ struct nntp_data {
 	struct server	 server;
 
 	u_int		 group;
-	long long	 first;
 	char		*key;
 
 	struct io	*io;
