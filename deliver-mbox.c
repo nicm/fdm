@@ -49,7 +49,7 @@ mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 	
 	if (n < 0)
 		return (-1);
-	if (n != len) {
+	if ((size_t) n != len) {
 		errno = EIO;
 		return (-1);
 	}
