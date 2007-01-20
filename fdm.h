@@ -806,6 +806,12 @@ struct smtp_data {
 	char		*to;
 };
 
+/* Deliver mbox data. */
+struct mbox_data {
+	char		*path;
+	int		 compress;
+};
+
 /* match-age.c */
 extern struct match	 match_age;
 

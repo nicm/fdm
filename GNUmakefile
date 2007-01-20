@@ -59,7 +59,7 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
-LIBS+= -lssl
+LIBS+= -lssl -lz
 
 CLEANFILES= $(PROG) y.tab.c lex.yy.c y.tab.h $(OBJS) .depend
 

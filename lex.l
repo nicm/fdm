@@ -113,6 +113,7 @@ cache return (TOKCACHE);
 case return (TOKCASE);
 continue return (TOKCONTINUE);
 count return (TOKCOUNT);
+compress return (TOKCOMPRESS);
 disabled return (TOKDISABLED);
 domain return (TOKDOMAIN);
 domains return (TOKDOMAINS);

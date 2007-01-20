@@ -277,10 +277,6 @@ restart:
 			goto error;
 		goto restart;
 	}
-	if (code == 423 || code == 430) {
-		io_writeline(data->io, "NEXT");
-		goto restart;
-	}
 	if (!nntp_is(a, line, "NEXT", code, 223)) {
 		log_warnx("%s: NEXT: unexpected response: %s", a->name, line);
 		goto restart;

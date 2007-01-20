@@ -277,7 +277,7 @@ find_macro(char *name)
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
-%token TOKGROUPS TOKEXPIRY TOKPURGEAFTER
+%token TOKGROUPS TOKEXPIRY TOKPURGEAFTER TOKCOMPRESS
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -323,7 +323,7 @@ find_macro(char *name)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled keep poptype imaptype execpipe
+%type  <flag> cont icase not disabled keep poptype imaptype execpipe compress
 %type  <locks> lock locklist
 %type  <match> match
 %type  <number> size time numv retrc expiry
@@ -1042,6 +1042,15 @@ to: /* empty */
 	    $$ = $2;
     }
 
+compress: TOKCOMPRESS
+	  {
+		  $$ = 1;
+	  }
+	| /* empty */
+	  {
+		  $$ = 0;
+	  }
+
 /** ACTION: <action> (struct action) */
 action: TOKPIPE strv
 /**     [$2: strv (char *)] */
@@ -1093,15 +1102,21 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
-      | TOKMBOX strv
+      | TOKMBOX strv compress
 /**     [$2: strv (char *)] */
 	{
+		struct mbox_data	*data;
+
 		if (*$2 == '\0')
 			yyerror("invalid path");
 
 		$$.deliver = &deliver_mbox;
 
-		$$.data = $2;
+		data = xcalloc(1, sizeof *data);
+		$$.data = data;
+
+		data->path = $2;
+		data->compress = $3;
 	}
       | TOKSMTP server to
 /**     [$2: server (struct { ... } server)] [$3: to (char *)] */

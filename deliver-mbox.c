@@ -26,29 +26,52 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <zlib.h>
 
 #include "fdm.h"
 
 int	 mbox_deliver(struct deliver_ctx *, struct action *);
 char	*mbox_desc(struct action *);
 
+int	 mbox_write(int, gzFile, const void *, size_t);
+
 struct deliver deliver_mbox = { DELIVER_ASUSER, mbox_deliver, mbox_desc };
+
+int
+mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
+{
+	if (gzf == NULL)
+		return (write(fd, buf, len));
+	return (gzwrite(gzf, buf, len));
+}
 
 int
 mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account	*a = dctx->account;
-	struct mail	*m = dctx->mail;
-	char		*path, *ptr, *ptr2, *from = NULL;
-	size_t	 	 len, len2;
-	int	 	 fd = -1, res = DELIVER_FAILURE;
-	struct stat	 sb;
+	struct account		*a = dctx->account;
+	struct mail		*m = dctx->mail;
+	struct mbox_data	*data = t->data;
+	char			*path, *ptr, *ptr2, *from = NULL;
+	size_t	 		 len, len2;
+	int	 		 fd = -1, fd2, res = DELIVER_FAILURE;
+	struct stat		 sb;
+	gzFile			 gzf = NULL;
 
-	path = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid,
+	path = replacepmatch(data->path, a, t, m->s, m, dctx->pmatch_valid,
 	    dctx->pmatch);
 	if (path == NULL || *path == '\0') {
+		if (path != NULL)
+			xfree(path);
 		log_warnx("%s: empty path", a->name);
 		goto out;
+	}
+	if (data->compress) {
+		len = strlen(path);
+		if (len < 3 || strcmp(path + len - 3, ".gz") != 0) {
+			xasprintf(&ptr, "%s.gz", path);
+			xfree(path);
+			path = ptr;
+		}
 	}
 	log_debug("%s: saving to mbox %s", a->name, path);
 
@@ -98,12 +121,23 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 		}
 	} while (fd == -1);
 
+	/* open for compressed writing if necessary */
+	if (data->compress) {
+		if ((fd2 = dup(fd)) < 0)
+			fatal("dup");
+		if ((gzf = gzdopen(fd2, "a")) == NULL) {
+			close(fd2);
+			log_warn("%s: %s: gzdopen", a->name, path);
+			goto out;			
+		}
+	}
+
 	/* write the from line */
-	if (write(fd, from, strlen(from)) == -1) {
+	if (mbox_write(fd, gzf, from, strlen(from)) == -1) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
-	if (write(fd, "\n", 1) == -1) {
+	if (mbox_write(fd, gzf, "\n", 1) == -1) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
@@ -122,7 +156,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			if (len2 >= 5 && strncmp(ptr2, "From ", 5) == 0) {
 				log_debug2("%s: quoting from line: %.*s",
 				    a->name, (int) len - 1, ptr);
-				if (write(fd, ">", 1) == -1) {
+				if (mbox_write(fd, gzf, ">", 1) == -1) {
 					log_warn("%s: %s: write", a->name,
 					    path);
 					goto out;
@@ -130,7 +164,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			}
 		}
 
-		if (write(fd, ptr, len) == -1) {
+		if (mbox_write(fd, gzf, ptr, len) == -1) {
 			log_warn("%s: %s: write", a->name, path);
 			goto out;
 		}
@@ -138,13 +172,15 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 		line_next(m, &ptr, &len);
 	}
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
-	if (write(fd, "\n\n", len) == -1) {
+	if (mbox_write(fd, gzf, "\n\n", len) == -1) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
 
 	res = DELIVER_SUCCESS;
 out:
+	if (gzf != NULL)
+		gzclose(gzf);
 	if (fd != -1)
 		closelock(fd, path, conf.lock_types);
 	if (from != NULL)
@@ -157,8 +193,10 @@ out:
 char *
 mbox_desc(struct action *t)
 {
-	char	*s;
-
-	xasprintf(&s, "mbox \"%s\"", (char *) t->data);
+	struct mbox_data	*data = t->data;
+	char			*s;
+	
+	xasprintf(&s, "mbox \"%s\"%s", data->path, 
+	    data->compress ? " compress" : "");
 	return (s);
 }
