@@ -387,6 +387,7 @@ nntp_delete(struct account *a)
 	cache_add(data->cache, data->key);
 
 	xfree(data->key);
+	data->key = NULL;
 
 	return (0);
 }
@@ -397,6 +398,7 @@ nntp_keep(struct account *a)
 	struct nntp_data	*data = a->data;
 
 	xfree(data->key);
+	data->key = NULL;
 
 	return (0);
 }
