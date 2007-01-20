@@ -294,8 +294,10 @@ restart:
 		io_writeline(data->io, "NEXT");
 		goto restart;
 	}
-	if (!nntp_is(a, line, "NEXT", code, 223))
-		goto error;
+	if (!nntp_is(a, line, "NEXT", code, 223)) {
+		log_warnx("%s: NEXT: unexpected response: %s", a->name, line);
+		goto restart;
+	}
 
 	/* find message-id */
 	ptr = strchr(line, '<');
@@ -303,7 +305,7 @@ restart:
 	if (ptr != NULL)
 		ptr2 = strchr(ptr, '>');
 	if (ptr == NULL || ptr2 == NULL) {
-		log_warnx("%s: NEXT: bad response: %s", a->name, line);
+		log_warnx("%s: NEXT: malformed response: %s", a->name, line);
 		goto restart;
 	}
 
