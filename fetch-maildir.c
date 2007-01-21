@@ -296,8 +296,6 @@ maildir_disconnect(struct account *a)
 
 	maildir_freepaths(a);
 
-	if (data->entry != NULL)
-		xfree(data->entry);
 	if (data->dirp != NULL)
 		closedir(data->dirp);
 
