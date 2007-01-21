@@ -223,7 +223,7 @@ struct attach *
 attach_build(struct mail *m)
 {
 	struct attach	*atr = NULL, *at;
-	char		*hdr, *ptr, *b = NULL;
+	char		*hdr, *ptr, *b = NULL, *type;
 	size_t		 len, bl;
 	int		 last;
 	u_int		 n;
@@ -233,14 +233,17 @@ attach_build(struct mail *m)
 		return (NULL);
 	hdr -= 13;
 
+	type = attach_type(m, hdr, "boundary", &b);
+	if (type == NULL || b == NULL)
+		goto error;
+	if (strncmp(type, "multipart/", 10) != 0)
+		goto error;
+	bl = strlen(b);
+
 	atr = xmalloc(sizeof *atr);
 	memset(atr, 0, sizeof *atr);
 	TAILQ_INIT(&atr->children);
-
-	atr->type = attach_type(m, hdr, "boundary", &b);
-	if (atr->type == NULL || b == NULL)
-		goto error;
-	bl = strlen(b);
+	atr->type = type;
 
 	/* find the first boundary */
 	line_init(m, &ptr, &len);
@@ -272,7 +275,8 @@ attach_build(struct mail *m)
 	return (atr);
 
 error:
-	attach_free(atr);
+	if (atr != NULL)
+		attach_free(atr);
 
 	if (b != NULL)
 		xfree(b);
