@@ -121,7 +121,7 @@ replace(char *src, char *map[REPL_LEN])
 		return (NULL);
 
 	off = 0;
-	len = 1024;
+	len = BUFSIZ;
 	dst = xmalloc(len);
 
 	for (ptr = src; *ptr != '\0'; ptr++) {

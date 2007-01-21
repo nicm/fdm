@@ -78,13 +78,15 @@ extern char	*__progname;
 	struct n {							\
 		c	*list;						\
 		u_int	 num;						\
+		size_t	 space;						\
 	}
 #define ARRAY_INIT(a) do {						\
 	(a)->num = 0;							\
-	(a)->list = NULL;      						\
+	(a)->list = NULL;		 				\
+	(a)->space = 0;							\
 } while (0)
 #define ARRAY_ADD(a, s, c) do {						\
-	(a)->list = xrealloc((a)->list, (a)->num + 1, sizeof (c));	\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, sizeof (c));	\
 	((c *) (a)->list)[(a)->num] = s;				\
 	(a)->num++;							\
 } while (0)
@@ -95,35 +97,25 @@ extern char	*__progname;
 		exit(1);						\
 	}								\
 	if (i < (a)->num - 1) {						\
-		size_t	 asize = sizeof (c);				\
 		c 	*aptr = (a)->list + i;				\
-		memmove(aptr, aptr + 1, asize * ((a)->num - (i) - 1)); 	\
+		memmove(aptr, aptr + 1, (sizeof (c)) * ((a)->num - (i) - 1)); \
 	}								\
 	(a)->num--;							\
-        if ((a)->num == 0) {						\
-		xfree((a)->list);					\
-		(a)->list = NULL;					\
-	} else								\
-		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
-} while (0)
-#define ARRAY_TRUNC(a, n, c) do {					\
-	if ((a)->num > n) {						\
-		(a)->num -= n;				       		\
-		(a)->list = xrealloc((a)->list, (a)->num, sizeof (c));	\
-	} else								\
+        if ((a)->num == 0)						\
 		ARRAY_FREE(a);						\
 } while (0)
-#define ARRAY_EXTEND(a, n, c) do {					\
-	(a)->list = xrealloc((a)->list, (a)->num + n, sizeof (c));	\
-	(a)->num++;							\
+#define ARRAY_TRUNC(a, n, c) do {					\
+	if ((a)->num > n)						\
+		(a)->num -= n;				       		\
+	else								\
+		ARRAY_FREE(a);						\
 } while (0)
 #define ARRAY_CONCAT(a, b, c) do {					\
-	size_t	asize = sizeof (c);					\
-	(a)->list = xrealloc((a)->list, (a)->num + (b)->num, asize);	\
-	memcpy((a)->list + (a)->num, (b)->list, (b)->num * asize);  	\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + (b)->num, sizeof (c)); \
+	memcpy((a)->list + (a)->num, (b)->list, (b)->num * (sizeof (c)));     \
 	(a)->num += (b)->num;						\
 } while (0)
-#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
+#define ARRAY_EMPTY(a) ((a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
 #define ARRAY_LAST(a, c) ARRAY_ITEM(a, (a)->num - 1, c)
 #define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
