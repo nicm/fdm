@@ -210,6 +210,10 @@ invalid:
 		return (1);
 	}
 
+	if (group->id != NULL) {
+		xfree(group->id);
+		group->id = NULL;
+	}
 	group->last = 0;
 	
 	return (0);
@@ -339,6 +343,8 @@ nntp_save(struct account *a)
 	
 	for (i = 0; i < TOTAL_GROUPS(data); i++) {
 		group = GET_GROUP(data, i);
+		if (group->id == NULL)
+			continue;
 		fprintf(f, "%zu %s %u %zu %s\n", strlen(group->name),
 		    group->name, group->last, strlen(group->id), group->id);
 	}
