@@ -472,6 +472,9 @@ extern struct conf		 conf;
 /* Amount to poll after in io_update. */
 #define IO_FLUSHSIZE (8 * IO_BLOCKSIZE)
 
+/* Maximum number of pollfds. */
+#define IO_POLLFDS 64
+
 /* IO buffer size macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
 #define IO_RDSIZE(io) ((io)->rsize)
