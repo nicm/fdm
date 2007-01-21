@@ -20,3 +20,4 @@
 - document glob in maildir paths
 - document purge-after
 - document compressed mboxes
+- document NNTP fetch changes: no more expiry, cache changes
