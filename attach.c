@@ -239,7 +239,7 @@ attach_build(struct mail *m)
 			xfree(type);			
 		goto error;
 	}
-	if (strncmp(type, "multipart/", 10) != 0) {
+	if (strncasecmp(type, "multipart/", 10) != 0) {
 		xfree(type);
 		goto error;
 	}
@@ -321,7 +321,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	}
 	atr->name = name;
 
-	if (strncmp(atr->type, "multipart/", 10) != 0) {
+	if (strncasecmp(atr->type, "multipart/", 10) != 0) {
 		/* skip the remaining headers */
 		while (*ptr != NULL && *len > 1)
 			line_next(m, ptr, len);
