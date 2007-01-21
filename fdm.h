@@ -717,7 +717,7 @@ struct maildir_data {
 
 	DIR		*dirp;
 	char		*path;
-	char		*entry;
+	char		 entry[MAXPATHLEN];
 };
 
 /* NNTP group entry. */

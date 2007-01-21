@@ -140,7 +140,6 @@ maildir_connect(struct account *a)
 	data->dirp = NULL;
 
 	data->path = NULL;
-	data->entry = NULL;
 
 	if (maildir_makepaths(a) != 0)
 		return (1);
@@ -154,7 +153,7 @@ maildir_poll(struct account *a, u_int *n)
 {
 	struct maildir_data	*data = a->data;
 	u_int			 i;
-	char			*path, name[MAXPATHLEN];
+	char			*path, entry[MAXPATHLEN];
 	DIR			*dirp;
 	struct dirent		*dp;
 	struct stat		 sb;
@@ -170,13 +169,14 @@ maildir_poll(struct account *a, u_int *n)
 		}
 
 		while ((dp = readdir(dirp)) != NULL) {
-			if (makepath(name, sizeof name, path, dp->d_name) < 0) {
-				log_warn("%s: %s", a->name, name);
+			if (makepath(entry, sizeof entry, path, 
+			    dp->d_name) != 0) {
+				log_warn("%s: %s: makepath", a->name, entry);
 				closedir(dirp);
 				return (POLL_ERROR);
 			}
-			if (stat(name, &sb) != 0) {
-				log_warn("%s: %s: stat", a->name, name);
+			if (stat(entry, &sb) != 0) {
+				log_warn("%s: %s: stat", a->name, entry);
 				closedir(dirp);
 				return (POLL_ERROR);
 			}
@@ -214,11 +214,6 @@ restart:
 	}
 
 	do {
-		if (data->entry != NULL) {
-			xfree(data->entry);
-			data->entry = NULL;
-		}
-
 		dp = readdir(data->dirp);
 		if (dp == NULL) {
 			closedir(data->dirp);
@@ -230,7 +225,11 @@ restart:
 			goto restart;
 		}
 
-		xasprintf(&data->entry, "%s/%s", data->path, dp->d_name);
+		if (makepath(data->entry, sizeof data->entry, data->path,
+		    dp->d_name) != 0) {
+			log_warn("%s: %s: makepath", a->name, data->entry);
+			return (FETCH_ERROR);
+		}
 		if (stat(data->entry, &sb) != 0) {
 			log_warn("%s: %s: stat", a->name, data->entry);
 			return (FETCH_ERROR);
