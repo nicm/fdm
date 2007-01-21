@@ -304,6 +304,7 @@ find_macro(char *name)
 	struct expr		*expr;
 	struct expritem		*expritem;
 	struct strings		*strings;
+	struct nntp_groups	*groups;
 	uid_t			 uid;
 	struct {
 		struct strings	*users;
@@ -331,7 +332,8 @@ find_macro(char *name)
 %type  <server> server
 %type  <string> port to folder strv retre
 %type  <strings> actions actionslist domains domainslist headers headerslist
-%type  <strings> accounts accountslist pathslist maildirs groupslist groups
+%type  <strings> accounts accountslist pathslist maildirs
+%type  <groups> groupslist groups
 %type  <users> users userslist
 %type  <uid> uid user
 
@@ -1822,38 +1824,73 @@ folder: /* empty */
 groupslist: groupslist strv
 /**         [$1: groupslist (struct strings *)] [$2: strv (char *)] */
  	    {
+		    struct nntp_group	*group;
+		    u_int		 i;
+		    char		*cp;
+
 		    if (*$2 == '\0')
 			    yyerror("invalid group");
 
+		    for (cp = $2; *cp != '\0'; cp++)
+			    *cp = tolower((int) *cp);
+
 		    $$ = $1;
-		    ARRAY_ADD($$, $2, char *);
+
+		    for (i = 0; i < ARRAY_LENGTH($$); i++) {
+			    cp = ARRAY_ITEM($$, i, struct nntp_group *)->name;
+			    if (strcmp(cp, $2) == 0)
+				    break;
+		    }
+		    if (i == ARRAY_LENGTH($$)) {
+			    group = xcalloc(1, sizeof *group);
+			    group->name = $2;
+			    ARRAY_ADD($$, group, struct nntp_group *);
+		    }
 	    }
 	  | strv
 /**         [$1: strv (char *)] */
 	    {
+		    struct nntp_group	*group;
+		    char		*cp;
+
 		    if (*$1 == '\0')
 			    yyerror("invalid group");
 
 		    $$ = xmalloc(sizeof *$$);
 		    ARRAY_INIT($$);
-		    ARRAY_ADD($$, $1, char *);
+
+		    for (cp = $1; *cp != '\0'; cp++)
+			    *cp = tolower((int) *cp);
+
+		    group = xcalloc(1, sizeof *group);
+		    group->name = $1;
+		    ARRAY_ADD($$, group, struct nntp_group *);
 	    }
 
 /** GROUPS: <strings> (struct strings *) */
 groups: TOKGROUP strv
 /**     [$2: strv (char *)] */
 	{
+		struct nntp_group	*group;
+		char			*cp;
+
 		if (*$2 == '\0')
 			yyerror("invalid group");
 
 		$$ = xmalloc(sizeof *$$);
 		ARRAY_INIT($$);
-		ARRAY_ADD($$, $2, char *);
+
+		for (cp = $2; *cp != '\0'; cp++)
+			*cp = tolower((int) *cp);
+
+		group = xcalloc(1, sizeof *group);
+		group->name = $2;
+		ARRAY_ADD($$, group, struct nntp_group *);
 	}
       | TOKGROUPS '{' groupslist '}'
 /**     [$3: groupslist (struct strings *)] */
         {
-		$$ = weed_strings($3);
+		$$ = $3;
 	}
 
 /** POPTYPE: <flag> (int) */

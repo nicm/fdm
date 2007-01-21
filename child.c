@@ -176,14 +176,15 @@ do_child(int fd, enum fdmop op, struct account *a)
 		if (a->fetch->disconnect(a) != 0)
 			res = 1;
 	}
+
+	log_debug("%s: finished processing. exiting", a->name);
+
+out:
 	if (a->fetch->free != NULL) {
 		if (a->fetch->free(a) != 0)
 			res = 1;
 	}
 
-	log_debug("%s: finished processing. exiting", a->name);
-
-out:
 	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_EXIT;
 	log_debug3("%s: sending exit message to parent", a->name);

@@ -405,9 +405,6 @@ struct rule {
 	TAILQ_ENTRY(rule)	 entry;
 };
 
-/* Cache entry flags. */
-#define CACHEENT_UNUSED 0x1
-
 /* Cache entry. */
 struct cacheent {
 	uint32_t	added;
@@ -733,16 +730,30 @@ struct maildir_data {
 	char		*entry;
 };
 
+/* NNTP group entry. */
+struct nntp_group {
+	char		*name;
+
+	u_int		 size;
+	u_int		 first;
+	u_int		 last;
+	char		*id;
+};
+
+/* NNTP group list. */
+ARRAY_DECL(nntp_groups, struct nntp_group *);
+
 /* Fetch nntp data. */
 struct nntp_data {
 	char		*path;
+	int		 fd;
 	struct cache	*cache;
-	struct strings	*groups;
 	long long	 expiry;
 
 	struct server	 server;
 
 	u_int		 group;
+	struct nntp_groups *groups;
 	char		*key;
 
 	struct io	*io;
@@ -939,6 +950,8 @@ void			 cache_close(struct cache *);
 u_int			 cache_compact(struct cache *, long long, u_int *);
 void			 cache_add(struct cache *, char *);
 void			 cache_update(struct cache *, char *);
+void			 cache_put(struct cache *, char *, u_int);
+int			 cache_get(struct cache *, char *, u_int *);
 int			 cache_contains(struct cache *, char *);
 
 /* re.c */

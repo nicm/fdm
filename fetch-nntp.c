@@ -17,8 +17,10 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +32,7 @@ int	nntp_init(struct account *);
 int	nntp_free(struct account *);
 int	nntp_connect(struct account *);
 int	nntp_disconnect(struct account *);
+int	nntp_poll(struct account *, u_int *);
 int	nntp_fetch(struct account *, struct mail *);
 int	nntp_delete(struct account *);
 int	nntp_keep(struct account *);
@@ -40,11 +43,12 @@ char   *nntp_line(struct account *, char **, size_t *, const char *);
 char   *nntp_check(struct account *, char **, size_t *, const char *, u_int *);
 int	nntp_is(struct account *, char *, const char *, u_int, u_int);
 int	nntp_group(struct account *, char **, size_t *);
+int	nntp_save(struct account *);
 
 struct fetch	fetch_nntp = { { "nntp", NULL },
 			       nntp_init,
 			       nntp_connect,
-			       NULL,
+			       nntp_poll,
 			       nntp_fetch,
 			       NULL,
 			       nntp_delete,
@@ -126,17 +130,90 @@ int
 nntp_group(struct account *a, char **lbuf, size_t *llen)
 {
 	struct nntp_data	*data = a->data;
-	char			*line, *group;
+	struct nntp_group	*group;
+	char			*line, *ptr, *ptr2;
+	size_t			 len;
 	u_int			 code;
 
-	group = ARRAY_ITEM(data->groups, data->group, char *);
-	io_writeline(data->io, "GROUP %s", group);
+	group = ARRAY_ITEM(data->groups, data->group, struct nntp_group *);
+	io_writeline(data->io, "GROUP %s", group->name);
 
 	if ((line = nntp_check(a, lbuf, llen, "GROUP", &code)) == NULL)
 		return (1);
 	if (!nntp_is(a, line, "GROUP", code, 211))
 		return (1);
+	if (sscanf(line, "211 %u %*u %u", &group->size, &group->last) != 2) {
+ 		log_warnx("%s: GROUP: invalid response: %s", a->name, line);
+		return (1);
+	}
+	if (cache_get(data->cache, group->name, &group->first) == 0) {
+		log_debug("%s: last message number is %u, was %u", a->name, 
+		    group->last, group->first);
+		group->size = group->last - group->first;
+		io_writeline(data->io, "STAT %u", group->first);
+		if ((line = nntp_check(a, lbuf, llen, "STAT", &code)) == NULL)
+			return (1);
+		if (!nntp_is(a, line, "STAT", code, 223))
+			return (1);
+		
+		ptr = strchr(line, '<');
+		ptr2 = NULL;
+		if (ptr != NULL)
+			ptr2 = strchr(ptr, '>');
+		if (ptr != NULL && ptr2 != NULL) {
+			ptr++;
+			len = ptr2 - ptr;
+			group->id = xmalloc(len + 1);
+			memcpy(group->id, ptr, len);
+			group->id[len] = '\0';
+		}
+	} else
+		log_debug("%s: last message number is %u", a->name, group->last);
+	cache_put(data->cache, group->name, group->last); /* XXX */
+	/* 
+	   XXX as each mail is deleted/kept, set last to its message number
+	   XXX check message id of current last when GROUP
+	   XXX lose the caching stuff?
+	 */
 
+	return (0);
+}
+
+int
+nntp_save(struct account *a)
+{
+	struct nntp_data	*data = a->data;
+	struct nntp_group	*group;
+	FILE			*f;
+	u_int			 i;
+	off_t			 off;
+
+	if (lseek(data->fd, 0, SEEK_SET) == -1) {
+		log_warn("%s: lseek", a->name);
+		return (1);
+	}
+
+	if ((f = fdopen(data->fd, "r+")) == NULL) {
+		log_warn("%s: fdopen", a->name);
+		return (1);
+	}
+	
+	for (i = 0; i < ARRAY_LENGTH(data->groups); i++) {
+		group = ARRAY_ITEM(data->groups, i, struct nntp_group *);
+		fprintf(f, "%zu %s %u %zu %s", strlen(group->name), group->name,
+		    group->last, strlen(group->id), group->id);
+	}
+
+	if ((off = lseek(data->fd, 0, SEEK_CUR)) == -1) {
+		log_warn("%s: lseek", a->name);
+		return (1);
+	}
+	if (ftruncate(data->fd, off) == -1) {
+		log_warn("%s: ftruncate", a->name);
+		return (1);
+	}
+
+	fclose(f);
 	return (0);
 }
 
@@ -145,6 +222,7 @@ nntp_init(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	char			*cause;
+	char			*path;
 
 	data->cache = cache_open(data->path, &cause);
 	if (data->cache == NULL) {
@@ -152,6 +230,17 @@ nntp_init(struct account *a)
 		xfree(cause);
 		return (1);
 	}
+
+	/* XXX lock will be unremovable as root */
+	xasprintf(&path, "%s.groups", data->path);
+	data->fd = openlock(path, conf.lock_types, O_CREAT|O_WRONLY|O_APPEND,
+	    S_IRUSR|S_IWUSR);
+	if (data->fd == -1) {
+		log_warn("%s: %s", a->name, path);
+		xfree(path);
+		return (1);
+	}
+	xfree(path);
 
 	data->group = 0;
 
@@ -162,9 +251,16 @@ int
 nntp_free(struct account *a)
 {
 	struct nntp_data	*data = a->data;
+	char			*path;
 
 	if (data->key != NULL)
 		xfree(data->key);
+
+	nntp_save(a);
+
+	xasprintf(&path, "%s.groups", data->path);
+	closelock(data->fd, path, conf.lock_types);
+	xfree(path);
 
 	return (0);
 }
@@ -179,6 +275,7 @@ nntp_connect(struct account *a)
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
+		cache_close(data->cache);
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (1);
@@ -205,6 +302,8 @@ nntp_connect(struct account *a)
 	return (0);
 
 error:
+	cache_close(data->cache);
+
 	io_writeline(data->io, "QUIT");
 	io_flush(data->io, NULL);
 
@@ -247,6 +346,38 @@ error:
 	io_close(data->io);
 	io_free(data->io);
 
+	xfree(lbuf);
+	return (1);
+}
+
+int
+nntp_poll(struct account *a, u_int *n)
+{
+	struct nntp_data       	*data = a->data;
+	struct nntp_group	*group;
+	char			*lbuf;
+	size_t			 llen;
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	*n = 0;
+	for (;;) {
+		group = ARRAY_ITEM(data->groups, data->group,
+		    struct nntp_group *);
+		(*n) += group->size;
+
+		data->group++;
+		if (data->group == ARRAY_LENGTH(data->groups))
+			break;
+		if (nntp_group(a, &lbuf, &llen) != 0)
+			goto error;
+	}
+
+	xfree(lbuf);
+	return (0);
+
+error:
 	xfree(lbuf);
 	return (1);
 }
@@ -394,7 +525,7 @@ nntp_desc(struct account *a)
 	struct nntp_data	*data = a->data;
 	char			*s, *groups;
 
-	groups = fmt_strings("groups ", data->groups);
+	groups = xstrdup("XXX"); //fmt_strings("groups ", data->groups); /*XXX*/
 	xasprintf(&s, "nntp server \"%s\" port %s %s cache \"%s\" expiry %lld "
 	    "seconds", data->server.host, data->server.port, groups,
 	    data->path, data->expiry);
