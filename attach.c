@@ -236,8 +236,10 @@ attach_build(struct mail *m)
 	type = attach_type(m, hdr, "boundary", &b);
 	if (type == NULL || b == NULL)
 		goto error;
-	if (strncmp(type, "multipart/", 10) != 0)
+	if (strncmp(type, "multipart/", 10) != 0) {
+		xfree(type);
 		goto error;
+	}
 	bl = strlen(b);
 
 	atr = xmalloc(sizeof *atr);
