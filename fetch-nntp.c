@@ -334,6 +334,7 @@ nntp_save(struct account *a)
 		log_warn("%s: %s", a->name, tmp);
 		goto error;
 	}
+	cleanup_register(tmp);
 	if ((f = fdopen(fd, "r+")) == NULL) {
 		log_warn("%s: fdopen", a->name);
 		close(fd);
@@ -356,11 +357,14 @@ nntp_save(struct account *a)
 		unlink(tmp);
 		goto error;
 	}
+	cleanup_deregister(tmp);
 
 	xfree(tmp);
 	return (0);
 	
 error:
+	cleanup_deregister(tmp);
+
 	xfree(tmp);
 	return (1);
 }
