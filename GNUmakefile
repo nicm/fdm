@@ -33,8 +33,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-write.c \
       deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
       match-tagged.c match-size.c match-string.c match-matched.c match-age.c \
-      match-unmatched.c match-attachment.c child.c parent.c privsep.c attach.c \
-      cache.c cleanup.c \
+      match-unmatched.c match-attachment.c child.c parent.c privsep.c attach.c \      cleanup.c \
       y.tab.c lex.yy.c
 
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
@@ -42,9 +41,7 @@ DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
 ifeq ($(shell uname),Linux)
 SRCS+= compat/strlcpy.c compat/strlcat.c compat/strtonum.c
 DEFS+= $(shell getconf LFS_CFLAGS) -D_GNU_SOURCE \
-        -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM -DNO_QUEUE_H \
-	-DUSE_DB_185_H
-LIBS+= -ldb
+        -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM -DNO_QUEUE_H
 # Required for LLONG_MAX and friends
 CFLAGS+= -std=c99
 endif

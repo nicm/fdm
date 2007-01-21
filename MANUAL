@@ -62,12 +62,6 @@ Installing fdm is simple. Download the source tarball, and run:
 	$ cd fdm-?.?.tar.gz
 	$ make
 
-If using Linux, glibc doesn't come with a Berkeley DB implementation, so one
-must be installed before building fdm. On Debian, the "libdb4.3-dev" and
-"libdb4.3" packages seem to work. Alternatively, source may be retrieved at:
-
-http://www.oracle.com/technology/software/products/berkeley-db/db/index.html
-
 Then run 'make install' to install fdm to the default locations under
 /usr/local. The PREFIX environment variable may be set to specify an
 alternative installation location:

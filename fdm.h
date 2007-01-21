@@ -28,11 +28,6 @@
 #include "compat/queue.h"
 #endif
 
-#ifdef USE_DB_185_H
-#include <db_185.h>
-#else
-#include <db.h>
-#endif
 #include <dirent.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -403,17 +398,6 @@ struct rule {
 	struct strings		*actions;
 
 	TAILQ_ENTRY(rule)	 entry;
-};
-
-/* Cache entry. */
-struct cacheent {
-	uint32_t	added;
-	uint32_t	reserved;
-} __packed;
-
-/* Message-id cache. */
-struct cache {
-	DB			*db;
 };
 
 /* Lock types. */
