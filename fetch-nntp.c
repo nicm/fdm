@@ -506,20 +506,19 @@ nntp_poll(struct account *a, u_int *n)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	*n = 0;
+	*n = CURRENT_GROUP(data)->size;
 	for (;;) {
-		(*n) += CURRENT_GROUP(data)->size;
+		data->group++;
+		if (data->group == TOTAL_GROUPS(data))
+			break;
+		if (CURRENT_GROUP(data)->ignore)
+			continue;
 
-		do {
-			data->group++;
-			if (data->group == TOTAL_GROUPS(data))
-				goto out;
-		} while (CURRENT_GROUP(data)->ignore);
 		if (nntp_group(a, &lbuf, &llen) != 0)
 			goto error;
+		(*n) += CURRENT_GROUP(data)->size;
 	}
 
-out:
 	xfree(lbuf);
 	return (0);
 
