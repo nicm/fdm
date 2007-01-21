@@ -141,6 +141,27 @@ resize_mail(struct mail *m, size_t size)
 }
 
 int
+makepath(char *buf, size_t len, char *path, char *name)
+{
+	int	n;
+
+	if (len > INT_MAX) {
+		errno = ENAMETOOLONG;
+		return (-1);
+	}
+
+	n = xsnprintf(buf, len, "%s/%s", path, name);
+	if (n < 0)
+		return (-1);
+	if ((size_t) n > len) {
+		errno = ENAMETOOLONG;
+		return (-1);
+	}
+
+	return (0);
+}
+
+int
 openlock(char *path, u_int locks, int flags, mode_t mode)
 {
 	char		*lock;

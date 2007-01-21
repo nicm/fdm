@@ -992,6 +992,7 @@ void			 mail_reopen(struct mail *, char *);
 void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);
 void			 resize_mail(struct mail *, size_t);
+int 			 makepath(char *, size_t, char *, char *);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
@@ -1071,6 +1072,8 @@ int		 xxvasprintf(char **, const char *, va_list);
 
 /* xmalloc-debug.c */
 #ifdef DEBUG
+void		 xmalloc_callreport(const char *);
+
 void		 xmalloc_clear(void);
 void		 xmalloc_report(const char *);
 
