@@ -506,6 +506,9 @@ struct io {
 	size_t		 wsize;		/* size of data currently in buffer */
 	size_t		 woff;
 
+	char		*lbuf;		/* line buffer */
+	size_t		 llen;		/* line buffer size */
+
 	const char	*eol;
 };
 

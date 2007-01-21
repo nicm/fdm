@@ -74,6 +74,9 @@ io_create(int fd, SSL *ssl, const char *eol)
 	io->wsize = 0;
 	io->woff = 0;
 
+	io->lbuf = NULL;
+	io->llen = 0;
+
 	io->eol = eol;
 
 	return (io);
@@ -83,6 +86,8 @@ io_create(int fd, SSL *ssl, const char *eol)
 void
 io_free(struct io *io)
 {
+	if (io->lbuf != NULL)
+		xfree(io->lbuf);
 	if (io->error != NULL)
 		xfree(io->error);
 	xfree(io->rbase);
@@ -586,19 +591,19 @@ io_readline2(struct io *io, char **buf, size_t *len)
 char *
 io_readline(struct io *io)
 {
-	size_t	 llen;
-	char	*lbuf, *rbuf;
+	char	*line;
 
 	if (io->error != NULL)
 		return (NULL);
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-
-	if ((rbuf = io_readline2(io, &lbuf, &llen)) == NULL)
-		xfree(lbuf);
-
-	return (rbuf);
+	if (io->lbuf == NULL) {
+		io->llen = IO_LINESIZE;
+		io->lbuf = xmalloc(io->llen);
+	}
+	
+	if ((line = io_readline2(io, &io->lbuf, &io->llen)) != NULL)
+		io->lbuf = NULL;
+	return (line);
 }
 
 /* Write a line to the io write buffer. */
@@ -638,16 +643,15 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 int
 io_pollline(struct io *io, char **line, char **cause)
 {
-	size_t	 llen;
-	char	*lbuf;
-	int	 res;
+	int	res;
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-
-	if ((res = io_pollline2(io, line, &lbuf, &llen, cause)) != 1)
-		xfree(lbuf);
-
+	if (io->lbuf == NULL) {
+		io->llen = IO_LINESIZE;
+		io->lbuf = xmalloc(io->llen);
+	}
+	
+	if ((res = io_pollline2(io, line, &io->lbuf, &io->llen, cause)) == 1)
+		io->lbuf = NULL;
 	return (res);
 }
 
