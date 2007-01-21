@@ -277,7 +277,7 @@ find_macro(char *name)
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
-%token TOKGROUPS TOKEXPIRY TOKPURGEAFTER TOKCOMPRESS
+%token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -304,7 +304,6 @@ find_macro(char *name)
 	struct expr		*expr;
 	struct expritem		*expritem;
 	struct strings		*strings;
-	struct nntp_groups	*groups;
 	uid_t			 uid;
 	struct {
 		struct strings	*users;
@@ -327,13 +326,12 @@ find_macro(char *name)
 %type  <flag> cont icase not disabled keep poptype imaptype execpipe compress
 %type  <locks> lock locklist
 %type  <match> match
-%type  <number> size time numv retrc expiry
+%type  <number> size time numv retrc
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder strv retre
 %type  <strings> actions actionslist domains domainslist headers headerslist
-%type  <strings> accounts accountslist pathslist maildirs
-%type  <groups> groupslist groups
+%type  <strings> accounts accountslist pathslist maildirs groupslist groups
 %type  <users> users userslist
 %type  <uid> uid user
 
@@ -1824,33 +1822,21 @@ folder: /* empty */
 groupslist: groupslist strv
 /**         [$1: groupslist (struct strings *)] [$2: strv (char *)] */
  	    {
-		    struct nntp_group	*group;
-		    u_int		 i;
 		    char		*cp;
 
 		    if (*$2 == '\0')
 			    yyerror("invalid group");
 
+		    $$ = $1;
+
 		    for (cp = $2; *cp != '\0'; cp++)
 			    *cp = tolower((int) *cp);
 
-		    $$ = $1;
-
-		    for (i = 0; i < ARRAY_LENGTH($$); i++) {
-			    cp = ARRAY_ITEM($$, i, struct nntp_group *)->name;
-			    if (strcmp(cp, $2) == 0)
-				    break;
-		    }
-		    if (i == ARRAY_LENGTH($$)) {
-			    group = xcalloc(1, sizeof *group);
-			    group->name = $2;
-			    ARRAY_ADD($$, group, struct nntp_group *);
-		    }
+		    ARRAY_ADD($$, $2, char *);
 	    }
 	  | strv
 /**         [$1: strv (char *)] */
 	    {
-		    struct nntp_group	*group;
 		    char		*cp;
 
 		    if (*$1 == '\0')
@@ -1862,18 +1848,15 @@ groupslist: groupslist strv
 		    for (cp = $1; *cp != '\0'; cp++)
 			    *cp = tolower((int) *cp);
 
-		    group = xcalloc(1, sizeof *group);
-		    group->name = $1;
-		    ARRAY_ADD($$, group, struct nntp_group *);
+		    ARRAY_ADD($$, $1, char *);
 	    }
 
 /** GROUPS: <strings> (struct strings *) */
 groups: TOKGROUP strv
 /**     [$2: strv (char *)] */
 	{
-		struct nntp_group	*group;
 		char			*cp;
-
+		
 		if (*$2 == '\0')
 			yyerror("invalid group");
 
@@ -1883,14 +1866,12 @@ groups: TOKGROUP strv
 		for (cp = $2; *cp != '\0'; cp++)
 			*cp = tolower((int) *cp);
 
-		group = xcalloc(1, sizeof *group);
-		group->name = $2;
-		ARRAY_ADD($$, group, struct nntp_group *);
+		ARRAY_ADD($$, $2, char *);
 	}
       | TOKGROUPS '{' groupslist '}'
 /**     [$3: groupslist (struct strings *)] */
         {
-		$$ = $3;
+		$$ = weed_strings($3);
 	}
 
 /** POPTYPE: <flag> (int) */
@@ -1912,17 +1893,6 @@ imaptype: TOKIMAP
 	  {
 		  $$ = 1;
 	  }
-
-/** EXPIRY: <number> (long long) */
-expiry: /* empty */
-	{
-		$$ = DEFEXPIRYTIME;
-	}
-      | TOKEXPIRY time
-/**     [$2: time (long long)] */
-	{
-		$$ = $2;
-	}
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
 fetchtype: poptype server TOKUSER strv TOKPASS strv
@@ -1994,7 +1964,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.data = data;
 		   data->maildirs = $1;
 	   }
-	 | TOKNNTP server groups TOKCACHE strv expiry
+	 | TOKNNTP server groups TOKCACHE strv
 /**        [$2: server (struct { ... } server)] */
 /**        [$3: groups (struct strings *)] [$5: strv (char *)] */
 /**        [$6: expiry (long long)] */
@@ -2008,8 +1978,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   $$.fetch = &fetch_nntp;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->groups = $3;
-		   data->expiry = $6;
+		   data->names = $3;
 
 		   if (ARRAY_LENGTH($3) == 1)
 			   group = ARRAY_ITEM($3, 0, char *);

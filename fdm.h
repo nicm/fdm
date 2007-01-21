@@ -733,9 +733,9 @@ struct maildir_data {
 /* NNTP group entry. */
 struct nntp_group {
 	char		*name;
+	int		 ignore;
 
 	u_int		 size;
-	u_int		 first;
 	u_int		 last;
 	char		*id;
 };
@@ -746,18 +746,19 @@ ARRAY_DECL(nntp_groups, struct nntp_group *);
 /* Fetch nntp data. */
 struct nntp_data {
 	char		*path;
-	int		 fd;
-	struct cache	*cache;
-	long long	 expiry;
 
 	struct server	 server;
+	struct strings	*names;
 
 	u_int		 group;
-	struct nntp_groups *groups;
-	char		*key;
+	struct nntp_groups groups;
 
 	struct io	*io;
 };
+#define GET_GROUP(d, i) ARRAY_ITEM(&d->groups, i, struct nntp_group *)
+#define CURRENT_GROUP(d) GET_GROUP(d, d->group)
+#define TOTAL_GROUPS(d) ARRAY_LENGTH(&d->groups)
+#define ADD_GROUP(d, g) ARRAY_ADD(&d->groups, g, struct nntp_group *)
 
 /* Fetch stdin data. */
 struct stdin_data {
