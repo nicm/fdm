@@ -115,7 +115,7 @@ extern char	*__progname;
 	memcpy((a)->list + (a)->num, (b)->list, (b)->num * (sizeof (c)));     \
 	(a)->num += (b)->num;						\
 } while (0)
-#define ARRAY_EMPTY(a) ((a)->num == 0)
+#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
 #define ARRAY_LAST(a, c) ARRAY_ITEM(a, (a)->num - 1, c)
 #define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
