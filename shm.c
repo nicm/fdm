@@ -57,7 +57,7 @@ shm_malloc(struct shm *shm, size_t size)
         if (size == 0)
                 fatalx("shm_malloc: zero size");
 
-	if (xsnprintf(shm->name, sizeof shm->name, "%s/%s.XXXXXXXXXXXX",
+	if (xsnprintf(shm->name, sizeof shm->name, "%s/%s.XXXXXXXXXX",
 	    conf.tmp_dir, __progname) < 0)
 		fatal("xsnprintf");
 	if ((shm->fd = mkstemp(shm->name)) < 0)
