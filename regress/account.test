@@ -148,34 +148,10 @@ account "name" nntp server "server" group "group" "cache"
 account "name" nntp server "server" groups { "group" } cache
 @1 ^/dev/stdin: syntax error at line 2$
 
-account "name" nntp server "server" group "group" 1 week
-@1 ^/dev/stdin: syntax error at line 1$
-account "name" nntp server "server" groups { "group" } expiry
-@1 ^/dev/stdin: syntax error at line 1$
-
-account "name" nntp server "server" group "group" "cache" expiry 1 week
-@1 ^/dev/stdin: syntax error at line 1$
-account "name" nntp server "server" groups { "group" } cache expiry 1 week
-@1 ^/dev/stdin: syntax error at line 1$
-
-account "name" nntp server "server" group "group" cache "cache" 1 week
-@1 ^/dev/stdin: syntax error at line 1$
-account "name" nntp server "server" groups { "group" } cache "cache" expiry
-@1 ^/dev/stdin: syntax error at line 2$
-
-account "name" nntp server "server" group "group" cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 2419200 seconds$
-account "name" nntp server "server" group "group" cache "cache" expiry 1 week
-@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 604800 seconds$
-account "name" nntp server "server" groups { "group" } cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 2419200 seconds$
-account "name" nntp server "server" groups { "group" } cache "cache" expiry 1 week
-@0 ^added account: name=name fetch=nntp server "server" port nntp groups "group" cache "cache" expiry 604800 seconds$
-
 account "name" nntp server "server" port 123 group "group" cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 2419200 seconds$
+@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache"$
 account "name" nntp server "server" port "port" group "group" cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 2419200 seconds$
+@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache"$
 account "name" nntp server "server" port 0 group "group" cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" nntp server "server" port 65536 group "group" cache "cache"
@@ -184,36 +160,14 @@ account "name" nntp server "server" port "" group "group" cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 
 account "name" nntp server "server" port 123 groups { "group" } cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 2419200 seconds$
+@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache"$
 account "name" nntp server "server" port "port" groups { "group" } cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 2419200 seconds$
+@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache"$
 account "name" nntp server "server" port 0 groups { "group" } cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" nntp server "server" port 65536 groups { "group" } cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" nntp server "server" port "" groups { "group" } cache "cache"
-@1 ^/dev/stdin: invalid port at line 1$
-
-account "name" nntp server "server" port 123 group "group" cache "cache" expiry 1 second
-@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 1 seconds$
-account "name" nntp server "server" port "port" group "group" cache "cache" expiry 1 second
-@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 1 seconds$
-account "name" nntp server "server" port 0 group "group" cache "cache" expiry 1 second
-@1 ^/dev/stdin: invalid port at line 1$
-account "name" nntp server "server" port 65536 group "group" cache "cache" expiry 1 second
-@1 ^/dev/stdin: invalid port at line 1$
-account "name" nntp server "server" port "" group "group" cache "cache" expiry 1 second
-@1 ^/dev/stdin: invalid port at line 1$
-
-account "name" nntp server "server" port 123 groups { "group" } cache "cache" expiry 1 second
-@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache" expiry 1 seconds$
-account "name" nntp server "server" port "port" groups { "group" } cache "cache" expiry 1 second
-@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache" expiry 1 seconds$
-account "name" nntp server "server" port 0 groups { "group" } cache "cache" expiry 1 second
-@1 ^/dev/stdin: invalid port at line 1$
-account "name" nntp server "server" port 65536 groups { "group" } cache "cache" expiry 1 second
-@1 ^/dev/stdin: invalid port at line 1$
-account "name" nntp server "server" port "" groups { "group" } cache "cache" expiry 1 second
 @1 ^/dev/stdin: invalid port at line 1$
 
 account "" nntp server "server" group "group" cache "cache"
@@ -223,4 +177,4 @@ account "name" nntp server "" group "group" cache "cache"
 account "name" nntp server "server" group "" cache "cache"
 @1 ^/dev/stdin: invalid group at line 1$
 account "name" nntp server "server" group "group" cache ""
-@1 ^/dev/stdin: invalid cache at line 2$
+@1 ^/dev/stdin: invalid cache at line 1$
