@@ -292,7 +292,6 @@ to be used to filter mail, fetching from a maildir and deleting (dropping) unwan
 .Op Ic port Ar port
 .Ic group Ar group
 .Ic cache Ar cache
-.Op Ic expiry Ar time
 .Xc
 .It Xo Ic nntp Ic server Ar host
 .Op Ic port Ar port
@@ -301,13 +300,13 @@ to be used to filter mail, fetching from a maildir and deleting (dropping) unwan
 .Ar group ...
 .Li }
 .Ic cache Ar cache
-.Op Ic expiry Ar time
 .Xc
 An NNTP account.
-Articles are fetched from the specified group or groups and delivered if their message-id does not appear in the specified cache file.
-Entries are removed from the cache after the time given with the
-.Ic expiry
-keyword; the default is 1 month.
+Articles are fetched from the specified group or groups and delivered.
+The index and message-id of the last article fetched in each group is saved in the specified cache file.
+When
+.Xr fdm 1
+is run again, fetching begins at the cached article.
 .El
 .Sh ACTIONS
 The
