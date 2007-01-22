@@ -462,7 +462,7 @@ extern struct conf		 conf;
 #define IO_LINESIZE 256
 
 /* Amount to poll after in io_update. */
-#define IO_FLUSHSIZE (8 * IO_BLOCKSIZE)
+#define IO_FLUSHSIZE (2 * IO_BLOCKSIZE)
 
 /* Maximum number of pollfds. */
 #define IO_POLLFDS 64

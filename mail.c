@@ -406,7 +406,7 @@ find_address(char *hdr, size_t len, size_t *alen)
 		}
 	}
 
-	/* no address found */
+	/* no address found. try the whole header */
 	*alen = 0;
 	for (*alen = 0; *alen < len; (*alen)++) {
 		if (!isaddr(hdr[*alen]))
