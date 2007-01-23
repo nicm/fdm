@@ -150,7 +150,7 @@ error:
 int
 cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
 {
-	struct io	*io, *ios[2];
+	struct io	*io, *ios[3];
 
 	/* retrieve a line if possible */
 	*out = *err = NULL;

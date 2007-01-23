@@ -360,7 +360,7 @@ dxfree(const char *file, u_int line, void *ptr)
 int printflike4
 dxasprintf(const char *file, u_int line, char **ret, const char *fmt, ...)
 {
-	u_int	i;
+	int	i;
 
         va_list ap;
 
@@ -377,7 +377,7 @@ int
 dxvasprintf(const char *file, u_int line, char **ret, const char *fmt,
     va_list ap)
 {
-	u_int	i;
+	int	i;
 
 	i = xxvasprintf(ret, fmt, ap);
 
