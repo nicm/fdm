@@ -926,6 +926,18 @@ In addition to these options, some environment variables may be used to control
 fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
 temporary files.
 
+- purge-after <message count>
+
+The 'purge-after' option instructs fdm to attempt to purge deleted mail after
+the specified number of mails has been fetched. This is useful to limit the
+number of mails refetched on the next run if the connection fails. It can have
+a large effect on performance, particularly if the message count is set to a
+low number.
+
+Note that for POP3, purging deleted mail involves connecting and reconnecting
+from the server; some POP3 servers refuse reconnections if too many are made too
+quickly, so this option should be used with care.
+
 Archiving and searching mail ===================================================
 
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir

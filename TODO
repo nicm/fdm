@@ -18,5 +18,5 @@
 - simple default fdm.conf somewhere (/etc/fdm.conf?)
 - dump settings from conf on -vvv
 - document glob in maildir paths
-- document purge-after
+- document purge-after in man page
 - document compressed mboxes
