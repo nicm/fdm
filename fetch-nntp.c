@@ -39,9 +39,8 @@ int	nntp_keep(struct account *);
 char   *nntp_desc(struct account *);
 
 int	nntp_code(char *);
-char   *nntp_line(struct account *, char **, size_t *, const char *);
-char   *nntp_check(struct account *, char **, size_t *, const char *, int *);
-int	nntp_is(struct account *, char *, const char *, int, int);
+char   *nntp_line(struct account *, char **, size_t *);
+char   *nntp_check(struct account *, char **, size_t *, u_int, ...);
 int	nntp_group(struct account *, char **, size_t *);
 int	nntp_parse223(char *, u_int *, char **);
 
@@ -84,17 +83,17 @@ nntp_code(char *line)
 }
 
 char *
-nntp_line(struct account *a, char **lbuf, size_t *llen, const char *s)
+nntp_line(struct account *a, char **lbuf, size_t *llen)
 {
 	struct nntp_data	*data = a->data;
 	char			*line, *cause;
 
 	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
 	case 0:
-		log_warnx("%s: %s: connection unexpectedly closed", a->name, s);
+		log_warnx("%s: connection unexpectedly closed", a->name);
 		return (NULL);
 	case -1:
-		log_warnx("%s: %s: %s", a->name, s, cause);
+		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (NULL);
 	}
@@ -103,34 +102,41 @@ nntp_line(struct account *a, char **lbuf, size_t *llen, const char *s)
 }
 
 char *
-nntp_check(struct account *a, char **lbuf, size_t *llen, const char *s,
-    int *code)
+nntp_check(struct account *a, char **lbuf, size_t *llen, u_int n, ...)
 {
 	char	*line;
+	va_list	 ap, saved;
+	u_int	 i;
+	int	 code, arg;
+
+	va_start(saved, n);
 
 restart:
-	if ((line = nntp_line(a, lbuf, llen, s)) == NULL)
+	if ((line = nntp_line(a, lbuf, llen)) == NULL)
 		return (NULL);
 
-	*code = nntp_code(line);
-	if (*code == -1) {
-		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
-		return (NULL);
-	}
-	if (*code >= 100 && *code <= 199)
+	code = nntp_code(line);
+	if (code == -1)
+		goto error;
+	if (code >= 100 && code <= 199)
 		goto restart;
 
-	return (line);
-}
-
-int
-nntp_is(struct account *a, char *line, const char *s, int code, int n)
-{
-	if (code != n) {
-		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
-		return (0);
+	va_copy(ap, saved);
+	for (i = n; i > 0; i++) {
+		arg = va_arg(ap, int);
+		if (code == arg)
+			break;
 	}
-	return (1);
+	if (i == 0)
+		goto error;
+	
+	va_end(saved);
+	
+	return (line);
+		   
+error:
+	log_warnx("%s: unexpected data: %s", a->name, line);
+	return (NULL);
 }
 
 int
@@ -162,17 +168,14 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	struct nntp_group	*group;
 	char			*line, *id;
 	u_int			 n, last;
-	int			 code;
 
 	group = CURRENT_GROUP(data);
 
 	io_writeline(data->io, "GROUP %s", group->name);
-	if ((line = nntp_check(a, lbuf, llen, "GROUP", &code)) == NULL)
-		return (1);
-	if (!nntp_is(a, line, "GROUP", code, 211))
+	if ((line = nntp_check(a, lbuf, llen, 1, 211)) == NULL)
 		return (1);
 	if (sscanf(line, "211 %u %*u %u", &group->size, &last) != 2) {
- 		log_warnx("%s: GROUP: invalid response: %s", a->name, line);
+ 		log_warnx("%s: invalid response: %s", a->name, line);
 		return (1);
 	}
 	
@@ -181,15 +184,13 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	group->size = last - group->last;
 
 	io_writeline(data->io, "STAT %u", group->last);
-	if ((line = nntp_check(a, lbuf, llen, "STAT", &code)) == NULL)
+	if ((line = nntp_check(a, lbuf, llen, 1, 223)) == NULL)
 		return (1);
-	if (!nntp_is(a, line, "STAT", code, 223))
-		goto invalid;
 
 	if (nntp_parse223(line, &n, &id) != 0)
 		goto invalid;
 	if (n != group->last) {
-		log_warnx("%s: STAT: unexpected message number", a->name);
+		log_warnx("%s: unexpected message number", a->name);
 		xfree(id);
 		return (1);
 	}
@@ -206,12 +207,10 @@ invalid:
 	log_warnx("%s: last message not found. resetting group", a->name);
 
 	io_writeline(data->io, "GROUP %s", group->name);
-	if ((line = nntp_check(a, lbuf, llen, "GROUP", &code)) == NULL)
-		return (1);
-	if (!nntp_is(a, line, "GROUP", code, 211))
+	if ((line = nntp_check(a, lbuf, llen, 1, 211)) == NULL)
 		return (1);
 	if (sscanf(line, "211 %u %*u %*u", &group->size) != 1) {
- 		log_warnx("%s: GROUP: invalid response: %s", a->name, line);
+ 		log_warnx("%s: invalid response: %s", a->name, line);
 		return (1);
 	}
 
@@ -420,7 +419,6 @@ nntp_connect(struct account *a)
 	struct nntp_data	*data = a->data;
 	char			*lbuf, *line, *cause;
 	size_t			 llen;
-	int			 code;
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
@@ -447,9 +445,7 @@ nntp_connect(struct account *a)
 		} while (CURRENT_GROUP(data)->ignore);
 	}
 		
-	if ((line = nntp_check(a, &lbuf, &llen, "CONNECT", &code)) == NULL)
-		goto error;
-	if (!nntp_is(a, line, "CONNECT", code, 200))
+	if ((line = nntp_check(a, &lbuf, &llen, 1, 200)) == NULL)
 		goto error;
 
 	if (nntp_group(a, &lbuf, &llen) != 0)
@@ -475,7 +471,6 @@ nntp_disconnect(struct account *a)
 	struct nntp_data	*data = a->data;
 	char			*lbuf, *line;
 	size_t			 llen;
-	int			 code;
 
 	nntp_save(a);
 
@@ -483,9 +478,7 @@ nntp_disconnect(struct account *a)
 	lbuf = xmalloc(llen);
 
 	io_writeline(data->io, "QUIT");
-	if ((line = nntp_check(a, &lbuf, &llen, "QUIT", &code)) == NULL)
-		goto error;
-	if (!nntp_is(a, line, "QUIT", code, 205))
+	if ((line = nntp_check(a, &lbuf, &llen, 1, 205)) == NULL)
 		goto error;
 
 	io_close(data->io);
@@ -551,8 +544,9 @@ nntp_fetch(struct account *a, struct mail *m)
 
 restart:
 	io_writeline(data->io, "NEXT");
-	if ((line = nntp_check(a, &lbuf, &llen, "NEXT", &code)) == NULL)
+	if ((line = nntp_check(a, &lbuf, &llen, 2, 223, 421)) == NULL)
 		goto error;
+	code = nntp_code(line);
 	if (code == 421) {
 		do {
 			data->group++;
@@ -565,19 +559,15 @@ restart:
 			goto error;
 		goto restart;
 	}
-	if (!nntp_is(a, line, "NEXT", code, 223)) {
-		log_warnx("%s: NEXT: unexpected response: %s", a->name, line);
-		goto restart;
-	}
 
 	/* fill this in as the last article */
 	if (nntp_parse223(line, &n, &id) != 0) {
-		log_warnx("%s: NEXT: malformed response: %s", a->name, line);
+		log_warnx("%s: malformed response: %s", a->name, line);
 		goto restart;
 	}
 	group = CURRENT_GROUP(data);
 	if (n < group->last) {
-		log_warnx("%s: NEXT: message number out of order", a->name);
+		log_warnx("%s: message number out of order", a->name);
 		goto error;
 	}
 	group->last = n;
@@ -587,12 +577,11 @@ restart:
 
 	/* retrieve the article */
 	io_writeline(data->io, "ARTICLE");
-	if ((line = nntp_check(a, &lbuf, &llen, "ARTICLE", &code)) == NULL)
+	if ((line = nntp_check(a, &lbuf, &llen, 3, 220, 423, 430)) == NULL)
 		goto error;
+	code = nntp_code(line);
 	if (code == 423 || code == 430)
 		goto restart;
-	if (!nntp_is(a, line, "ARTICLE", code, 220))
-		goto error;
 
 	mail_open(m, IO_BLOCKSIZE);
 	m->s = xstrdup(CURRENT_GROUP(data)->name);
@@ -600,7 +589,7 @@ restart:
 	flushing = 0;
 	off = lines = 0;
 	for (;;) {
-		if ((line = nntp_line(a, &lbuf, &llen, "ARTICLE")) == NULL)
+		if ((line = nntp_line(a, &lbuf, &llen)) == NULL)
 			goto error;
 
 		if (line[0] == '.' && line[1] == '.')
