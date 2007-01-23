@@ -93,7 +93,7 @@ dist:		clean
 			-f ${PROG}-${VERSION}.tar.gz ${DISTFILES}
 
 lint:
-		lint -hx ${CFLAGS:M-D*} ${SRCS:M*.c}
+		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}
 
 depend:
 		mkdep ${CFLAGS} ${SRCS}

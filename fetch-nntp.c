@@ -40,8 +40,8 @@ char   *nntp_desc(struct account *);
 
 int	nntp_code(char *);
 char   *nntp_line(struct account *, char **, size_t *, const char *);
-char   *nntp_check(struct account *, char **, size_t *, const char *, u_int *);
-int	nntp_is(struct account *, char *, const char *, u_int, u_int);
+char   *nntp_check(struct account *, char **, size_t *, const char *, int *);
+int	nntp_is(struct account *, char *, const char *, int, int);
 int	nntp_group(struct account *, char **, size_t *);
 int	nntp_parse223(char *, u_int *, char **);
 
@@ -104,7 +104,7 @@ nntp_line(struct account *a, char **lbuf, size_t *llen, const char *s)
 
 char *
 nntp_check(struct account *a, char **lbuf, size_t *llen, const char *s,
-    u_int *code)
+    int *code)
 {
 	char	*line;
 
@@ -113,6 +113,10 @@ restart:
 		return (NULL);
 
 	*code = nntp_code(line);
+	if (*code == -1) {
+		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
+		return (NULL);
+	}
 	if (*code >= 100 && *code <= 199)
 		goto restart;
 
@@ -120,7 +124,7 @@ restart:
 }
 
 int
-nntp_is(struct account *a, char *line, const char *s, u_int code, u_int n)
+nntp_is(struct account *a, char *line, const char *s, int code, int n)
 {
 	if (code != n) {
 		log_warnx("%s: %s: unexpected data: %s", a->name, s, line);
@@ -157,7 +161,8 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	struct nntp_data	*data = a->data;
 	struct nntp_group	*group;
 	char			*line, *id;
-	u_int			 code, last, n;
+	u_int			 n, last;
+	int			 code;
 
 	group = CURRENT_GROUP(data);
 
@@ -415,7 +420,7 @@ nntp_connect(struct account *a)
 	struct nntp_data	*data = a->data;
 	char			*lbuf, *line, *cause;
 	size_t			 llen;
-	u_int			 code;
+	int			 code;
 
 	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
 	if (data->io == NULL) {
@@ -470,7 +475,7 @@ nntp_disconnect(struct account *a)
 	struct nntp_data	*data = a->data;
 	char			*lbuf, *line;
 	size_t			 llen;
-	u_int			 code;
+	int			 code;
 
 	nntp_save(a);
 
@@ -538,8 +543,8 @@ nntp_fetch(struct account *a, struct mail *m)
 	struct nntp_group	*group;
 	char			*lbuf, *line, *id;
 	size_t			 llen, off, len;
-	u_int			 lines, code, n;
-	int			 flushing;
+	u_int			 lines, n;
+	int			 code, flushing;
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
