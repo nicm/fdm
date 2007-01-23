@@ -14,8 +14,6 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - IMAP over ssh. hmm
-- flush deleted mail every so often (IMAP: EXPUNGE, POP3: quit/reconnect?)
-- simple default fdm.conf somewhere (/etc/fdm.conf?)
 - dump settings from conf on -vvv
 - document glob in maildir paths
 - document purge-after in man page
