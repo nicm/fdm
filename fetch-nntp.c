@@ -237,7 +237,6 @@ nntp_load(struct account *a)
 	char			*name, *id;
 	size_t			 namelen, idlen;
 	u_int			 last, i;
-	char			 fmt[32];
 
 	if ((fd = openlock(data->path, conf.lock_types, O_RDONLY, 0)) == -1) {
 		log_warn("%s: %s", a->name, data->path);
@@ -253,41 +252,29 @@ nntp_load(struct account *a)
 		goto error;
 	}
 
-	while (!feof(f) && !ferror(f)) {
+	for (;;) {
 		if (fscanf(f, "%zu ", &namelen) != 1) {
-			if (feof(f) || ferror(f))
+			/* EOF is allowed only at the start of a line */
+			if (feof(f))
 				break;
 			goto invalid;
-		}
-                if (xsnprintf(fmt, sizeof fmt, "%%%zuc %%u ", namelen) < 0) {
-			log_warn("%s: snprintf", a->name);
-                        goto error;
 		}
 		name = xmalloc(namelen + 1);
-		if (fscanf(f, fmt, name, &last) != 2) {
-			if (feof(f) || ferror(f))
-				break;
+		if (fread(name, namelen, 1, f) != 1)
 			goto invalid;
-		}
 		name[namelen] = '\0';
 
-		if (fscanf(f, "%zu ", &idlen) != 1) {
-			if (feof(f) || ferror(f))
-				break;
+		if (fscanf(f, " %u ", &last) != 1)
 			goto invalid;
-		}
-                if (xsnprintf(fmt, sizeof fmt, "%%%zuc", idlen) < 0) {
-			log_warn("%s: snprintf", a->name);
-                        goto error;
-		}
+
+		if (fscanf(f, "%zu ", &idlen) != 1)
+			goto invalid;
 		id = xmalloc(idlen + 1);
-		if (fscanf(f, fmt, id) != 1) {
-			if (feof(f) || ferror(f))
-				break;
+		if (fread(id, idlen, 1, f) != 1)
 			goto invalid;
-		}
 		id[idlen] = '\0';
 		
+		/* got a group. fill it in */
 		group = NULL;
 		for (i = 0; i < TOTAL_GROUPS(data); i++) {
 			group = GET_GROUP(data, i);
@@ -295,6 +282,8 @@ nntp_load(struct account *a)
 				break;
 		}
 		if (i == TOTAL_GROUPS(data)) {
+			/* not found. add it so it is saved when nntp_save is
+			   called, but with ignore set so it is fetched */
 			group = xcalloc(1, sizeof *group);
 			ADD_GROUP(data, group);
 			group->ignore = 1;
@@ -305,10 +294,6 @@ nntp_load(struct account *a)
 		group->last = last;
 		group->id = id;
 		xfree(name);
-	}
-	if (ferror(f)) {
-		log_warnx("%s: file error", a->name);
-		goto error;
 	}
 
 	fclose(f);
