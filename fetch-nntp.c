@@ -40,7 +40,7 @@ char   *nntp_desc(struct account *);
 
 int	nntp_code(char *);
 char   *nntp_line(struct account *, char **, size_t *);
-char   *nntp_check(struct account *, char **, size_t *, u_int, ...);
+char   *nntp_check(struct account *, char **, size_t *, int *, u_int, ...);
 int	nntp_group(struct account *, char **, size_t *);
 int	nntp_parse223(char *, u_int *, char **);
 
@@ -102,35 +102,38 @@ nntp_line(struct account *a, char **lbuf, size_t *llen)
 }
 
 char *
-nntp_check(struct account *a, char **lbuf, size_t *llen, u_int n, ...)
+nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 {
 	char	*line;
-	va_list	 ap, saved;
+	va_list	 ap, aq;
 	u_int	 i;
 	int	 code, arg;
 
-	va_start(saved, n);
+	if (cdp == NULL)
+		cdp = &code;
 
-restart:
-	if ((line = nntp_line(a, lbuf, llen)) == NULL)
-		return (NULL);
+	va_start(ap, n);
 
-	code = nntp_code(line);
-	if (code == -1)
-		goto error;
-	if (code >= 100 && code <= 199)
-		goto restart;
-
-	va_copy(ap, saved);
+	do {
+		if ((line = nntp_line(a, lbuf, llen)) == NULL)
+			return (NULL);
+		
+		*cdp = nntp_code(line);
+		if (*cdp == -1)
+			goto error;
+	} while (*cdp >= 100 && *cdp <= 199);
+	
+	va_copy(aq, ap);
 	for (i = n; i > 0; i++) {
-		arg = va_arg(ap, int);
-		if (code == arg)
+		arg = va_arg(aq, int);
+		if (*cdp == arg)
 			break;
 	}
+	va_end(aq);
 	if (i == 0)
 		goto error;
 	
-	va_end(saved);
+	va_end(ap);
 	
 	return (line);
 		   
@@ -148,12 +151,13 @@ nntp_parse223(char *line, u_int *n, char **id)
 		return (1);
 
 	ptr = strchr(line, '<');
-	ptr2 = NULL;
-	if (ptr != NULL)
-		ptr2 = strchr(ptr, '>');
-	if (ptr == NULL || ptr2 == NULL)
+	if (ptr == NULL)
+		return (1);
+	ptr2 = strchr(ptr, '>');
+	if (ptr2 == NULL)
 		return (1);
 	ptr++;
+
 	*id = xmalloc(ptr2 - ptr + 1);
 	memcpy(*id, ptr, ptr2 - ptr);
 	(*id)[ptr2 - ptr] = '\0';
@@ -172,7 +176,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	group = CURRENT_GROUP(data);
 
 	io_writeline(data->io, "GROUP %s", group->name);
-	if ((line = nntp_check(a, lbuf, llen, 1, 211)) == NULL)
+	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)
 		return (1);
 	if (sscanf(line, "211 %u %*u %u", &group->size, &last) != 2) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -184,7 +188,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	group->size = last - group->last;
 
 	io_writeline(data->io, "STAT %u", group->last);
-	if ((line = nntp_check(a, lbuf, llen, 1, 223)) == NULL)
+	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 223)) == NULL)
 		return (1);
 
 	if (nntp_parse223(line, &n, &id) != 0)
@@ -207,7 +211,7 @@ invalid:
 	log_warnx("%s: last message not found. resetting group", a->name);
 
 	io_writeline(data->io, "GROUP %s", group->name);
-	if ((line = nntp_check(a, lbuf, llen, 1, 211)) == NULL)
+	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)
 		return (1);
 	if (sscanf(line, "211 %u %*u %*u", &group->size) != 1) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -445,7 +449,7 @@ nntp_connect(struct account *a)
 		} while (CURRENT_GROUP(data)->ignore);
 	}
 		
-	if ((line = nntp_check(a, &lbuf, &llen, 1, 200)) == NULL)
+	if ((line = nntp_check(a, &lbuf, &llen, NULL, 1, 200)) == NULL)
 		goto error;
 
 	if (nntp_group(a, &lbuf, &llen) != 0)
@@ -478,7 +482,7 @@ nntp_disconnect(struct account *a)
 	lbuf = xmalloc(llen);
 
 	io_writeline(data->io, "QUIT");
-	if ((line = nntp_check(a, &lbuf, &llen, 1, 205)) == NULL)
+	if ((line = nntp_check(a, &lbuf, &llen, NULL, 1, 205)) == NULL)
 		goto error;
 
 	io_close(data->io);
@@ -544,9 +548,8 @@ nntp_fetch(struct account *a, struct mail *m)
 
 restart:
 	io_writeline(data->io, "NEXT");
-	if ((line = nntp_check(a, &lbuf, &llen, 2, 223, 421)) == NULL)
+	if ((line = nntp_check(a, &lbuf, &llen, &code, 2, 223, 421)) == NULL)
 		goto error;
-	code = nntp_code(line);
 	if (code == 421) {
 		do {
 			data->group++;
@@ -577,9 +580,9 @@ restart:
 
 	/* retrieve the article */
 	io_writeline(data->io, "ARTICLE");
-	if ((line = nntp_check(a, &lbuf, &llen, 3, 220, 423, 430)) == NULL)
+	line = nntp_check(a, &lbuf, &llen, &code, 3, 220, 423, 430);
+	if (line == NULL)
 		goto error;
-	code = nntp_code(line);
 	if (code == 423 || code == 430)
 		goto restart;
 
