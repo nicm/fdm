@@ -481,6 +481,16 @@ are always left on the server. The index and message-id of the last article
 is recorded in the cache file so that older articles are skipped when the a
 newsgroup is again fetched.
 
+For rules to match based on group name, the %s token may again be used. This
+can ensure articles are matched purely on the group they are fetched on (trying
+to do this using headers is unreliable with cross-posted articles). For example:
+
+match all account "news" {
+	match string "%s" to "comp.lang.c" action "news-%s"
+	match string "%s" to "comp.std.c" action "news-%s"
+	match all action "drop"
+}
+
 Defining actions ===============================================================
 
 An action is a particular command to execute on a mail when it matches a
