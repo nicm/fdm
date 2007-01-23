@@ -37,6 +37,7 @@
 int	httpproxy(struct server *, struct proxy *, struct io *, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
 int	getport(char *);
+SSL    *makessl(int, char **);
 
 struct proxy *
 getproxy(const char *xurl)
@@ -149,25 +150,28 @@ connectproxy(struct server *srv, struct proxy *pr, const char *eol,
 
 	switch (pr->type) {
 	case PROXY_HTTP:
-		if (httpproxy(srv, pr, io, cause) != 0) {
-			io_close(io);
-			io_free(io);
-			return (NULL);
-		}
+		if (httpproxy(srv, pr, io, cause) != 0)
+			goto error;
 		break;
 	case PROXY_SOCKS5:
-		if (socks5proxy(srv, pr, io, cause) != 0) {
-			io_close(io);
-			io_free(io);
-			return (NULL);
-		}
+		if (socks5proxy(srv, pr, io, cause) != 0)
+			goto error;
 		break;
 	default:
 		fatalx("unknown proxy type");
 	}
 
+	/* if the original request was for SSL, initiate it now */
+	if (srv->ssl && (io->ssl = makessl(io->fd, cause)) == NULL)
+		goto error;
+
 	io->eol = eol;
 	return (io);
+
+error:
+	io_close(io);
+	io_free(io);
+	return (NULL);
 }
 
 int
@@ -380,14 +384,49 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 }
 #endif /* NO_PROXY */
 
+SSL *
+makessl(int fd, char **cause)
+{
+	SSL_CTX		*ctx;
+	SSL		*ssl;
+	int		 n;
+
+	ctx = SSL_CTX_new(SSLv23_client_method());
+	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+
+	ssl = SSL_new(ctx);
+	if (ssl == NULL) {
+		xasprintf(cause, "SSL_new: %s", SSL_err());
+		return (NULL);
+	}
+
+	if (SSL_set_fd(ssl, fd) != 1) {
+		xasprintf(cause, "SSL_set_fd: %s", SSL_err());
+		return (NULL);
+	}
+
+	SSL_set_connect_state(ssl);
+	if ((n = SSL_connect(ssl)) < 1) {
+		switch (SSL_get_error(ssl, n)) {
+		case SSL_ERROR_WANT_READ:
+		case SSL_ERROR_WANT_WRITE:
+			break;
+		default:
+			xasprintf(cause, "SSL_connect: %d: %s", n, SSL_err());
+			return (NULL);
+		}
+	}
+
+	return (ssl);
+}
+
 struct io *
 connectio(struct server *srv, const char *eol, char **cause)
 {
-	int		 fd = -1, error = 0, n;
+	int		 fd = -1, error = 0;
 	struct addrinfo	 hints;
 	struct addrinfo	*ai;
 	const char	*fn = NULL;
-	SSL_CTX		*ctx;
 	SSL		*ssl;
 
 	if (srv->ai == NULL) {
@@ -425,29 +464,9 @@ connectio(struct server *srv, const char *eol, char **cause)
 	if (!srv->ssl)
 		return (io_create(fd, NULL, eol));
 
-	ctx = SSL_CTX_new(SSLv23_client_method());
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-
-	ssl = SSL_new(ctx);
-	if (ssl == NULL) {
+	if ((ssl = makessl(fd, cause)) == NULL) {
 		close(fd);
-		xasprintf(cause, "SSL_new: %s", SSL_err());
 		return (NULL);
 	}
-
-	if (SSL_set_fd(ssl, fd) != 1) {
-		close(fd);
-		xasprintf(cause, "SSL_set_fd: %s", SSL_err());
-		return (NULL);
-	}
-
-	SSL_set_connect_state(ssl);
-	if ((n = SSL_connect(ssl)) < 1) {
-		close(fd);
-		n = SSL_get_error(ssl, n);
-		xasprintf(cause, "SSL_connect: %d: %s", n, SSL_err());
-		return (NULL);
-	}
-
 	return (io_create(fd, ssl, eol));
 }
