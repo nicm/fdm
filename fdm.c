@@ -685,6 +685,8 @@ main(int argc, char **argv)
 			}
 			log_debug2("parent: child %ld killed", (long) pid);
 		}
+
+		errors = 1;
 	}
 
 	if (gettimeofday(&tv, NULL) != 0)
