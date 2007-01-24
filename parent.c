@@ -254,10 +254,12 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 {
 	struct account	*a = mctx->account;
 	struct mail	*m = mctx->mail;
-	int		 status, found;
+	int		 status, found, flags;
 	pid_t		 pid;
 	char		*s, *cause, *out, *err;
 	struct cmd	*cmd;
+	char		*lbuf;
+	size_t		 llen;
 
 	pid = child_fork();
 	if (pid != 0) {
@@ -315,8 +317,12 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 
 	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, data->ret,
 	    data->re.s == NULL ? "none" : data->re.s);
-	cmd = cmd_start(s, data->pipe, data->re.s != NULL, m->data, m->size,
-	    &cause);
+	flags = CMD_ONCE;
+	if (data->pipe)
+		flags |= CMD_IN;
+	if (data->re.s != NULL)
+		flags |= CMD_OUT;
+	cmd = cmd_start(s, flags, m->data, m->size, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);
@@ -324,22 +330,23 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 		child_exit(MATCH_ERROR);
 	}
 
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
 	found = 0;
 	do {
-		status = cmd_poll(cmd, &out, &err, &cause);
+		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
 		if (status > 0) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			xfree(cause);
 			cmd_free(cmd);
 			xfree(s);
+			xfree(lbuf);
 			child_exit(MATCH_ERROR);
 		}
        		if (status == 0) {
-			if (err != NULL) {
+			if (err != NULL)
 				log_warnx("%s: %s: %s", a->name, s, err);
-
-				xfree(err);
-			}
 			if (out != NULL) {
 				log_debug3("%s: %s: out: %s", a->name, s, out);
 
@@ -348,10 +355,9 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 					log_warnx("%s: %s", a->name, cause);
 					cmd_free(cmd);
 					xfree(s);
+					xfree(lbuf);
 					child_exit(MATCH_ERROR);
-				}
-
-				xfree(out);
+				};
 			}
 		}
 	} while (status >= 0);
@@ -360,6 +366,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	log_debug2("%s: %s: returned %d, found %d", a->name, s, status, found);
 	cmd_free(cmd);
 	xfree(s);
+	xfree(lbuf);
 
 	status = data->ret == status;
 	if (data->ret != -1 && data->re.s != NULL)

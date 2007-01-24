@@ -504,10 +504,16 @@ struct io {
 	const char	*eol;
 };
 
+/* Command flags. */
+#define CMD_IN  0x1 
+#define CMD_OUT 0x2
+#define CMD_ONCE 0x4
+
 /* Command data. */
 struct cmd {
 	pid_t	 	 pid;
 	int		 status;
+	int		 flags;
 
 	struct io	*io_in;
 	struct io	*io_out;
@@ -765,13 +771,28 @@ struct pop3_data {
 	struct io	*io;
 };
 
+/* IMAP tag types. */
+#define IMAP_TAG_NONE -1
+#define IMAP_TAG_CONTINUE -2
+#define IMAP_TAG_ERROR -3
+
+/* IMAP line types. */
+#define IMAP_TAGGED 0
+#define IMAP_CONTINUE 1
+#define IMAP_UNTAGGED 2
+#define IMAP_RAW 3
+
 /* Fetch imap data. */
 struct imap_data {
+	struct server	 server;
+	char		*pipecmd;
+
+	struct io	*io;
+	struct cmd	*cmd;
+
 	char		*user;
 	char		*pass;
 	char		*folder;
-
-	struct server	 server;
 
 	int		 tag;
 	u_int		 cur;
@@ -780,7 +801,14 @@ struct imap_data {
 	u_int	 	 uid;
 	ARRAY_DECL(, u_int) kept;
 
-	struct io	*io;
+	char		*s;
+
+	size_t		 llen;
+	char		*lbuf;
+
+	char		*(*getln)(struct account *a, int);
+	int		 (*putln)(struct account *a, const char *, ...);
+	void		 (*flush)(struct account *a);	
 };
 
 /* Deliver smtp states. */
@@ -847,6 +875,9 @@ extern struct fetch 	 fetch_pop3;
 
 /* fetch-imap.c */
 extern struct fetch 	 fetch_imap;
+
+/* fetch-imappipe.c */
+extern struct fetch 	 fetch_imappipe;
 
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;
@@ -937,6 +968,22 @@ void			 cache_put(struct cache *, char *, u_int);
 int			 cache_get(struct cache *, char *, u_int *);
 int			 cache_contains(struct cache *, char *);
 
+/* imap-common.c */
+int			 imap_tag(char *);
+int			 imap_init(struct account *);
+int			 imap_free(struct account *);
+int			 imap_login(struct account *);
+int			 imap_select(struct account *);
+int			 imap_close(struct account *);
+int			 imap_logout(struct account *);
+void			 imap_abort(struct account *);
+int			 imap_uid(struct account *);
+int			 imap_poll(struct account *, u_int *);
+int			 imap_fetch(struct account *, struct mail *);
+int			 imap_purge(struct account *);
+int			 imap_delete(struct account *);
+int	 		 imap_keep(struct account *);
+
 /* re.c */
 int			 re_compile(struct re *, char *, int, char **);
 int			 re_execute(struct re *, char *, int, regmatch_t *,
@@ -957,9 +1004,9 @@ int			 privsep_recv(struct io *, struct msg *, void **,
 			     size_t *);
 
 /* command.c */
-struct cmd 		*cmd_start(const char *, int, int, char *, size_t,
-			     char **);
-int			 cmd_poll(struct cmd *, char **, char **, char **);
+struct cmd 		*cmd_start(const char *, int, char *, size_t, char **);
+int			 cmd_poll(struct cmd *, char **, char **, char **,
+			     size_t *, char **);
 void			 cmd_free(struct cmd *);
 
 /* child.c */

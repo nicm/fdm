@@ -89,16 +89,6 @@ pop3_check(struct account *a, char **lbuf, size_t *llen)
 }
 
 int
-pop3_init(struct account *a)
-{
-	struct pop3_data	*data = a->data;
-
-	ARRAY_INIT(&data->kept);
-
-	return (0);
-}
-
-int
 pop3_free(struct account *a)
 {
 	struct pop3_data	*data = a->data;
@@ -110,6 +100,16 @@ pop3_free(struct account *a)
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++)
 		xfree(ARRAY_ITEM(&data->kept, i, char *));
 	ARRAY_FREE(&data->kept);
+
+	return (0);
+}
+
+int
+pop3_init(struct account *a)
+{
+	struct pop3_data	*data = a->data;
+
+	ARRAY_INIT(&data->kept);
 
 	return (0);
 }

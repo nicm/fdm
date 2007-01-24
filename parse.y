@@ -311,6 +311,10 @@ find_macro(char *name)
 	} users;
 	enum cmp		 cmp;
 	struct rule		*rule;
+	struct {
+		char		*user;
+		char		*pass;
+	} userpass;
 }
 
 %token <number> NUMBER
@@ -333,6 +337,7 @@ find_macro(char *name)
 %type  <strings> actions actionslist domains domainslist headers headerslist
 %type  <strings> accounts accountslist pathslist maildirs groupslist groups
 %type  <users> users userslist
+%type  <userpass> userpass
 %type  <uid> uid user
 
 %%
@@ -1895,6 +1900,24 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
+/** USERPASS: <userpass> (struct { ... } userpass) */
+userpass: TOKUSER strv TOKPASS strv
+/**       [$2: strv (char *)] [$4: strv (char *)] */
+	  {
+		   if (*$2 == '\0')
+			   yyerror("invalid user");
+		   if (*$4 == '\0')
+			   yyerror("invalid pass");
+
+		  $$.user = $2;
+		  $$.pass = $4;
+	  }
+	| /* empty */
+	  {
+		  $$.user = NULL;
+		  $$.pass = NULL;
+	  }
+
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
 fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
@@ -1946,6 +1969,25 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   else
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
+	   }
+	 | TOKIMAP TOKPIPE strv userpass folder
+/**        [$3: strv (char *)] */
+/**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
+	   {
+		   struct imap_data	*data;
+
+		   if ($5 != NULL && *$5 == '\0')
+			   yyerror("invalid folder");
+
+		   $$.fetch = &fetch_imappipe;
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
+		   data->user = $4.user;
+		   data->pass = $4.pass;
+		   data->folder = $5 == NULL ? xstrdup("INBOX") : $5;
+		   data->pipecmd = replaceinfo($3, NULL, NULL, NULL);
+		   if (data->pipecmd == NULL || *data->pipecmd == '\0')
+			   yyerror("invalid pipe command");
 	   }
 	 | TOKSTDIN
 	   {

@@ -44,6 +44,8 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 	size_t		 len;
 	int	 	 status;
 	struct cmd	*cmd;
+	char		*lbuf;
+	size_t		 llen;
 
 	s = replacepmatch(t->data, a, t, m->s, m, dctx->pmatch_valid,
 	    dctx->pmatch);
@@ -59,24 +61,26 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 	md->size = 0;
 
 	log_debug2("%s: %s: starting", a->name, s);
-	cmd = cmd_start(s, 1, 1, m->data, m->size, &cause);
+	cmd = cmd_start(s, CMD_IN|CMD_OUT|CMD_ONCE, m->data, m->size, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		goto error;
 	}
 	log_debug2("%s: %s: started", a->name, s);
 
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
 	do {
-		status = cmd_poll(cmd, &out, &err, &cause);
+		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
 		if (status > 0) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
+			xfree(lbuf);
 			goto error;
 		}
        		if (status == 0) {
-			if (err != NULL) {
+			if (err != NULL)
 				log_warnx("%s: %s: %s", a->name, s, err);
-				xfree(err);
-			}
 			if (out != NULL) {
 				log_debug3("%s: %s: out: %s", a->name, s, out);
 
@@ -92,11 +96,11 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 				/* append an LF */
 				md->data[md->size + len] = '\n';
 				md->size += len + 1;
-
-				xfree(out);
 			}
 		}
 	} while (status >= 0);
+
+	xfree(lbuf);
 
 	status = -1 - status;
 	if (status != 0) {

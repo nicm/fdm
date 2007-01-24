@@ -27,64 +27,71 @@
 
 #include "fdm.h"
 
-int	 	 imap_connect(struct account *);
-int	 	 imap_disconnect(struct account *);
-char		*imap_desc(struct account *);
+int	 	 imappipe_connect(struct account *);
+int	 	 imappipe_disconnect(struct account *);
+char		*imappipe_desc(struct account *);
 
-int printflike2	 imap_putln(struct account *, const char *, ...);
-char	        *imap_getln(struct account *, int);
-void		 imap_flush(struct account *);
+int printflike2	 imappipe_putln(struct account *, const char *, ...);
+char	        *imappipe_getln(struct account *, int);
+void		 imappipe_flush(struct account *);
 
-struct fetch	fetch_imap = { { "imap", "imaps" },
+struct fetch	fetch_imappipe = { { NULL, NULL },
 			       imap_init,	/* from imap-common.c */
-			       imap_connect,
+			       imappipe_connect,
 			       imap_poll,	/* from imap-common.c */
 			       imap_fetch,	/* from imap-common.c */
 			       imap_purge,	/* from imap-common.c */
 			       imap_delete,	/* from imap-common.c */
 			       imap_keep,	/* from imap-common.c */
-			       imap_disconnect,
+			       imappipe_disconnect,
 			       imap_free,	/* from imap-common.c */
-			       imap_desc
+			       imappipe_desc
 };
 
 int printflike2
-imap_putln(struct account *a, const char *fmt, ...)
+imappipe_putln(struct account *a, const char *fmt, ...)
 {
 	struct imap_data	*data = a->data;
 
 	va_list	ap;
 
 	va_start(ap, fmt);
-	io_vwriteline(data->io, fmt, ap);
+	io_vwriteline(data->cmd->io_in, fmt, ap);
 	va_end(ap);
 
 	return (0);
 }
 
 char *
-imap_getln(struct account *a, int type)
+imappipe_getln(struct account *a, int type)
 {
 	struct imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
 	size_t			*llen = &data->llen;
-	char			*line, *cause;
+	char			*out, *err, *cause;
 	int			 tag;
 
 restart:
-	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
+	switch (cmd_poll(data->cmd, &out, &err, lbuf, llen, &cause)) {
 	case 0:
-		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (NULL);
-	case -1:
+		break;
+	case 1:
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (NULL);
+	default:
+		log_warnx("%s: connection unexpectedly closed", a->name);
+		return (NULL);
 	}
 
+	if (err != NULL)
+		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
+	if (out == NULL)
+		goto restart;
+
 	if (type == IMAP_RAW)
-		return (line);
-	tag = imap_tag(line);
+		return (out);
+	tag = imap_tag(out);
 	switch (type) {
 	case IMAP_TAGGED:
 		if (tag == IMAP_TAG_NONE)
@@ -106,40 +113,42 @@ restart:
 		break;
 	}
 
-	return (line);
+	return (out);
 
 invalid:
-	log_warnx("%s: unexpected data: %s", a->name, line);
+	log_warnx("%s: unexpected data: %s", a->name, out);
 	return (NULL);
 }
 
 void
-imap_flush(struct account *a)
+imappipe_flush(struct account *a)
 {
 	struct imap_data	*data = a->data;
 
-	io_flush(data->io, NULL);
+	io_flush(data->cmd->io_in, NULL);
 }
 
 int
-imap_connect(struct account *a)
+imappipe_connect(struct account *a)
 {
 	struct imap_data	*data = a->data;
 	char			*cause;
 
-	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
-	if (data->io == NULL) {
+	data->cmd = cmd_start(data->pipecmd, CMD_IN|CMD_OUT, NULL, 0, &cause);
+	if (data->cmd == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (1);
 	}
-	if (conf.debug > 3 && !conf.syslog)
-		data->io->dup_fd = STDOUT_FILENO;
+	if (conf.debug > 3 && !conf.syslog) {
+		data->cmd->io_in->dup_fd = STDOUT_FILENO;
+		data->cmd->io_out->dup_fd = STDOUT_FILENO;
+	}
 
-	data->getln = imap_getln;
-	data->putln = imap_putln;
-	data->flush = imap_flush;
-	data->s = data->server.host;
+	data->getln = imappipe_getln;
+	data->putln = imappipe_putln;
+	data->flush = imappipe_flush;
+	data->s = NULL;
 
 	if (imap_login(a) != 0)
 		return (1);
@@ -153,7 +162,7 @@ imap_connect(struct account *a)
 }
 
 int
-imap_disconnect(struct account *a)
+imappipe_disconnect(struct account *a)
 {
 	struct imap_data	*data = a->data;
 
@@ -162,28 +171,25 @@ imap_disconnect(struct account *a)
 	if (imap_logout(a) != 0)
 		goto error;
 
-	io_close(data->io);
-	io_free(data->io);
+	cmd_free(data->cmd);
 
 	return (0);
 
 error:
 	imap_abort(a);
 
-	io_close(data->io);
-	io_free(data->io);
+	cmd_free(data->cmd);
 
 	return (1);
 }
 
 char *
-imap_desc(struct account *a)
+imappipe_desc(struct account *a)
 {
 	struct imap_data	*data = a->data;
 	char			*s;
 
-	xasprintf(&s, "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
-	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->user, data->folder);
+	xasprintf(&s, "imap pipe \"%s\" user \"%s\" folder \"%s\"",
+	    data->pipecmd,  data->user, data->folder);
 	return (s);
 }

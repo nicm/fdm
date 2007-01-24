@@ -28,20 +28,21 @@
 #include "fdm.h"
 
 struct cmd *
-cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
+cmd_start(const char *s, int flags, char *buf, size_t len, char **cause)
 {
 	struct cmd	*cmd;
 	int	 	 fd_in[2], fd_out[2], fd_err[2];
 
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
+	cmd->flags = flags;
 
 	fd_in[0] = fd_in[1] = -1;
 	fd_out[0] = fd_out[1] = -1;
 	fd_err[0] = fd_err[1] = -1;
 
 	/* open child's stdin */
-	if (in) {
+	if (flags & CMD_IN) {
 		if (pipe(fd_in) != 0) {
 			xasprintf(cause, "pipe: %s", strerror(errno));
 			goto error;
@@ -55,7 +56,7 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 	}
 
 	/* open child's stdout */
-	if (out) {
+	if (flags & CMD_OUT) {
 		if (pipe(fd_out) != 0) {
 			xasprintf(cause, "pipe: %s", strerror(errno));
 			goto error;
@@ -107,10 +108,12 @@ cmd_start(const char *s, int in, int out, char *buf, size_t len, char **cause)
 	fd_err[1] = -1;
 
 	/* create ios */
-	if (fd_in[1] != -1 && buf != NULL && len > 0) {
+	if (fd_in[1] != -1) {
 		cmd->io_in = io_create(fd_in[1], NULL, IO_LF);
-		/* write the buffer directly, without copying */
-		io_writefixed(cmd->io_in, buf, len);
+		if (buf != NULL && len > 0) {
+			/* write the buffer directly, without copying */
+			io_writefixed(cmd->io_in, buf, len);
+		}
 		cmd->io_in->flags &= ~IO_RD;
 	}
 	if (fd_out[0] != -1) {
@@ -148,25 +151,36 @@ error:
 }
 
 int
-cmd_poll(struct cmd *cmd, char **out, char **err, char **cause)
+cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
+    char **cause)
 {
 	struct io	*io, *ios[3];
 
 	/* retrieve a line if possible */
-	*out = *err = NULL;
-	if (cmd->io_out != NULL)
-		*out = io_readline(cmd->io_out);
-	if (cmd->io_err != NULL)
-		*err = io_readline(cmd->io_err);
-	if (*out != NULL || *err != NULL)
-		return (0);
+	*err = *out = NULL;
+	if (cmd->io_err != NULL) {
+		if (lbuf != NULL)
+			*err = io_readline2(cmd->io_err, lbuf, llen);
+		else
+			*err = io_readline(cmd->io_err);
+		if (*err != NULL)
+			return (0);
+	}
+	if (cmd->io_out != NULL) {
+		if (lbuf != NULL)
+			*out = io_readline2(cmd->io_out, lbuf, llen);
+		else
+			*out = io_readline(cmd->io_out);
+		if (*out != NULL)
+			return (0);
+	}
 
 	/* close stdin if it is done */
-	if (cmd->io_in != NULL &&
+	if (cmd->flags & CMD_ONCE && cmd->io_in != NULL &&
 	    (IO_WRSIZE(cmd->io_in) == 0 || cmd->pid == -1)) {
-		    io_close(cmd->io_in);
-		    io_free(cmd->io_in);
-		    cmd->io_in = NULL;
+		io_close(cmd->io_in);
+		io_free(cmd->io_in);
+		cmd->io_in = NULL;
 	}
 
 	/* if anything is open, try and poll it */
