@@ -184,7 +184,12 @@ imappipe_desc(struct account *a)
 	struct imap_data	*data = a->data;
 	char			*s;
 
-	xasprintf(&s, "imap pipe \"%s\" user \"%s\" folder \"%s\"",
-	    data->pipecmd,  data->user, data->folder);
+	if (data->user != NULL) {
+		xasprintf(&s, "imap pipe \"%s\" user \"%s\" folder \"%s\"",
+		    data->pipecmd, data->user, data->folder);
+	} else {
+		xasprintf(&s, "imap pipe \"%s\" folder \"%s\"", data->pipecmd,
+		    data->folder);
+	}
 	return (s);
 }
