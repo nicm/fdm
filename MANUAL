@@ -584,7 +584,14 @@ An action to deliver to an mbox is defined in the same way as for a maildir:
 	action "mymboxaction" mbox "/path/to/mbox"
 
 The same % tokens are replaced in the path. If the mbox does not exist, it
-is created.
+is created. Mboxes may optionally be gzip compressed by adding the 'compress'
+keyword:
+
+	action "mymboxaction" mbox "/path/to/mbox" compress
+
+fdm will append .gz to the mbox path (if it is not already present) and append
+compressed data. If the mbox exists but is not already compressed, uncompressed
+data will be appended.
 
 SMTP ---------------------------------------------------------------------------
 

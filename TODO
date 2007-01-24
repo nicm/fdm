@@ -17,4 +17,4 @@
 - dump settings from conf on -vvv
 - document glob in maildir paths
 - document purge-after in man page
-- document compressed mboxes
+- document compressed mboxes in man page
