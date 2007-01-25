@@ -14,9 +14,10 @@ fdm ============================================================================
 6	Fetching mail
 6.1	POP3 and POP3S
 6.2	IMAP and IMAPS
-6.3	Stdin and local mail
-6.4 	From maildirs
-6.5	Using NNTP
+6.3	IMAP over a pipe or via ssh
+6.4	Stdin and local mail
+6.5 	From maildirs
+6.6	Using NNTP
 7	Defining actions
 7.1	Drop and keep
 7.2	Maildirs
@@ -430,6 +431,24 @@ Examples of IMAP and IMAPS accounts include:
 
 	account "workspam" disabled imap server "my-work.ath.cx"
 		user "Nicholas" pass "pass" folder "Junk"
+
+IMAP over a pipe or ssh --------------------------------------------------------
+
+Mail may be fetched using IMAP via a pipe. This is particularly useful for
+fetching mail over ssh using public keys.
+
+An IMAP user and password may be supplied, but fdm will only use them if
+required. If the connection is preauthenticated, the user and password are
+unnecessary.
+
+Communication takes place via the pipe program's stdin and stdout. If any
+output is found on stderr, fdm will print it (or log it with '-l').
+
+Examples are:
+
+	account "imapssh" imap pipe "ssh jim@myhost /usr/local/libexec/imapd"
+	
+	account "imapssh2" imap pipe "/usr/bin/whatever" user "bob" pass "bah"
 
 Stdin and local mail -----------------------------------------------------------
 
