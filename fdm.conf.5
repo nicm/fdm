@@ -145,6 +145,15 @@ will cause such mail to be discarded, and
 .Ar keep
 will attempt to leave the mail on the server.
 The default is to keep the mail and log a warning that it reached the end of the ruleset.
+.It Ic purge-after Ar count
+The
+.Ic purge-after
+option makes
+.Xr fdm 1
+attempt to purge deleted mail from the server (if supported) after
+.Ar count
+mails have been retrieved.
+This is useful on unreliable connections to limit the potential number of mails refetched if the connetion drops, but note that it can incur a considerable speed penalty.
 .El
 .Sh INCLUDING FILES
 Further configuration files may be including using the
@@ -385,10 +394,21 @@ Keep the mail, do not remove it from the account.
 .Xc
 Save the mail to the maildir specified by
 .Ar path .
-.It Xo Ic mbox Ar path
+.It Xo Ic mbox Ar path Op Ic compress
 .Xc
 Append the mail to the mbox at
 .Ar path .
+If
+.Ic compress
+is specified,
+.Xr fdm 1
+will add 
+.Sq .gz
+to 
+.Ar path
+and attempt to write mail using
+.Xr gzip 1
+compression.
 .It Xo Ic pipe Ar command
 .Xc
 Pipe the entire mail to

@@ -16,5 +16,3 @@
 - document IMAP over ssh
 - dump settings from conf on -vvv
 - document glob in maildir paths
-- document purge-after in man page
-- document compressed mboxes in man page
