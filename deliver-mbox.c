@@ -26,9 +26,11 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <zlib.h>
 
 #include "fdm.h"
+
+/* With gcc 2.95.x, you can't include zlib.h before openssl.h. */
+#include <zlib.h>
 
 int	 mbox_deliver(struct deliver_ctx *, struct action *);
 char	*mbox_desc(struct action *);
