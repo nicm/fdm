@@ -205,6 +205,7 @@ pop3_poll(struct account *a, u_int *n)
 	struct pop3_data	*data = a->data;
 
 	*n = data->num;
+
 	return (0);
 }
 

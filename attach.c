@@ -236,7 +236,7 @@ attach_build(struct mail *m)
 	type = attach_type(m, hdr, "boundary", &b);
 	if (type == NULL || b == NULL) {
 		if (type != NULL)
-			xfree(type);			
+			xfree(type);
 		goto error;
 	}
 	if (strncasecmp(type, "multipart/", 10) != 0) {
