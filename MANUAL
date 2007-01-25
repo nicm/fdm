@@ -825,7 +825,7 @@ Examples:
 
 	match exec "blah" (12, "^Out") action "meep"
 
-Attachments---------------------------------------------------------------------
+Attachments --------------------------------------------------------------------
 
 There are five conditions available to filter based on the size, quantity, type
 and name of attachments. Thay all specified prefixed with the 'attachment'
