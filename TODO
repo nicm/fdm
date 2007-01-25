@@ -1,4 +1,4 @@
-#- SMTP SSL and/or TLS
+- SMTP SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
 - look into GSSAPI, POP3's MD5 thing, all that other crap
@@ -14,4 +14,3 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - dump settings from conf on -vvv
-- document glob in maildir paths

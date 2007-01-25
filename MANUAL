@@ -478,6 +478,9 @@ Maildir accounts are specified as follows:
 
 	account "mymaildirs" maildirs { "/path/to/dir1" "/path/to/dir2" }
 
+Shell glob wildcards may be included in the path names to match multiple
+maildirs, but every directory found must be a valid maildir.
+
 Using NNTP ---------------------------------------------------------------------
 
 fdm can fetch news messages from a news server using NNTP. News accounts are
@@ -678,7 +681,8 @@ they are evaluated from left to right at the same precedence, or prepended with
 
 The optional <accounts> item is a list of accounts for which the rule provided
 applies. It is specified as either a single account ('account "name"') or a list
-of accounts ('accounts { "name1" "name2" }').
+of accounts ('accounts { "name1" "name2" }'). fnmatch(3) wildcards may also be
+used.
 
 The <actions> item is a list of actions to execute when this rule matches.
 It is in the same list format: 'action "name"' or "actions { "name1" "name2" }'.
@@ -979,11 +983,9 @@ a single-purpose configuration file):
 	match age > 30 days account "archive" action "archive"
 	match all account "archive" action "keep"
 
-Then, fdm may be run:
+Then, fdm may be run to move the mail:
 
 	fdm -vaarchive fetch
-
-To move the mail.
 
 To search mail, similar rules may be used, but all mail should be kept, in this
 example by marking the account with 'keep' so that mail is kept no matter what
