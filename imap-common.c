@@ -268,7 +268,8 @@ restart:
 	}
 
 	mail_open(m, IO_ROUND(size));
-	m->s = xstrdup(data->s);
+	if (data->s != NULL)
+		m->s = xstrdup(data->s);
 
 	flushing = 0;
 	if (size > conf.max_size)
