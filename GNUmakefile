@@ -3,7 +3,7 @@
 .PHONY: clean
 
 PROG= fdm
-VERSION= 0.9
+VERSION= 1.0
 DATE= $(shell date +%Y%m%d-%H%M)
 
 PREFIX= /usr/local
