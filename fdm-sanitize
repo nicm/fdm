@@ -31,48 +31,48 @@ BEGIN {
 /\> [0-9]+ LOGIN \{[0-9]+\}/ {
 	imap_user = 1;
 	print ($0);
-	fflush;
+	fflush();
 	next;
 }
 
 /\> .+ \{[0-9]+\}/ {
 	if (imap_user) {
 		print ("> * " $3);
-		fflush;
+		fflush();
 		imap_user = 0;
 		imap_pass = 1;
 		next;
 	}
 	print ($0);
-	fflush;
+	fflush();
 	next;
 }
 
 /\> USER .+/ {
 	print ("> USER *");
-	fflush;
+	fflush();
 	next;
 }
 
 /\> PASS .+/ {
 	print ("> PASS *");
-	fflush;
+	fflush();
 	next;
 }
 
 /\> .+/ {
 	if (imap_pass) {
 		print ("> *");
-		fflush;
+		fflush();
 		imap_pass = 0;
 		next;
 	}
 	print ($0);
-	fflush;
+	fflush();
 	next;
 }
 
 /.*/ {
 	print ($0);
-	fflush;
+	fflush();
 }
