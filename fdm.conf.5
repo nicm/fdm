@@ -285,6 +285,21 @@ These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3 account, aside from the additional
 .Ic folder
 option which allows the folder name to be specified (the default is to fetch from the inbox).
+.It Xo Ic imap Ic pipe Ar command
+.Op Ic user Ar user Ic pass Ar pass
+.Xc
+This account type uses the IMAP protocol piped through a
+.Ar command ,
+such as
+.Xr ssh 1 .
+If the optional IMAP
+.Ar user
+and
+.Ar pass
+are supplied, they will be used if necessary.
+If the command produces any output to
+.Em stderr ,
+it is logged.
 .It Ic maildir Ar path
 .It Xo Ic maildirs
 .Li {
@@ -376,7 +391,7 @@ quarter (1-4) and
 with a literal %.
 In addition,
 .Em %s
-is replaced by a string specific to the type of account and 
+is replaced by a string specific to the type of account and
 .Em %0
 to
 .Em %9
@@ -402,9 +417,9 @@ If
 .Ic compress
 is specified,
 .Xr fdm 1
-will add 
+will add
 .Sq .gz
-to 
+to
 .Ar path
 and attempt to write mail using
 .Xr gzip 1

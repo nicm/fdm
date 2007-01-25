@@ -13,6 +13,5 @@
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
-- document IMAP over ssh in teh man page
 - dump settings from conf on -vvv
 - document glob in maildir paths
