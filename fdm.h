@@ -46,7 +46,6 @@
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	64
-#define DEFEXPIRYTIME	TIME_MONTH
 
 extern char	*__progname;
 
