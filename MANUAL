@@ -350,11 +350,16 @@ includes passwords, usernames and hostnames unmodified. The 'fdm-sanitize'
 script provided with fdm may be used to remove passwords and usernames from
 this output, either while it is being collected:
 
-	fdm -vvvv f 2>&1|./fdm-sanitize|tee my-output
+	fdm -vvvv -a testacct f 2>&1|./fdm-sanitize|tee my-output
 
 Or afterwards:
 	
 	./fdm-sanitize <vvvv-output >my-output
+
+Since fdm fetches multiple simultaneously, which may mix intersperse debugging
+output, it is recommended to fetch each account seperately if running the output
+through fdm-sanitize. If this is not done, it may not be able to detect all
+username/password occurances.
 
 The '-k' command line option (and the 'keep' keywords on actions and accounts,
 covered later) prevent fdm from deleting any mail after delivery. This may be
