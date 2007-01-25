@@ -101,13 +101,6 @@ depend:
 regress:	${PROG}
 		cd regress && ${MAKE}
 
-port:
-		tar -zxc \
-			-s '/ports\/OpenBSD\/\(.*\)/${PROG}\/\1/' \
-			-f ${PROG}-${VERSION}-openbsd-${REL}-port.tar.gz \
-			ports/OpenBSD/Makefile ports/OpenBSD/distinfo \
-			ports/OpenBSD/pkg/PLIST ports/OpenBSD/pkg/DESCR
-
 yannotate:
 		awk -f yannotate.awk parse.y > parse.y.new
 		mv parse.y.new parse.y
