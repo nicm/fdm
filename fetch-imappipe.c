@@ -31,16 +31,16 @@ char	        *imappipe_getln(struct account *, int);
 void		 imappipe_flush(struct account *);
 
 struct fetch	fetch_imappipe = { { NULL, NULL },
-			       imap_init,	/* from imap-common.c */
-			       imappipe_connect,
-			       imap_poll,	/* from imap-common.c */
-			       imap_fetch,	/* from imap-common.c */
-			       imap_purge,	/* from imap-common.c */
-			       imap_delete,	/* from imap-common.c */
-			       imap_keep,	/* from imap-common.c */
-			       imappipe_disconnect,
-			       imap_free,	/* from imap-common.c */
-			       imappipe_desc
+				   imap_init,	/* from imap-common.c */
+				   imappipe_connect,
+				   imap_poll,	/* from imap-common.c */
+				   imap_fetch,	/* from imap-common.c */
+				   imap_purge,	/* from imap-common.c */
+				   imap_delete,	/* from imap-common.c */
+				   imap_keep,	/* from imap-common.c */
+				   imappipe_disconnect,
+				   imap_free,	/* from imap-common.c */
+				   imappipe_desc,
 };
 
 int printflike2

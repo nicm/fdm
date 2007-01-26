@@ -140,6 +140,20 @@ resize_mail(struct mail *m, size_t size)
 	m->data = m->base + m->off;
 }
 
+char *
+rfc822_time(time_t t, char *buf, size_t len)
+{
+	struct tm	*tm;
+	size_t		 n;
+
+	tm = localtime(&t);
+	if ((n = strftime(buf, len, "%a, %d %b %Y %H:%M:%S %z", tm)) == 0)
+		return (NULL);
+	if (n == len)
+		return (NULL);	
+	return (buf);
+}
+
 int
 makepath(char *buf, size_t len, char *path, char *name)
 {
@@ -270,8 +284,8 @@ line_next(struct mail *m, char **line, size_t *len)
 int
 remove_header(struct mail *m, const char *hdr)
 {
-	char		*ptr;
-	size_t		 len;
+	char	*ptr;
+	size_t	 len;
 
 	if ((ptr = find_header(m, hdr, &len, 0)) == NULL)
 		return (1);
@@ -288,7 +302,7 @@ remove_header(struct mail *m, const char *hdr)
 	return (0);
 }
 
-void
+int
 insert_header(struct mail *m, const char *before, const char *fmt, ...)
 {
 	va_list		 ap;
@@ -302,12 +316,12 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	/* include the \n */
 	hdrlen++;
 
-	ptr = NULL;
 	if (before != NULL) {
 		/* insert before header */
 		ptr = find_header(m, before, &len, 0);
-	}
-	if (ptr == NULL) {
+		if (ptr == NULL)
+			return (1);
+	} else {
 		/* insert at the end */
 		if (m->body == -1)
 			ptr = m->data + m->size;
@@ -325,6 +339,8 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	m->size += hdrlen;
  	if (m->body != -1)
 		m->body += hdrlen;
+
+	return (0);
 }
 
 char *
@@ -337,14 +353,16 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 
 	end = m->data + (m->body == -1 ? m->size : (size_t) m->body);
 	ptr = m->data;
-	do {
+	if (hdrlen > (size_t) (end - ptr))
+		return (NULL);
+	while (strncasecmp(ptr, hdr, hdrlen) != 0) {
 		ptr = memchr(ptr, '\n', end - ptr);
 		if (ptr == NULL)
 			return (NULL);
 		ptr++;
 		if (hdrlen > (size_t) (end - ptr))
 			return (NULL);
-	} while (strncasecmp(ptr, hdr, hdrlen) != 0);
+	}
 
 	out = ptr + hdrlen;
 	ptr = memchr(out, '\n', end - out);

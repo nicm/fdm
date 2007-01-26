@@ -261,10 +261,10 @@ struct mail {
 	char			*data;
 	size_t			 off;
 
-	size_t	 	 	size;		/* size of mail */
-	size_t	 	 	space;		/* size of malloc'd area */
+	size_t	 	 	 size;		/* size of mail */
+	size_t	 	 	 space;		/* size of malloc'd area */
 
-	ARRAY_DECL(, size_t *)	wrapped;	/* list of wrapped lines */
+	ARRAY_DECL(, size_t *)	 wrapped;	/* list of wrapped lines */
 
 	ssize_t		 	 body;		/* offset of body */
 };
@@ -422,6 +422,8 @@ struct conf {
 		char		*user;
 		char		*uid;
 		char		*host;
+		char		*fqdn;
+		char		*addr;
 	} info;
 
 	char			*conf_file;
@@ -957,6 +959,7 @@ int			 check_incl(char *);
 int		         check_excl(char *);
 int			 use_account(struct account *, char **);
 void			 fill_info(const char *);
+void			 fill_fqdn(char *, char **, char **);
 
 /* cache.c */
 struct cache 		*cache_open(char *, char **);
@@ -1031,12 +1034,13 @@ void			 mail_reopen(struct mail *, char *);
 void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);
 void			 resize_mail(struct mail *, size_t);
+char 			*rfc822_time(time_t, char *, size_t);
 int 			 makepath(char *, size_t, char *, char *);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
-void			 insert_header(struct mail *, const char *,
+int			 insert_header(struct mail *, const char *,
 			     const char *, ...);
 int			 remove_header(struct mail *, const char *);
 char 			*find_header(struct mail *, const char *, size_t *,

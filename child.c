@@ -233,7 +233,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 	int		 error;
  	const char	*cause = NULL;
 	struct match_ctx mctx;
-	char		*hdr;
+	char		*hdr, recvtime[64], *recvname;
 	size_t		 len;
 
 	log_debug("%s: fetching", a->name);
@@ -286,6 +286,26 @@ fetch_account(struct io *io, struct account *a, double tim)
 			    hdr);
 		}
 
+		/*
+		 * Insert received header.
+		 *
+		 * No header line must exceed 998 bytes. Limiting the user-
+		 * supplied strings at 512 bytes gives plenty of space for
+		 * the other stuff, and if they get truncated, hey, who cares?
+		 */
+		if (rfc822_time(time(NULL), recvtime, sizeof recvtime) == NULL)
+			strlcpy(recvtime, "unknown", sizeof recvtime);
+		if (conf.info.fqdn != NULL)
+			recvname = conf.info.fqdn;
+		else
+			recvname = conf.info.host;	
+		error = insert_header(&m, "Received:", 
+		    "Received: by %.512s (%s " BUILD ");\n\t%s", 
+		    recvname, __progname, recvtime);
+		if (error != 0)
+			log_debug("%s: failed to add received header", a->name);
+
+		/* fill wrapped line list */
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
@@ -415,10 +435,15 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		/* match all the regexps */
 		switch (r->type) {
 		case RULE_EXPRESSION:
+			/* combine wrapped lines */
+			set_wrapped(m, ' ');
+
+			/* perform the expression */
 			if ((error = do_expr(r, mctx)) == -1) {
 				*cause = "matching";
 				return (1);
 			}
+
 			/* continue if no match */
 			if (!error)
 				continue;
@@ -426,13 +451,11 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		case RULE_ALL:
 			break;
 		}
+
+		/* reset wrapped lines */
 		set_wrapped(m, '\n');
 
 		log_debug("%s: matched message to rule %u", a->name, r->idx);
-		remove_header(m, "X-fdm-Account-Name:");
-		insert_header(m, NULL, "X-fdm-Account-Name: %s", a->name);
-		remove_header(m, "X-fdm-Rule-Number:");
-		insert_header(m, NULL, "X-fdm-Rule-Number: %u", r->idx);
 
 		/* tag mail if needed */
 		if (r->tag != NULL) {
@@ -479,8 +502,6 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 	int		 fres, cres;
 	struct expritem	*ei;
 	char		*s;
-
-	set_wrapped(mctx->mail, ' ');
 
 	fres = 0;
 	TAILQ_FOREACH(ei, r->expr, entry) {

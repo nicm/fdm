@@ -6,5 +6,8 @@
 * Fixed command.c to trim CR line end if present, this makes IMAP over ssh
   work. (0.9a)
 * Fixed miscalculation of length in find_header. (0.9a)
-* Made fdm insert two headers (X-fdm-Account-Name and X-fdm-Rule-Number) to
-  help with tracking a mail.
+* Fixed find_header to locate the first rather than second instance.
+* Added FQDN and what it resolves to the domains list by default.
+* Added a basic Received header with local host and fdm version.
+
+$Id$

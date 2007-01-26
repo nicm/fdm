@@ -30,6 +30,7 @@
 #include <limits.h>
 #include <paths.h>
 #include <pwd.h>
+#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,6 +112,8 @@ fill_info(const char *home)
 		if (gethostname(host, sizeof host) != 0)
 			fatal("gethostname");
 		conf.info.host = xstrdup(host);
+
+		fill_fqdn(host, &conf.info.fqdn, &conf.info.addr);
 	}
 
 	if (home != NULL && *home != '\0')
@@ -133,6 +136,26 @@ fill_info(const char *home)
 		conf.info.user = xstrdup(conf.info.uid);
 		log_warnx("can't find name for user %lu", (u_long) uid);
 	}
+}
+
+void
+fill_fqdn(char *host, char **fqdn, char **addr)
+{
+	char			 ni[NI_MAXHOST];
+	struct addrinfo		*ai;
+
+	*fqdn = *addr = NULL;
+
+	if (getaddrinfo(host, NULL, NULL, &ai) != 0)
+		return;
+		
+	if (getnameinfo(ai->ai_addr,
+	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NUMERICHOST) == 0) 
+		xasprintf(addr, "[%s]", ni);
+
+	if (getnameinfo(ai->ai_addr,
+	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NAMEREQD) == 0)
+		*fqdn = xstrdup(ni);
 }
 
 int
@@ -424,6 +447,10 @@ main(int argc, char **argv)
 		conf.domains = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.domains);
 		ARRAY_ADD(conf.domains, conf.info.host, char *);
+		if (conf.info.fqdn != NULL)
+			ARRAY_ADD(conf.domains, conf.info.fqdn, char *);
+		if (conf.info.addr != NULL)
+			ARRAY_ADD(conf.domains, conf.info.addr, char *);
 	}
 	s = fmt_strings(NULL, conf.domains);
 	log_debug("domains are: %s", s);
