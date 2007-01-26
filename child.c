@@ -533,7 +533,7 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 			break;
 		}
 
-		ei->match->desc(ei->match, desc, sizeof desc);
+		ei->match->desc(ei, desc, sizeof desc);
 		log_debug2("%s: tried %s%s, got %d", mctx->account->name,
 		    ei->inverted ? "not " : "", desc, cres);
 	}

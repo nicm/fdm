@@ -61,7 +61,15 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 		log_warn("%s: %s: mkdir", a->name, path);
 		goto out;
 	}
-	if (xsnprintf(name, sizeof name, "%s/cur", path) < 0) {
+	if (makepath(name, sizeof name, path, "cur") != 0) {
+		log_warn("%s: %s: makepath", a->name, path);
+		goto out;
+	}
+	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
+		log_warn("%s: %s: mkdir", a->name, name);
+		goto out;
+	}
+	if (makepath(name, sizeof name, path, "new") != 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
 		goto out;
 	}
@@ -69,15 +77,7 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 		log_warn("%s: %s: mkdir", a->name, name);
 		goto out;
 	}
-	if (xsnprintf(name, sizeof name, "%s/new", path) < 0) {
-		log_warn("%s: %s: xsnprintf", a->name, path);
-		goto out;
-	}
-	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
-		log_warn("%s: %s: mkdir", a->name, name);
-		goto out;
-	}
-	if (xsnprintf(name, sizeof name, "%s/tmp", path) < 0) {
+	if (makepath(name, sizeof name, path, "tmp") < 0) {
 		log_warn("%s: %s: xsnprintf", a->name, path);
 		goto out;
 	}
@@ -195,5 +195,5 @@ out:
 void
 maildir_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "maildir \"%s\"", (char *) t->data);
+	snprintf(buf, len, "maildir \"%s\"", (char *) t->data);
 }
