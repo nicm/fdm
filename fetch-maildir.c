@@ -255,7 +255,7 @@ restart:
 	mail_open(m, IO_ROUND(sb.st_size));
 	m->src = xstrdup(basename(dirname(data->path)));
 
-	log_debug2("%s: reading %zu bytes", a->name, m->size);
+	log_debug2("%s: reading %ju bytes", a->name, (uintmax_t) sb.st_size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
 		close(fd);
 		log_warn("%s: %s: read", a->name, data->entry);
