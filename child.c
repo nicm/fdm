@@ -428,15 +428,17 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		}
 		set_wrapped(m, '\n');
 
+		log_debug("%s: matched message to rule %u", a->name, r->idx);
+
 		/* tag mail if needed */
 		if (r->tag != NULL) {
-			log_debug("%s: tagging message: %s", a->name, r->tag);
+			log_debug2("%s: tagging message: %s", a->name, r->tag);
 			ARRAY_ADD(&m->tags, r->tag, char *);
 		}
 
 		/* handle delivery */
 		if (r->actions != NULL) {
-			log_debug("%s: matched message", a->name);
+			log_debug2("%s: delivering message", a->name);
 			mctx->matched = 1;
 			if (do_deliver(r, mctx) != 0) {
 				*cause = "delivery";

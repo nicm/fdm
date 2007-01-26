@@ -373,6 +373,7 @@ enum ruletype {
 
 /* Rule entry. */
 struct rule {
+	u_int			 idx;
 	enum ruletype		 type;
 
 	struct strings		*accounts;

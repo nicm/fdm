@@ -38,6 +38,7 @@
 #include "fdm.h"
 
 struct macros	macros = TAILQ_HEAD_INITIALIZER(macros);
+u_int		ruleidx;
 
 struct fileent {
 	FILE			*yyin;
@@ -677,7 +678,7 @@ defmacro: STRMACRO '=' STRING
 		  }
 		  macro->type = MACRO_STRING;
 		  macro->value.string = $3;
-		  log_debug3("added macro: %s = \"%s\"", macro->name,
+		  log_debug3("added macro \"%s\": \"%s\"", macro->name,
 		      macro->value.string);
 		  xfree($1);
 	  }
@@ -694,7 +695,7 @@ defmacro: STRMACRO '=' STRING
 		  }
 		  macro->type = MACRO_NUMBER;
 		  macro->value.number = $3;
-		  log_debug3("added macro: %s = %lld", macro->name,
+		  log_debug3("added macro \"%s\": %lld", macro->name,
 		      macro->value.number);
 		  xfree($1);
 	  }
@@ -1171,7 +1172,7 @@ defaction: TOKACTION strv users action
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
 		   s = t->deliver->desc(t);
-		   log_debug2("added action: name=%s deliver=%s", t->name, s);
+		   log_debug2("added action \"%s\": deliver=%s", t->name, s);
 		   xfree(s);
 
 		   xfree($2);
@@ -1697,6 +1698,7 @@ perform: TOKTAG strv
 			 yyerror("invalid tag");
 
 		 $$ = xcalloc(1, sizeof *$$);
+		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
 		 $$->tag = $2;
 		 TAILQ_INIT(&$$->rules);
@@ -1714,6 +1716,7 @@ perform: TOKTAG strv
 /**      [$2: actions (struct strings *)] [$3: cont (int)] */
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
+		 $$->idx = ruleidx++;
 		 $$->actions = $2;
 		 $$->tag = NULL;
 		 TAILQ_INIT(&$$->rules);
@@ -1729,6 +1732,7 @@ perform: TOKTAG strv
        | '{'
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
+		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
 		 $$->tag = NULL;
 		 TAILQ_INIT(&$$->rules);
@@ -1799,14 +1803,16 @@ rule: match accounts perform
 		      sa = xstrdup("");
 	      if ($3->actions != NULL) {
 		      s = fmt_strings(NULL, $3->actions);
-		      log_debug2("added rule:%s actions=%s matches=%s", sa, s,
-			  s1);
+		      log_debug2("added rule %u:%s actions=%s matches=%s",
+			  $3->idx, sa, s, s1);
 		      xfree(s);
 	      } else if ($3->tag != NULL) {
-		      log_debug2("added rule:%s tag=%s matches=%s", sa, $3->tag,
-			  s1);
-	      } else
-		      log_debug2("added rule:%s nested matches=%s", sa, s1);
+		      log_debug2("added rule %u:%s tag=%s matches=%s",
+			  $3->idx, sa, $3->tag, s1);
+	      } else {
+		      log_debug2("added rule %u:%s nested matches=%s",
+			  $3->idx, sa, s1);
+	      }
 	      xfree(sa);
       }
 
@@ -2066,7 +2072,7 @@ account: TOKACCOUNT strv disabled users fetchtype keep
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);
 
 		 s = a->fetch->desc(a);
-		 log_debug2("added account: name=%s fetch=%s", a->name, s);
+		 log_debug2("added account \"%s\": fetch=%s", a->name, s);
 		 xfree(s);
 	 }
 

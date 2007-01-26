@@ -1,0 +1,5 @@
+26 January 2007
+
+* Assigned a number to each rule and changed logging to refer to it. Also
+  tweaked the -vv configuration file output.
+
