@@ -456,7 +456,14 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		/* reset wrapped lines */
 		set_wrapped(m, '\n');
 
-		log_debug("%s: matched message to rule %u", a->name, r->idx);
+		/* report rule number */
+		if (TAILQ_EMPTY(&r->rules)) {
+			log_debug("%s: matched message with rule %u", a->name,
+			    r->idx);
+		} else {
+			log_debug("%s: matched message with rule %u (nested)",
+			    a->name, r->idx);
+		}
 
 		/* tag mail if needed */
 		if (r->tag != NULL) {
