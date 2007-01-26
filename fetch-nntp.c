@@ -572,7 +572,7 @@ restart:
 		goto restart;
 
 	mail_open(m, IO_BLOCKSIZE);
-	m->s = xstrdup(CURRENT_GROUP(data)->name);
+	m->src = xstrdup(CURRENT_GROUP(data)->name);
 
 	flushing = 0;
 	off = lines = 0;

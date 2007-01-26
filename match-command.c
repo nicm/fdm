@@ -35,7 +35,7 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail		*m = mctx->mail;
 	struct io		*io = mctx->io;
 	struct msg		 msg;
-	size_t			 slen;
+	size_t			 srclen;
 
 	/* we are called as the child so to change uid this needs to be done
 	   largely in the parent */
@@ -49,8 +49,8 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 
 	mail_send(m, &msg);
 
-	slen = m->s != NULL ? strlen(m->s) : 0;
-	if (privsep_send(io, &msg, m->s, slen) != 0)
+	srclen = m->src != NULL ? strlen(m->src) : 0;
+	if (privsep_send(io, &msg, m->src, srclen) != 0)
 		fatalx("child: privsep_send error");
 
 	if (privsep_recv(io, &msg, NULL, 0) != 0)
@@ -73,13 +73,13 @@ command_desc(struct expritem *ei)
 		xsnprintf(ret, sizeof ret, "%d", data->ret);
 	t = data->pipe ? "pipe" : "exec";
 
-	if (data->re.s == NULL) {
+	if (data->re.str == NULL) {
 		xasprintf(&s, "%s \"%s\" user %lu returns (%s, )", t,
 		    data->cmd, (u_long) data->uid, ret);
 		return (s);
 	}
 
 	xasprintf(&s, "command %s \"%s\" user %lu returns (%s, \"%s\")", t,
-	    data->cmd, (u_long) data->uid, ret, data->re.s);
+	    data->cmd, (u_long) data->uid, ret, data->re.str);
 	return (s);
 }

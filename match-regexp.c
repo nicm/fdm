@@ -91,6 +91,6 @@ regexp_desc(struct expritem *ei)
 		break;
 	}
 
-	xasprintf(&s, "regexp \"%s\" in %s", data->re.s, area);
+	xasprintf(&s, "regexp \"%s\" in %s", data->re.str, area);
 	return (s);
 }

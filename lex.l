@@ -257,9 +257,9 @@ read_str(char endc, int esc)
 				yyerror("undefined macro: %s", name);
 
 			if (macro->type == MACRO_NUMBER)
- 				xasprintf(&s, "%lld", macro->value.number);
+ 				xasprintf(&s, "%lld", macro->value.num);
 			else
-				s = macro->value.string;
+				s = macro->value.str;
 			slen = strlen(s);
 
 			ENSURE_FOR(buf, len, pos, slen + 1);

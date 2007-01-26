@@ -50,19 +50,19 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 		case ATTACHOP_COUNT:
 			switch (data->cmp) {
 			case CMP_EQ:
-				if (n == data->value.number)
+				if (n == data->value.num)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
 			case CMP_NE:
-				if (n != data->value.number)
+				if (n != data->value.num)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
 			case CMP_LT:
-				if (n < data->value.number)
+				if (n < data->value.num)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
 			case CMP_GT:
-				if (n > data->value.number)
+				if (n > data->value.num)
 					return (MATCH_TRUE);
 				return (MATCH_FALSE);
 			default:
@@ -109,14 +109,14 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 			case ATTACHOP_ANYTYPE:
 				if (at->type == NULL)
 					break;
-				if (fnmatch(data->value.string, at->type,
+				if (fnmatch(data->value.str, at->type,
 				    FNM_CASEFOLD) == 0)
 					return (MATCH_TRUE);
 				break;
 			case ATTACHOP_ANYNAME:
 				if (at->name == NULL)
 					break;
-				if (fnmatch(data->value.string, at->name,
+				if (fnmatch(data->value.str, at->name,
 				    FNM_CASEFOLD) == 0)
 					return (MATCH_TRUE);
 				break;
@@ -150,21 +150,21 @@ attachment_desc(struct expritem *ei)
 	switch (data->op) {
 	case ATTACHOP_COUNT:
 		xasprintf(&s, "attachment count %s %lld", cmp,
-		    data->value.number);
+		    data->value.num);
 		return (s);
 	case ATTACHOP_TOTALSIZE:
 		xasprintf(&s, "attachment total-size %s %lld", cmp,
-		    data->value.number);
+		    data->value.num);
 		return (s);
 	case ATTACHOP_ANYSIZE:
 		xasprintf(&s, "attachment any-size %s %lld", cmp,
-		    data->value.number);
+		    data->value.num);
 		return (s);
 	case ATTACHOP_ANYTYPE:
-		xasprintf(&s, "attachment any-type \"%s\"", data->value.string);
+		xasprintf(&s, "attachment any-type \"%s\"", data->value.str);
 		return (s);
 	case ATTACHOP_ANYNAME:
-		xasprintf(&s, "attachment any-name \"%s\"", data->value.string);
+		xasprintf(&s, "attachment any-name \"%s\"", data->value.str);
 		return (s);
 	default:
 		return (xstrdup(""));

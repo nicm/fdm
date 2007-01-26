@@ -71,7 +71,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	struct stat		 sb;
 	gzFile			 gzf = NULL;
 
-	path = replacepmatch(data->path, a, t, m->s, m, dctx->pmatch_valid,
+	path = replacepmatch(data->path, a, t, m->src, m, dctx->pmatch_valid,
 	    dctx->pmatch);
 	if (path == NULL || *path == '\0') {
 		if (path != NULL)

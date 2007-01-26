@@ -95,7 +95,7 @@ yywrap(void)
 			macro = TAILQ_FIRST(&macros);
 			TAILQ_REMOVE(&macros, macro, entry);
 			if (macro->type == MACRO_STRING)
-				xfree(macro->value.string);
+				xfree(macro->value.str);
 			xfree(macro);
 		}
 
@@ -372,7 +372,7 @@ strv: STRING
 	      if (macro->type != MACRO_STRING)
 		      yyerror("string macro expected: %s", $1);
 
-	      $$ = xstrdup(macro->value.string);
+	      $$ = xstrdup(macro->value.str);
 
 	      xfree($1);
       }
@@ -394,7 +394,7 @@ strv: STRING
 	      if (macro->type != MACRO_STRING)
 		      yyerror("string macro expected: %s", name);
 
-	      $$ = xstrdup(macro->value.string);
+	      $$ = xstrdup(macro->value.str);
 
 	      xfree($1);
       }
@@ -416,7 +416,7 @@ numv: NUMBER
 	      if (macro->type != MACRO_NUMBER)
 		      yyerror("number macro expected: %s", $1);
 
-	      $$ = macro->value.number;
+	      $$ = macro->value.num;
 
 	      xfree($1);
       }
@@ -438,7 +438,7 @@ numv: NUMBER
 	      if (macro->type != MACRO_NUMBER)
 		      yyerror("number macro expected: %s", name);
 
-	      $$ = macro->value.number;
+	      $$ = macro->value.num;
 
 	      xfree($1);
       }
@@ -681,9 +681,9 @@ defmacro: STRMACRO '=' STRING
 			  TAILQ_INSERT_HEAD(&macros, macro, entry);
 		  }
 		  macro->type = MACRO_STRING;
-		  macro->value.string = $3;
+		  macro->value.str = $3;
 		  log_debug3("added macro \"%s\": \"%s\"", macro->name,
-		      macro->value.string);
+		      macro->value.str);
 		  xfree($1);
 	  }
         | NUMMACRO '=' NUMBER
@@ -698,9 +698,9 @@ defmacro: STRMACRO '=' STRING
 			  TAILQ_INSERT_HEAD(&macros, macro, entry);
 		  }
 		  macro->type = MACRO_NUMBER;
-		  macro->value.number = $3;
+		  macro->value.num = $3;
 		  log_debug3("added macro \"%s\": %lld", macro->name,
-		      macro->value.number);
+		      macro->value.num);
 		  xfree($1);
 	  }
 
@@ -1487,7 +1487,7 @@ expritem: not icase strv area
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 
-		  data->s = $3;
+		  data->str = $3;
 
 		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
 		  if (re_compile(&data->re, $5, flags, &cause) != 0)
@@ -1558,7 +1558,7 @@ expritem: not icase strv area
 
 		  data->op = ATTACHOP_COUNT;
 		  data->cmp = $4;
-		  data->value.number = $5;
+		  data->value.num = $5;
 	  }
         | not TOKATTACHMENT TOKTOTALSIZE cmp size
 /**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: size (long long)] */
@@ -1621,7 +1621,7 @@ expritem: not icase strv area
 		  $$->data = data;
 
 		  data->op = ATTACHOP_ANYTYPE;
-		  data->value.string = $4;
+		  data->value.str = $4;
 	  }
         | not TOKATTACHMENT TOKANYNAME strv
 /**       [$1: not (int)] [$4: strv (char *)] */
@@ -1640,7 +1640,7 @@ expritem: not icase strv area
 		  $$->data = data;
 
 		  data->op = ATTACHOP_ANYNAME;
-		  data->value.string = $4;
+		  data->value.str = $4;
 	  }
 
 

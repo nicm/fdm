@@ -558,7 +558,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		name = ARRAY_ITEM(r->actions, i, char *);
 
-		s = replacepmatch(name, a, NULL, m->s, m, mctx->pmatch_valid,
+		s = replacepmatch(name, a, NULL, m->src, m, mctx->pmatch_valid,
 		    mctx->pmatch);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
@@ -598,7 +598,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	u_int		 	 i, l;
 	int		 	 find;
 	struct strings	        *users;
-	size_t			 slen;
+	size_t			 srclen;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
@@ -658,8 +658,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
 		mail_send(m, &msg);
 
-		slen = m->s != NULL ? strlen(m->s) : 0;
-		if (privsep_send(mctx->io, &msg, m->s, slen) != 0)
+		srclen = m->src != NULL ? strlen(m->src) : 0;
+		if (privsep_send(mctx->io, &msg, m->src, srclen) != 0)
 			fatalx("child: privsep_send error");
 
 		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)

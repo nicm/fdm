@@ -55,8 +55,8 @@ do_parent(struct child *child)
 	case MSG_ACTION:
 		mail_receive(&m, &msg);
 		if (buf != NULL) {
-			m.s = xrealloc(buf, 1, len + 1);
-			m.s[len] = '\0';
+			m.src = xrealloc(buf, 1, len + 1);
+			m.src[len] = '\0';
 		}
 
 		uid = data->uid;
@@ -81,8 +81,8 @@ do_parent(struct child *child)
 	case MSG_COMMAND:
 		mail_receive(&m, &msg);
 		if (buf != NULL) {
-			m.s = xrealloc(buf, 1, len + 1);
-			m.s[len] = '\0';
+			m.src = xrealloc(buf, 1, len + 1);
+			m.src[len] = '\0';
 		}
 
 		uid = data->uid;
@@ -308,7 +308,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	    conf.info.home);
 
 	/* sort out the command */
-	s = replacepmatch(data->cmd, a, NULL, m->s, m, mctx->pmatch_valid,
+	s = replacepmatch(data->cmd, a, NULL, m->src, m, mctx->pmatch_valid,
 	    mctx->pmatch);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
@@ -316,11 +316,11 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
         }
 
 	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, data->ret,
-	    data->re.s == NULL ? "none" : data->re.s);
+	    data->re.str == NULL ? "none" : data->re.str);
 	flags = CMD_ONCE;
 	if (data->pipe)
 		flags |= CMD_IN;
-	if (data->re.s != NULL)
+	if (data->re.str != NULL)
 		flags |= CMD_OUT;
 	cmd = cmd_start(s, flags, m->data, m->size, &cause);
 	if (cmd == NULL) {
@@ -369,11 +369,11 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	xfree(lbuf);
 
 	status = data->ret == status;
-	if (data->ret != -1 && data->re.s != NULL)
+	if (data->ret != -1 && data->re.str != NULL)
 		child_exit((found && status) ? MATCH_TRUE : MATCH_FALSE);
-	else if (data->ret != -1 && data->re.s == NULL)
+	else if (data->ret != -1 && data->re.str == NULL)
 		child_exit(status ? MATCH_TRUE : MATCH_FALSE);
-	else if (data->ret == -1 && data->re.s != NULL)
+	else if (data->ret == -1 && data->re.str != NULL)
 		child_exit(found ? MATCH_TRUE : MATCH_FALSE);
 	return (MATCH_ERROR);
 }

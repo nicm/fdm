@@ -143,7 +143,7 @@ imappipe_connect(struct account *a)
 	data->getln = imappipe_getln;
 	data->putln = imappipe_putln;
 	data->flush = imappipe_flush;
-	data->s = NULL;
+	data->src = NULL;
 
 	if (imap_login(a) != 0)
 		return (1);

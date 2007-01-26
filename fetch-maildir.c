@@ -252,7 +252,7 @@ restart:
 	}
 
 	mail_open(m, sb.st_size);
-	m->s = xstrdup(basename(dirname(data->path)));
+	m->src = xstrdup(basename(dirname(data->path)));
 
 	log_debug2("%s: reading %zu bytes", a->name, m->size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {

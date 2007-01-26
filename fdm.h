@@ -179,8 +179,8 @@ extern char	*__progname;
 struct macro {
 	char			 name[MAXNAMESIZE];
 	union {
-		long long	 number;
-		char		*string;
+		long long	 num;
+		char		*str;
 	} value;
 	enum {
 		MACRO_NUMBER,
@@ -250,7 +250,7 @@ enum decision {
 /* A single mail. */
 struct mail {
 	struct strings		 tags;
-	char			*s;		/* fetch-specific string */
+	char			*src;		/* fetch-specific source */
 
 	struct shm		 shm;
 
@@ -288,7 +288,7 @@ struct attach {
 
 /* Regexp wrapper struct. */
 struct re {
-	char		*s;
+	char		*str;
 	regex_t		 re;
 };
 
@@ -662,8 +662,8 @@ struct attachment_data {
 	enum cmp	 	 cmp;
 	union {
 		size_t		 size;
-		long long	 number;
-		char		*string;
+		long long	 num;
+		char		*str;
 		struct re	 re;
 	} value;
 };
@@ -689,7 +689,7 @@ struct tagged_data {
 struct string_data {
 	struct re	 re;
 
-	char		*s;
+	char		*str;
 };
 
 /* Match regexp data. */
@@ -804,7 +804,7 @@ struct imap_data {
 	u_int	 	 uid;
 	ARRAY_DECL(, u_int) kept;
 
-	char		*s;
+	char		*src;
 
 	size_t		 llen;
 	char		*lbuf;

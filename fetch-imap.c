@@ -134,7 +134,7 @@ imap_connect(struct account *a)
 	data->getln = imap_getln;
 	data->putln = imap_putln;
 	data->flush = imap_flush;
-	data->s = data->server.host;
+	data->src = data->server.host;
 
 	if (imap_login(a) != 0)
 		return (1);

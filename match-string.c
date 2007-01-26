@@ -42,8 +42,8 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 		return (MATCH_FALSE);
 	}
 
-	s = replacepmatch(data->s, a, NULL, m->s, m, 1, mctx->pmatch);
-	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.s);
+	s = replacepmatch(data->str, a, NULL, m->src, m, 1, mctx->pmatch);
+	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.str);
 
 	res = re_simple(&data->re, s, &cause);
 	xfree(s);
@@ -65,6 +65,6 @@ string_desc(struct expritem *ei)
 	struct string_data	*data = ei->data;
 	char			*s;
 
-	xasprintf(&s, "string \"%s\" to \"%s\"", data->s, data->re.s);
+	xasprintf(&s, "string \"%s\" to \"%s\"", data->str, data->re.str);
 	return (s);
 }
