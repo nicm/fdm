@@ -62,8 +62,7 @@ attach_log(struct attach *atr, const char *fmt, ...)
 	u_int		 n;
 
 	va_start(ap, fmt);
-	if (vasprintf(&prefix, fmt, ap) < 0)
-		fatalx("vasprintf");
+	xvasprintf(&prefix, fmt, ap);
 	va_end(ap);
 
 	n = 0;
