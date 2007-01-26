@@ -86,7 +86,7 @@ attach_log(struct attach *atr, const char *fmt, ...)
 		atr = attach_visit(atr, &n);
 	}
 
-	free(prefix);
+	xfree(prefix);
 }
 
 void

@@ -633,7 +633,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	if (fmt != NULL) {
 		len = xvasprintf(&buf, fmt, ap);
 		io_write(io, buf, len);
-		free(buf);
+		xfree(buf);
 	}
 	io_write(io, io->eol, strlen(io->eol));
 }
