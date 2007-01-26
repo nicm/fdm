@@ -61,24 +61,24 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 		log_warn("%s: %s: mkdir", a->name, path);
 		goto out;
 	}
-	if (makepath(name, sizeof name, path, "cur") != 0) {
-		log_warn("%s: %s: makepath", a->name, path);
+	if (makepath1(name, sizeof name, path, "cur") != 0) {
+		log_warn("%s: %s: makepath1", a->name, path);
 		goto out;
 	}
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, name);
 		goto out;
 	}
-	if (makepath(name, sizeof name, path, "new") != 0) {
-		log_warn("%s: %s: xsnprintf", a->name, path);
+	if (makepath1(name, sizeof name, path, "new") != 0) {
+		log_warn("%s: %s: makepath1", a->name, path);
 		goto out;
 	}
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
 		log_warn("%s: %s: mkdir", a->name, name);
 		goto out;
 	}
-	if (makepath(name, sizeof name, path, "tmp") < 0) {
-		log_warn("%s: %s: xsnprintf", a->name, path);
+	if (makepath1(name, sizeof name, path, "tmp") < 0) {
+		log_warn("%s: %s: makepath1", a->name, path);
 		goto out;
 	}
 	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
@@ -128,8 +128,8 @@ restart:
 			goto out;
 		}
 
-		if (xsnprintf(src, sizeof src, "%s/tmp/%s", path, name) < 0) {
-			log_warn("%s: %s: xsnprintf", a->name, path);
+		if (makepath2(src, sizeof src, path, "tmp", name) < 0) {
+			log_warn("%s: %s: makepath2", a->name, path);
 			goto out;
 		}
 
@@ -159,8 +159,8 @@ restart:
 
 	/* create the new path and attempt to link it. a failed link jumps
 	   back to find another name in the tmp directory */
-	if (xsnprintf(dst, sizeof dst, "%s/new/%s", path, name) < 0) {
-		log_warn("%s: %s: xsnprintf", a->name, path);
+	if (makepath2(dst, sizeof dst, path, "new", name) < 0) {
+		log_warn("%s: %s: makepath2", a->name, path);
 		goto out;
 	}
 	log_debug2("%s: linking .../%s to .../%s", a->name,

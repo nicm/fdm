@@ -170,9 +170,9 @@ maildir_poll(struct account *a, u_int *n)
 		}
 
 		while ((dp = readdir(dirp)) != NULL) {
-			if (makepath(entry, sizeof entry, path, 
+			if (makepath1(entry, sizeof entry, path, 
 			    dp->d_name) != 0) {
-				log_warn("%s: %s: makepath", a->name, entry);
+				log_warn("%s: %s: makepath1", a->name, path);
 				closedir(dirp);
 				return (POLL_ERROR);
 			}
@@ -226,9 +226,9 @@ restart:
 			goto restart;
 		}
 
-		if (makepath(data->entry, sizeof data->entry, data->path,
+		if (makepath1(data->entry, sizeof data->entry, data->path,
 		    dp->d_name) != 0) {
-			log_warn("%s: %s: makepath", a->name, data->entry);
+			log_warn("%s: %s: makepath1", a->name, data->path);
 			return (FETCH_ERROR);
 		}
 		if (stat(data->entry, &sb) != 0) {
