@@ -167,7 +167,6 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		if (*err != NULL) {
 			/* strip CR if the line is terminated by one */
 			len = strlen(*err);
-			log_debug("-- %zu", len);
 			if (len > 0 && (*err)[len - 1] == '\r')
 				(*err)[len - 1] = '\0';
 			return (0);
