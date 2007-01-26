@@ -1036,7 +1036,11 @@ int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
-char 			*find_header(struct mail *, const char *, size_t *);
+void			 insert_header(struct mail *, const char *,
+			     const char *, ...);
+int			 remove_header(struct mail *, const char *);
+char 			*find_header(struct mail *, const char *, size_t *,
+			     int);
 struct strings		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
@@ -1131,6 +1135,7 @@ int		 dxvasprintf(const char *, u_int, char **, const char *,
 #define xrealloc(p, n, s) dxrealloc(__FILE__, __LINE__, p, n, s)
 #define xfree(p) dxfree(__FILE__, __LINE__, p)
 #define xasprintf(pp, ...) dxasprintf(__FILE__, __LINE__, pp, __VA_ARGS__)
+#define xvasprintf(pp, fmt, ap) dxvasprintf(__FILE__, __LINE__, pp, fmt, ap)
 #else
 #define xmalloc(s) xxmalloc(s)
 #define xcalloc(n, s) xxcalloc(n, s)

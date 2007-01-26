@@ -267,12 +267,73 @@ line_next(struct mail *m, char **line, size_t *len)
 		*len = (ptr - *line) + 1;
 }
 
+int
+remove_header(struct mail *m, const char *hdr)
+{
+	char		*ptr;
+	size_t		 len;
+
+	if ((ptr = find_header(m, hdr, &len, 0)) == NULL)
+		return (1);
+
+	/* include the \n */
+	len++;
+
+	/* remove the header */
+	memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
+	m->size -= len;
+ 	if (m->body != -1)
+		m->body -= len;
+
+	return (0);
+}
+
+void
+insert_header(struct mail *m, const char *before, const char *fmt, ...)
+{
+	va_list		 ap;
+	char		*hdr, *ptr;
+	size_t		 hdrlen, len;
+
+	va_start(ap, fmt);
+	hdrlen = xvasprintf(&hdr, fmt, ap);
+	va_end(ap);
+	
+	/* include the \n */
+	hdrlen++;
+
+	ptr = NULL;
+	if (before != NULL) {
+		/* insert before header */
+		ptr = find_header(m, before, &len, 0);
+	}
+	if (ptr == NULL) {
+		/* insert at the end */
+		if (m->body == -1)
+			ptr = m->data + m->size;
+		else if (m->body < 1)
+			ptr = m->data;
+		else 
+			ptr = m->data + m->body - 1;
+	}
+
+	/* insert the header */
+	resize_mail(m, hdrlen);
+	memmove(ptr + hdrlen, ptr, m->size - (ptr - m->data));
+	memcpy(ptr, hdr, hdrlen - 1);
+	ptr[hdrlen - 1] = '\n';
+	m->size += hdrlen;
+ 	if (m->body != -1)
+		m->body += hdrlen;
+}
+
 char *
-find_header(struct mail *m, const char *hdr, size_t *len)
+find_header(struct mail *m, const char *hdr, size_t *len, int value)
 {
 	char	*ptr, *end, *out;
+	size_t	 hdrlen;
 
-	*len = strlen(hdr);
+	hdrlen = strlen(hdr);
 
 	end = m->data + (m->body == -1 ? m->size : (size_t) m->body);
 	ptr = m->data;
@@ -281,28 +342,34 @@ find_header(struct mail *m, const char *hdr, size_t *len)
 		if (ptr == NULL)
 			return (NULL);
 		ptr++;
-		if (*len > (size_t) (end - ptr))
+		if (hdrlen > (size_t) (end - ptr))
 			return (NULL);
-	} while (strncasecmp(ptr, hdr, *len) != 0);
+	} while (strncasecmp(ptr, hdr, hdrlen) != 0);
 
-	out = ptr + *len;
+	out = ptr + hdrlen;
 	ptr = memchr(out, '\n', end - out);
 	if (ptr == NULL)
 		*len = end - out;
-	else {
-		/* calculate length, not including '\n' */
-		*len = ptr - out - 1;
-	}
+	else
+		*len = ptr - out;
 
 	/* header must be followed by space */
 	if (!isspace((int) *out))
 		return (NULL);
 
-	/* strip any following space */
-	while (isspace((int) *out)) {
-		out++;
-		len--;
+	/* sort out what is actually returned */
+	if (value) {
+		/* strip any following space */
+		while (isspace((int) *out)) {
+			out++;
+			(*len)--;
+		}
+	} else {
+		/* move back to the start of the header */
+		out -= hdrlen;
+		(*len) += hdrlen;
 	}
+	
 	if (len == 0)
 		return (NULL);
 
@@ -326,7 +393,7 @@ find_users(struct mail *m)
 			continue;
 
 		xasprintf(&ptr, "%s:", ARRAY_ITEM(conf.headers, i, char *));
-		hdr = find_header(m, ptr, &len);
+		hdr = find_header(m, ptr, &len, 1);
 		xfree(ptr);
 
 		if (hdr == NULL || len == 0)
@@ -449,7 +516,7 @@ make_from(struct mail *m)
 	char	*s, *from = NULL;
 	size_t	 fromlen = 0;
 
-	from = find_header(m, "From:", &fromlen);
+	from = find_header(m, "From:", &fromlen, 1);
 	if (from != NULL && fromlen > 0)
 		from = find_address(from, fromlen, &fromlen);
  	if (fromlen > INT_MAX)

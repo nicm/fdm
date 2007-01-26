@@ -278,7 +278,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 		log_debug("%s: got message: size=%zu, body=%zd", a->name,
 		    m.size, m.body);
 
-		hdr = find_header(&m, "message-id:", &len);
+		hdr = find_header(&m, "message-id:", &len, 1);
 		if (hdr == NULL || len == 0 || len > INT_MAX)
 			log_debug("%s: message-id not found", a->name);
 		else {
@@ -429,6 +429,10 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		set_wrapped(m, '\n');
 
 		log_debug("%s: matched message to rule %u", a->name, r->idx);
+		remove_header(m, "X-fdm-Account-Name:");
+		insert_header(m, NULL, "X-fdm-Account-Name: %s", a->name);
+		remove_header(m, "X-fdm-Rule-Number:");
+		insert_header(m, NULL, "X-fdm-Rule-Number: %u", r->idx);
 
 		/* tag mail if needed */
 		if (r->tag != NULL) {
