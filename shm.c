@@ -99,6 +99,9 @@ shm_realloc(struct shm *shm, size_t nmemb, size_t size)
         if (SIZE_MAX / nmemb < size)
                 fatalx("shm_realloc: nmemb * size > SIZE_MAX");
 
+	if (munmap(shm->data, shm->size) != 0)
+		fatal("munmap");
+
 	if (newsize < shm->size) {
 		if (ftruncate(shm->fd, newsize) != 0)
 			fatal("ftruncate");
