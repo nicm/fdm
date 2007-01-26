@@ -134,17 +134,15 @@ restart:
 			goto out;
 		}
 
-		cleanup_register(src);
 		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1 && errno != EEXIST) {
-			cleanup_deregister(src);
 			log_warn("%s: %s: open", a->name, src);
 			goto out;
-		} else if (fd == -1)
-			cleanup_deregister(src);
+		}
 
 		delivered++;
 	} while (fd == -1);
+	cleanup_register(src);
 
 	/* write the message */
 	log_debug2("%s: writing to %s", a->name, src);

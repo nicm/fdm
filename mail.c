@@ -185,16 +185,15 @@ openlock(char *path, u_int locks, int flags, mode_t mode)
 
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
-		cleanup_register(lock);
  		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
 		if (fd == -1) {
 			if (errno == EEXIST)
 				errno = EAGAIN;
-			cleanup_deregister(lock);
 			xfree(lock);
 			return (-1);
 		}
 		close(fd);
+		cleanup_register(lock);
 	}
 
 	fd = open(path, flags, mode);

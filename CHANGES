@@ -13,5 +13,6 @@
 * Free mmap'd region before mmap'ing it again in shm_realloc, otherwise the
   actual disk space isn't freed. This affected previous versions too but 
   the mail was very rarely reallocated, now that the header is added it is.
+* Changed all the descriptions to static buffers and audited use of snprintf.
 
 $Id$
