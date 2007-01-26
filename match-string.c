@@ -64,7 +64,5 @@ string_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct string_data	*data = ei->data;
 
-	if (snprintf(buf, len, 
-	    "string \"%s\" to \"%s\"", data->str, data->re.str) == -1)
-		fatal("snprintf");
+	xsnprintf(buf, len, "string \"%s\" to \"%s\"", data->str, data->re.str);
 }

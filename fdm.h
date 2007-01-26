@@ -1119,6 +1119,8 @@ void		*xxrealloc(void *, size_t, size_t);
 void		 xxfree(void *);
 int printflike2	 xxasprintf(char **, const char *, ...);
 int		 xxvasprintf(char **, const char *, va_list);
+int printflike3	 xsnprintf(char *, size_t, const char *, ...);
+int		 xvsnprintf(char *, size_t, const char *, va_list);
 
 /* xmalloc-debug.c */
 #ifdef DEBUG

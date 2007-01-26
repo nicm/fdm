@@ -134,9 +134,8 @@ xmalloc_callreport(const char *hdr)
 			break;
 		}
 
-		if (snprintf(fn, sizeof fn, "%s:%u", xctx->calls[i].file,
-		    xctx->calls[i].line) == -1)
-			fatal("snprintf");
+		xsnprintf(fn, sizeof fn, "%s:%u", xctx->calls[i].file,
+		    xctx->calls[i].line);
 		XMALLOC_PRINT("%s: %-10s %-24s %u", hdr, type, fn,
 		    xctx->calls[i].count);
 	}
@@ -204,9 +203,9 @@ xmalloc_report(const char *hdr)
 		if (n >= XMALLOC_LINES)
 			continue;
 
-		len = snprintf(line, sizeof line, "%u %s:%u [%p %zu:", n - 1,
+		len = xsnprintf(line, sizeof line, "%u %s:%u [%p %zu:", n - 1,
 		    blk->file, blk->line, blk->ptr, blk->size);
-		if (len < 0 || (size_t) len >= sizeof line)
+		if ((size_t) len >= sizeof line)
 			continue;
 		off = len;
 
@@ -220,9 +219,9 @@ xmalloc_report(const char *hdr)
 				continue;
 			}
 
-			len = snprintf(line + off, (sizeof line) - off,
+			len = xsnprintf(line + off, (sizeof line) - off,
 			    "\\%03hho", ((u_char *) blk->ptr)[j]);
-			if (len < 0 || (size_t) len >= (sizeof line) - off)
+			if ((size_t) len >= (sizeof line) - off)
 				break;
 			off += len;
 		}

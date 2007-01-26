@@ -40,8 +40,7 @@ write_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 write_desc(struct action *t, char *buf, size_t len)
 {
-	if (snprintf(buf, len, "write \"%s\"", (char *) t->data) == -1)
-		fatal("snprintf");
+	xsnprintf(buf, len, "write \"%s\"", (char *) t->data);
 }
 
 int

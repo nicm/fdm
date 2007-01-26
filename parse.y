@@ -187,8 +187,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 		slen = strlen(s);
 
 		ENSURE_FOR(buf, len, off, slen + 4);
-		if (snprintf(buf + off, len - off, "\"%s\" ", s) != 0)
-			fatal("snprintf");
+		xsnprintf(buf + off, len - off, "\"%s\" ", s);
 		off += slen + 3;
 	}
 

@@ -384,8 +384,7 @@ pop3_desc(struct account *a, char *buf, size_t len)
 {
 	struct pop3_data	*data = a->data;
 
-	if (snprintf(buf, len, "pop3%s server \"%s\" port %s user \"%s\"",
+	xsnprintf(buf, len, "pop3%s server \"%s\" port %s user \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->user) == -1)
-		fatal("snprintf");
+	    data->user);
 }

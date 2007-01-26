@@ -126,6 +126,5 @@ error:
 void
 rewrite_desc(struct action *t, char *buf, size_t len)
 {
-	if (snprintf(buf, len, "rewrite \"%s\"", (char *) t->data) == -1)
-		fatal("snprintf");
+	xsnprintf(buf, len, "rewrite \"%s\"", (char *) t->data);
 }

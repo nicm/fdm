@@ -69,21 +69,16 @@ command_desc(struct expritem *ei, char *buf, size_t len)
 	const char		*type;
 
 	*ret = '\0';
-	if (data->ret != -1) {
-		if (snprintf(ret, sizeof ret, "%d", data->ret) == -1)
-			fatal("snprintf");
-	}
+	if (data->ret != -1)
+		xsnprintf(ret, sizeof ret, "%d", data->ret);
 	type = data->pipe ? "pipe" : "exec";
 
 	if (data->re.str == NULL) {
-		if (snprintf(buf, len, "%s \"%s\" user %lu returns (%s, )", 
-		    type, data->cmd, (u_long) data->uid, ret) == -1)
-			fatal("snprintf");
-		return;
+		xsnprintf(buf, len, "%s \"%s\" user %lu returns (%s, )", 
+		    type, data->cmd, (u_long) data->uid, ret);
+	} else {
+		xsnprintf(buf, len,
+		    "command %s \"%s\" user %lu returns (%s, \"%s\")",
+		    type, data->cmd, (u_long) data->uid, ret, data->re.str);
 	}
-	
-	if (snprintf(buf, len,
-	    "command %s \"%s\" user %lu returns (%s, \"%s\")",
-	    type, data->cmd, (u_long) data->uid, ret, data->re.str) == -1)
-		fatal("snprintf");
 }

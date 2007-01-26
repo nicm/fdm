@@ -181,6 +181,5 @@ age_desc(struct expritem *ei, char *buf, size_t len)
 		cmp = "<";
 	else if (data->cmp == CMP_GT)
 		cmp = ">";
-	if (snprintf(buf, len, "age %s %lld seconds", cmp, data->time) == -1)
-		fatal("snprintf");
+	xsnprintf(buf, len, "age %s %lld seconds", cmp, data->time);
 }

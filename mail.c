@@ -166,11 +166,9 @@ printpath(char *buf, size_t len, const char *fmt, ...)
 	}
 
 	va_start(ap, fmt);
-	n = vsnprintf(buf, len, fmt, ap);
+	n = xvsnprintf(buf, len, fmt, ap);
 	va_end(ap);
 
-	if (n < 0)
-		return (1);
 	if ((size_t) n > len) {
 		errno = ENAMETOOLONG;
 		return (1);

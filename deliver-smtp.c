@@ -193,8 +193,7 @@ smtp_desc(struct action *t, char *buf, size_t len)
 {
 	struct smtp_data	*data = t->data;
 
-	if (snprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
+	xsnprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->to) == -1)
-		fatal("snprintf");
+	    data->to);
 }

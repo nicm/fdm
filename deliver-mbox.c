@@ -212,12 +212,8 @@ mbox_desc(struct action *t, char *buf, size_t len)
 {
 	struct mbox_data	*data = t->data;
 	
-	if (!data->compress) {
-		if (snprintf(buf, len, "mbox \"%s\"", data->path) == -1)
-			fatal("snprintf");
-		return;
-	}
-
-	if (snprintf(buf, len, "mbox \"%s\" compress", data->path) == -1)
-		fatal("snprintf");
+	if (data->compress)
+		xsnprintf(buf, len, "mbox \"%s\" compress", data->path);
+	else
+		xsnprintf(buf, len, "mbox \"%s\"", data->path);
 }

@@ -44,32 +44,23 @@ initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
 	tt = time(NULL);
 	tm = localtime(&tt);
 	if (tm != NULL) {
-		if (snprintf(H, sizeof H, "%.2d", tm->tm_hour) == -1)
-			fatal("snprintf");
+		xsnprintf(H, sizeof H, "%.2d", tm->tm_hour);
 		map[REPL_IDX('H')] = H;
-		if (snprintf(M, sizeof M, "%.2d", tm->tm_min) == -1)
-			fatal("snprintf");
+		xsnprintf(M, sizeof M, "%.2d", tm->tm_min);
 		map[REPL_IDX('M')] = M;
-		if (snprintf(S, sizeof S, "%.2d", tm->tm_sec) == -1)
-			fatal("snprintf");
+		xsnprintf(S, sizeof S, "%.2d", tm->tm_sec);
 		map[REPL_IDX('S')] = S;
-		if (snprintf(d, sizeof d, "%.2d", tm->tm_mday) == -1)
-			fatal("snprintf");
+		xsnprintf(d, sizeof d, "%.2d", tm->tm_mday);
 		map[REPL_IDX('d')] = d;
-		if (snprintf(m, sizeof m, "%.2d", tm->tm_mon) == -1)
-			fatal("snprintf");
+		xsnprintf(m, sizeof m, "%.2d", tm->tm_mon);
 		map[REPL_IDX('m')] = m;
-		if (snprintf(y, sizeof y, "%.4d", 1900 + tm->tm_year) == -1)
-			fatal("snprintf");
+		xsnprintf(y, sizeof y, "%.4d", 1900 + tm->tm_year);
 		map[REPL_IDX('y')] = y;
-		if (snprintf(W, sizeof W, "%d", tm->tm_wday) == -1)
-			fatal("snprintf");
+		xsnprintf(W, sizeof W, "%d", tm->tm_wday);
 		map[REPL_IDX('W')] = W;
-		if (snprintf(Y, sizeof Y, "%.2d", tm->tm_yday) == -1)
-			fatal("snprintf");
+		xsnprintf(Y, sizeof Y, "%.2d", tm->tm_yday);
 		map[REPL_IDX('Y')] = Y;
-		if (snprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1) == -1)
-			fatal("snprintf");
+		xsnprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1);
 		map[REPL_IDX('Q')] = Q;
 	}
 }

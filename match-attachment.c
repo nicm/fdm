@@ -148,29 +148,24 @@ attachment_desc(struct expritem *ei, char *buf, size_t len)
 
 	switch (data->op) {
 	case ATTACHOP_COUNT:
-		if (snprintf(buf, len, 
-		    "attachment count %s %lld", cmp, data->value.num) == -1)
-			fatal("snprintf");
+		xsnprintf(buf, len, 
+		    "attachment count %s %lld", cmp, data->value.num);
 		break;
 	case ATTACHOP_TOTALSIZE:
-		if (snprintf(buf, len, "attachment " 
-		    "total-size %s %lld", cmp, data->value.num) == -1)
-			fatal("snprintf");
+		xsnprintf(buf, len, 
+		    "attachment total-size %s %lld", cmp, data->value.num);
 		break;
 	case ATTACHOP_ANYSIZE:
-		if (snprintf(buf, len,
-		    "attachment any-size %s %lld", cmp, data->value.num) == -1)
-			fatal("snprintf");
+		xsnprintf(buf, len,
+		    "attachment any-size %s %lld", cmp, data->value.num);
 		break;
 	case ATTACHOP_ANYTYPE:
-		if (snprintf(buf, len,
-		    "attachment any-type \"%s\"", data->value.str) == -1)
-			fatal("snprintf");
+		xsnprintf(buf, len,
+		    "attachment any-type \"%s\"", data->value.str);
 		break;
 	case ATTACHOP_ANYNAME:
-		if (snprintf(buf, len, 
-		    "attachment any-name \"%s\"", data->value.str) == -1)
-			fatal("snprintf");
+		xsnprintf(buf, len, 
+		    "attachment any-name \"%s\"", data->value.str);
 		break;
 	default:
 		if (len > 0)
