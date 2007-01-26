@@ -308,21 +308,22 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 {
 	va_list		 ap;
 	char		*hdr, *ptr;
-	size_t		 hdrlen, len;
+	size_t		 hdrlen, len, off;
 
 	if (before != NULL) {
 		/* insert before header */
 		ptr = find_header(m, before, &len, 0);
 		if (ptr == NULL)
 			return (1);
+		off = ptr - m->data;
 	} else {
 		/* insert at the end */
 		if (m->body == -1)
-			ptr = m->data + m->size;
+			off = m->size;
 		else if (m->body < 1)
-			ptr = m->data;
+			off = 0;
 		else 
-			ptr = m->data + m->body - 1;
+			off = m->body - 1;
 	}
 
 	va_start(ap, fmt);
@@ -332,9 +333,12 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	/* include the \n */
 	hdrlen++;
 
-	/* insert the header */
-	resize_mail(m, hdrlen);
-	memmove(ptr + hdrlen, ptr, m->size - (ptr - m->data));
+	/* make space for the header */
+	resize_mail(m, m->size + hdrlen);
+	ptr = m->data + off;
+	memmove(ptr + hdrlen, ptr, m->size - off);
+
+	/* copy the header */
 	memcpy(ptr, hdr, hdrlen - 1);
 	ptr[hdrlen - 1] = '\n';
 	m->size += hdrlen;
