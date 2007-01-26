@@ -10,5 +10,8 @@
 * Added FQDN and what it resolves to to the domains list by default.
 * Added a basic Received header with local host and fdm version, may be disabled
   with the new set no-received option.
+* Free mmap'd region before mmap'ing it again in shm_realloc, otherwise the
+  actual disk space isn't freed. This affected previous versions too but 
+  the mail was very rarely reallocated, now that the header is added it is.
 
 $Id$

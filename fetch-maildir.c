@@ -252,7 +252,7 @@ restart:
 		return (FETCH_ERROR);
 	}
 
-	mail_open(m, sb.st_size);
+	mail_open(m, IO_ROUND(sb.st_size));
 	m->src = xstrdup(basename(dirname(data->path)));
 
 	log_debug2("%s: reading %zu bytes", a->name, m->size);
