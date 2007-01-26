@@ -44,23 +44,23 @@ initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
 	tt = time(NULL);
 	tm = localtime(&tt);
 	if (tm != NULL) {
-		xsnprintf(H, sizeof H, "%.2d", tm->tm_hour);
+		snprintf(H, sizeof H, "%.2d", tm->tm_hour);
 		map[REPL_IDX('H')] = H;
-		xsnprintf(M, sizeof M, "%.2d", tm->tm_min);
+		snprintf(M, sizeof M, "%.2d", tm->tm_min);
 		map[REPL_IDX('M')] = M;
-		xsnprintf(S, sizeof S, "%.2d", tm->tm_sec);
+		snprintf(S, sizeof S, "%.2d", tm->tm_sec);
 		map[REPL_IDX('S')] = S;
-		xsnprintf(d, sizeof d, "%.2d", tm->tm_mday);
+		snprintf(d, sizeof d, "%.2d", tm->tm_mday);
 		map[REPL_IDX('d')] = d;
-		xsnprintf(m, sizeof m, "%.2d", tm->tm_mon);
+		snprintf(m, sizeof m, "%.2d", tm->tm_mon);
 		map[REPL_IDX('m')] = m;
-		xsnprintf(y, sizeof y, "%.4d", 1900 + tm->tm_year);
+		snprintf(y, sizeof y, "%.4d", 1900 + tm->tm_year);
 		map[REPL_IDX('y')] = y;
-		xsnprintf(W, sizeof W, "%d", tm->tm_wday);
+		snprintf(W, sizeof W, "%d", tm->tm_wday);
 		map[REPL_IDX('W')] = W;
-		xsnprintf(Y, sizeof Y, "%.2d", tm->tm_yday);
+		snprintf(Y, sizeof Y, "%.2d", tm->tm_yday);
 		map[REPL_IDX('Y')] = Y;
-		xsnprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1);
+		snprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1);
 		map[REPL_IDX('Q')] = Q;
 	}
 }

@@ -179,7 +179,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 	off = 0;
 	if (prefix != NULL) {
 		if ((off = xsnprintf(buf, len, "%s", prefix)) < 0)
-			fatal("xsnprintf");
+			fatal("snprintf");
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
@@ -188,7 +188,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 
 		ENSURE_FOR(buf, len, off, slen + 4);
 		if (xsnprintf(buf + off, len - off, "\"%s\" ", s) < 0)
-			fatal("xsnprintf");
+			fatal("snprintf");
 		off += slen + 3;
 	}
 

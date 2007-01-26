@@ -622,7 +622,7 @@ nntp_desc(struct account *a, char *buf, size_t len)
 	char			*names;
 
 	names = fmt_strings("groups ", data->names);
-	xsnprintf(buf, len, "nntp server \"%s\" port %s %s cache \"%s\"",
+	snprintf(buf, len, "nntp server \"%s\" port %s %s cache \"%s\"",
 	    data->server.host, data->server.port, names, data->path);
 	xfree(names);
 }

@@ -1039,9 +1039,7 @@ void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);
 void			 resize_mail(struct mail *, size_t);
 char 			*rfc822_time(time_t, char *, size_t);
-int 			 makepath1(char *, size_t, const char *, const char *);
-int 			 makepath2(char *, size_t, const char *, const char *,
-    			     const char *);
+int 			 printpath(char *, size_t, const char *, ...);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
 void			 line_init(struct mail *, char **, size_t *);
