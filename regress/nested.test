@@ -4,27 +4,27 @@
 !action "action" drop
 
 match "abc" { match "def" action "action" }
-@- ^added rule: nested matches=regexp "abc" in any $
-@- ^added rule: actions="action" matches=regexp "def" in any $
+@- ^added rule 0: nested matches=regexp "abc" in any $
+@- ^added rule 1: actions="action" matches=regexp "def" in any $
 @0
 match "abc" accounts { } { match "def" action "action" }
 @1 ^/dev/stdin: syntax error at line 3$
 match "abc" accounts { "account" } { match "def" action "action" }
-@- ^added rule: accounts="account" nested matches=regexp "abc" in any $
-@- ^added rule: actions="action" matches=regexp "def" in any $
+@- ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
+@- ^added rule 1: actions="action" matches=regexp "def" in any $
 @0
 match "abc" account "account" { match "def" action "action" }
-@- ^added rule: accounts="account" nested matches=regexp "abc" in any $
-@- ^added rule: actions="action" matches=regexp "def" in any $
+@- ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
+@- ^added rule 1: actions="action" matches=regexp "def" in any $
 @0
 
 match "abc" { }
-@0 ^added rule: nested matches=regexp "abc" in any $
+@0 ^added rule 0: nested matches=regexp "abc" in any $
 match "abc" accounts { } { }
 @1 ^/dev/stdin: syntax error at line 3$
 match "abc" account "account" { }
-@0 ^added rule: accounts="account" nested matches=regexp "abc" in any $
+@0 ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
 match "abc" accounts { "account" } { }
-@0 ^added rule: accounts="account" nested matches=regexp "abc" in any $
+@0 ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
 match "abc" account "account" { }
-@0 ^added rule: accounts="account" nested matches=regexp "abc" in any $
+@0 ^added rule 0: accounts="account" nested matches=regexp "abc" in any $

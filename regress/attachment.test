@@ -4,30 +4,30 @@
 !action "action" drop
 
 match attachment count < 0 action "action"
-@0 ^added rule: actions="action" matches=attachment count < 0 $
+@0 ^added rule 0: actions="action" matches=attachment count < 0 $
 match attachment count > 0 action "action"
-@0 ^added rule: actions="action" matches=attachment count > 0 $
+@0 ^added rule 0: actions="action" matches=attachment count > 0 $
 match attachment count == 0 action "action"
-@0 ^added rule: actions="action" matches=attachment count == 0 $
+@0 ^added rule 0: actions="action" matches=attachment count == 0 $
 match attachment count != 0 action "action"
-@0 ^added rule: actions="action" matches=attachment count != 0 $
+@0 ^added rule 0: actions="action" matches=attachment count != 0 $
 
 match attachment total-size < 0 action "action"
-@0 ^added rule: actions="action" matches=attachment total-size < 0 $
+@0 ^added rule 0: actions="action" matches=attachment total-size < 0 $
 match attachment total-size > 0 action "action"
-@0 ^added rule: actions="action" matches=attachment total-size > 0 $
+@0 ^added rule 0: actions="action" matches=attachment total-size > 0 $
 
 match attachment any-size < 0 action "action"
-@0 ^added rule: actions="action" matches=attachment any-size < 0 $
+@0 ^added rule 0: actions="action" matches=attachment any-size < 0 $
 match attachment any-size > 0 action "action"
-@0 ^added rule: actions="action" matches=attachment any-size > 0 $
+@0 ^added rule 0: actions="action" matches=attachment any-size > 0 $
 
 match attachment any-name "string" action "action"
-@0 ^added rule: actions="action" matches=attachment any-name "string" $
+@0 ^added rule 0: actions="action" matches=attachment any-name "string" $
 match attachment any-name "" action "action"
 @1 ^/dev/stdin: invalid string at line 3$
 
 match attachment any-type "string" action "action"
-@0 ^added rule: actions="action" matches=attachment any-type "string" $
+@0 ^added rule 0: actions="action" matches=attachment any-type "string" $
 match attachment any-type "" action "action"
 @1 ^/dev/stdin: invalid string at line 3$

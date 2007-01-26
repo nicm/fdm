@@ -1,30 +1,30 @@
 # $Id$
 
 %macro = 0
-@0 ^added macro: %macro = 0$
+@0 ^added macro "%macro": 0$
 
 %macro = 9223372036854775808
 @1 ^/dev/stdin: number is too large at line 1$
 
 %macro = 9223372036854775807
-@0 ^added macro: %macro = 9223372036854775807$
+@0 ^added macro "%macro": 9223372036854775807$
 
 $macro = ""
-@0 ^added macro: \$macro = ""$
+@0 ^added macro "\$macro": ""$
 
 $macro = "string"
-@0 ^added macro: \$macro = "string"$
+@0 ^added macro "\$macro": "string"$
 
 $macro = "one"
 $macro = "two"
-@- ^added macro: \$macro = "one"$
-@- ^added macro: \$macro = "two"$
+@- ^added macro "\$macro": "one"$
+@- ^added macro "\$macro": "two"$
 @0
 
 %macro = 1000
 %macro = 2000
-@- ^added macro: %macro = 1000$
-@- ^added macro: %macro = 2000$
+@- ^added macro "%macro": 1000$
+@- ^added macro "%macro": 2000$
 @0
 
 # ----------------------------------------------------------------------------
@@ -63,7 +63,7 @@ account "a%{macro}b" stdin
 !$macro = "one"
 
 account $macro stdin
-@0 ^added account: name=one fetch=stdin$
+@0 ^added account "one": fetch=stdin$
 account %macro stdin
 @1 ^/dev/stdin: syntax error at line 3$
 
@@ -71,19 +71,19 @@ set maximum-size %macro
 @0
 
 account "${macro}" stdin
-@0 ^added account: name=one fetch=stdin$
+@0 ^added account "one": fetch=stdin$
 account "a${macro}" stdin
-@0 ^added account: name=aone fetch=stdin$
+@0 ^added account "aone": fetch=stdin$
 account "${macro}b" stdin
-@0 ^added account: name=oneb fetch=stdin$
+@0 ^added account "oneb": fetch=stdin$
 account "a${macro}b" stdin
-@0 ^added account: name=aoneb fetch=stdin$
+@0 ^added account "aoneb": fetch=stdin$
 
 account "%{macro}" stdin
-@0 ^added account: name=1000 fetch=stdin$
+@0 ^added account "1000": fetch=stdin$
 account "a%{macro}" stdin
-@0 ^added account: name=a1000 fetch=stdin$
+@0 ^added account "a1000": fetch=stdin$
 account "%{macro}b" stdin
-@0 ^added account: name=1000b fetch=stdin$
+@0 ^added account "1000b": fetch=stdin$
 account "a%{macro}b" stdin
-@0 ^added account: name=a1000b fetch=stdin$
+@0 ^added account "a1000b": fetch=stdin$

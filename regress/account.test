@@ -10,7 +10,7 @@ account "" stdin
 @1 ^/dev/stdin: invalid account name at line 2$
 
 account "name" stdin
-@0 ^added account: name=name fetch=stdin$
+@0 ^added account "name": fetch=stdin$
 
 # ----------------------------------------------------------------------------
 # POP3
@@ -39,14 +39,14 @@ account "name" pop3 server "server" user "user" pass
 @1 ^/dev/stdin: syntax error at line 2$
 
 account "name" pop3 server "server" user "user" pass "pass"
-@0 ^added account: name=name fetch=pop3 server "server" port pop3 user "user"$
+@0 ^added account "name": fetch=pop3 server "server" port pop3 user "user"$
 account "name" pop3s server "server" user "user" pass "pass"
-@0 ^added account: name=name fetch=pop3s server "server" port pop3s user "user"$
+@0 ^added account "name": fetch=pop3s server "server" port pop3s user "user"$
 
 account "name" pop3 server "server" port 123 user "user" pass "pass"
-@0 ^added account: name=name fetch=pop3 server "server" port 123 user "user"$
+@0 ^added account "name": fetch=pop3 server "server" port 123 user "user"$
 account "name" pop3 server "server" port "port" user "user" pass "pass"
-@0 ^added account: name=name fetch=pop3 server "server" port port user "user"$
+@0 ^added account "name": fetch=pop3 server "server" port port user "user"$
 account "name" pop3 server "server" port 0 user "user" pass "pass"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" pop3 server "server" port 65536 user "user" pass "pass"
@@ -94,18 +94,18 @@ account "name" imap server "server" user "user" pass "pass" folder
 @1 ^/dev/stdin: syntax error at line 2$
 
 account "name" imap server "server" user "user" pass "pass"
-@0 ^added account: name=name fetch=imap server "server" port imap user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imap server "server" port imap user "user" folder "INBOX"$
 account "name" imaps server "server" user "user" pass "pass"
-@0 ^added account: name=name fetch=imaps server "server" port imaps user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folder "INBOX"$
 account "name" imap server "server" user "user" pass "pass" folder "folder"
-@0 ^added account: name=name fetch=imap server "server" port imap user "user" folder "folder"$
+@0 ^added account "name": fetch=imap server "server" port imap user "user" folder "folder"$
 account "name" imaps server "server" user "user" pass "pass" folder "folder"
-@0 ^added account: name=name fetch=imaps server "server" port imaps user "user" folder "folder"$
+@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folder "folder"$
 
 account "name" imap server "server" port 123 user "user" pass "pass"
-@0 ^added account: name=name fetch=imap server "server" port 123 user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imap server "server" port 123 user "user" folder "INBOX"$
 account "name" imap server "server" port "port" user "user" pass "pass"
-@0 ^added account: name=name fetch=imap server "server" port port user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imap server "server" port port user "user" folder "INBOX"$
 account "name" imap server "server" port 0 user "user" pass "pass"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" imap server "server" port 65536 user "user" pass "pass"
@@ -149,9 +149,9 @@ account "name" nntp server "server" groups { "group" } cache
 @1 ^/dev/stdin: syntax error at line 2$
 
 account "name" nntp server "server" port 123 group "group" cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache"$
+@0 ^added account "name": fetch=nntp server "server" port 123 groups "group" cache "cache"$
 account "name" nntp server "server" port "port" group "group" cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache"$
+@0 ^added account "name": fetch=nntp server "server" port port groups "group" cache "cache"$
 account "name" nntp server "server" port 0 group "group" cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" nntp server "server" port 65536 group "group" cache "cache"
@@ -160,9 +160,9 @@ account "name" nntp server "server" port "" group "group" cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 
 account "name" nntp server "server" port 123 groups { "group" } cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port 123 groups "group" cache "cache"$
+@0 ^added account "name": fetch=nntp server "server" port 123 groups "group" cache "cache"$
 account "name" nntp server "server" port "port" groups { "group" } cache "cache"
-@0 ^added account: name=name fetch=nntp server "server" port port groups "group" cache "cache"$
+@0 ^added account "name": fetch=nntp server "server" port port groups "group" cache "cache"$
 account "name" nntp server "server" port 0 groups { "group" } cache "cache"
 @1 ^/dev/stdin: invalid port at line 1$
 account "name" nntp server "server" port 65536 groups { "group" } cache "cache"
