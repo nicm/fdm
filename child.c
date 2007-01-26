@@ -233,7 +233,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 	int		 error;
  	const char	*cause = NULL;
 	struct match_ctx mctx;
-	char		*hdr, recvtm[64], *recvnm;
+	char		*hdr, rtm[64], *rnm;
 	size_t		 len;
 
 	log_debug("%s: fetching", a->name);
@@ -290,21 +290,25 @@ fetch_account(struct io *io, struct account *a, double tim)
 		 * Insert received header.
 		 *
 		 * No header line must exceed 998 bytes. Limiting the user-
-		 * supplied strings at 512 bytes gives plenty of space for
-		 * the other stuff, and if they get truncated, hey, who cares?
+		 * supplied host at 512 bytes gives plenty of space for
+		 * the other stuff, and if it gets truncated, who cares?
 		 */
-		error = 1;
-		if (rfc822_time(time(NULL), recvtm, sizeof recvtm) != NULL) {
-			recvnm = conf.info.fqdn;
-			if (recvnm == NULL)
-				recvnm = conf.info.host;	
-
-			error = insert_header(&m, "Received:",
-			    "Received: by %.512s (%s " BUILD ");\n\t%s",
-			    recvnm, __progname, recvtm);
+		if (!conf.no_received) {
+			error = 1;
+			if (rfc822_time(time(NULL), rtm, sizeof rtm) != NULL) {
+				rnm = conf.info.fqdn;
+				if (rnm == NULL)
+					rnm = conf.info.host;	
+				
+				error = insert_header(&m, "Received:",
+				    "Received: by %.512s (%s " BUILD ");\n\t%s",
+				    rnm, __progname, rtm);
+			}
+			if (error != 0) {
+				log_debug("%s: failed to add received header",
+				    a->name);
+			}
 		}
-		if (error != 0)
-			log_debug("%s: failed to add received header", a->name);
 
 		/* fill wrapped line list */
 		l = fill_wrapped(&m);

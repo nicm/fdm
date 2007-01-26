@@ -143,6 +143,7 @@ mbox return (TOKMBOX);
 nntp return (TOKNNTP);
 none return (TOKNONE);
 not return (TOKNOT);
+no-received return (TOKNORECEIVED);
 or return (TOKOR);
 pass return (TOKPASS);
 pipe return (TOKPIPE);

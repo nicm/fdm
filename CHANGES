@@ -7,7 +7,8 @@
   work. (0.9a)
 * Fixed miscalculation of length in find_header. (0.9a)
 * Fixed find_header to locate the first rather than second instance.
-* Added FQDN and what it resolves to the domains list by default.
-* Added a basic Received header with local host and fdm version.
+* Added FQDN and what it resolves to to the domains list by default.
+* Added a basic Received header with local host and fdm version, may be disabled
+  with the new set no-received option.
 
 $Id$

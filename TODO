@@ -14,4 +14,3 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - dump settings from conf on -vvv
-- make headers optional

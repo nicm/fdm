@@ -431,6 +431,7 @@ struct conf {
 	int			 check_only;
 	int			 allow_many;
 	int			 keep_all;
+	int			 no_received;
 	u_int			 purge_after;
 	enum decision		 impl_act;
 
