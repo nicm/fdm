@@ -33,7 +33,7 @@
 #include <zlib.h>
 
 int	 mbox_deliver(struct deliver_ctx *, struct action *);
-char	*mbox_desc(struct action *);
+void	 mbox_desc(struct action *, char *, size_t);
 
 int	 mbox_write(int, gzFile, const void *, size_t);
 
@@ -207,13 +207,13 @@ out:
 	return (res);
 }
 
-char *
-mbox_desc(struct action *t)
+void
+mbox_desc(struct action *t, char *buf, size_t len)
 {
 	struct mbox_data	*data = t->data;
-	char			*s;
 	
-	xasprintf(&s, "mbox \"%s\"%s", data->path, 
-	    data->compress ? " compress" : "");
-	return (s);
+	if (data->compress)
+		snprintf(buf, len, "mbox \"%s\" compress", data->path);
+	else
+		snprintf(buf, len, "mbox \"%s\"", data->path);
 }

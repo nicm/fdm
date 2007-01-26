@@ -18,10 +18,12 @@
 
 #include <sys/types.h>
 
+#include <string.h>
+
 #include "fdm.h"
 
 int	 drop_deliver(struct deliver_ctx *, struct action *);
-char	*drop_desc(struct action *);
+void	 drop_desc(struct action *, char *, size_t);
 
 struct deliver deliver_drop = { DELIVER_INCHILD, drop_deliver, drop_desc };
 
@@ -33,8 +35,8 @@ drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
 	return (DELIVER_SUCCESS);
 }
 
-char *
-drop_desc(unused struct action *t)
+void
+drop_desc(unused struct action *t, char *buf, size_t len)
 {
-	return (xstrdup("drop"));
+	strlcpy(buf, "drop", len);
 }

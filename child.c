@@ -513,7 +513,7 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 {
 	int		 fres, cres;
 	struct expritem	*ei;
-	char		*s;
+	char		 desc[DESCBUFSIZE];
 
 	fres = 0;
 	TAILQ_FOREACH(ei, r->expr, entry) {
@@ -533,10 +533,9 @@ do_expr(struct rule *r, struct match_ctx *mctx)
 			break;
 		}
 
-		s = ei->match->desc(ei);
+		ei->match->desc(ei->match, desc, sizeof desc);
 		log_debug2("%s: tried %s%s, got %d", mctx->account->name,
-		    ei->inverted ? "not " : "", s, cres);
-		xfree(s);
+		    ei->inverted ? "not " : "", desc, cres);
 	}
 
 	return (fres);

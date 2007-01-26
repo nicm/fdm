@@ -27,7 +27,7 @@
 #include "fdm.h"
 
 int	 pipe_deliver(struct deliver_ctx *, struct action *);
-char	*pipe_desc(struct action *);
+void	 pipe_desc(struct action *, char *, size_t);
 
 struct deliver deliver_pipe = { DELIVER_ASUSER, pipe_deliver, pipe_desc };
 
@@ -72,11 +72,8 @@ pipe_deliver(struct deliver_ctx *dctx, struct action *t)
 	return (DELIVER_SUCCESS);
 }
 
-char *
-pipe_desc(struct action *t)
+void
+pipe_desc(struct action *t, char *buf, size_t len)
 {
-	char	*s;
-
-	xasprintf(&s, "pipe \"%s\"", (char *) t->data);
-	return (s);
+	snprintf(buf, len, "pipe \"%s\"", (char *) t->data);
 }

@@ -148,6 +148,9 @@ extern char	*__progname;
 	(buf) = ensure_for(buf, &(len), size, adj);			\
 } while (0)
 
+/* Description buffer size. */
+#define DESCBUFSIZE 512
+
 /* Lengths of time. */
 #define TIME_MINUTE 60LL
 #define TIME_HOUR 3600LL
@@ -546,7 +549,7 @@ struct fetch {
 	int		 (*keep)(struct account *);
 	int		 (*disconnect)(struct account *);
 	int		 (*free)(struct account *);
-	char		*(*desc)(struct account *);
+	void		 (*desc)(struct account *, char *, size_t);
 };
 
 /* Deliver context. */
@@ -579,7 +582,7 @@ struct deliver {
 	enum delivertype type;
 
 	int	 	 (*deliver)(struct deliver_ctx *, struct action *);
-	char		*(*desc)(struct action *);
+	void		 (*desc)(struct action *, char *, size_t);
 };
 
 #define MATCH_FALSE 0
@@ -604,7 +607,7 @@ struct match_ctx {
 /* Match functions. */
 struct match {
 	int		 (*match)(struct match_ctx *, struct expritem *);
-	char 		*(*desc)(struct expritem *);
+	void 		 (*desc)(struct expritem *, char *, size_t);
 };
 
 /* Privsep message types. */

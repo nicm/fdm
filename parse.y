@@ -1159,7 +1159,7 @@ defaction: TOKACTION strv users action
 /**        [$4: action (struct action)] */
 	   {
 		   struct action	*t;
-		   char			*s;
+		   char			 desc[DESCBUFSIZE];
 
 		   if (strlen($2) >= MAXNAMESIZE)
 			   yyerror("action name too long: %s", $2);
@@ -1175,9 +1175,8 @@ defaction: TOKACTION strv users action
 		   t->find_uid = $3.find_uid;
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
-		   s = t->deliver->desc(t);
-		   log_debug2("added action \"%s\": deliver=%s", t->name, s);
-		   xfree(s);
+		   t->deliver->desc(t, desc, sizeof desc);
+		   log_debug2("added action \"%s\": deliver=%s", t->name, desc);
 
 		   xfree($2);
 	   }
@@ -1769,7 +1768,8 @@ rule: match accounts perform
 /**   [$3: perform (struct rule *)] */
       {
 	      struct expritem	*ei;
-	      char		 s1[1024], s2[1024], *s, *sa;
+	      char		 s[1024], *sa, *ss, desc[DESCBUFSIZE];
+	      size_t		 off;
 
 	      $3->accounts = $2;
 	      $3->expr = $1.expr;
@@ -1777,27 +1777,27 @@ rule: match accounts perform
 
 	      switch ($3->type) {
  	      case RULE_ALL:
-		      xsnprintf(s1, sizeof s1, "all");
+		      xsnprintf(s, sizeof s, "all");
 		      break;
 	      case RULE_EXPRESSION:
-		      *s1 = '\0';
+		      *s = '\0';
+		      off = 0;
 		      TAILQ_FOREACH(ei, $3->expr, entry) {
-			      s = ei->match->desc(ei);
+			      if (ei->inverted)
+				      off = strlcat(s, "not ", sizeof s);
 			      switch (ei->op) {
 			      case OP_AND:
-				      xsnprintf(s2, sizeof s2, "and %s ", s);
+				      strlcat(s, "and ", sizeof s);
 				      break;
 			      case OP_OR:
-				      xsnprintf(s2, sizeof s2, "or %s ", s);
+				      strlcat(s, "or ", sizeof s);
 				      break;
 			      case OP_NONE:
-				      xsnprintf(s2, sizeof s2, "%s ", s);
 				      break;
 			      }
-			      xfree(s);
-			      if (ei->inverted)
-				      strlcat(s1, "not ", sizeof s1);
-			      strlcat(s1, s2, sizeof s1);
+			      ei->match->desc(ei, desc, sizeof desc);
+			      strlcat(s, desc, sizeof s);
+			      strlcat(s, " ", sizeof s);
 		      }
 		      break;
 	      }
@@ -1806,16 +1806,16 @@ rule: match accounts perform
 	      else
 		      sa = xstrdup("");
 	      if ($3->actions != NULL) {
-		      s = fmt_strings(NULL, $3->actions);
+		      ss = fmt_strings(NULL, $3->actions);
 		      log_debug2("added rule %u:%s actions=%s matches=%s",
-			  $3->idx, sa, s, s1);
-		      xfree(s);
+			  $3->idx, sa, ss, s);
+		      xfree(ss);
 	      } else if ($3->tag != NULL) {
 		      log_debug2("added rule %u:%s tag=%s matches=%s",
-			  $3->idx, sa, $3->tag, s1);
+			  $3->idx, sa, $3->tag, s);
 	      } else {
 		      log_debug2("added rule %u:%s nested matches=%s",
-			  $3->idx, sa, s1);
+			  $3->idx, sa, s);
 	      }
 	      xfree(sa);
       }
@@ -2056,8 +2056,8 @@ account: TOKACCOUNT strv disabled users fetchtype keep
 /**      [$6: keep (int)] */
          {
 		 struct account		*a;
-		 char			*s;
-
+		 char			 desc[DESCBUFSIZE]
+;
 		 if (strlen($2) >= MAXNAMESIZE)
 			 yyerror("account name too long: %s", $2);
 		 if (*$2 == '\0')
@@ -2075,9 +2075,8 @@ account: TOKACCOUNT strv disabled users fetchtype keep
 		 a->data = $5.data;
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);
 
-		 s = a->fetch->desc(a);
-		 log_debug2("added account \"%s\": fetch=%s", a->name, s);
-		 xfree(s);
+		 a->fetch->desc(a, desc, sizeof desc);
+		 log_debug2("added account \"%s\": fetch=%s", a->name, desc);
 	 }
 
 %%

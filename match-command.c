@@ -23,7 +23,7 @@
 #include "fdm.h"
 
 int	command_match(struct match_ctx *, struct expritem *);
-char   *command_desc(struct expritem *);
+void	command_desc(struct expritem *, char *, size_t);
 
 struct match match_command = { command_match, command_desc };
 
@@ -61,25 +61,24 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 	return (msg.data.error);
 }
 
-char *
-command_desc(struct expritem *ei)
+void
+command_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct command_data	*data = ei->data;
-	char			*s, ret[11];
-	const char		*t;
+	char			ret[11];
+	const char		*type;
 
 	*ret = '\0';
 	if (data->ret != -1)
-		xsnprintf(ret, sizeof ret, "%d", data->ret);
-	t = data->pipe ? "pipe" : "exec";
+		snprintf(ret, sizeof ret, "%d", data->ret);
+	type = data->pipe ? "pipe" : "exec";
 
 	if (data->re.str == NULL) {
-		xasprintf(&s, "%s \"%s\" user %lu returns (%s, )", t,
-		    data->cmd, (u_long) data->uid, ret);
-		return (s);
+		snprintf(buf, len, "%s \"%s\" user %lu returns (%s, )", 
+		    type, data->cmd, (u_long) data->uid, ret);
+		return;
 	}
-
-	xasprintf(&s, "command %s \"%s\" user %lu returns (%s, \"%s\")", t,
-	    data->cmd, (u_long) data->uid, ret, data->re.str);
-	return (s);
+	
+	snprintf(buf, len, "command %s \"%s\" user %lu returns (%s, \"%s\")",
+	    type, data->cmd, (u_long) data->uid, ret, data->re.str);
 }

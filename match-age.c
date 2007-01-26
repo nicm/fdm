@@ -25,7 +25,7 @@
 #include "fdm.h"
 
 int	age_match(struct match_ctx *, struct expritem *);
-char   *age_desc(struct expritem *);
+void	age_desc(struct expritem *, char *, size_t);
 
 int	age_tzlookup(const char *, int *);
 
@@ -179,20 +179,20 @@ invalid:
 	return (MATCH_FALSE);
 }
 
-char *
-age_desc(struct expritem *ei)
+void
+age_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct age_data	*data = ei->data;
-	char			*s;
 	const char		*cmp = "";
 
-	if (data->time < 0)
-		return (xstrdup("age invalid"));
+	if (data->time < 0) {
+		strlcpy(buf, "age invalid", len);
+		return;
+	}
 
 	if (data->cmp == CMP_LT)
 		cmp = "<";
 	else if (data->cmp == CMP_GT)
 		cmp = ">";
-	xasprintf(&s, "age %s %lld seconds", cmp, data->time);
-	return (s);
+	snprintf(buf, len, "age %s %lld seconds", cmp, data->time);
 }

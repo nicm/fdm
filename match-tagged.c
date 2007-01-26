@@ -24,7 +24,7 @@
 #include "fdm.h"
 
 int	tagged_match(struct match_ctx *, struct expritem *);
-char   *tagged_desc(struct expritem *);
+void	tagged_desc(struct expritem *, char *, size_t);
 
 struct match match_tagged = { tagged_match, tagged_desc };
 
@@ -43,12 +43,10 @@ tagged_match(struct match_ctx *mctx, struct expritem *ei)
 	return (MATCH_FALSE);
 }
 
-char *
-tagged_desc(struct expritem *ei)
+void
+tagged_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct tagged_data	*data = ei->data;
-	char			*s;
 
-	xasprintf(&s, "tagged %s", data->tag);
-	return (s);
+	snprintf(buf, len, "tagged %s", data->tag);
 }

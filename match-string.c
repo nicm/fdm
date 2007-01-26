@@ -24,7 +24,7 @@
 #include "fdm.h"
 
 int	string_match(struct match_ctx *, struct expritem *);
-char   *string_desc(struct expritem *);
+void	string_desc(struct expritem *, char *, size_t);
 
 struct match match_string = { string_match, string_desc };
 
@@ -59,12 +59,10 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	return (MATCH_TRUE);
 }
 
-char *
-string_desc(struct expritem *ei)
+void
+string_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct string_data	*data = ei->data;
-	char			*s;
 
-	xasprintf(&s, "string \"%s\" to \"%s\"", data->str, data->re.str);
-	return (s);
+	snprintf(buf, len, "string \"%s\" to \"%s\"", data->str, data->re.str);
 }

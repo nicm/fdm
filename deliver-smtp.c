@@ -28,7 +28,7 @@
 #include "fdm.h"
 
 int	 smtp_deliver(struct deliver_ctx *, struct action *);
-char	*smtp_desc(struct action *);
+void	 smtp_desc(struct action *, char *, size_t);
 
 int	 smtp_code(char *);
 
@@ -188,14 +188,12 @@ error:
 	return (DELIVER_FAILURE);
 }
 
-char *
-smtp_desc(struct action *t)
+void
+smtp_desc(struct action *t, char *buf, size_t len)
 {
 	struct smtp_data	*data = t->data;
-	char			*s;
 
-	xasprintf(&s, "smtp%s server \"%s\" port %s to \"%s\"",
+	xsnprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
 	    data->to);
-	return (s);
 }

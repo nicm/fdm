@@ -23,7 +23,7 @@
 #include "fdm.h"
 
 int	unmatched_match(struct match_ctx *, struct expritem *);
-char   *unmatched_desc(struct expritem *);
+void	unmatched_desc(struct expritem *, char *, size_t);
 
 struct match match_unmatched = { unmatched_match, unmatched_desc };
 
@@ -35,8 +35,8 @@ unmatched_match(struct match_ctx *mctx, unused struct expritem *ei)
 	return (MATCH_TRUE);
 }
 
-char *
-unmatched_desc(unused struct expritem *ei)
+void
+unmatched_desc(unused struct expritem *ei, char *buf, size_t len)
 {
-	return (xstrdup("unmatched"));
+	strlcpy(buf, "unmatched", len);
 }

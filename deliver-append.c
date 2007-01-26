@@ -27,7 +27,7 @@
 #include "fdm.h"
 
 int	 append_deliver(struct deliver_ctx *, struct action *);
-char	*append_desc(struct action *);
+void	 append_desc(struct action *, char *, size_t);
 
 struct deliver deliver_append = { DELIVER_ASUSER, append_deliver, append_desc };
 
@@ -37,11 +37,8 @@ append_deliver(struct deliver_ctx *dctx, struct action *t)
 	return (do_write(dctx, t, 1));
 }
 
-char *
-append_desc(struct action *t)
+void
+append_desc(struct action *t, char *buf, size_t len)
 {
-	char	*s;
-
-	xasprintf(&s, "append \"%s\"", (char *) t->data);
-	return (s);
+	snprintf(buf, len, "append \"%s\"", (char *) t->data);
 }

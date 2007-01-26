@@ -27,7 +27,7 @@
 #include "fdm.h"
 
 int	 write_deliver(struct deliver_ctx *, struct action *);
-char	*write_desc(struct action *);
+void	 write_desc(struct action *, char *, size_t);
 
 struct deliver deliver_write = { DELIVER_ASUSER, write_deliver, write_desc };
 
@@ -37,13 +37,10 @@ write_deliver(struct deliver_ctx *dctx, struct action *t)
 	return (do_write(dctx, t, 0));
 }
 
-char *
-write_desc(struct action *t)
+void
+write_desc(struct action *t, char *buf, size_t len)
 {
-	char	*s;
-
-	xasprintf(&s, "write \"%s\"", (char *) t->data);
-	return (s);
+	snprintf(buf, len, "write \"%s\"", (char *) t->data);
 }
 
 int

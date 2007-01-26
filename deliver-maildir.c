@@ -30,7 +30,7 @@
 #include "fdm.h"
 
 int	 maildir_deliver(struct deliver_ctx *, struct action *);
-char	*maildir_desc(struct action *);
+void	 maildir_desc(struct action *, char *, size_t);
 
 struct deliver deliver_maildir = { DELIVER_ASUSER, maildir_deliver,
 				   maildir_desc };
@@ -192,11 +192,8 @@ out:
 	return (res);
 }
 
-char *
-maildir_desc(struct action *t)
+void
+maildir_desc(struct action *t, char *buf, size_t len)
 {
-	char	*s;
-
-	xasprintf(&s, "maildir \"%s\"", (char *) t->data);
-	return (s);
+	xsnprintf(buf, len, "maildir \"%s\"", (char *) t->data);
 }

@@ -24,7 +24,7 @@
 
 int	 	 imap_connect(struct account *);
 int	 	 imap_disconnect(struct account *);
-char		*imap_desc(struct account *);
+void		 imap_desc(struct account *, char *, size_t);
 
 int printflike2	 imap_putln(struct account *, const char *, ...);
 char	        *imap_getln(struct account *, int);
@@ -171,14 +171,13 @@ error:
 	return (1);
 }
 
-char *
-imap_desc(struct account *a)
+void
+imap_desc(struct account *a, char *buf, size_t len)
 {
 	struct imap_data	*data = a->data;
-	char			*s;
 
-	xasprintf(&s, "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
+	snprintf(buf, len,
+	    "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
 	    data->user, data->folder);
-	return (s);
 }

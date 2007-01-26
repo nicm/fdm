@@ -23,7 +23,7 @@
 #include "fdm.h"
 
 int	attachment_match(struct match_ctx *, struct expritem *);
-char   *attachment_desc(struct expritem *);
+void	attachment_desc(struct expritem *, char *, size_t);
 
 struct match match_attachment = { attachment_match, attachment_desc };
 
@@ -131,11 +131,10 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 	}
 }
 
-char *
-attachment_desc(struct expritem *ei)
+void
+attachment_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct attachment_data	*data = ei->data;
-	char			*s;
 	const char 		*cmp = "";
 
 	if (data->cmp == CMP_LT)
@@ -149,24 +148,28 @@ attachment_desc(struct expritem *ei)
 
 	switch (data->op) {
 	case ATTACHOP_COUNT:
-		xasprintf(&s, "attachment count %s %lld", cmp,
-		    data->value.num);
-		return (s);
+		snprintf(buf, len, 
+		    "attachment count %s %lld", cmp, data->value.num);
+		break;
 	case ATTACHOP_TOTALSIZE:
-		xasprintf(&s, "attachment total-size %s %lld", cmp,
-		    data->value.num);
-		return (s);
+		snprintf(buf, len,
+		    "attachment total-size %s %lld", cmp, data->value.num);
+		break;
 	case ATTACHOP_ANYSIZE:
-		xasprintf(&s, "attachment any-size %s %lld", cmp,
-		    data->value.num);
-		return (s);
+		snprintf(buf, len,
+		"attachment any-size %s %lld", cmp, data->value.num);
+		break;
 	case ATTACHOP_ANYTYPE:
-		xasprintf(&s, "attachment any-type \"%s\"", data->value.str);
-		return (s);
+		snprintf(buf, len, 
+		    "attachment any-type \"%s\"", data->value.str);
+		break;
 	case ATTACHOP_ANYNAME:
-		xasprintf(&s, "attachment any-name \"%s\"", data->value.str);
-		return (s);
+		snprintf(buf, len, 
+		    "attachment any-name \"%s\"", data->value.str);
+		break;
 	default:
-		return (xstrdup(""));
+		if (len > 0)
+			*buf = '\0';
+		break;
 	}
 }

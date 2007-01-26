@@ -23,7 +23,7 @@
 #include "fdm.h"
 
 int	size_match(struct match_ctx *, struct expritem *);
-char   *size_desc(struct expritem *);
+void	size_desc(struct expritem *, char *, size_t);
 
 struct match match_size = { size_match, size_desc };
 
@@ -40,17 +40,15 @@ size_match(struct match_ctx *mctx, struct expritem *ei)
 	return (MATCH_FALSE);
 }
 
-char *
-size_desc(struct expritem *ei)
+void
+size_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct size_data	*data = ei->data;
-	char			*s;
 	const char		*cmp = "";
 
 	if (data->cmp == CMP_LT)
 		cmp = "<";
 	else if (data->cmp == CMP_GT)
 		cmp = ">";
-	xasprintf(&s, "size %s %zu", cmp, data->size);
-	return (s);
+	snprintf(buf, len, "size %s %zu", cmp, data->size);
 }
