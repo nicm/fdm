@@ -176,8 +176,9 @@ imap_desc(struct account *a, char *buf, size_t len)
 {
 	struct imap_data	*data = a->data;
 
-	snprintf(buf, len,
+	if (snprintf(buf, len,
 	    "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->user, data->folder);
+	    data->user, data->folder) == -1)
+		fatal("snprintf");
 }

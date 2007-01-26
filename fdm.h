@@ -1113,7 +1113,6 @@ __dead void		 fatalx(const char *);
 void		*ensure_size(void *, size_t *, size_t, size_t);
 void		*ensure_for(void *, size_t *, size_t, size_t);
 char		*xstrdup(const char *);
-int printflike3	 xsnprintf(char *, size_t, const char *, ...);
 void		*xxcalloc(size_t, size_t);
 void		*xxmalloc(size_t);
 void		*xxrealloc(void *, size_t, size_t);

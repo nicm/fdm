@@ -90,5 +90,6 @@ regexp_desc(struct expritem *ei, char *buf, size_t len)
 		break;
 	}
 
-	snprintf(buf, len, "regexp \"%s\" in %s", data->re.str, area);
+	if (snprintf(buf, len, "regexp \"%s\" in %s", data->re.str, area) == -1)
+		fatal("snprintf");
 }

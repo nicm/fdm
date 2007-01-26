@@ -40,5 +40,6 @@ append_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 append_desc(struct action *t, char *buf, size_t len)
 {
-	snprintf(buf, len, "append \"%s\"", (char *) t->data);
+	if (snprintf(buf, len, "append \"%s\"", (char *) t->data) == -1)
+		fatal("snprintf");
 }

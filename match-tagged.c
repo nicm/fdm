@@ -48,5 +48,6 @@ tagged_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct tagged_data	*data = ei->data;
 
-	snprintf(buf, len, "tagged %s", data->tag);
+	if (snprintf(buf, len, "tagged %s", data->tag) == -1)
+		fatal("snprintf");
 }

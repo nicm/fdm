@@ -44,7 +44,7 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	char		*path, ch;
 	char	 	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
 	char	 	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 	 fd, res = DELIVER_FAILURE;
+	int	 	 fd, res = DELIVER_FAILURE, len;
 	ssize_t	 	 n;
 	size_t	 	 first, last;
 
@@ -122,13 +122,14 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 restart:
 	/* find a suitable name in tmp */
 	do {
-		if (xsnprintf(name, sizeof name, "%ld.%ld_%u.%s",
-		    (long) time(NULL), (long) getpid(), delivered, host) < 0) {
+		len = snprintf(name, sizeof name, "%ld.%ld_%u.%s",
+		    (long) time(NULL), (long) getpid(), delivered, host);
+		if (len < 0 || (size_t) len >= sizeof name) {
 			log_warn("%s: %s: snprintf", a->name, path);
 			goto out;
 		}
 
-		if (printpath(src, sizeof src, "%s/tmp/%s", path, name) < 0) {
+		if (printpath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {
 			log_warn("%s: %s: printpath", a->name, path);
 			goto out;
 		}
@@ -159,7 +160,7 @@ restart:
 
 	/* create the new path and attempt to link it. a failed link jumps
 	   back to find another name in the tmp directory */
-	if (printpath(dst, sizeof dst, "%s/new/%s", path, name) < 0) {
+	if (printpath(dst, sizeof dst, "%s/new/%s", path, name) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
 		goto out;
 	}
@@ -195,5 +196,6 @@ out:
 void
 maildir_desc(struct action *t, char *buf, size_t len)
 {
-	snprintf(buf, len, "maildir \"%s\"", (char *) t->data);
+	if (snprintf(buf, len, "maildir \"%s\"", (char *) t->data) == -1)
+		fatal("snprintf");
 }

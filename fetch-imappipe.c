@@ -183,11 +183,14 @@ imappipe_desc(struct account *a, char *buf, size_t len)
 {
 	struct imap_data	*data = a->data;
 
-	if (data->user != NULL) {
-		snprintf(buf, len, "imap pipe \"%s\" user \"%s\" folder \"%s\"",
-		    data->pipecmd, data->user, data->folder);
-	} else {
-		snprintf(buf, len, "imap pipe \"%s\" folder \"%s\"",
-		    data->pipecmd, data->folder);
+	if (data->user == NULL) {
+		if (snprintf(buf, len, "imap pipe \"%s\" folder \"%s\"",
+		    data->pipecmd, data->folder) == -1)
+			fatal("snprintf");
+		return;
 	}
+	
+	if (snprintf(buf, len, "imap pipe \"%s\" user \"%s\" folder \"%s\"",
+	    data->pipecmd, data->user, data->folder) == -1)
+		fatal("snprintf");
 }

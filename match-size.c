@@ -50,5 +50,6 @@ size_desc(struct expritem *ei, char *buf, size_t len)
 		cmp = "<";
 	else if (data->cmp == CMP_GT)
 		cmp = ">";
-	snprintf(buf, len, "size %s %zu", cmp, data->size);
+	if (snprintf(buf, len, "size %s %zu", cmp, data->size) == -1)
+		fatal("snprintf");
 }

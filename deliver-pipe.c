@@ -75,5 +75,6 @@ pipe_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 pipe_desc(struct action *t, char *buf, size_t len)
 {
-	snprintf(buf, len, "pipe \"%s\"", (char *) t->data);
+	if (snprintf(buf, len, "pipe \"%s\"", (char *) t->data) == -1)
+		fatal("snprintf");
 }

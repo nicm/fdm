@@ -86,7 +86,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	struct tm	 tm;
 	time_t		 then, now;
 	long long	 diff, t;
-	int		 tz;
+	int		 tz, n;
 
 	memset(&tm, 0, sizeof tm);
 
@@ -155,18 +155,6 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	if (data->time < 0)
 		return (MATCH_FALSE);
 
-	t = diff;
-	off = 0;
-	len = sizeof tmp;
-	off += snprintf(tmp + off, len - off, "%lld y, ", t / TIME_YEAR);
-	off += snprintf(tmp + off, len - off, "%lld m, ", t / TIME_MONTH);
-	off += snprintf(tmp + off, len - off, "%lld w, ", t / TIME_WEEK);
-	off += snprintf(tmp + off, len - off, "%lld d, ", t / TIME_DAY);
-	off += snprintf(tmp + off, len - off, "%lld h, ", t / TIME_HOUR);
-	off += snprintf(tmp + off, len - off, "%lld m, ", t / TIME_MINUTE);
-	off += snprintf(tmp + off, len - off, "%lld s", t);
-	log_debug2("%s: mail age is: %s", a->name, tmp);
-
 	if (data->cmp == CMP_LT && diff < data->time)
 		return (MATCH_TRUE);
 	else if (data->cmp == CMP_GT && diff > data->time)
@@ -194,5 +182,6 @@ age_desc(struct expritem *ei, char *buf, size_t len)
 		cmp = "<";
 	else if (data->cmp == CMP_GT)
 		cmp = ">";
-	snprintf(buf, len, "age %s %lld seconds", cmp, data->time);
+	if (snprintf(buf, len, "age %s %lld seconds", cmp, data->time) == -1)
+		fatal("snprintf");
 }

@@ -174,12 +174,12 @@ fmt_strings(const char *prefix, struct strings *sp)
 		return (buf);
 	}
 
-	len = 256;
+	len = BUFSIZ;
 	buf = xmalloc(len);
 	off = 0;
 	if (prefix != NULL) {
-		if ((off = xsnprintf(buf, len, "%s", prefix)) < 0)
-			fatal("snprintf");
+		ENSURE_SIZE(buf, len, strlen(prefix));
+		strlcpy(buf, prefix, len);
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
@@ -187,7 +187,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 		slen = strlen(s);
 
 		ENSURE_FOR(buf, len, off, slen + 4);
-		if (xsnprintf(buf + off, len - off, "\"%s\" ", s) < 0)
+		if (snprintf(buf + off, len - off, "\"%s\" ", s) != 0)
 			fatal("snprintf");
 		off += slen + 3;
 	}
@@ -1777,7 +1777,7 @@ rule: match accounts perform
 
 	      switch ($3->type) {
  	      case RULE_ALL:
-		      xsnprintf(s, sizeof s, "all");
+		      strlcpy(s, "all", sizeof s);
 		      break;
 	      case RULE_EXPRESSION:
 		      *s = '\0';

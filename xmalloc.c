@@ -84,25 +84,6 @@ xstrdup(const char *s)
         return (strncpy(ptr, s, len));
 }
 
-int printflike3
-xsnprintf(char *str, size_t size, const char *fmt, ...)
-{
-	int	i;
-
-	va_list	ap;
-
-	va_start(ap, fmt);
-	i = vsnprintf(str, size, fmt, ap);
-	va_end(ap);
-
-	if (i > 0 && (size_t) i >= size) {	/* truncation is failure */
-		i = -1;
-		errno = EINVAL;
-	}
-
-	return (i);
-}
-
 void *
 xxcalloc(size_t nmemb, size_t size)
 {
