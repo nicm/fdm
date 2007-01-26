@@ -163,7 +163,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 
 				mail_receive(m, &msg);
 				log_debug2("%s: got new mail from delivery: "
-				    "size %zu, body=%zd", a->name, m->size,
+				    "size %zu, body %zd", a->name, m->size,
 				    m->body);
 			} else
 				mail_destroy(&dctx->wr_mail);

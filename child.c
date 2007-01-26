@@ -275,7 +275,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 			continue;
 		}
 
-		log_debug("%s: got message: size=%zu, body=%zd", a->name,
+		log_debug("%s: got message: size %zu, body %zd", a->name,
 		    m.size, m.body);
 
 		hdr = find_header(&m, "message-id:", &len, 1);
@@ -679,7 +679,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		}
 
 		mail_receive(m, &msg);
-		log_debug("%s: received modified mail: size %zu, body=%zd",
+		log_debug("%s: received modified mail: size %zu, body %zd",
 		    a->name, m->size, m->body);
 
 		/* trim from line */
