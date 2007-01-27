@@ -624,16 +624,27 @@ io_writeline(struct io *io, const char *fmt, ...)
 void
 io_vwriteline(struct io *io, const char *fmt, va_list ap)
 {
-	char 	*buf;
 	int	 len;
+
+	if ((io->flags & IO_WR) == 0)
+		fatalx("io: write when flag unset");
 
 	if (io->error != NULL)
 		return;
 
+	if (io->flags & IO_FIXED)
+		fatalx("io: attempt to write to fixed buffer");
+
 	if (fmt != NULL) {
-		len = xvasprintf(&buf, fmt, ap);
-		io_write(io, buf, len);
-		xfree(buf);
+		if ((len = vsnprintf(NULL, 0, fmt, ap)) == -1)
+			fatalx("vsnprintf");
+		len++;	/* for '\0' */
+		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, len);
+		
+ 		len = vsnprintf(io->wbase + io->woff + io->wsize, len, fmt, ap);
+		if (len == -1)
+			fatalx("vsnprintf");
+		io->wsize += len;
 	}
 	io_write(io, io->eol, strlen(io->eol));
 }
