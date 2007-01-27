@@ -227,10 +227,9 @@ attach_build(struct mail *m)
 	int		 last;
 	u_int		 n;
 
-	hdr = find_header(m, "content-type:", &len, 1);
+	hdr = find_header(m, "content-type:", &len, 0);
 	if (hdr == NULL)
 		return (NULL);
-	hdr -= 13;
 
 	type = attach_type(m, hdr, "boundary", &b);
 	if (type == NULL || b == NULL) {
@@ -265,6 +264,11 @@ attach_build(struct mail *m)
 	last = 0;
 	n = 0;
 	while (ptr != NULL && !last) {
+		if (ptr[0] == '-' && ptr[1] == '-') {
+			if (len - 5 == bl && strncmp(ptr + 2, b, bl) == 0)
+				break;
+		}
+
 		at = attach_get(m, &ptr, &len, b, &last);
 		if (at == NULL)
 			goto error;
@@ -296,6 +300,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	int		 last2;
 	u_int		 n;
 
+	log_debug3("attachment %s: start", b);
 	bl = strlen(b);
 
 	atr = xmalloc(sizeof *atr);
@@ -321,6 +326,8 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	atr->name = name;
 
 	if (strncasecmp(atr->type, "multipart/", 10) != 0) {
+		log_debug3("attachment %s: not multipart", b);
+
 		/* skip the remaining headers */
 		while (*ptr != NULL && *len > 1)
 			line_next(m, ptr, len);
@@ -345,6 +352,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		}
 		if (*ptr == NULL)
 			goto error;
+		log_debug3("attachment %s: done", b);
 
 		atr->size = *ptr - m->data - atr->data;
 	} else {
@@ -353,8 +361,9 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		atr->type = attach_type(m, *ptr, "boundary", &b2);
 		if (b2 == NULL)
 			goto error;
-
 		bl2 = strlen(b2);
+
+		log_debug3("attachment %s: multipart", b);
 
 		/* find the first boundary */
 		while (*ptr != NULL) {
@@ -383,14 +392,16 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		/* and skip on to the end of the multipart */
 		while (*ptr != NULL) {
 			if ((*ptr)[0] == '-' && (*ptr)[1] == '-') {
-				if (*len - 3 == bl &&
-				    strncmp(*ptr + 2, b, bl) == 0)
+				if (*len - 5 == bl2 &&
+				    strncmp(*ptr + 2, b2, bl2) == 0)
 					break;
 			}
 			line_next(m, ptr, len);
 		}
-		if (ptr == NULL)
+		if (*ptr == NULL)
 			goto error;
+		log_debug3("attachment %s: done", b);
+		line_next(m, ptr, len);
 
 		xfree(b2);
 	}
