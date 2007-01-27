@@ -300,7 +300,6 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	int		 last2;
 	u_int		 n;
 
-	log_debug3("attachment %s: start", b);
 	bl = strlen(b);
 
 	atr = xmalloc(sizeof *atr);
@@ -326,8 +325,6 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	atr->name = name;
 
 	if (strncasecmp(atr->type, "multipart/", 10) != 0) {
-		log_debug3("attachment %s: not multipart", b);
-
 		/* skip the remaining headers */
 		while (*ptr != NULL && *len > 1)
 			line_next(m, ptr, len);
@@ -352,7 +349,6 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		}
 		if (*ptr == NULL)
 			goto error;
-		log_debug3("attachment %s: done", b);
 
 		atr->size = *ptr - m->data - atr->data;
 	} else {
@@ -362,8 +358,6 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		if (b2 == NULL)
 			goto error;
 		bl2 = strlen(b2);
-
-		log_debug3("attachment %s: multipart", b);
 
 		/* find the first boundary */
 		while (*ptr != NULL) {
@@ -400,7 +394,6 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		}
 		if (*ptr == NULL)
 			goto error;
-		log_debug3("attachment %s: done", b);
 		line_next(m, ptr, len);
 
 		xfree(b2);
