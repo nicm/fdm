@@ -624,7 +624,7 @@ io_writeline(struct io *io, const char *fmt, ...)
 void
 io_vwriteline(struct io *io, const char *fmt, va_list ap)
 {
-	int	 len;
+	int	 n;
 
 	if ((io->flags & IO_WR) == 0)
 		fatalx("io: write when flag unset");
@@ -636,15 +636,11 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		fatalx("io: attempt to write to fixed buffer");
 
 	if (fmt != NULL) {
-		if ((len = vsnprintf(NULL, 0, fmt, ap)) == -1)
-			fatalx("vsnprintf");
-		len++;	/* for '\0' */
-		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, len);
+		n = xvsnprintf(NULL, 0, fmt, ap);
+		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, n + 1);
 		
- 		len = vsnprintf(io->wbase + io->woff + io->wsize, len, fmt, ap);
-		if (len == -1)
-			fatalx("vsnprintf");
-		io->wsize += len;
+ 		xvsnprintf(io->wbase + io->woff + io->wsize, n + 1, fmt, ap);
+		io->wsize += n;
 	}
 	io_write(io, io->eol, strlen(io->eol));
 }
