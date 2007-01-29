@@ -317,14 +317,17 @@ nntp_save(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	struct nntp_group	*group;
-	char			*tmp;
+	char			 tmp[MAXPATHLEN];
 	int			 fd = -1;
 	FILE			*f = NULL;
 	u_int			 i;
-
-	xasprintf(&tmp, "%s.XXXXXXXXXX", data->path);
+	
+	if (printpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0) {
+		log_warn("%s: %s: printpath", a->name, data->path);
+		goto error;
+	}
 	if ((fd = mkstemp(tmp)) == -1) {
-		log_warn("%s: %s", a->name, tmp);
+		log_warn("%s: %s: mkstemp", a->name, tmp);
 		goto error;
 	}
 	cleanup_register(tmp);
@@ -350,15 +353,12 @@ nntp_save(struct account *a)
 		unlink(tmp);
 		goto error;
 	}
-	cleanup_deregister(tmp);
 
-	xfree(tmp);
+	cleanup_deregister(tmp);
 	return (0);
 	
 error:
 	cleanup_deregister(tmp);
-
-	xfree(tmp);
 	return (1);
 }
 
