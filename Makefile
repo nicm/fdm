@@ -60,7 +60,7 @@ LDFLAGS+= -L/usr/local/lib
 .ifdef PROFILE
 LDFLAGS+= -pg
 .endif
-LIBS= -lcrypto -lssl -lz
+LIBS= -lssl -lcrypto -lz
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
