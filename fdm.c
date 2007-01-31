@@ -254,7 +254,7 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, fds[2], lockfd, status, errors, res;
+        int		 opt, fds[2], lockfd, status, res;
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*errstr;
@@ -598,7 +598,7 @@ main(int argc, char **argv)
 
 	if (ARRAY_EMPTY(&children)) {
                 log_warnx("no accounts found");
-		errors = 1;
+		res = 1;
 		goto out;
 	}
 
@@ -610,7 +610,7 @@ main(int argc, char **argv)
 	gettimeofday(&tv, NULL);
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
-	errors = 0;
+	res = 0;
 	ios = xcalloc(ARRAY_LENGTH(&children), sizeof (struct io *));
 	while (!ARRAY_EMPTY(&children)) {
 		if (sigint || sigterm)
@@ -654,18 +654,18 @@ main(int argc, char **argv)
 			if (waitpid(child->pid, &status, 0) == -1)
 				fatal("waitpid");
 			if (WIFSIGNALED(status)) {
-				errors++;
+				res = 1;
 				log_debug("parent: child %ld (%s) done, got"
 				    "signal %d", (long) child->pid,
 				    child->account->name, WTERMSIG(status));
 			} else if (!WIFEXITED(status)) {
-				errors++;
+				res = 1;
 				log_debug("parent: child %ld (%s) done, didn't"
 				    "exit normally", (long) child->pid,
 				    child->account->name);
 			} else {
 				if (WEXITSTATUS(status) != 0)
-					errors++;
+					res = 1;
 				log_debug("parent: child %ld (%s) done, "
 				    "returned %d", (long) child->pid,
 				    child->account->name, WEXITSTATUS(status));
@@ -713,7 +713,7 @@ main(int argc, char **argv)
 			log_debug2("parent: child %ld killed", (long) pid);
 		}
 
-		errors = 1;
+		res = 1;
 	}
 
 	if (gettimeofday(&tv, NULL) != 0)
@@ -729,5 +729,5 @@ out:
 
 	if (*conf.lock_file != '\0' && !conf.allow_many)
 		unlink(conf.lock_file);
-	exit(errors);
+	exit(res);
 }
