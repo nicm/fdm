@@ -625,9 +625,9 @@ main(int argc, char **argv)
 		/* poll the io list */
 		switch (io_polln(ios, ARRAY_LENGTH(&children), &io, NULL)) {
 		case -1:
-			fatal("parent: child socket error");
+			fatalx("parent: child socket error");
 		case 0:
-			fatalx("child socket closed");
+			fatalx("parent: child socket closed");
 		}
 
 		while (!ARRAY_EMPTY(&children)) {
@@ -648,7 +648,7 @@ main(int argc, char **argv)
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL, 0) != 0)
-				fatalx("child: privsep_send error");
+				fatalx("parent: privsep_send error");
 
 			/* wait for the child  */
 			if (waitpid(child->pid, &status, 0) == -1)
