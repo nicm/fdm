@@ -257,10 +257,8 @@ main(int argc, char **argv)
         int		 opt, fds[2], lockfd, status, res;
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
-	const char	*errstr;
-	char		 tmp[512], *ptr, *s;
-	const char	*proxy = NULL;
-	char		*user = NULL, *lock = NULL;
+	const char	*errstr, *proxy = NULL, *s;
+	char		 tmp[512], *ptr, *strs, *user = NULL, *lock = NULL;
 	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
@@ -275,6 +273,7 @@ main(int argc, char **argv)
 	double		 tim;
 	struct sigaction act;
 	struct msg	 msg;
+	size_t		 off;
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -440,9 +439,9 @@ main(int argc, char **argv)
 		ARRAY_ADD(conf.headers, xstrdup("to"), char *);
 		ARRAY_ADD(conf.headers, xstrdup("cc"), char *);
 	}
-	s = fmt_strings(NULL, conf.headers);
-	log_debug("headers are: %s", s);
-	xfree(s);
+	strs = fmt_strings(NULL, conf.headers);
+	log_debug("headers are: %s", strs);
+	xfree(strs);
 	if (conf.domains == NULL) {
 		conf.domains = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.domains);
@@ -452,9 +451,47 @@ main(int argc, char **argv)
 		if (conf.info.addr != NULL)
 			ARRAY_ADD(conf.domains, conf.info.addr, char *);
 	}
-	s = fmt_strings(NULL, conf.domains);
-	log_debug("domains are: %s", s);
-	xfree(s);
+	strs = fmt_strings(NULL, conf.domains);
+	log_debug("domains are: %s", strs);
+	xfree(strs);
+
+	/* print the other settings */
+	*tmp = '\0';
+	off = 0;
+	if (conf.allow_many)
+		off = strlcat(tmp, "allow-multiple, ", sizeof tmp);
+	if (conf.no_received)
+		off = strlcat(tmp, "no-received, ", sizeof tmp);
+	if (conf.keep_all)
+		off = strlcat(tmp, "keep-all, ", sizeof tmp);
+	if (conf.del_big)
+		off = strlcat(tmp, "delete-oversized, ", sizeof tmp);
+	if (sizeof tmp > off) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "purge-after=%u, ", conf.purge_after);
+	}
+	if (sizeof tmp > off) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "maximum-size=%zu, ", conf.max_size);
+	}
+	if (sizeof tmp > off) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "default-user=%lu, ", (u_long) conf.def_user);
+	}
+	if (sizeof tmp > off) {
+		if (conf.impl_act == DECISION_DROP)
+			s = "drop";
+		else if (conf.impl_act == DECISION_KEEP)
+			s = "keep";
+		else
+			s = "none";
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "unmatched-mail=%s, ", s);
+	}
+	if (off >= 2) {
+		tmp[off - 2] = '\0';
+		log_debug("options are: %s", tmp);
+	}
 
 	/* save and print tmp dir */
 	conf.tmp_dir = getenv("TMPDIR");
