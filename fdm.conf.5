@@ -229,7 +229,8 @@ If no headers are specified, or
 fails to find any valid users in the headers, the default user (set with
 .Ic set Ic default-user )
 is used.
-Users specified as part of the account definition may be overridden by similar arguments to action definitions or on match rules. If
+Users specified as part of the account definition may be overridden by similar arguments to action definitions or on match rules.
+If
 .Xr fdm 1
 is run as non-root, it will still execute any actions once for each user, but will be unable to change to that user so the action will be executed multiple times as the current user.
 .Pp
@@ -355,7 +356,8 @@ The
 is a string defining a name for the action.
 The
 .Ar users
-argument has the same form as for an account definition. An action's user setting may be overridden in the matching rule.
+argument has the same form as for an account definition.
+An action's user setting may be overridden in the matching rule.
 .Pp
 The possible values for
 .Ar action
