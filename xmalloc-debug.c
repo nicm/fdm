@@ -45,12 +45,11 @@ struct xmalloc_call {
 	const char		*file;
 	u_int			 line;
 
-
 	enum xmalloc_type	 type;
 	u_int			 count;
 };
 
-struct xmalloc_ctx {
+struct {
 	size_t		 	 allocated;
 	size_t		 	 freed;
 	size_t		 	 peak;
@@ -60,67 +59,63 @@ struct xmalloc_ctx {
 
 	struct xmalloc_blk	 list[XMALLOC_SLOTS];
 	struct xmalloc_call	 calls[XMALLOC_SLOTS];
-
-};
-struct xmalloc_ctx	 	 xmalloc_default;
+} xmalloc_ctx;
 
 #define XMALLOC_PRINT log_debug2
 
 #define XMALLOC_PEEK 8
 #define XMALLOC_LINES 32
 
-#define XMALLOC_UPDATE(xctx) do {				\
-	if (xctx->allocated - xctx->freed > xctx->peak)		\
-		xctx->peak = xctx->allocated - xctx->freed;	\
+#define XMALLOC_UPDATE(xctx) do {					\
+	if ((xctx)->allocated - (xctx)->freed > (xctx)->peak)		\
+		(xctx)->peak = (xctx)->allocated - (xctx)->freed;	\
 } while (0)
 
-void			 xmalloc_callrecord(struct xmalloc_ctx *, const char *,
-    			     u_int, enum xmalloc_type);
-struct xmalloc_blk	*xmalloc_find(struct xmalloc_ctx *, void *);
-void			 xmalloc_new(struct xmalloc_ctx *, const char *,
-			     u_int, void *, size_t);
-void			 xmalloc_change(struct xmalloc_ctx *, const char *,
-			     u_int, void *, void *, size_t);
-void			 xmalloc_free(struct xmalloc_ctx *, const char *, u_int,
-			     void *);
+void			 xmalloc_called(const char *, u_int, enum xmalloc_type);
+struct xmalloc_blk	*xmalloc_find(void *);
+void			 xmalloc_new(const char *, u_int, void *, size_t);
+void			 xmalloc_change(const char *,u_int, void *, void *,
+			     size_t);
+void			 xmalloc_free(const char *, u_int, void *);
 
 void
-xmalloc_callrecord(struct xmalloc_ctx *xctx, const char *file, u_int line,
-    enum xmalloc_type type)
+xmalloc_called(const char *file, u_int line, enum xmalloc_type type)
 {
-	u_int	i;
+	u_int			 i;
 
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xctx->calls[i].type  == type && 
-		    xctx->calls[i].line == line &&
-		    strcmp(xctx->calls[i].file, file) == 0)
+		if (xmalloc_ctx.calls[i].type  == type && 
+		    xmalloc_ctx.calls[i].line == line &&
+		    strcmp(xmalloc_ctx.calls[i].file, file) == 0)
 			break;
 	}
 	if (i == XMALLOC_SLOTS) {
 		for (i = 0; i < XMALLOC_SLOTS; i++) {
-			if (xctx->calls[i].type == XMALLOC_NONE)
+			if (xmalloc_ctx.calls[i].type == XMALLOC_NONE)
 				break;
 		}
 		if (i == XMALLOC_SLOTS)
-			fatalx("xmalloc_callrecord: no space");
+			fatalx("xmalloc_called: no space");
 	}
 
-	xctx->calls[i].type = type;
-	xctx->calls[i].line = line;
-	xctx->calls[i].file = file;
-	xctx->calls[i].count++;
+	xmalloc_ctx.calls[i].type = type;
+	xmalloc_ctx.calls[i].line = line;
+	xmalloc_ctx.calls[i].file = file;
+	xmalloc_ctx.calls[i].count++;
 }
 
 void
 xmalloc_callreport(const char *hdr)
 {
-	struct xmalloc_ctx	*xctx = &xmalloc_default;
+	struct xmalloc_call	*call;
 	u_int			 i;
 	const char		*type = "";
 	char			 fn[64];
 
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		switch (xctx->calls[i].type) {
+		call = &xmalloc_ctx.calls[i];
+
+		switch (call->type) {
 		case XMALLOC_NONE:
 			continue;
 		case XMALLOC_MALLOC:
@@ -134,22 +129,20 @@ xmalloc_callreport(const char *hdr)
 			break;
 		}
 
-		xsnprintf(fn, sizeof fn, "%s:%u", xctx->calls[i].file,
-		    xctx->calls[i].line);
-		XMALLOC_PRINT("%s: %-10s %-24s %u", hdr, type, fn,
-		    xctx->calls[i].count);
+		xsnprintf(fn, sizeof fn, "%s:%u", call->file, call->line);
+		XMALLOC_PRINT("%s: %-10s %-24s %u", hdr, type, fn, call->count);
 	}
 }
 
 
 struct xmalloc_blk *
-xmalloc_find(struct xmalloc_ctx *xctx, void *ptr)
+xmalloc_find(void *ptr)
 {
 	u_int	i;
 
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xctx->list[i].ptr == ptr)
-			return (&xctx->list[i]);
+		if (xmalloc_ctx.list[i].ptr == ptr)
+			return (&xmalloc_ctx.list[i]);
 	}
 
 	return (NULL);
@@ -158,23 +151,20 @@ xmalloc_find(struct xmalloc_ctx *xctx, void *ptr)
 void
 xmalloc_clear(void)
 {
-	struct xmalloc_ctx	*xctx = &xmalloc_default;
+	xmalloc_ctx.allocated = 0;
+	xmalloc_ctx.freed = 0;
+	xmalloc_ctx.peak = 0;
+	xmalloc_ctx.frees = 0;
+	xmalloc_ctx.mallocs = 0;
+	xmalloc_ctx.reallocs = 0;
 
-	xctx->allocated = 0;
-	xctx->freed = 0;
-	xctx->peak = 0;
-	xctx->frees = 0;
-	xctx->mallocs = 0;
-	xctx->reallocs = 0;
-
-	memset(xctx->list, 0, sizeof xctx->list);
-	memset(xctx->calls, 0, sizeof xctx->calls);
+	memset(xmalloc_ctx.list, 0, sizeof xmalloc_ctx.list);
+	memset(xmalloc_ctx.calls, 0, sizeof xmalloc_ctx.calls);
 }
 
 void
 xmalloc_report(const char *hdr)
 {
-	struct xmalloc_ctx	*xctx = &xmalloc_default;
  	struct xmalloc_blk	*blk;
  	char	 		 line[256];
  	int			 len;
@@ -182,20 +172,20 @@ xmalloc_report(const char *hdr)
   	u_int	 		 i, j, n;
 
  	XMALLOC_PRINT("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zu",
- 	    hdr, xctx->allocated, xctx->freed, xctx->allocated - xctx->freed,
-	    xctx->peak);
+ 	    hdr, xmalloc_ctx.allocated, xmalloc_ctx.freed,
+	    xmalloc_ctx.allocated - xmalloc_ctx.freed, xmalloc_ctx.peak);
  	XMALLOC_PRINT("%s: mallocs=%u, reallocs=%u, frees=%u", hdr,
-	    xctx->mallocs, xctx->reallocs, xctx->frees);
+	    xmalloc_ctx.mallocs, xmalloc_ctx.reallocs, xmalloc_ctx.frees);
 
 	xmalloc_callreport(hdr);
 
- 	if (xctx->allocated == xctx->freed)
+ 	if (xmalloc_ctx.allocated == xmalloc_ctx.freed)
  		return;
 
 	n = 0;
 	off = 0;
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		blk = &xctx->list[i];
+		blk = &xmalloc_ctx.list[i];
 		if (blk->ptr == NULL)
 			continue;
 
@@ -235,15 +225,14 @@ xmalloc_report(const char *hdr)
 }
 
 void
-xmalloc_new(struct xmalloc_ctx *xctx, const char *file, u_int line, void *ptr,
-    size_t size)
+xmalloc_new(const char *file, u_int line, void *ptr, size_t size)
 {
 	struct xmalloc_blk	*blk;
 
-	xctx->allocated += size;
-	XMALLOC_UPDATE(xctx);
+	xmalloc_ctx.allocated += size;
+	XMALLOC_UPDATE(&xmalloc_ctx);
 
-	if ((blk = xmalloc_find(xctx, NULL)) == NULL) {
+	if ((blk = xmalloc_find(NULL)) == NULL) {
 		XMALLOC_PRINT("%s:%u: xmalloc_new: no space", file, line);
 		return;
 	}
@@ -255,28 +244,28 @@ xmalloc_new(struct xmalloc_ctx *xctx, const char *file, u_int line, void *ptr,
 }
 
 void
-xmalloc_change(struct xmalloc_ctx *xctx, const char *file, u_int line,
-    void *oldptr, void *newptr, size_t newsize)
+xmalloc_change(const char *file, u_int line, void *oldptr, void *newptr,
+    size_t newsize)
 {
 	struct xmalloc_blk	*blk;
 	ssize_t			 change;
 
 	if (oldptr == NULL) {
-		xmalloc_new(xctx, file, line, newptr, newsize);
+		xmalloc_new(file, line, newptr, newsize);
 		return;
 	}
 
-	if ((blk = xmalloc_find(xctx, oldptr)) == NULL) {
+	if ((blk = xmalloc_find(oldptr)) == NULL) {
 		XMALLOC_PRINT("%s:%u: xmalloc_change: not found", file, line);
 		return;
 	}
 
 	change = newsize - blk->size;
 	if (change > 0)
-		xctx->allocated += change;
+		xmalloc_ctx.allocated += change;
 	else
-		xctx->freed -= change;
-	XMALLOC_UPDATE(xctx);
+		xmalloc_ctx.freed -= change;
+	XMALLOC_UPDATE(&xmalloc_ctx);
 
  	blk->ptr = newptr;
 	blk->size = newsize;
@@ -286,16 +275,16 @@ xmalloc_change(struct xmalloc_ctx *xctx, const char *file, u_int line,
 }
 
 void
-xmalloc_free(struct xmalloc_ctx *xctx, const char *file, u_int line, void *ptr)
+xmalloc_free(const char *file, u_int line, void *ptr)
 {
 	struct xmalloc_blk	*blk;
 
-	if ((blk = xmalloc_find(xctx, ptr)) == NULL) {
+	if ((blk = xmalloc_find(ptr)) == NULL) {
 		XMALLOC_PRINT("%s:%u: xmalloc_free: not found", file, line);
 		return;
 	}
 
-	xctx->freed += blk->size;
+	xmalloc_ctx.freed += blk->size;
 
 	blk->ptr = NULL;
 }
@@ -307,10 +296,10 @@ dxmalloc(const char *file, u_int line, size_t size)
 
 	ptr = xxmalloc(size);
 
-	xmalloc_default.mallocs++;
-	xmalloc_new(&xmalloc_default, file, line, ptr, size);
+	xmalloc_ctx.mallocs++;
+	xmalloc_new(file, line, ptr, size);
 
-	xmalloc_callrecord(&xmalloc_default, file, line, XMALLOC_MALLOC);
+	xmalloc_called(file, line, XMALLOC_MALLOC);
 
 	return (ptr);
 }
@@ -322,10 +311,10 @@ dxcalloc(const char *file, u_int line, size_t nmemb, size_t size)
 
 	ptr = xxcalloc(nmemb, size);
 
-	xmalloc_default.mallocs++;
-	xmalloc_new(&xmalloc_default, file, line, ptr, size);
+	xmalloc_ctx.mallocs++;
+	xmalloc_new(file, line, ptr, size);
 
-	xmalloc_callrecord(&xmalloc_default, file, line, XMALLOC_MALLOC);
+	xmalloc_called(file, line, XMALLOC_MALLOC);
 
 	return (ptr);
 }
@@ -337,11 +326,10 @@ dxrealloc(const char *file, u_int line, void *oldptr, size_t nmemb, size_t size)
 
 	newptr = xxrealloc(oldptr, nmemb, size);
 
-	xmalloc_default.reallocs++;
-	xmalloc_change(&xmalloc_default, file, line, oldptr, newptr,
-	    nmemb * size);
+	xmalloc_ctx.reallocs++;
+	xmalloc_change(file, line, oldptr, newptr, nmemb * size);
 
-	xmalloc_callrecord(&xmalloc_default, file, line, XMALLOC_REALLOC);
+	xmalloc_called(file, line, XMALLOC_REALLOC);
 
         return (newptr);
 }
@@ -351,10 +339,10 @@ dxfree(const char *file, u_int line, void *ptr)
 {
 	xxfree(ptr);
 
-	xmalloc_default.frees++;
-	xmalloc_free(&xmalloc_default, file, line, ptr);
+	xmalloc_ctx.frees++;
+	xmalloc_free(file, line, ptr);
 
-	xmalloc_callrecord(&xmalloc_default, file, line, XMALLOC_FREE);
+	xmalloc_called(file, line, XMALLOC_FREE);
 }
 
 int printflike4
@@ -368,7 +356,7 @@ dxasprintf(const char *file, u_int line, char **ret, const char *fmt, ...)
         i = dxvasprintf(file, line, ret, fmt, ap);
         va_end(ap);
 
-	xmalloc_callrecord(&xmalloc_default, file, line, XMALLOC_MALLOC);
+	xmalloc_called(file, line, XMALLOC_MALLOC);
 
 	return (i);
 }
@@ -381,10 +369,10 @@ dxvasprintf(const char *file, u_int line, char **ret, const char *fmt,
 
 	i = xxvasprintf(ret, fmt, ap);
 
-	xmalloc_default.mallocs++;
-	xmalloc_new(&xmalloc_default, file, line, *ret, i);
+	xmalloc_ctx.mallocs++;
+	xmalloc_new(file, line, *ret, i);
 
-	xmalloc_callrecord(&xmalloc_default, file, line, XMALLOC_MALLOC);
+	xmalloc_called(file, line, XMALLOC_MALLOC);
 
 	return (i);
 }
