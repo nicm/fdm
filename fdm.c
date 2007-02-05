@@ -466,7 +466,7 @@ main(int argc, char **argv)
 		off = strlcat(tmp, "keep-all, ", sizeof tmp);
 	if (conf.del_big)
 		off = strlcat(tmp, "delete-oversized, ", sizeof tmp);
-	if (sizeof tmp > off) {
+	if (sizeof tmp > off && conf.purge_after > 0) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "purge-after=%u, ", conf.purge_after);
 	}
@@ -478,7 +478,7 @@ main(int argc, char **argv)
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "default-user=%lu, ", (u_long) conf.def_user);
 	}
-	if (sizeof tmp > off) {
+	if (sizeof tmp > off && conf.impl_act != DECISION_NONE) {
 		if (conf.impl_act == DECISION_DROP)
 			s = "drop";
 		else if (conf.impl_act == DECISION_KEEP)
