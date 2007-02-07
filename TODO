@@ -14,3 +14,4 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - timer. don't wait for server forever
+- ifdef/endif directives in config file, change -D to not require a value

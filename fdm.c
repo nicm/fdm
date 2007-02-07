@@ -325,7 +325,8 @@ main(int argc, char **argv)
 				macro->value.num = strtonum(ptr, 0, LLONG_MAX,
 				    &errstr);
 				if (errstr != NULL) {
-					log_warnx("number is %s", errstr);
+					log_warnx("number is %s: %s", errstr,
+					    ptr);
 					exit(1);
 				}
 				log_debug2("added -D macro \"%s\": %lld",
