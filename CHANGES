@@ -1,6 +1,14 @@
+07 February 2007
+
+* Added -D command line option.
+
+05 February 2007
+
+* Made options be printed with -v. 
+
 27 January 2007
 
-* Fix attachment parsing so that it works as intended.
+* Fixed attachment parsing so that it works as intended.
 
 26 January 2007
 

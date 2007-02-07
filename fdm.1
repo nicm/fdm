@@ -24,13 +24,16 @@
 .Nm fdm
 .Op Fl klmnv
 .Bk -words
+.Op Fl a Ar account
+.Ek
+.Bk -words
+.Op Fl D Ar name=value
+.E
+.Bk -words
 .Op Fl f Ar conffile
 .Ek
 .Bk -words
 .Op Fl u Ar user
-.Ek
-.Bk -words
-.Op Fl a Ar account
 .Ek
 .Bk -words
 .Op Fl x Ar account
@@ -48,6 +51,14 @@ The options are as follows:
 .It Fl a Ar name
 Process only the specified account. This option may appear multiple times. The account name may include shell glob characters to match multiple accounts.
 .Pp
+.It Fl D Ar name=value
+This option defines a macro for use when parsing the configuration file.
+The macro name must be prefixed with
+.Qu $
+or
+.Qu %
+to specify a string or numeric macro.
+This option may appear multiple times.
 .It Fl f Ar conffile
 Specify the configuration file location. Default is
 .Pa ~/fdm.conf ,

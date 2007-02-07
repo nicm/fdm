@@ -246,8 +246,8 @@ use_account(struct account *a, char **cause)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-klmnv] [-f conffile] [-u user] [-a name] [-x name] "
-	    "[fetch|poll]\n", __progname);
+	printf("usage: %s [-klmnv] [-a name] [-D name=value] [-f conffile]"
+	    " [-u user] [-x name] [fetch|poll]\n", __progname);
         exit(1);
 }
 
@@ -274,6 +274,7 @@ main(int argc, char **argv)
 	struct sigaction act;
 	struct msg	 msg;
 	size_t		 off;
+	struct macro	*macro;
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -289,10 +290,47 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:f:klmnu:vx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:D:f:klmnu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, char *);
+			break;
+		case 'D':
+			if (*optarg != '$' && *optarg != '%') {
+				log_warnx("invalid macro: %s", optarg);
+				exit(1);
+			}
+			ptr = strchr(optarg, '=');
+			if (ptr == NULL) {
+				log_warnx("missing value: %s", optarg);
+				exit(1);
+			}
+			*ptr++ = '\0';
+			if (strlen(optarg) > MAXNAMESIZE) {
+				log_warnx("macro name too long: %s", optarg);
+				exit(1);
+			}
+
+			macro = xmalloc(sizeof *macro);
+			strlcpy(macro->name, optarg, sizeof macro->name);
+			TAILQ_INSERT_HEAD(&macros, macro, entry);
+
+			if (*optarg == '$') {
+				macro->type = MACRO_STRING;
+				macro->value.str = xstrdup(ptr);
+				log_debug2("added -D macro \"%s\": %s",
+				    macro->name, macro->value.str);
+			} else {
+				macro->type = MACRO_NUMBER;
+				macro->value.num = strtonum(ptr, 0, LLONG_MAX,
+				    &errstr);
+				if (errstr != NULL) {
+					log_warnx("number is %s", errstr);
+					exit(1);
+				}
+				log_debug2("added -D macro \"%s\": %lld",
+				    macro->name, macro->value.num);
+			}
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
