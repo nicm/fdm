@@ -21,9 +21,11 @@
 %{
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <fnmatch.h>
+#include <grp.h>
 #include <libgen.h>
 #include <limits.h>
 #include <netdb.h>
@@ -277,7 +279,8 @@ find_macro(char *name)
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
-%token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED
+%token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
+%token TOKFILEGROUP
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -305,6 +308,7 @@ find_macro(char *name)
 	struct expritem		*expritem;
 	struct strings		*strings;
 	uid_t			 uid;
+	gid_t			 gid;
 	struct {
 		struct strings	*users;
 		int		 find_uid;
@@ -328,6 +332,7 @@ find_macro(char *name)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled keep poptype imaptype execpipe compress
+%type  <gid> gid
 %type  <locks> lock locklist
 %type  <match> match
 %type  <number> size time numv retrc
@@ -666,6 +671,39 @@ set: TOKSET TOKMAXSIZE size
      {
 	     conf.no_received = 1;
      }
+   | TOKSET TOKFILEGROUP TOKUSER
+     {
+	     conf.file_group = NOGRP;
+     }
+   | TOKSET TOKFILEGROUP gid
+/**  [$3: gid (gid_t)] */
+     {
+	     conf.file_group = $3;
+     }
+   | TOKSET TOKFILEUMASK TOKUSER
+     {
+	     conf.file_umask = umask(0);
+	     umask(conf.file_umask);
+     }
+   | TOKSET TOKFILEUMASK numv
+/**  [$3: numv (long long)] */
+     {
+	     char	s[8];
+
+	     /*
+	      * We can't differentiate umasks in octal from normal numbers
+	      * (requiring a leading zero a la C would be nice, but it would
+	      * potentially break existing configs), so we need to fiddle to
+	      * convert.
+	      */
+	     memset(s, 0, sizeof s);
+	     xsnprintf(s, sizeof s, "%03lld", $3);
+	     if (s[3] != '\0' || s[0] < '0' || s[0] > '7' ||
+		 s[1] < 0 || s[1] > '7' || s[2] < '0' || s[2] > '7')
+		     yyerror("invalid umask: %s", s);
+	     if (sscanf(s, "%o", &conf.file_umask) != 1)
+		     yyerror("invalid umask: %s", s);
+     }
 
 /** DEFMACRO */
 defmacro: STRMACRO '=' STRING
@@ -897,6 +935,34 @@ uid: strv
 		     yyerror("unknown uid: %llu", $1);
 	     $$ = pw->pw_uid;
 	     endpwent();
+     }
+
+/** GID: <gid> (gid_t) */
+gid: strv
+/**  [$1: strv (char *)] */
+     {
+	     struct group	*gr;
+
+	     gr = getgrnam($1);
+	     if (gr == NULL)
+		     yyerror("unknown group: %s", $1);
+	     $$ = gr->gr_gid;
+	     endgrent();
+
+	     xfree($1);
+     }
+   | numv
+/**  [$1: numv (long long)] */
+     {
+	     struct group	*gr;
+
+	     if ($1 > GID_MAX)
+		     yyerror("invalid gid: %llu", $1);
+	     gr = getgrgid($1);
+	     if (gr == NULL)
+		     yyerror("unknown gid: %llu", $1);
+	     $$ = gr->gr_gid;
+	     endgrent();
      }
 
 /** USER: <uid> (uid_t) */

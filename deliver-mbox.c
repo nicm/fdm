@@ -67,8 +67,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	struct mbox_data	*data = t->data;
 	char			*path, *ptr, *ptr2, *from = NULL;
 	size_t	 		 len, len2;
-	int	 		 fd = -1, fd2, res = DELIVER_FAILURE;
-	struct stat		 sb;
+	int	 		 exists, fd = -1, fd2, res = DELIVER_FAILURE;
 	gzFile			 gzf = NULL;
 
 	path = replacepmatch(data->path, a, t, m->src, m, dctx->pmatch_valid,
@@ -94,35 +93,14 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	log_debug("%s: using from line: %s", a->name, from);
 
 	/* check permissions and ownership */
-	errno = 0;
-	if (stat(path, &sb) != 0 && errno != ENOENT) {
-		log_warn("%s: %s: stat", a->name, path);
+	if (checkperms(a->name, path, &exists) != 0) {
+		log_warn("%s: %s: checkperms", a->name, path);
 		goto out;
-	} else if (errno == 0) {
-		if ((sb.st_mode & (S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|
-		    S_IROTH|S_IWOTH|S_IXOTH)) != 0) {
-			log_warnx("%s: %s: bad permissions: %o%o%o, "
-			    "should be 600", a->name, path,
-			    (sb.st_mode & S_IRUSR ? 4 : 0) +
-			    (sb.st_mode & S_IWUSR ? 2 : 0) +
-			    (sb.st_mode & S_IXUSR ? 1 : 0),
-			    (sb.st_mode & S_IRGRP ? 4 : 0) +
-			    (sb.st_mode & S_IWGRP ? 2 : 0) +
-			    (sb.st_mode & S_IXGRP ? 1 : 0),
-			    (sb.st_mode & S_IROTH ? 4 : 0) +
-			    (sb.st_mode & S_IWOTH ? 2 : 0) +
-			    (sb.st_mode & S_IXOTH ? 1 : 0));
-		}
-		if (sb.st_uid != getuid()) {
-			log_warnx("%s: %s: bad owner: %lu, should be %lu",
-			    a->name, path,
-			    (u_long) sb.st_uid, (u_long) getuid());
-		}
 	}
 
 	do {
-		fd = openlock(path, conf.lock_types,
-		    O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
+		fd = openlock(path, conf.lock_types, O_CREAT|O_WRONLY|O_APPEND,
+		    FILEMODE);
 		if (fd < 0) {
 			if (errno == EAGAIN) {
 				log_warnx("%s: %s: couldn't obtain lock. "
@@ -134,6 +112,12 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			}
 		}
 	} while (fd < 0);
+	if (!exists && conf.file_group != NOGRP) {
+		if (fchown(fd, -1, conf.file_group) == -1) {
+			log_warn("%s: %s: fchown", a->name, path);
+			goto out;
+		}
+	}		
 
 	/* open for compressed writing if necessary */
 	if (data->compress) {

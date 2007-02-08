@@ -1,3 +1,9 @@
+08 February 2007
+
+* Added file-umask and file-group options to control permissions and group
+  ownership of created mboxes and maildirs. Altered the permissions checks
+  to take this into account, and extended them to maildirs.
+
 07 February 2007
 
 * Added -D command line option.

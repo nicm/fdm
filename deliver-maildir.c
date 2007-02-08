@@ -44,9 +44,10 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	char		*path, ch;
 	char	 	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
 	char	 	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 	 fd, res = DELIVER_FAILURE, len;
+	int	 	 exists, fd, len, res = DELIVER_FAILURE;
 	ssize_t	 	 n;
 	size_t	 	 first, last;
+	gid_t		 gid;
 
 	path = replacepmatch(t->data, a, t, m->src, m, dctx->pmatch_valid,
 	    dctx->pmatch);
@@ -57,32 +58,61 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	log_debug("%s: saving to maildir %s", a->name, path);
 
 	/* create the maildir directories */
-	if (mkdir(path, S_IRWXU) != 0 && errno != EEXIST) {
+	gid = conf.file_group;
+	if (checkperms(a->name, path, &exists) != 0) {
+		log_warn("%s: %s: checkperms", a->name, path);
+		goto out;
+	}
+	if (!exists && mkdir(path, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, path);
+		goto out;
+	} else if (!exists && gid != NOGRP && chown(path, -1, gid) == -1) {
+		log_warn("%s: %s: chown", a->name, path);
 		goto out;
 	}
 	if (printpath(name, sizeof name, "%s/cur", path) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
 		goto out;
 	}
-	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
+	if (checkperms(a->name, name, &exists) != 0) {
+		log_warn("%s: %s: checkperms", a->name, name);
+		goto out;
+	}
+	if (!exists && mkdir(name, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, name);
+		goto out;
+	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
+		log_warn("%s: %s: chown", a->name, name);
 		goto out;
 	}
 	if (printpath(name, sizeof name, "%s/new", path) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
 		goto out;
 	}
-	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
+	if (checkperms(a->name, name, &exists) != 0) {
+		log_warn("%s: %s: checkperms", a->name, name);
+		goto out;
+	}
+	if (!exists && mkdir(name, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, name);
+		goto out;
+	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
+		log_warn("%s: %s: chown", a->name, name);
 		goto out;
 	}
 	if (printpath(name, sizeof name, "%s/tmp", path) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
 		goto out;
 	}
-	if (mkdir(name, S_IRWXU) != 0 && errno != EEXIST) {
+	if (checkperms(a->name, name, &exists) != 0) {
+		log_warn("%s: %s: checkperms", a->name, name);
+		goto out;
+	}
+	if (!exists && mkdir(name, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, name);
+		goto out;
+	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
+		log_warn("%s: %s: chown", a->name, name);
 		goto out;
 	}
 
@@ -134,7 +164,7 @@ restart:
 			goto out;
 		}
 
-		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, FILEMODE);
 		if (fd == -1 && errno != EEXIST) {
 			log_warn("%s: %s: open", a->name, src);
 			goto out;
@@ -143,6 +173,10 @@ restart:
 		delivered++;
 	} while (fd == -1);
 	cleanup_register(src);
+	if (conf.file_group != NOGRP && fchown(fd, -1, conf.file_group) == -1) {
+		log_warn("%s: %s: fchown", a->name, path);
+		goto out;
+	}
 
 	/* write the message */
 	log_debug2("%s: writing to %s", a->name, src);

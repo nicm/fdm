@@ -284,6 +284,8 @@ main(int argc, char **argv)
 	conf.lock_types = LOCK_FLOCK;
 	conf.impl_act = DECISION_NONE;
 	conf.purge_after = 0;
+	conf.file_umask = DEFUMASK;
+	conf.file_group = -1;
 
 	log_init(1);
 
@@ -401,20 +403,18 @@ main(int argc, char **argv)
 
 	/* start logging to syslog if necessary */
 	log_init(!conf.syslog);
-	log_debug("version is: %s " BUILD, __progname);
-
-	/* log the start time */
 	t = time(NULL);
-	log_debug("starting at: %.24s", ctime(&t));
+	log_debug("version is: %s " BUILD ", started at: %.24s", __progname,
+	    ctime(&t));
 
 	/* and the OS version */
 	if (uname(&un) == 0) {
 		log_debug("running on: %s %s %s %s", un.sysname, un.release,
 		    un.version, un.machine);
 	} else
-		log_debug("running on: (%s)", strerror(errno));
+		log_debug("uname: %s", strerror(errno));
 
-	/* save the home dir and misc user info */
+	/* save the home dir and misc user info and set the umask */
 	fill_info(getenv("HOME"));
 	log_debug("user is: %s, home is: %s", conf.info.user, conf.info.home);
 
@@ -439,6 +439,9 @@ main(int argc, char **argv)
 		exit(1);
 	}
 	log_debug("configuration loaded");
+
+	/* set the umask */
+	umask(conf.file_umask);
 
 	/* print proxy info */
 	if (conf.proxy != NULL) {
@@ -526,6 +529,14 @@ main(int argc, char **argv)
 			s = "none";
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "unmatched-mail=%s, ", s);
+	}
+	if (sizeof tmp > off) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "file-umask=%o%o%o, ", MODE(conf.file_umask));
+	}
+	if (sizeof tmp > off && conf.file_group != NOGRP) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "file-group=%lu, ", (u_long) conf.file_group);
 	}
 	if (off >= 2) {
 		tmp[off - 2] = '\0';

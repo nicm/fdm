@@ -46,12 +46,21 @@
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	64
+#define DEFUMASK	(S_IRWXG|S_IRWXO)
+#define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define DIRMODE		(S_IRWXU|S_IRWXG|S_IRWXO)
+
+#define NOGRP	 	((gid_t) -1)
+#define NOUSR		((uid_t) -1)
 
 extern char	*__progname;
 
 /* Linux compatibility bullshit. */
 #ifndef UID_MAX
 #define UID_MAX UINT_MAX
+#endif
+#ifndef GID_MAX
+#define GID_MAX UINT_MAX
 #endif
 
 #ifndef __dead
@@ -71,6 +80,12 @@ extern char	*__progname;
 	}								\
 	log_debug2("%s: %d file descriptors in use", s, fd_n);		\
 } while (0)
+
+/* Convert a file mode. */
+#define MODE(m) \
+	(m & S_IRUSR ? 4 : 0) + (m & S_IWUSR ? 2 : 0) + (m & S_IXUSR ? 1 : 0), \
+    	(m & S_IRGRP ? 4 : 0) +	(m & S_IWGRP ? 2 : 0) +	(m & S_IXGRP ? 1 : 0), \
+	(m & S_IROTH ? 4 : 0) +	(m & S_IWOTH ? 2 : 0) + (m & S_IXOTH ? 1 : 0)
 
 /* Array macros. */
 #define ARRAY_DECL(n, c)						\
@@ -437,6 +452,9 @@ struct conf {
 	int			 no_received;
 	u_int			 purge_after;
 	enum decision		 impl_act;
+
+	mode_t			 file_umask;
+	gid_t			 file_group;
 
 	size_t			 max_size;
 	int		         del_big;
@@ -1042,6 +1060,7 @@ char 			*rfc822_time(time_t, char *, size_t);
 int 			 printpath(char *, size_t, const char *, ...);
 int			 openlock(char *, u_int, int, mode_t);
 void			 closelock(int, char *, u_int);
+int			 checkperms(char *, char *, int *);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
 int			 insert_header(struct mail *, const char *,

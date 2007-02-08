@@ -160,6 +160,28 @@ If this option is present,
 will not insert a
 .Sq Received
 header into each mail.
+.It Ic file-umask Ic user | Ar umask
+This specifies the 
+.Xr umask 2
+to use when creating files.
+.Ic user
+means to use the umask set when 
+.Xr fdm 1 
+is started, or 
+.Ar umask
+may be specified as a three-digit octal number.
+The default is 077.
+.It Ic file-group Ic user | Ar group
+This option allows the default group ownership of files and directories created by
+.Xr fdm 1
+to be specified. 
+.Ar group
+may be a group name string or a numeric gid.
+If
+.Ic user
+is used, or this option does not appear in the configuration file,
+.Xr fdm 1
+does not attempt to set the group of new files and directories.
 .El
 .Sh INCLUDING FILES
 Further configuration files may be including using the
