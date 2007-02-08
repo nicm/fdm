@@ -21,15 +21,15 @@ set lock-file "/tmp/file"
 @0
 
 set delete-oversized
-@0
+@0 ^options are:.*delete-oversized
 
 set allow-multiple
-@0
+@0 ^options are:.*allow-multiple
 
 set default-user 0
-@0
+@0 ^options are:.*default-user=0
 set default-user "root"
-@0
+@0 ^options are:.*default-user=0
 
 set domain ""
 @1 ^/dev/stdin: invalid domain at line 1$
@@ -84,8 +84,22 @@ set headers { "header1" "header1" "header2" "header2" }
 @0 ^headers are: "header1" "header2"$
 
 set unmatched-mail drop
-@0
+@0 ^options are:.*unmatched-mail=drop
 set unmatched-mail keep
-@0
+@0 ^options are:.*unmatched-mail=keep
 set unmatched-mail test
 @1 ^/dev/stdin: syntax error at line 1$
+
+set file-umask 777
+@0 ^options are:.*file-umask=777
+set file-umask 0
+@0 ^options are:.*file-umask=000
+set file-umask 7777
+@1 ^/dev/stdin: invalid umask: 7777 at line 1$
+set file-umask abc
+@1 ^/dev/stdin: syntax error at line 1$
+
+set file-group 0
+@0 ^options are:.*file-group=0
+set file-group "wheel"
+@0 ^options are:.*file-group=0
