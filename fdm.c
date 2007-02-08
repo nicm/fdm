@@ -285,7 +285,7 @@ main(int argc, char **argv)
 	conf.impl_act = DECISION_NONE;
 	conf.purge_after = 0;
 	conf.file_umask = DEFUMASK;
-	conf.file_group = -1;
+	conf.file_group = NOGRP;
 
 	log_init(1);
 
