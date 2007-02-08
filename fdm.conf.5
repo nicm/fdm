@@ -439,6 +439,7 @@ Keep the mail, do not remove it from the account.
 .Xc
 Save the mail to the maildir specified by
 .Ar path .
+If the maildir does not exist, it is created.
 .It Xo Ic mbox Ar path Op Ic compress
 .Xc
 Append the mail to the mbox at
@@ -453,7 +454,8 @@ to
 .Ar path
 and attempt to write mail using
 .Xr gzip 1
-compression.
+compression. 
+If the mbox does not exist, it is created.
 .It Xo Ic pipe Ar command
 .Xc
 Pipe the entire mail to

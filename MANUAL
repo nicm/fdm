@@ -625,6 +625,8 @@ fdm will append .gz to the mbox path (if it is not already present) and append
 compressed data. If the mbox exists but is not already compressed, uncompressed
 data will be appended.
 
+If the mbox does not exist, it is created.
+
 SMTP ---------------------------------------------------------------------------
 
 An action may be defined to pass mail on over SMTP. The server host must be

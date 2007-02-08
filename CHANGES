@@ -4,6 +4,7 @@
   ownership of created mboxes and maildirs. Altered the permissions checks
   to take this into account, and extended them to maildirs. Suggestion from
   AJ Weber.
+* Make mbox/maildir creation clearer.
 
 07 February 2007
 
