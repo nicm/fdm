@@ -48,7 +48,7 @@ CFLAGS+= -std=c99
 endif
 
 OBJS= $(patsubst %.c,%.o,$(SRCS))
-CPPFLAGS= $(DEFS) -I.
+CPPFLAGS+= $(DEFS) -I. $(INCDIRS)
 #CFLAGS+= -g -ggdb -DDEBUG
 #CFLAGS+= -pedantic -std=c99
 #CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-label
