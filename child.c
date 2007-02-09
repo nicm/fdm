@@ -298,8 +298,8 @@ fetch_account(struct io *io, struct account *a, double tim)
 			if (rfc822_time(time(NULL), rtm, sizeof rtm) != NULL) {
 				rnm = conf.info.fqdn;
 				if (rnm == NULL)
-					rnm = conf.info.host;	
-				
+					rnm = conf.info.host;
+
 				error = insert_header(&m, "Received:",
 				    "Received: by %.512s (%s " BUILD ");\n\t%s",
 				    rnm, __progname, rtm);
@@ -420,7 +420,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 	struct strings		*aa;
 	u_int		 	 i;
 	int		 	 error;
-	char			*name;
+	char			*name, *tname, *tvalue;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
 
@@ -470,9 +470,22 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		}
 
 		/* tag mail if needed */
-		if (r->tag != NULL) {
-			log_debug2("%s: tagging message: %s", a->name, r->tag);
-			ARRAY_ADD(&m->tags, r->tag, char *);
+		if (*r->tag.name != '\0') {
+			tname = replace(r->tag.name, &m->tags, m,
+			    mctx->pm_valid, mctx->pm);
+			tvalue = replace(r->tag.value, &m->tags, m,
+			    mctx->pm_valid, mctx->pm);
+
+			if (tname != NULL && *tname != '\0' && tvalue != NULL) {
+				log_debug2("%s: tagging message: %s (%s)", 
+				    a->name, tname, tvalue);
+				add_tag(&m->tags, tname, tvalue);
+			}
+
+			if (tname != NULL)
+				xfree(tname);
+			if (tvalue != NULL)
+				xfree(tvalue);
 		}
 
 		/* handle delivery */
@@ -557,8 +570,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		name = ARRAY_ITEM(r->actions, i, char *);
 
-		s = replacepmatch(name, a, NULL, m->src, m, mctx->pmatch_valid,
-		    mctx->pmatch);
+		s = replace(name, &m->tags, m, mctx->pm_valid, mctx->pm);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = match_actions(s);
@@ -597,10 +609,10 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	u_int		 	 i, l;
 	int		 	 find;
 	struct strings	        *users;
-	size_t			 srclen;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
+	add_tag(&m->tags, "action", t->name);
 
 	/* just deliver now for in-child delivery */
 	if (t->deliver->type == DELIVER_INCHILD) {
@@ -608,8 +620,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		dctx.account = a;
 		dctx.mail = m;
 		dctx.decision = &mctx->decision;
-		dctx.pmatch_valid = mctx->pmatch_valid;
-		memcpy(&dctx.pmatch, mctx->pmatch, sizeof dctx.pmatch);
+		dctx.pm_valid = mctx->pm_valid;
+		memcpy(&dctx.pm, mctx->pm, sizeof dctx.pm);
 
 		if (t->deliver->deliver(&dctx, t) != DELIVER_SUCCESS)
 			return (1);
@@ -652,13 +664,13 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		msg.data.action = t;
 		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
 
-		msg.data.pmatch_valid = mctx->pmatch_valid;
-		memcpy(&msg.data.pmatch, mctx->pmatch, sizeof msg.data.pmatch);
+		msg.data.pm_valid = mctx->pm_valid;
+		memcpy(&msg.data.pm, mctx->pm, sizeof msg.data.pm);
 
 		mail_send(m, &msg);
 
-		srclen = m->src != NULL ? strlen(m->src) : 0;
-		if (privsep_send(mctx->io, &msg, m->src, srclen) != 0)
+		if (privsep_send(mctx->io, &msg, m->tags.list,
+		    m->tags.space) != 0)
 			fatalx("child: privsep_send error");
 
 		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)
@@ -690,7 +702,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
 		/* invalidate the pmatch data since stuff may have moved */
-		mctx->pmatch_valid = 0;
+		mctx->pm_valid = 0;
 	}
 
 	if (find)

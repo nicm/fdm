@@ -35,7 +35,6 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail		*m = mctx->mail;
 	struct io		*io = mctx->io;
 	struct msg		 msg;
-	size_t			 srclen;
 
 	/* we are called as the child so to change uid this needs to be done
 	   largely in the parent */
@@ -44,13 +43,12 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 	msg.data.cmddata = data;
 	msg.data.uid = data->uid;
 
-	msg.data.pmatch_valid = mctx->pmatch_valid;
-	memcpy(&msg.data.pmatch, mctx->pmatch, sizeof msg.data.pmatch);
+	msg.data.pm_valid = mctx->pm_valid;
+	memcpy(&msg.data.pm, mctx->pm, sizeof msg.data.pm);
 
 	mail_send(m, &msg);
 
-	srclen = m->src != NULL ? strlen(m->src) : 0;
-	if (privsep_send(io, &msg, m->src, srclen) != 0)
+	if (privsep_send(io, &msg, m->tags.list, m->tags.space) != 0)
 		fatalx("child: privsep_send error");
 
 	if (privsep_recv(io, &msg, NULL, 0) != 0)
@@ -74,7 +72,7 @@ command_desc(struct expritem *ei, char *buf, size_t len)
 	type = data->pipe ? "pipe" : "exec";
 
 	if (data->re.str == NULL) {
-		xsnprintf(buf, len, "%s \"%s\" user %lu returns (%s, )", 
+		xsnprintf(buf, len, "%s \"%s\" user %lu returns (%s, )",
 		    type, data->cmd, (u_long) data->uid, ret);
 	} else {
 		xsnprintf(buf, len,

@@ -171,6 +171,7 @@ unmatched return (TOKUNMATCHED);
 unmatched-mail return (TOKIMPLACT);
 user return (TOKUSER);
 users return (TOKUSERS);
+value return (TOKVALUE);
 write return (TOKWRITE);
 = return ('=');
 == return (TOKEQ);

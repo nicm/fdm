@@ -84,7 +84,7 @@ xmalloc_called(const char *file, u_int line, enum xmalloc_type type)
 	u_int			 i;
 
 	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xmalloc_ctx.calls[i].type  == type && 
+		if (xmalloc_ctx.calls[i].type  == type &&
 		    xmalloc_ctx.calls[i].line == line &&
 		    strcmp(xmalloc_ctx.calls[i].file, file) == 0)
 			break;

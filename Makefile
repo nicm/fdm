@@ -65,7 +65,7 @@ LIBS= -lssl -lcrypto -lz
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
 DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] README MANUAL fdm-sanitize \
-	`find examples regress compat -type f -and ! -path '*CVS*'` TODO
+	`find examples regress compat -type f -and ! -path '*CVS*'` TODO CHANGES
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
 	    ${PROG}-*.tar.gz *~ *.ln ${PROG}.core

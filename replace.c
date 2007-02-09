@@ -18,104 +18,181 @@
 
 #include <sys/types.h>
 
+#include <fnmatch.h>
 #include <string.h>
+#include <time.h>
 
 #include "fdm.h"
 
-void	initmap(char *[REPL_LEN], struct account *, struct action *, char *);
+#define ALIAS_IDX(ch) /* LINTED */ 				\
+	(((ch) >= 'a' && (ch) <= 'z') ? (ch) - 'a' :       	\
+	(((ch) >= 'A' && (ch) <= 'Z') ? 26 + (ch) - 'A' : -1))
+
+static const char *aliases[] = {
+	"account", 	/* a */
+	NULL, 		/* b */
+	NULL, 		/* c */
+	"day", 		/* d */
+	NULL, 		/* e */
+	NULL, 		/* f */
+	NULL, 		/* g */
+	"home", 	/* h */
+	NULL, 		/* i */
+	NULL, 		/* j */
+	NULL, 		/* l */
+	NULL, 		/* l */
+	"month", 	/* m */
+	"uid", 		/* n */
+	NULL, 		/* o */
+	NULL, 		/* p */
+	NULL, 		/* q */
+	NULL, 		/* r */
+	"source", 	/* s */
+	"action", 	/* t */
+	"user", 	/* u */
+	NULL, 		/* v */
+	NULL, 		/* w */
+	NULL, 		/* x */
+	"year", 	/* y */
+	NULL, 		/* z */
+
+	NULL, 		/* A */
+	NULL, 		/* B */
+	NULL, 		/* C */
+	NULL, 		/* D */
+	NULL, 		/* E */
+	NULL, 		/* F */
+	NULL, 		/* G */
+	"hour", 	/* H */
+	NULL, 		/* I */
+	NULL, 		/* J */
+	NULL, 		/* K */
+	NULL, 		/* L */
+	"minute", 	/* M */
+	NULL, 		/* N */
+	NULL, 		/* O */
+	NULL, 		/* P */
+	"quarter",	/* Q */
+	NULL, 		/* R */
+	"second",	/* S */
+	NULL, 		/* T */
+	NULL, 		/* U */
+	NULL, 		/* V */
+	"dayofweek", 	/* W */
+	NULL, 		/* X */
+	"dayofyear", 	/* Y */
+	NULL, 		/* Z */
+};
 
 void
-initmap(char *map[REPL_LEN], struct account *a, struct action *t, char *s)
+add_tag(struct tags *tags, const char *name, const char *value)
 {
-	static char	 H[5], M[5], S[5], d[5], m[5], y[5], W[5], Y[5], Q[5];
+	struct tag	*tag;
+
+	if ((tag = find_tag(tags, name)) == NULL) {
+		ARRAY_EXPAND(tags, 1, struct tag);
+		tag = &ARRAY_LAST(tags, struct tag);
+	}
+
+	if (strlcpy(tag->value, value, sizeof tag->value) >= sizeof tag->value)
+		goto error;
+	if (strlcpy(tag->name, name, sizeof tag->name) >= sizeof tag->name)
+		goto error;
+	return;
+
+error:
+	/* XXX this sucks */
+	ARRAY_TRUNC(tags, 1, struct tag);
+}
+
+struct tag *
+find_tag(struct tags *tags, const char *name)
+{
+	struct tag	*tag;
+	u_int		 i;
+
+	for (i = 0; i < ARRAY_LENGTH(tags); i++) {
+		tag = &ARRAY_ITEM(tags, i, struct tag);
+		if (strcmp(name, tag->name) == 0)
+			return (tag);
+	}
+
+	return (NULL);
+}
+
+struct tag *
+match_tag(struct tags *tags, const char *name)
+{
+	struct tag	*tag;
+	u_int		 i;
+
+	for (i = 0; i < ARRAY_LENGTH(tags); i++) {
+		tag = &ARRAY_ITEM(tags, i, struct tag);
+		if (fnmatch(name, tag->name, 0) == 0)
+			return (tag);
+	}
+
+	return (NULL);
+}
+
+void
+default_tags(struct tags *tags, char *src, struct account *a)
+{
+	char		 tmp[16];
 	struct tm	*tm;
-	time_t		 tt;
+	time_t		 t;
 
+	ARRAY_INIT(tags);
+
+	add_tag(tags, "home", conf.info.home);
+	add_tag(tags, "uid", conf.info.uid);
+	add_tag(tags, "user", conf.info.user);
+
+	if (src != NULL)
+		add_tag(tags, "source", src);
 	if (a != NULL)
-		map[REPL_IDX('a')] = a->name;
-	map[REPL_IDX('s')] = s;
-	map[REPL_IDX('h')] = conf.info.home;
-	map[REPL_IDX('n')] = conf.info.uid;
-	if (t != NULL)
-		map[REPL_IDX('t')] = t->name;
-	map[REPL_IDX('u')] = conf.info.user;
+		add_tag(tags, "account", a->name);
 
-	/* time and date */
-	tt = time(NULL);
-	tm = localtime(&tt);
-	if (tm != NULL) {
-		xsnprintf(H, sizeof H, "%.2d", tm->tm_hour);
-		map[REPL_IDX('H')] = H;
-		xsnprintf(M, sizeof M, "%.2d", tm->tm_min);
-		map[REPL_IDX('M')] = M;
-		xsnprintf(S, sizeof S, "%.2d", tm->tm_sec);
-		map[REPL_IDX('S')] = S;
-		xsnprintf(d, sizeof d, "%.2d", tm->tm_mday);
-		map[REPL_IDX('d')] = d;
-		xsnprintf(m, sizeof m, "%.2d", tm->tm_mon);
-		map[REPL_IDX('m')] = m;
-		xsnprintf(y, sizeof y, "%.4d", 1900 + tm->tm_year);
-		map[REPL_IDX('y')] = y;
-		xsnprintf(W, sizeof W, "%d", tm->tm_wday);
-		map[REPL_IDX('W')] = W;
-		xsnprintf(Y, sizeof Y, "%.2d", tm->tm_yday);
-		map[REPL_IDX('Y')] = Y;
-		xsnprintf(Q, sizeof Q, "%d", (tm->tm_mon - 1) / 3 + 1);
-		map[REPL_IDX('Q')] = Q;
+	t = time(NULL);
+	if ((tm = localtime(&t)) != NULL) {
+		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_hour);
+		add_tag(tags, "hour", tmp);
+		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_min);
+		add_tag(tags, "minute", tmp);
+		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_sec);
+		add_tag(tags, "second", tmp);
+		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_mday);
+		add_tag(tags, "day", tmp);
+		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_mon);
+		add_tag(tags, "month", tmp);
+		xsnprintf(tmp, sizeof tmp, "%.4d", 1900 + tm->tm_year);
+		add_tag(tags, "year", tmp);
+		xsnprintf(tmp, sizeof tmp, "%d", tm->tm_wday);
+		add_tag(tags, "dayofweek", tmp);
+		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_yday);
+		add_tag(tags, "dayofyear", tmp);
+		xsnprintf(tmp, sizeof tmp, "%d", (tm->tm_mon - 1) / 3 + 1);
+		add_tag(tags, "quarter", tmp);
 	}
 }
 
-char *
-replacepmatch(char *src, struct account *a, struct action *t, char *s,
-    struct mail *m, int pmatch_valid, regmatch_t pmatch[NPMATCH])
+void
+update_tags(struct tags *tags)
 {
-	char	*map[REPL_LEN];
-	char	*dst, *u;
-	size_t	 len;
-	u_int	 i;
-
-	if (!pmatch_valid)
-		return (replaceinfo(src, a, t, s));
-
-	memset(map, 0, REPL_LEN * sizeof (char *));
-	initmap(map, a, t, s);
-
-	for (i = 0; i < NPMATCH; i++) {
-		if (pmatch[i].rm_so >= pmatch[i].rm_eo)
-			continue;
-		len = pmatch[i].rm_eo - pmatch[i].rm_so;
-		u = xmalloc(len + 1);
-		memcpy(u, m->data + pmatch[i].rm_so, len);
-		u[len] = '\0';
-		map[REPL_IDX('0' + (char) i)] = u;
-	}
-
-	dst = replace(src, map);
-
-	for (i = 0; i < NPMATCH; i++) {
-		if (map[REPL_IDX('0' + (char) i)] != NULL)
-			xfree(map[REPL_IDX('0' + (char) i)]);
-	}
-
-	return (dst);
+	add_tag(tags, "home", conf.info.home);
+	add_tag(tags, "uid", conf.info.uid);
+	add_tag(tags, "user", conf.info.user);
 }
 
 char *
-replaceinfo(char *src, struct account *a, struct action *t, char *s)
+replace(const char *src, struct tags *tags, struct mail *m, int pm_valid,
+    regmatch_t pm[NPMATCH])
 {
-	char		*map[REPL_LEN];
-
-	memset(map, 0, REPL_LEN * sizeof (char *));
-	initmap(map, a, t, s);
-
-	return (replace(src, map));
-}
-
-char *
-replace(char *src, char *map[REPL_LEN])
-{
-	char		*ptr, *dst, *rp, ch;
-	size_t	 	 off, len, rl;
+	struct tag	*tag;
+	const char	*ptr, *tptr, *tend, *alias;
+	char		*dst, name[MAXNAMESIZE], ch;
+	size_t	 	 off, len, tlen;
+	u_int		 idx;
 
 	if (src == NULL || *src == '\0')
 		return (NULL);
@@ -125,32 +202,75 @@ replace(char *src, char *map[REPL_LEN])
 	dst = xmalloc(len);
 
 	for (ptr = src; *ptr != '\0'; ptr++) {
+		alias = NULL;
+
 		switch (*ptr) {
 		case '%':
-			ch = *++ptr;
-			if (ch == '\0')
-				goto out;
-			rp = NULL;
-			if (REPL_IDX(ch) != -1)
-				rp = map[REPL_IDX(ch)];
-			if (rp == NULL) {
-				if (ch == '%') {
-					ENSURE_FOR(dst, len, off, 1);
-					dst[off++] = '%';
-				}
-				break;
-			}
-
-			rl = strlen(rp);
-			ENSURE_FOR(dst, len, off, rl);
-			memcpy(dst + off, rp, rl);
-			off += rl;
 			break;
 		default:
 			ENSURE_FOR(dst, len, off, 1);
 			dst[off++] = *ptr;
+			continue;
+		}
+
+		switch (ch = *++ptr) {
+		case '\0':
+			goto out;
+		case '%':
+			ENSURE_FOR(dst, len, off, 1);
+			dst[off++] = '%';
+			continue;
+		case '[':
+			if ((tend = strchr(ptr, ']')) == NULL) {
+				ENSURE_FOR(dst, len, off, 2);
+				dst[off++] = '%';
+				dst[off++] = '[';
+				continue;
+			}
+			ptr++;
+			if (tend - ptr >= MAXNAMESIZE) {
+				ptr = tend;
+				continue;
+			}
+			strlcpy(name, ptr, tend - ptr);
+			if ((tag = find_tag(tags, name)) == NULL) {
+				ptr = tend;
+				continue;
+			}
+
+			tptr = tag->value;
+			tlen = strlen(tptr);
+
+			ptr = tend;
+			break;
+		default:
+			if (ch >= '0' && ch <= '9') {
+				if (!pm_valid || m == NULL || pm == NULL)
+					continue;
+				idx = ((u_char) ch) - '0';
+				if (pm[idx].rm_so >= pm[idx].rm_eo)
+					continue;
+
+				tptr = m->base + pm[idx].rm_so;
+				tlen = pm[idx].rm_eo - pm[idx].rm_so;
+				break;
+			}
+
+			if (ALIAS_IDX(ch) != -1)
+				alias = aliases[ALIAS_IDX(ch)];
+			if (alias == NULL)
+				continue;
+
+			if ((tag = find_tag(tags, alias)) == NULL)
+				continue;
+			tptr = tag->value;
+			tlen = strlen(tptr);
 			break;
 		}
+
+		ENSURE_FOR(dst, len, off, tlen);
+		memcpy(dst + off, tptr, tlen);
+		off += tlen;
 	}
 
 out:

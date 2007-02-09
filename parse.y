@@ -280,7 +280,7 @@ find_macro(char *name)
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP
+%token TOKFILEGROUP TOKVALUE
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1764,11 +1764,39 @@ perform: TOKTAG strv
 	 {
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
+		 if (strlen($2) > MAXNAMESIZE)
+			 yyerror("tag name too long: %s", $2);
 
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
-		 $$->tag = $2;
+		 strlcpy($$->tag.name, $2, sizeof $$->tag.name);
+		 *$$->tag.value = '\0';
+		 TAILQ_INIT(&$$->rules);
+		 $$->stop = 0;
+		 $$->users = NULL;
+		 $$->find_uid = 0;
+
+		 if (currule == NULL)
+			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
+		 else
+			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
+	 }
+       | TOKTAG strv TOKVALUE strv
+/**      [$2: strv (char *)] [$4: strv (char *)] */
+	 {
+		 if (*$2 == '\0')
+			 yyerror("invalid tag");
+		 if (strlen($2) > MAXNAMESIZE)
+			 yyerror("tag name too long: %s", $2);
+		 if (strlen($4) > MAXNAMESIZE)
+			 yyerror("tag value too long: %s", $4);
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->idx = ruleidx++;
+		 $$->actions = NULL;
+		 strlcpy($$->tag.name, $2, sizeof $$->tag.name);
+		 strlcpy($$->tag.value, $4, sizeof $$->tag.value);
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
@@ -1786,7 +1814,7 @@ perform: TOKTAG strv
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
 		 $$->actions = $2;
-		 $$->tag = NULL;
+		 *$$->tag.name = '\0';
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$3;
 		 $$->users = $1.users;
@@ -1802,7 +1830,7 @@ perform: TOKTAG strv
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
-		 $$->tag = NULL;
+		 *$$->tag.name = '\0';
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
@@ -1875,9 +1903,9 @@ rule: match accounts perform
 		      log_debug2("added rule %u:%s actions=%s matches=%s",
 			  $3->idx, sa, ss, s);
 		      xfree(ss);
-	      } else if ($3->tag != NULL) {
-		      log_debug2("added rule %u:%s tag=%s matches=%s",
-			  $3->idx, sa, $3->tag, s);
+	      } else if (*$3->tag.name != '\0') {
+		      log_debug2("added rule %u:%s tag=%s (%s) matches=%s",
+			  $3->idx, sa, $3->tag.name, $3->tag.value, s);
 	      } else {
 		      log_debug2("added rule %u:%s nested matches=%s",
 			  $3->idx, sa, s);
@@ -2050,6 +2078,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
 	   {
 		   struct imap_data	*data;
+		   struct tags		 tags;
 
 		   if ($5 != NULL && *$5 == '\0')
 			   yyerror("invalid folder");
@@ -2060,7 +2089,9 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->user = $4.user;
 		   data->pass = $4.pass;
 		   data->folder = $5 == NULL ? xstrdup("INBOX") : $5;
-		   data->pipecmd = replaceinfo($3, NULL, NULL, NULL);
+		   default_tags(&tags, NULL, NULL);
+		   data->pipecmd = replace($5, &tags, NULL, 0, NULL);
+		   ARRAY_FREE(&tags);
 		   if (data->pipecmd == NULL || *data->pipecmd == '\0')
 			   yyerror("invalid pipe command");
 	   }
@@ -2088,6 +2119,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
            {
 		   struct nntp_data	*data;
 		   char			*group;
+		   struct tags		 tags;
 
 		   if (*$5 == '\0')
 			   yyerror("invalid cache");
@@ -2101,7 +2133,9 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   group = ARRAY_ITEM($3, 0, char *);
 		   else
 			   group = NULL;
-		   data->path = replaceinfo($5, NULL, NULL, group);
+		   default_tags(&tags, group, NULL);
+		   data->path = replace($5, &tags, NULL, 0, NULL);
+		   ARRAY_FREE(&tags);
 		   if (data->path == NULL || *data->path == '\0')
 			   yyerror("invalid cache");
 		   xfree($5);

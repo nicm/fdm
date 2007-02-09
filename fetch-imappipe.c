@@ -151,7 +151,7 @@ imappipe_connect(struct account *a)
 	if (imap_select(a) != 0) {
 		imap_abort(a);
 		return (1);
-	}	
+	}
 
 	return (0);
 }

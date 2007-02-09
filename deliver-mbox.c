@@ -46,9 +46,9 @@ mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 
 	if (gzf == NULL)
 		n = write(fd, buf, len);
-	else 
+	else
 		n = gzwrite(gzf, buf, len);
-	
+
 	if (n < 0)
 		return (-1);
 	if ((size_t) n != len) {
@@ -70,8 +70,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	int	 		 exists, fd = -1, fd2, res = DELIVER_FAILURE;
 	gzFile			 gzf = NULL;
 
-	path = replacepmatch(data->path, a, t, m->src, m, dctx->pmatch_valid,
-	    dctx->pmatch);
+	path = replace(data->path, &m->tags, m, dctx->pm_valid, dctx->pm);
 	if (path == NULL || *path == '\0') {
 		if (path != NULL)
 			xfree(path);
@@ -117,7 +116,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			log_warn("%s: %s: fchown", a->name, path);
 			goto out;
 		}
-	}		
+	}
 
 	/* open for compressed writing if necessary */
 	if (data->compress) {
@@ -129,7 +128,7 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 				errno = ENOMEM;
 			close(fd2);
 			log_warn("%s: %s: gzdopen", a->name, path);
-			goto out;			
+			goto out;
 		}
 	}
 
@@ -195,7 +194,7 @@ void
 mbox_desc(struct action *t, char *buf, size_t len)
 {
 	struct mbox_data	*data = t->data;
-	
+
 	if (data->compress)
 		xsnprintf(buf, len, "mbox \"%s\" compress", data->path);
 	else

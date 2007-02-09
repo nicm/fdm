@@ -142,7 +142,7 @@ imap_connect(struct account *a)
 	if (imap_select(a) != 0) {
 		imap_abort(a);
 		return (1);
-	}	
+	}
 
 	return (0);
 }
@@ -176,7 +176,7 @@ imap_desc(struct account *a, char *buf, size_t len)
 {
 	struct imap_data	*data = a->data;
 
-	xsnprintf(buf, len, 
+	xsnprintf(buf, len,
 	    "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
 	    data->user, data->folder);

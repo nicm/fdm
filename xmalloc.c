@@ -183,7 +183,7 @@ xvsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
 	if (len > INT_MAX) {
 		errno = EINVAL;
 		fatal("xvsnprintf");
-	}	
+	}
 
 	i = vsnprintf(buf, len, fmt, ap);
 

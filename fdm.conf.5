@@ -361,6 +361,57 @@ When
 .Xr fdm 1
 is run again, fetching begins at the cached article.
 .El
+.Sh TAGGING
+As mail is processed by 
+.Xr fdm 1 ,
+it is tagged with a number of name/value pairs.
+Some tags are added automatically, and mail may also be tagged explicitly by the user.
+Tags may be inserted in most strings in a similar manner to macros, except tags are processed at runtime rather than as the configuration file is parsed.
+A tag's value is inserted by wrapping its name in %[], for example:
+.Bl -tag -width Ds
+.It "abc%[account]def"
+.It "%[hour]:%[minute]:%[second]"
+.El
+.Pp
+The default tags also have a single-letter shorthand.
+Tag names are limited to 64 bytes and tag values to the maximum system path length (usually 1024 bytes).
+If a tag name or value would exceed this, limit the tag is silently ignored (not added to the mail).
+Including a nonexistent tag in a string is equivalent to including a tag with an empty value, so "abc%[nonexistent]def" will be translated to "abcdef".
+.Pp
+The automatically added tags are:
+.Pp
+.Bl -tag -width Ds -offset indent -compact
+.It account (%a)
+The name of the account from which the mail was fetched.
+.It home (%h)
+The delivery user's home directory.
+.It uid	(%n)
+The delivery user's uid.
+.It action (%t)
+The name of the action the mail has matched.
+.It user (%u)
+The delivery user's username.
+.It hour (%H)
+The current hour (00-23).
+.It minute (%M)
+The current minute (00-59).
+.It second (%S)
+The current second (00-59).
+.It day	(%d)
+The current day of the month (00-31).
+.It month (%m)
+The current month (01-12).
+.It year (%y)
+The current year.
+.It dayofweek (%W)
+The current day of the week (0-6, Sunday is 0).
+.It dayofyear (%Y)
+The current day of the year (000-365).
+.It quarter (%Q)
+The current quarter (1-4).
+.El
+.Pp
+In addition, the shorthand %% is replaced with a literal %, and %0 to %9 are replaced with the result of any bracket expressions in the last regexp.
 .Sh ACTIONS
 The
 .Ic action
@@ -384,52 +435,6 @@ An action's user setting may be overridden in the matching rule.
 The possible values for
 .Ar action
 are listed below.
-In actions for which a
-.Ar command
-or
-.Ar path
-is specified, the following substitutions are made before it is used:
-.Em %a
-is replaced by the account name,
-.Em %h
-by the current user's home directory,
-.Em %t
-by the name of the current action,
-.Em %u
-by the current user's login name,
-.Em %n
-by the UID and
-.Em %H
-by the current hour (00-23),
-.Em %M
-minute (00-59),
-.Em %S
-second (00-59),
-.Em %d
-day of the month (00-31),
-.Em %m
-month (01-12),
-.Em %y
-year,
-.Em %W
-day of the week (0-6, Sunday is 0),
-.Em %Y
-day of the year (000-365),
-.Em %Q
-quarter (1-4) and
-.Em %%
-with a literal %.
-In addition,
-.Em %s
-is replaced by a string specific to the type of account and
-.Em %0
-to
-.Em %9
-with the contents of any subexpressions from the regexp executed as part of the last
-.Ic regexp
-condition.
-When fetching from a maildir, this is the basename of the maildir path.
-With pop3 or imap, it is the hostname of the server, as specified in the account definition.
 .Bl -tag -width Ds
 .It Ic drop
 Discard the mail.
@@ -512,7 +517,7 @@ It has one of the following basic forms:
 .Ar condition
 .Op Ic and | Ic or Ar condition ...
 .Op Ar accounts
-.Ic tag Ar string
+.Ic tag Ar string Op Ic value Ar value
 .Xc
 .El
 .Pp
@@ -708,9 +713,13 @@ keyword may be specified to invert the sense of a condition.
 The first form of the command specifies a number of actions to take when a mail matches the rule.
 The second form tags the mail with
 .Ar string ,
+and optionally
+.Ar value ,
 which may be matched using the
 .Ic tagged
-condition in later rules.
+or
+.Ic string
+conditions in later rules.
 A mail may be tagged with any number of different strings by different rules.
 Rules which apply a tag do not count as a match for the purposes of the
 .Ic matched

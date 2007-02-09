@@ -33,7 +33,6 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 	struct regexp_data	*data = ei->data;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
-	regmatch_t	        *pmatch = mctx->pmatch;
 	int			 res;
 	char		        *cause;
 
@@ -42,23 +41,23 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 
 	switch (data->area) {
 	case AREA_HEADERS:
-		pmatch[0].rm_so = 0;
+		mctx->pm[0].rm_so = 0;
 		if (m->body == -1)
-			pmatch[0].rm_eo = m->size;
+			mctx->pm[0].rm_eo = m->size;
 		else
-			pmatch[0].rm_eo = m->body;
+			mctx->pm[0].rm_eo = m->body;
 		break;
 	case AREA_BODY:
-		pmatch[0].rm_so = m->body;
-		pmatch[0].rm_eo = m->size;
+		mctx->pm[0].rm_so = m->body;
+		mctx->pm[0].rm_eo = m->size;
 		break;
 	case AREA_ANY:
-		pmatch[0].rm_so = 0;
-		pmatch[0].rm_eo = m->size;
+		mctx->pm[0].rm_so = 0;
+		mctx->pm[0].rm_eo = m->size;
 		break;
 	}
 
-	res = re_execute(&data->re, m->data, NPMATCH, pmatch, REG_STARTEND,
+	res = re_execute(&data->re, m->data, NPMATCH, mctx->pm, REG_STARTEND,
 	    &cause);
 	if (res == -1) {
 		log_warnx("%s: %s", a->name, cause);
@@ -66,7 +65,7 @@ regexp_match(struct match_ctx *mctx, struct expritem *ei)
 		return (MATCH_ERROR);
 	}
 
-	mctx->pmatch_valid = 1;
+	mctx->pm_valid = 1;
 	if (res == 0)
 		return (MATCH_FALSE);
 	return (MATCH_TRUE);

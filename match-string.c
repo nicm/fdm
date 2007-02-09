@@ -37,12 +37,12 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 	int			 res;
 	char			*s, *cause;
 
-	if (!mctx->pmatch_valid) {
+	if (!mctx->pm_valid) {
 		log_warnx("%s: string match but no regexp match data", a->name);
 		return (MATCH_FALSE);
 	}
 
-	s = replacepmatch(data->str, a, NULL, m->src, m, 1, mctx->pmatch);
+	s = replace(data->str, &m->tags, m, 1, mctx->pm);
 	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.str);
 
 	res = re_simple(&data->re, s, &cause);

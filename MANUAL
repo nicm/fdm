@@ -12,12 +12,13 @@ fdm ============================================================================
 5.3	The lock file
 5.4	Testing and debugging
 6	Fetching mail
-6.1	POP3 and POP3S
-6.2	IMAP and IMAPS
-6.3	IMAP over a pipe or via ssh
-6.4	Stdin and local mail
-6.5 	From maildirs
-6.6	Using NNTP
+6.1	Mail tagging
+6.2	POP3 and POP3S
+6.3	IMAP and IMAPS
+6.4	IMAP over a pipe or via ssh
+6.5	Stdin and local mail
+6.6 	From maildirs
+6.7	Using NNTP
 7	Defining actions
 7.1	Drop and keep
 7.2	Maildirs
@@ -394,6 +395,51 @@ rules.
 The <type> item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 'maildir' or 'maildirs'.
 
+Mail tags ----------------------------------------------------------------------
+
+As mail is processed by fdm, it is tagged with a number of name/value pairs.
+Some tags are added automatically, and mail may also be tagged explicitly by
+the user (see the later tagging section). Tags may be inserted in strings in
+a similar manner to macros, except tags are processed at runtime rather than
+as the configuration file is parsed. A tag's value is inserted by wrapping its
+name in %[], for example:
+
+	match string "%[account]" to "myacct" action "myacctact"
+
+Most of the default tags have a single-letter shorthand which removes the needs
+for the []s:
+
+	match string "%a" to "myacct" action "myacctact"
+
+Tag names are limited to 64 bytes and tag values to the maximum system path
+length (usually 1024 bytes). If a tag name or value would exceed this, limit
+the tag is silently ignored (not added to the mail). Including a nonexistent tag
+in a string is equivalent to including a tag with an empty value, so
+"abc%[nonexistent]def" will be translated to "abcdef".
+
+The automatically added tags are:
+
+Name		Shorthand	Replaced with
+account		%a		The name of the account from which the mail was
+				fetched.
+home		%h		The delivery user's home directory.
+uid		%n		The delivery user's uid.
+action		%t		The name of the action the mail has matched.
+user		%u		The delivery user's username.
+hour		%H		The current hour (00-23).
+minute		%M		The current minute (00-59).
+second		%S		The current second (00-59).
+day		%d		The current day of the month (00-31).
+month		%m		The current month (01-12).
+year		%y		The current year.
+dayofweek	%W		The current day of the week (0-6, Sunday is 0).
+dayofyear	%Y		The current day of the year (000-365).
+quarter		%Q		The current quarter (1-4).
+
+In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
+replaced with the result of any bracket expressions in the last regexp (see
+later section on regexps).
+	
 POP3 and POP3S -----------------------------------------------------------------
 
 Mail may be fetched from a POP3 account. A POP3 account is defined by
@@ -420,6 +466,10 @@ for the type, and the default port is 'pop3s' rather than 'pop3':
 
 	account "pop3sacct" pop3s server "pop.isp.com" user "bob" pass "pass"
 
+POP3 accounts automatically tag mail with 'server' and 'port' tags, with the
+value of the server and port attributes exactly as specified in the account
+definition.
+
 IMAP and IMAPS -----------------------------------------------------------------
 
 IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
@@ -440,6 +490,8 @@ Examples of IMAP and IMAPS accounts include:
 
 	account "workspam" disabled imap server "my-work.ath.cx"
 		user "Nicholas" pass "pass" folder "Junk"
+
+As with POP3, IMAP adds the 'server' and 'port' tags to mail.
 
 IMAP over a pipe or ssh --------------------------------------------------------
 
@@ -490,35 +542,40 @@ Maildir accounts are specified as follows:
 Shell glob wildcards may be included in the path names to match multiple
 maildirs, but every directory found must be a valid maildir.
 
+Maildir accounts tag mail with a 'maildir' tag which is the basename of the
+maildir.
+
 Using NNTP ---------------------------------------------------------------------
 
 fdm can fetch news messages from a news server using NNTP. News accounts are
 specified like so:
 
 	account "news1" nntp server "news.server.sk" port 119
-		group "comp.unix.bsd.openbsd.misc" cache "%h/.fdm.cache/%s"
+		group "comp.unix.bsd.openbsd.misc"
+		cache "%h/.fdm.cache/%[group]"
 
 	account "mynews" nntp server "my.news.server" port "nntp"
 		groups { "alt.test" "alt.humor.best-of-usenet" }
 		cache "%h/.fdm.cache"
 
 The cache is a file used to store details of the last article fetched. If only
-one group is supplied in the account definition, %s tokens are replaced by the
-name of the group in the cache path. If multiple groups are provided, %s tokens
-are just removed.
+one group is supplied in the account definition, %[group] tags are replaced by
+the name of the group in the cache path. If multiple groups are provided,
+the %[group] is just removed.
 
 Note that whether a message is kept or deleted is irrelevent to NNTP, articles
 are always left on the server. The index and message-id of the last article
 is recorded in the cache file so that older articles are skipped when the a
 newsgroup is again fetched.
 
-For rules to match based on group name, the %s token may again be used. This
-can ensure articles are matched purely on the group they are fetched on (trying
-to do this using headers is unreliable with cross-posted articles). For example:
+As with POP3 and IMAP, NNTP accounts add the 'server' and 'port' tags to mail.
+In addition, a 'group' tag is added with the group name. This can ensure
+articles are matched purely on the group they are fetched on (trying to do this
+using headers is unreliable with cross-posted articles). For example:
 
 match all account "news" {
-	match string "%s" to "comp.lang.c" action "news-%s"
-	match string "%s" to "comp.std.c" action "news-%s"
+	match string "%[group]" to "comp.lang.c" action "news-%[group]"
+	match string "%[group]" to "comp.std.c" action "news-%[group]"
 	match all action "drop"
 }
 
@@ -580,32 +637,6 @@ Maildirs ----------------------------------------------------------------------
 Mails may be saved to a maildir through a 'maildir' action, defined like so:
 
 	action "mymaildiraction" maildir "/path/to/maildir"
-
-In the path, the following special tokens are replaced:
-
-Token	Replaced with
-%a	The name of the account this mail was fetched from.
-%s	A string specific to the type of account the mail was fetched from
-	indicating in some way the source of the mail. For maildirs, it is the
-	basename of the maildir, for IMAP and POP3 it is the server hostname
-	as specified in the account definition. For NNTP it is the name of
-	the group.
-%h	The delivery user's home directory.
-%n	The delivery user's uid.
-%t	The name of the action.
-%u	The delivery user's username.
-%H	The current hour (00-23).
-%M	The current minute (00-59).
-%S	The current second (00-59).
-%d	The current day of the month (00-31).
-%m	The current month (01-12).
-%y	The current year.
-%W	The current day of the week (0-6, Sunday is 0).
-%Y	The current day of the year (000-365).
-%Q	The current quarter (1-4).
-%1-%9	The result of any bracket expressions in the last regexp (see later
-	section on regexps).
-%%	Replaced with a literal %.
 
 If the maildir does not exist, it is created.
 
@@ -869,18 +900,30 @@ attachment MIME type and name attribute (if any) using fnmatch(3):
 
 Tagging ------------------------------------------------------------------------
 
-Mails may be assigned one of more tags using a special form of filtering
-rule with the following syntax:
+Mails may be assigned one of more tags manually using a special form of
+filtering rule, with the following syntax:
 
-	match <conditions> [<accounts>] tag <tag>
+	match <conditions> [<accounts>] tag <tag> [value <value>]
 
-The string <tag> is attached to the mail. A mail may have multiple tags.
+The string <tag> is attached to the mail with the specified value, or no
+value if a value is not provided:
 
-The tag may be tested for using the 'tagged' condition:
+	match all account "my*" tag "myaccts"
+
+	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
+
+The existence of a tag may be tested for using the 'tagged' condition:
 
 	match tagged "mytag" action "a"
 
 	match tagged "ohno" and size >1K action "drop"
+
+Or the tags value matched using the 'string' match type (in a similar way to
+matching bracket expressions):
+
+	match string "%[group]" to "comp.lang.c" action "clc"
+
+	match string "%u" to "bob" action "bob"
 
 Setting options ================================================================
 
@@ -1003,13 +1046,13 @@ Archiving and searching mail ===================================================
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir
 into another, for example to archive older mail (with drop) or to search for
 mail matching a particular pattern (with keep). The 'age' condition, and the
-%s and time/date % tokens are particularly useful for archiving. For example,
-to archive all mail older than 30 days by quarter, something like this may
-suffice (obviously, the account restriction can be dropped if being used in
+%[maildir] and time/date tags are particularly useful for archiving. For
+example, to archive all mail older than 30 days by quarter, something like this
+may suffice (obviously, the account restriction can be dropped if being used in
 a single-purpose configuration file):
 
 	account "archive" disabled maildir "source-maildir"
-	action "archive" mbox "%sq%Q"
+	action "archive" mbox "%[maildir]q%Q"
 	match age > 30 days account "archive" action "archive"
 	match all account "archive" action "keep"
 

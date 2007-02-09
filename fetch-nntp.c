@@ -117,12 +117,12 @@ nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 	do {
 		if ((line = nntp_line(a, lbuf, llen)) == NULL)
 			return (NULL);
-		
+
 		*cdp = nntp_code(line);
 		if (*cdp == -1)
 			goto error;
 	} while (*cdp >= 100 && *cdp <= 199);
-	
+
 	va_copy(aq, ap);
 	for (i = n; i > 0; i++) {
 		arg = va_arg(aq, int);
@@ -132,11 +132,11 @@ nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 	va_end(aq);
 	if (i == 0)
 		goto error;
-	
+
 	va_end(ap);
-	
+
 	return (line);
-		   
+
 error:
 	log_warnx("%s: unexpected data: %s", a->name, line);
 	return (NULL);
@@ -182,7 +182,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
  		log_warnx("%s: invalid response: %s", a->name, line);
 		return (1);
 	}
-	
+
 	if (group->last > last) {
 		log_warnx("%s: new last %u is less than old %u", a->name,
 		    last, group->last);
@@ -226,7 +226,7 @@ invalid:
 		group->id = NULL;
 	}
 	group->last = 0;
-	
+
 	return (0);
 }
 
@@ -276,7 +276,7 @@ nntp_load(struct account *a)
 		if (fread(id, idlen, 1, f) != 1)
 			goto invalid;
 		id[idlen] = '\0';
-		
+
 		/* got a group. fill it in */
 		group = NULL;
 		for (i = 0; i < TOTAL_GROUPS(data); i++) {
@@ -304,7 +304,7 @@ nntp_load(struct account *a)
 	return (0);
 
 invalid:
-	log_warnx("%s: invalid cache entry", a->name);	
+	log_warnx("%s: invalid cache entry", a->name);
 
 error:
 	if (f != NULL)
@@ -324,7 +324,7 @@ nntp_save(struct account *a)
 	int			 fd = -1;
 	FILE			*f = NULL;
 	u_int			 i;
-	
+
 	if (printpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0) {
 		log_warn("%s: %s: printpath", a->name, data->path);
 		goto error;
@@ -340,7 +340,7 @@ nntp_save(struct account *a)
 		unlink(tmp);
 		goto error;
 	}
-	
+
 	for (i = 0; i < TOTAL_GROUPS(data); i++) {
 		group = GET_GROUP(data, i);
 		if (group->id == NULL)
@@ -359,7 +359,7 @@ nntp_save(struct account *a)
 
 	cleanup_deregister(tmp);
 	return (0);
-	
+
 error:
 	cleanup_deregister(tmp);
 	return (1);
@@ -382,7 +382,7 @@ nntp_init(struct account *a)
 	}
 
 	data->group = 0;
-	
+
 	return (0);
 }
 
@@ -436,7 +436,7 @@ nntp_connect(struct account *a)
 			}
 		} while (CURRENT_GROUP(data)->ignore);
 	}
-		
+
 	if ((line = nntp_check(a, &lbuf, &llen, NULL, 1, 200)) == NULL)
 		goto error;
 
@@ -575,7 +575,10 @@ restart:
 		goto restart;
 
 	mail_open(m, IO_BLOCKSIZE);
-	m->src = xstrdup(CURRENT_GROUP(data)->name);
+	default_tags(&m->tags, CURRENT_GROUP(data)->name, a);
+	add_tag(&m->tags, "group", CURRENT_GROUP(data)->name);
+	add_tag(&m->tags, "server", data->server.host);
+	add_tag(&m->tags, "port", data->server.port);
 
 	flushing = 0;
 	off = lines = 0;

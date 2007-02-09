@@ -148,11 +148,11 @@ attachment_desc(struct expritem *ei, char *buf, size_t len)
 
 	switch (data->op) {
 	case ATTACHOP_COUNT:
-		xsnprintf(buf, len, 
+		xsnprintf(buf, len,
 		    "attachment count %s %lld", cmp, data->value.num);
 		break;
 	case ATTACHOP_TOTALSIZE:
-		xsnprintf(buf, len, 
+		xsnprintf(buf, len,
 		    "attachment total-size %s %lld", cmp, data->value.num);
 		break;
 	case ATTACHOP_ANYSIZE:
@@ -164,7 +164,7 @@ attachment_desc(struct expritem *ei, char *buf, size_t len)
 		    "attachment any-type \"%s\"", data->value.str);
 		break;
 	case ATTACHOP_ANYNAME:
-		xsnprintf(buf, len, 
+		xsnprintf(buf, len,
 		    "attachment any-name \"%s\"", data->value.str);
 		break;
 	default:

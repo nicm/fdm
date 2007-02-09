@@ -37,7 +37,7 @@ int	 maildir_poll(struct account *, u_int *);
 int	 maildir_fetch(struct account *, struct mail *);
 int	 maildir_delete(struct account *);
 /* conflicts with deliver-maildir.c */
-void	 maildir_desc2(struct account *, char *, size_t); 
+void	 maildir_desc2(struct account *, char *, size_t);
 
 int	 maildir_makepaths(struct account *);
 void	 maildir_freepaths(struct account *);
@@ -64,13 +64,16 @@ maildir_makepaths(struct account *a)
 	u_int			 i, j;
 	glob_t			 g;
 	struct stat		 sb;
+	struct tags		 tags;
+
+	default_tags(&tags, NULL, a);
 
 	data->paths = xmalloc(sizeof *data->paths);
 	ARRAY_INIT(data->paths);
 
 	for (i = 0; i < ARRAY_LENGTH(data->maildirs); i++) {
 		path = ARRAY_ITEM(data->maildirs, i, char *);
-		s = replaceinfo(path, a, NULL, NULL);
+		s = replace(path, &tags, NULL, 0, NULL);
 		if (s == NULL || *s == '\0') {
 			log_warnx("%s: empty path", a->name);
 			goto error;
@@ -111,12 +114,15 @@ maildir_makepaths(struct account *a)
 		xfree(s);
 	}
 
+	ARRAY_FREE(&tags);
 	return (0);
 
 error:
 	if (s != NULL)
 		xfree(s);
 	maildir_freepaths(a);
+
+	ARRAY_FREE(&tags);
 	return (1);
 }
 
@@ -170,7 +176,7 @@ maildir_poll(struct account *a, u_int *n)
 		}
 
 		while ((dp = readdir(dirp)) != NULL) {
-			if (printpath(entry, sizeof entry, "%s/%s", path, 
+			if (printpath(entry, sizeof entry, "%s/%s", path,
 			    dp->d_name) != 0) {
 				log_warn("%s: %s: printpath", a->name, path);
 				closedir(dirp);
@@ -253,7 +259,8 @@ restart:
 	}
 
 	mail_open(m, IO_ROUND(sb.st_size));
-	m->src = xstrdup(basename(dirname(data->path)));
+	default_tags(&m->tags, basename(dirname(data->path)), a);
+	add_tag(&m->tags, "maildir", basename(dirname(data->path)));
 
 	log_debug2("%s: reading %ju bytes", a->name, (uintmax_t) sb.st_size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
@@ -310,7 +317,7 @@ maildir_desc2(struct account *a, char *buf, size_t len)
 {
 	struct maildir_data	*data = a->data;
 	char			*maildirs;
-	
+
 	maildirs = fmt_strings("maildirs ", data->maildirs);
 	strlcpy(buf, maildirs, len);
 	xfree(maildirs);

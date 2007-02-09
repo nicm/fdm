@@ -46,6 +46,7 @@
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	64
+#define MAXVALUESIZE	MAXPATHLEN
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define DIRMODE		(S_IRWXU|S_IRWXG|S_IRWXO)
@@ -117,6 +118,10 @@ extern char	*__progname;
 	(a)->num--;							\
         if ((a)->num == 0)						\
 		ARRAY_FREE(a);						\
+} while (0)
+#define ARRAY_EXPAND(a, n, c) do {					\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + n, sizeof (c));	\
+	(a)->num += n;							\
 } while (0)
 #define ARRAY_TRUNC(a, n, c) do {					\
 	if ((a)->num > n)						\
@@ -190,9 +195,6 @@ extern char	*__progname;
 /* Account name match. */
 #define name_match(p, n) (fnmatch(p, n, 0) == 0)
 
-/* Tag match. */
-#define tag_match(p, t) (fnmatch(p, t, 0) == 0)
-
 /* Macros in configuration file. */
 struct macro {
 	char			 name[MAXNAMESIZE];
@@ -265,10 +267,18 @@ enum decision {
 	DECISION_KEEP
 };
 
+/* A mail tag. */
+struct tag {
+	char	name[MAXNAMESIZE];
+	char	value[MAXVALUESIZE];
+};
+
+/* Array of tags. */
+ARRAY_DECL(tags, struct tag);
+
 /* A single mail. */
 struct mail {
-	struct strings		 tags;
-	char			*src;		/* fetch-specific source */
+	struct tags		 tags;
 
 	struct shm		 shm;
 
@@ -402,7 +412,7 @@ struct rule {
 
 	int			 stop;		/* stop matching at this rule */
 
-	char			*tag;
+	struct tag		 tag;
 
 	struct rules		 rules;
 	struct strings		*actions;
@@ -529,7 +539,7 @@ struct io {
 };
 
 /* Command flags. */
-#define CMD_IN  0x1 
+#define CMD_IN  0x1
 #define CMD_OUT 0x2
 #define CMD_ONCE 0x4
 
@@ -579,8 +589,8 @@ struct deliver_ctx {
 
 	enum decision	*decision;
 
-	int		 pmatch_valid;
-	regmatch_t	 pmatch[NPMATCH];
+	int		 pm_valid;
+	regmatch_t	 pm[NPMATCH];
 };
 
 /* Deliver return codes. */
@@ -618,8 +628,8 @@ struct match_ctx {
 	int		 matched;
 	int		 stopped;
 
-	int		 pmatch_valid;
-	regmatch_t	 pmatch[NPMATCH];
+	int		 pm_valid;
+	regmatch_t	 pm[NPMATCH];
 };
 
 /* Match functions. */
@@ -641,8 +651,8 @@ struct msgdata {
 	int	 	 	 error;
 	struct mail	 	 mail;
 
-	int		 	 pmatch_valid;
-	regmatch_t	 	 pmatch[NPMATCH];
+	int		 	 pm_valid;
+	regmatch_t	 	 pm[NPMATCH];
 
 	/* these only work so long as they aren't moved in either process */
 	struct account		*account;
@@ -832,7 +842,7 @@ struct imap_data {
 
 	char		*(*getln)(struct account *a, int);
 	int		 (*putln)(struct account *a, const char *, ...);
-	void		 (*flush)(struct account *a);	
+	void		 (*flush)(struct account *a);
 };
 
 /* Deliver smtp states. */
@@ -1083,17 +1093,13 @@ void			 cleanup_register(char *);
 void			 cleanup_deregister(char *);
 
 /* replace.c */
-#define REPL_LEN 62
-#define REPL_IDX(ch) /* LINTED */ 				\
-	(((ch) >= 'a' && (ch) <= 'z') ? (ch) - 'a' :       	\
-	(((ch) >= 'A' && (ch) <= 'Z') ? 26 + (ch) - 'A' : 	\
-	(((ch) >= '0' && (ch) <= '9') ? 52 + (ch) - '0' : -1)))
-char 			*replacepmatch(char *, struct account *,
-    			     struct action *, char *, struct mail *,
+void			 add_tag(struct tags *, const char *, const char *);
+struct tag 		*find_tag(struct tags *, const char *);
+struct tag 		*match_tag(struct tags *, const char *);
+void			 default_tags(struct tags *, char *, struct account *);
+void			 update_tags(struct tags *);
+char 			*replace(const char *, struct tags *, struct mail *, 
     			     int, regmatch_t [NPMATCH]);
-char			*replaceinfo(char *, struct account *, struct action *,
-    			     char *);
-char 			*replace(char *, char *[REPL_LEN]);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *);

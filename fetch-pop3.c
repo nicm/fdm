@@ -290,7 +290,9 @@ restart:
 		goto error;
 
 	mail_open(m, IO_ROUND(size));
-	m->src = xstrdup(data->server.host);
+	default_tags(&m->tags, data->server.host, a);
+	add_tag(&m->tags, "server", data->server.host);
+	add_tag(&m->tags, "port", data->server.port);
 
 	flushing = 0;
 	off = lines = 0;

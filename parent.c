@@ -39,6 +39,7 @@ do_parent(struct child *child)
 	struct match_ctx	 mctx;
 	struct mail		 m;
 	int			 error;
+	u_int			 ntags;
 	uid_t			 uid;
 	void			*buf;
 	size_t			 len;
@@ -53,10 +54,12 @@ do_parent(struct child *child)
 
 	switch (msg.type) {
 	case MSG_ACTION:
+		ntags = ARRAY_LENGTH(&data->mail.tags);
 		mail_receive(&m, &msg);
 		if (buf != NULL) {
-			m.src = xrealloc(buf, 1, len + 1);
-			m.src[len] = '\0';
+			m.tags.num = ntags;
+			m.tags.list = buf;
+			m.tags.space = len;
 		}
 
 		uid = data->uid;
@@ -64,8 +67,8 @@ do_parent(struct child *child)
 		dctx.account = data->account;
 		dctx.mail = &m;
 		dctx.decision = NULL;	/* only altered in child */
-		dctx.pmatch_valid = msg.data.pmatch_valid;
-		memcpy(&dctx.pmatch, &msg.data.pmatch, sizeof dctx.pmatch);
+		dctx.pm_valid = msg.data.pm_valid;
+		memcpy(&dctx.pm, &msg.data.pm, sizeof dctx.pm);
 
 		error = parent_action(data->action, &dctx, uid);
 
@@ -79,18 +82,20 @@ do_parent(struct child *child)
 		mail_close(&m);
 		break;
 	case MSG_COMMAND:
+		ntags = ARRAY_LENGTH(&data->mail.tags);
 		mail_receive(&m, &msg);
 		if (buf != NULL) {
-			m.src = xrealloc(buf, 1, len + 1);
-			m.src[len] = '\0';
+			m.tags.num = ntags;
+			m.tags.list = buf;
+			m.tags.space = len;
 		}
 
 		uid = data->uid;
 		memset(&mctx, 0, sizeof mctx);
 		mctx.account = data->account;
 		mctx.mail = &m;
-		mctx.pmatch_valid = msg.data.pmatch_valid;
-		memcpy(&mctx.pmatch, &msg.data.pmatch, sizeof mctx.pmatch);
+		mctx.pm_valid = msg.data.pm_valid;
+		memcpy(&mctx.pm, &msg.data.pm, sizeof mctx.pm);
 
 		error = parent_command(&mctx, data->cmddata, uid);
 
@@ -217,8 +222,9 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	setproctitle("deliver[%lu]", (u_long) uid);
 #endif
 
-	/* refresh user and home */
+	/* refresh user and home and fix tags */
 	fill_info(NULL);
+	update_tags(&m->tags);
 	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
 	    conf.info.home);
 
@@ -302,14 +308,14 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	setproctitle("command[%lu]", (u_long) uid);
 #endif
 
-	/* refresh user and home */
+	/* refresh user and home and fix tags */
 	fill_info(NULL);
+	update_tags(&m->tags);
 	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
 	    conf.info.home);
 
 	/* sort out the command */
-	s = replacepmatch(data->cmd, a, NULL, m->src, m, mctx->pmatch_valid,
-	    mctx->pmatch);
+	s = replace(data->cmd, &m->tags, m, mctx->pm_valid, mctx->pm);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		child_exit(MATCH_ERROR);

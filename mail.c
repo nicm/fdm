@@ -51,7 +51,6 @@ mail_open(struct mail *m, size_t size)
 
 	ARRAY_INIT(&m->tags);
 	ARRAY_INIT(&m->wrapped);
-	m->src = NULL;
 	m->attach = NULL;
 }
 
@@ -61,9 +60,7 @@ mail_send(struct mail *m, struct msg *msg)
 	struct mail	*mm = &msg->data.mail;
 
 	memcpy(mm, m, sizeof *mm);
-	ARRAY_INIT(&mm->tags);
 	ARRAY_INIT(&mm->wrapped);
-	mm->src = NULL;
 	mm->attach = NULL;
 }
 
@@ -74,8 +71,6 @@ mail_receive(struct mail *m, struct msg *msg)
 
 	memcpy(&mm->tags, &m->tags, sizeof mm->tags);
 	ARRAY_INIT(&m->tags);
-	mm->src = m->src;
-	m->src = NULL;
 	mm->attach = m->attach;
 	m->attach = NULL;
 
@@ -95,8 +90,6 @@ mail_free(struct mail *m)
 {
 	if (m->attach != NULL)
 		attach_free(m->attach);
-	if (m->src != NULL)
-		xfree(m->src);
 	/* copies of the pointers in rules, so free the array only */
 	ARRAY_FREE(&m->tags);
 	ARRAY_FREE(&m->wrapped);
@@ -150,7 +143,7 @@ rfc822_time(time_t t, char *buf, size_t len)
 	if ((n = strftime(buf, len, "%a, %d %b %Y %H:%M:%S %z", tm)) == 0)
 		return (NULL);
 	if (n == len)
-		return (NULL);	
+		return (NULL);
 	return (buf);
 }
 
@@ -255,14 +248,14 @@ checkperms(char *hdr, char *path, int *exists)
 	struct stat	sb;
 	gid_t		gid;
 	mode_t		mode;
-	
+
 	if (stat(path, &sb) != 0) {
 		if (errno == ENOENT) {
 			*exists = 0;
 			return (0);
 		}
 		return (1);
-	} 
+	}
 	*exists = 1;
 
 	mode = (S_ISDIR(sb.st_mode) ? DIRMODE : FILEMODE) & ~conf.file_umask;
@@ -275,7 +268,7 @@ checkperms(char *hdr, char *path, int *exists)
 		log_warnx("%s: %s: bad owner: %lu, should be %lu", hdr, path,
 		    (u_long) sb.st_uid, (u_long) getuid());
 	}
-		
+
 	gid = conf.file_group;
 	if (gid == NOGRP)
 		gid = getgid();
@@ -359,14 +352,14 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 			off = m->size;
 		else if (m->body < 1)
 			off = 0;
-		else 
+		else
 			off = m->body - 1;
 	}
 
 	va_start(ap, fmt);
 	hdrlen = xvasprintf(&hdr, fmt, ap);
 	va_end(ap);
-	
+
 	/* include the \n */
 	hdrlen++;
 
@@ -430,7 +423,7 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 		out -= hdrlen;
 		(*len) += hdrlen;
 	}
-	
+
 	if (len == 0)
 		return (NULL);
 
