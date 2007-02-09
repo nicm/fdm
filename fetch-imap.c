@@ -122,7 +122,8 @@ imap_connect(struct account *a)
 	struct imap_data	*data = a->data;
 	char			*cause;
 
-	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF, &cause);
+	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF,
+	    conf.timeout * 1000, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);

@@ -182,6 +182,10 @@ If
 is used, or this option does not appear in the configuration file,
 .Xr fdm 1
 does not attempt to set the group of new files and directories.
+.It Ic timeout Ar time
+This controls the maximum time to wait for a server to send data before closing
+a connection.
+The default is 900 seconds.
 .El
 .Sh INCLUDING FILES
 Further configuration files may be including using the

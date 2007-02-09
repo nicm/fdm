@@ -1041,6 +1041,11 @@ by fdm to be specified. 'group' may be a group name string or a numeric gid. If
 'user' is used, or if this option is not set in the configuration file, fdm
 does not attempt to set the group of new files and directories.
 
+- timeout <time>
+
+This controls the maximum time to wait for a server to send data before closing
+a connection. The default is 900 seconds.
+
 Archiving and searching mail ===================================================
 
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir

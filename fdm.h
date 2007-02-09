@@ -44,6 +44,7 @@
 #define SYSLOCKFILE	"/var/run/fdm.lock"
 #define MAXMAILSIZE	INT_MAX
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
+#define DEFTIMEOUT	900
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	64
 #define MAXVALUESIZE	MAXPATHLEN
@@ -62,6 +63,10 @@ extern char	*__progname;
 #endif
 #ifndef GID_MAX
 #define GID_MAX UINT_MAX
+#endif
+
+#ifndef INFTIM
+#define INFTIM -1
 #endif
 
 #ifndef __dead
@@ -467,6 +472,7 @@ struct conf {
 	gid_t			 file_group;
 
 	size_t			 max_size;
+	int			 timeout;
 	int		         del_big;
 	u_int			 lock_types;
 	uid_t			 def_user;
@@ -535,6 +541,7 @@ struct io {
 	char		*lbuf;		/* line buffer */
 	size_t		 llen;		/* line buffer size */
 
+	int		 timeout;
 	const char	*eol;
 };
 
@@ -1055,8 +1062,8 @@ int			 do_parent(struct child *);
 /* connect.c */
 struct proxy 		*getproxy(const char *);
 struct io 		*connectproxy(struct server *, struct proxy *,
-			     const char *, char **);
-struct io		*connectio(struct server *, const char *, char **);
+			     const char *, int, char **);
+struct io		*connectio(struct server *, const char *, int, char **);
 
 /* mail.c */
 void			 mail_open(struct mail *, size_t);
@@ -1102,11 +1109,12 @@ char 			*replace(const char *, struct tags *, struct mail *,
     			     int, regmatch_t [NPMATCH]);
 
 /* io.c */
-struct io		*io_create(int, SSL *, const char *);
+struct io		*io_create(int, SSL *, const char *, int);
 void			 io_free(struct io *);
 void			 io_close(struct io *);
 int			 io_update(struct io *, char **);
-int			 io_polln(struct io **, u_int, struct io **, char **);
+int			 io_polln(struct io **, u_int, struct io **, int,
+			     char **);
 int			 io_poll(struct io *, char **);
 int			 io_read2(struct io *, void *, size_t);
 void 			*io_read(struct io *, size_t);

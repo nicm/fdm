@@ -281,6 +281,7 @@ main(int argc, char **argv)
 	TAILQ_INIT(&conf.rules);
 	TAILQ_INIT(&conf.actions);
 	conf.max_size = DEFMAILSIZE;
+	conf.timeout = DEFTIMEOUT;
 	conf.lock_types = LOCK_FLOCK;
 	conf.impl_act = DECISION_NONE;
 	conf.purge_after = 0;
@@ -518,6 +519,10 @@ main(int argc, char **argv)
 	}
 	if (sizeof tmp > off) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "timeout=%d, ", conf.timeout);
+	}
+	if (sizeof tmp > off) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "default-user=%lu, ", (u_long) conf.def_user);
 	}
 	if (sizeof tmp > off && conf.impl_act != DECISION_NONE) {
@@ -678,7 +683,7 @@ main(int argc, char **argv)
 		child = xcalloc(1, sizeof *child);
 		ARRAY_ADD(&children, child, struct child *);
 		close(fds[1]);
-		child->io = io_create(fds[0], NULL, IO_CRLF);
+		child->io = io_create(fds[0], NULL, IO_CRLF, INFTIM);
 		child->pid = pid;
 		child->account = a;
 	}
@@ -710,7 +715,8 @@ main(int argc, char **argv)
 		}
 
 		/* poll the io list */
-		switch (io_polln(ios, ARRAY_LENGTH(&children), &io, NULL)) {
+		n = io_polln(ios, ARRAY_LENGTH(&children), &io, INFTIM, NULL);
+		switch (n) {
 		case -1:
 			fatalx("parent: child socket error");
 		case 0:

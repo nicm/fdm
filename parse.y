@@ -280,7 +280,7 @@ find_macro(char *name)
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP TOKVALUE
+%token TOKFILEGROUP TOKVALUE TOKTIMEOUT
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -601,6 +601,13 @@ set: TOKSET TOKMAXSIZE size
 /**  [$3: uid (uid_t)] */
      {
 	     conf.def_user = $3;
+     }
+   | TOKSET TOKTIMEOUT time
+/**  [$3: size (long long)] */
+     {
+	     if ($3 > INT_MAX / 1000)
+		     yyerror("timeout too long: %lld", $3);
+	     conf.timeout = $3;
      }
    | TOKSET domains
 /**  [$2: domains (struct strings *)] */

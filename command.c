@@ -109,7 +109,7 @@ cmd_start(const char *s, int flags, char *buf, size_t len, char **cause)
 
 	/* create ios */
 	if (fd_in[1] != -1) {
-		cmd->io_in = io_create(fd_in[1], NULL, IO_LF);
+		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, INFTIM);
 		if (buf != NULL && len > 0) {
 			/* write the buffer directly, without copying */
 			io_writefixed(cmd->io_in, buf, len);
@@ -117,12 +117,12 @@ cmd_start(const char *s, int flags, char *buf, size_t len, char **cause)
 		cmd->io_in->flags &= ~IO_RD;
 	}
 	if (fd_out[0] != -1) {
-		cmd->io_out = io_create(fd_out[0], NULL, IO_LF);
+		cmd->io_out = io_create(fd_out[0], NULL, IO_LF, INFTIM);
 		cmd->io_out->flags &= ~IO_WR;
 	} else
 		cmd->io_out = NULL;
 	if (fd_err[0] != -1) {
-		cmd->io_err = io_create(fd_err[0], NULL, IO_LF);
+		cmd->io_err = io_create(fd_err[0], NULL, IO_LF, INFTIM);
 		cmd->io_err->flags &= ~IO_WR;
 	} else
 		cmd->io_err = NULL;
@@ -199,7 +199,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
 		ios[2] = cmd->io_err;
-		switch (io_polln(ios, 3, &io, cause)) {
+		switch (io_polln(ios, 3, &io, INFTIM /* XXX */, cause)) {
 		case -1:
 			return (1);
 		case 0:

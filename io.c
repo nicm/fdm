@@ -31,10 +31,6 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#ifndef INFTIM	/* stupid Linux */
-#define INFTIM -1
-#endif
-
 #include "fdm.h"
 
 #undef	IO_DEBUG
@@ -44,7 +40,7 @@ int	io_fill(struct io *);
 
 /* Create a struct io for the specified socket and SSL descriptors. */
 struct io *
-io_create(int fd, SSL *ssl, const char *eol)
+io_create(int fd, SSL *ssl, const char *eol, int timeout)
 {
 	struct io	*io;
 	int		 mode;
@@ -77,6 +73,7 @@ io_create(int fd, SSL *ssl, const char *eol)
 	io->lbuf = NULL;
 	io->llen = 0;
 
+	io->timeout = timeout;
 	io->eol = eol;
 
 	return (io);
@@ -119,7 +116,7 @@ io_update(struct io *io, char **cause)
 
 /* Poll multiple IOs. */
 int
-io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
+io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 {
 	struct io	*io;
 	struct pollfd    pfds[IO_POLLFDS], *pfd;
@@ -127,7 +124,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 	u_int		 i;
 
 	if (n > IO_POLLFDS)
-		fatalx("io_polln: too many fds");
+		fatalx("io: too many fds");
 
 	/* check all the ios */
 	for (i = 0; i < n; i++) {
@@ -162,8 +159,10 @@ io_polln(struct io **ios, u_int n, struct io **rio, char **cause)
 	}
 
 	/* do the poll */
-	error = poll(pfds, n, INFTIM);
+	error = poll(pfds, n, timeout);
 	if (error == 0 || error == -1) {
+		if (error == 0)
+			errno = ETIMEDOUT;
 		*rio = NULL;
 		if (errno == EINTR)
 			return (1);
@@ -245,7 +244,7 @@ io_poll(struct io *io, char **cause)
 {
 	struct io	*rio;
 
-	return (io_polln(&io, 1, &rio, cause));
+	return (io_polln(&io, 1, &rio, io->timeout, cause));
 }
 
 /* Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,

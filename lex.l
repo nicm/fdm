@@ -165,6 +165,7 @@ stdin return (TOKSTDIN);
 string return (TOKSTRING);
 tag return (TOKTAG);
 tagged return (TOKTAGGED);
+timeout return (TOKTIMEOUT);
 to return (TOKTO);
 total-size return (TOKTOTALSIZE);
 unmatched return (TOKUNMATCHED);

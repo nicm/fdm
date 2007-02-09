@@ -142,7 +142,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	if (pid != 0) {
 		/* create privsep io */
 		close(fds[1]);
-		io = io_create(fds[0], NULL, IO_LF);
+		io = io_create(fds[0], NULL, IO_LF, INFTIM);
 
  		/* parent process. wait for child */
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
@@ -205,7 +205,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 
 	/* create privsep io */
  	close(fds[0]);
-	io = io_create(fds[1], NULL, IO_LF);
+	io = io_create(fds[1], NULL, IO_LF, INFTIM);
 
 	/* child process. change user and group */
 	log_debug("%s: trying to deliver using uid %lu", a->name, (u_long) uid);

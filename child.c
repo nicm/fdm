@@ -101,7 +101,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	COUNTFDS(a->name);
 #endif
 
-	io = io_create(fd, NULL, IO_LF);
+	io = io_create(fd, NULL, IO_LF, INFTIM);
 	log_debug("%s: started, pid %ld", a->name, (long) getpid());
 
 	if (a->fetch->init != NULL) {

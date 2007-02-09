@@ -136,15 +136,15 @@ error:
 }
 
 struct io *
-connectproxy(struct server *srv, struct proxy *pr, const char *eol,
+connectproxy(struct server *srv, struct proxy *pr, const char *eol, int timeout,
     char **cause)
 {
 	struct io	*io;
 
 	if (pr == NULL)
-		return (connectio(srv, eol, cause));
+		return (connectio(srv, eol, timeout, cause));
 
-	io = connectio(&pr->server, IO_CRLF, cause);
+	io = connectio(&pr->server, IO_CRLF, timeout, cause);
 	if (io == NULL)
 		return (NULL);
 
@@ -421,7 +421,7 @@ makessl(int fd, char **cause)
 }
 
 struct io *
-connectio(struct server *srv, const char *eol, char **cause)
+connectio(struct server *srv, const char *eol, int timeout, char **cause)
 {
 	int		 fd = -1, error = 0;
 	struct addrinfo	 hints;
@@ -462,11 +462,11 @@ connectio(struct server *srv, const char *eol, char **cause)
 		return (NULL);
 	}
 	if (!srv->ssl)
-		return (io_create(fd, NULL, eol));
+		return (io_create(fd, NULL, eol, timeout));
 
 	if ((ssl = makessl(fd, cause)) == NULL) {
 		close(fd);
 		return (NULL);
 	}
-	return (io_create(fd, ssl, eol));
+	return (io_create(fd, ssl, eol, timeout));
 }
