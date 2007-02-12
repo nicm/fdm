@@ -232,7 +232,7 @@ replace(const char *src, struct tags *tags, struct mail *m, int pm_valid,
 				ptr = tend;
 				continue;
 			}
-			strlcpy(name, ptr, tend - ptr);
+			strlcpy(name, ptr, (tend - ptr) + 1);
 			if ((tag = find_tag(tags, name)) == NULL) {
 				ptr = tend;
 				continue;
