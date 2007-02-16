@@ -144,7 +144,8 @@ do_child(int fd, enum fdmop op, struct account *a)
 	}
 
 	log_debug("%s: processing", a->name);
-	gettimeofday(&tv, NULL);
+	if (gettimeofday(&tv, NULL) != 0)
+		fatal("gettimeofday");
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
 	/* connect */
