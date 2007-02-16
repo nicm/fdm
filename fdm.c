@@ -699,7 +699,8 @@ main(int argc, char **argv)
 #endif
 	log_debug("parent: started, pid is %ld", (long) getpid());
 
-	gettimeofday(&tv, NULL);
+	if (gettimeofday(&tv, NULL) != 0)
+		fatal("gettimeofday");
 	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
 
 	res = 0;
@@ -812,7 +813,7 @@ main(int argc, char **argv)
 	if (gettimeofday(&tv, NULL) != 0)
 		fatal("gettimeofday");
 	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
-	log_debug("parent: finished, total time %.3f seconds", tim);
+ 	log_debug("parent: finished, total time %.3f seconds", tim);
 
 out:
 #ifdef DEBUG
