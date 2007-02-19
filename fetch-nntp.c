@@ -105,14 +105,12 @@ char *
 nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 {
 	char	*line;
-	va_list	 ap, aq;
+	va_list	 ap;
 	u_int	 i;
 	int	 code, arg;
 
 	if (cdp == NULL)
 		cdp = &code;
-
-	va_start(ap, n);
 
 	do {
 		if ((line = nntp_line(a, lbuf, llen)) == NULL)
@@ -123,17 +121,15 @@ nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 			goto error;
 	} while (*cdp >= 100 && *cdp <= 199);
 
-	va_copy(aq, ap);
+	va_start(ap, n);
 	for (i = n; i > 0; i++) {
-		arg = va_arg(aq, int);
+		arg = va_arg(ap, int);
 		if (*cdp == arg)
 			break;
 	}
-	va_end(aq);
+	va_end(ap);
 	if (i == 0)
 		goto error;
-
-	va_end(ap);
 
 	return (line);
 
