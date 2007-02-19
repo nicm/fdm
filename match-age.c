@@ -55,7 +55,7 @@ age_tzlookup(const char *tz, int *off)
 	tzset();
 
 	/* get the time at epoch + one year */
-	t =  TIME_YEAR;
+	t = TIME_YEAR;
 	tm = localtime(&t);
 
 	/* and work out the timezone */
@@ -87,6 +87,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 	time_t		 then, now;
 	long long	 diff;
 	int		 tz;
+
 	memset(&tm, 0, sizeof tm);
 
 	hdr = find_header(m, "Date:", &len, 1);
@@ -149,8 +150,8 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 		diff = 0;
 	}
 
-	/* mails reaching this point is not invalid, so return false if
-	   validity is what is being tested for */
+	/* mail reaching this point is not invalid, so return false if validity
+	   is what is being tested for */
 	if (data->time < 0)
 		return (MATCH_FALSE);
 
