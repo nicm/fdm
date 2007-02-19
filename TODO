@@ -15,3 +15,7 @@
 - attach get name from content-disposition
 - ifdef/endif directives in config file, change -D to not require a value
 - use NOUSR where necessary
+- loops? how? is this even worth it?
+- get only read/unread mail (IMAP only, probably) (read-only, unread-only) flags
+  to account line
+
