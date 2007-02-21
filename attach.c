@@ -227,7 +227,7 @@ attach_build(struct mail *m)
 	int		 last;
 	u_int		 n;
 
-	hdr = find_header(m, "content-type:", &len, 0);
+	hdr = find_header(m, "content-type", &len, 0);
 	if (hdr == NULL)
 		return (NULL);
 

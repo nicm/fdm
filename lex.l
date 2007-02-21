@@ -155,6 +155,7 @@ pop3s return (TOKPOP3S);
 port return (TOKPORT);
 proxy return (TOKPROXY);
 purge-after return (TOKPURGEAFTER);
+remove-header return (TOKREMOVEHEADER);
 returns return (TOKRETURNS);
 rewrite return (TOKREWRITE);
 server return (TOKSERVER);

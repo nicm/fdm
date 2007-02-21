@@ -49,7 +49,7 @@ maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	size_t	 	 first, last;
 	gid_t		 gid;
 
-	path = replace(t->data, &m->tags, m, dctx->pm_valid, dctx->pm);
+	path = replace(t->data, &m->tags, m, *dctx->pm_valid, dctx->pm);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto out;

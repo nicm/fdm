@@ -110,6 +110,14 @@ extern char	*__progname;
 	((c *) (a)->list)[(a)->num] = s;				\
 	(a)->num++;							\
 } while (0)
+#define ARRAY_SET(a, i, s, c) do {					\
+	if (((u_int) (i)) >= (a)->num) {				\
+		log_warnx("ARRAY_SET: bad index: %u, at %s:%d",		\
+		    i, __FILE__, __LINE__);				\
+		exit(1);						\
+	}								\
+	((c *) (a)->list)[i] = s;					\
+} while (0)
 #define ARRAY_REMOVE(a, i, c) do {					\
 	if (((u_int) (i)) >= (a)->num) {				\
 		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
@@ -117,7 +125,7 @@ extern char	*__progname;
 		exit(1);						\
 	}								\
 	if (i < (a)->num - 1) {						\
-		c 	*aptr = (a)->list + i;				\
+		c 	*aptr = ((c *) (a)->list) + i;			\
 		memmove(aptr, aptr + 1, (sizeof (c)) * ((a)->num - (i) - 1)); \
 	}								\
 	(a)->num--;							\
@@ -596,7 +604,7 @@ struct deliver_ctx {
 
 	enum decision	*decision;
 
-	int		 pm_valid;
+	int		*pm_valid;
 	regmatch_t	 pm[NPMATCH];
 };
 
@@ -934,6 +942,9 @@ extern struct deliver 	 deliver_keep;
 
 /* deliver-maildir.c */
 extern struct deliver 	 deliver_maildir;
+
+/* deliver-remove-header.c */
+extern struct deliver	 deliver_remove_header;
 
 /* deliver-mbox.c */
 extern struct deliver 	 deliver_mbox;

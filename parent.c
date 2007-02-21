@@ -67,7 +67,7 @@ do_parent(struct child *child)
 		dctx.account = data->account;
 		dctx.mail = &m;
 		dctx.decision = NULL;	/* only altered in child */
-		dctx.pm_valid = msg.data.pm_valid;
+		dctx.pm_valid = &msg.data.pm_valid;
 		memcpy(&dctx.pm, &msg.data.pm, sizeof dctx.pm);
 
 		error = parent_action(data->action, &dctx, uid);

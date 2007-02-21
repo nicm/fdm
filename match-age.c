@@ -90,7 +90,7 @@ age_match(struct match_ctx *mctx, struct expritem *ei)
 
 	memset(&tm, 0, sizeof tm);
 
-	hdr = find_header(m, "Date:", &len, 1);
+	hdr = find_header(m, "date", &len, 1);
 	if (hdr == NULL || len == 0 || len > INT_MAX)
 		goto invalid;
 	/* make a copy of the header */

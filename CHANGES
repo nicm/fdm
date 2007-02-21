@@ -1,3 +1,8 @@
+19 February 2007
+
+* Add a remove-header action to remove all instances of a header. Based on a
+  a request by Tobias Ulmer.
+
 09 February 2007
 
 * Reworked the substitution stuff. Each mail now carries a list of tag name,

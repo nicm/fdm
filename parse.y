@@ -280,7 +280,7 @@ find_macro(char *name)
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP TOKVALUE TOKTIMEOUT
+%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1183,6 +1183,20 @@ action: TOKPIPE strv
 
 		$$.deliver = &deliver_maildir;
 
+		$$.data = $2;
+	}
+      | TOKREMOVEHEADER strv
+/**     [$2: strv (char *)] */
+	{
+		char	*cp;
+
+		if (*$2 == '\0')
+			yyerror("invalid header");
+
+		$$.deliver = &deliver_remove_header;
+
+		for (cp = $2; *cp != '\0'; cp++)
+			*cp = tolower((int) *cp);
 		$$.data = $2;
 	}
       | TOKMBOX strv compress

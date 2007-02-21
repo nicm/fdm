@@ -279,7 +279,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 		log_debug("%s: got message: size %zu, body %zd", a->name,
 		    m.size, m.body);
 
-		hdr = find_header(&m, "message-id:", &len, 1);
+		hdr = find_header(&m, "message-id", &len, 1);
 		if (hdr == NULL || len == 0 || len > INT_MAX)
 			log_debug("%s: message-id not found", a->name);
 		else {
@@ -301,7 +301,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 				if (rnm == NULL)
 					rnm = conf.info.host;
 
-				error = insert_header(&m, "Received:",
+				error = insert_header(&m, "received",
 				    "Received: by %.512s (%s " BUILD ");\n\t%s",
 				    rnm, __progname, rtm);
 			}
@@ -621,7 +621,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		dctx.account = a;
 		dctx.mail = m;
 		dctx.decision = &mctx->decision;
-		dctx.pm_valid = mctx->pm_valid;
+		dctx.pm_valid = &mctx->pm_valid;
 		memcpy(&dctx.pm, mctx->pm, sizeof dctx.pm);
 
 		if (t->deliver->deliver(&dctx, t) != DELIVER_SUCCESS)

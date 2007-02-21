@@ -385,13 +385,14 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 	char	*ptr, *end, *out;
 	size_t	 hdrlen;
 
-	hdrlen = strlen(hdr);
+	hdrlen = strlen(hdr) + 1; /* include : */
 
 	end = m->data + (m->body == -1 ? m->size : (size_t) m->body);
 	ptr = m->data;
 	if (hdrlen > (size_t) (end - ptr))
 		return (NULL);
-	while (strncasecmp(ptr, hdr, hdrlen) != 0) {
+	while (ptr[hdrlen - 1] != ':' ||
+	    strncasecmp(ptr, hdr, hdrlen - 1) != 0) {
 		ptr = memchr(ptr, '\n', end - ptr);
 		if (ptr == NULL)
 			return (NULL);
@@ -446,10 +447,8 @@ find_users(struct mail *m)
 		if (*ARRAY_ITEM(conf.headers, i, char *) == '\0')
 			continue;
 
-		xasprintf(&ptr, "%s:", ARRAY_ITEM(conf.headers, i, char *));
-		hdr = find_header(m, ptr, &len, 1);
-		xfree(ptr);
-
+		hdr = find_header(m, ARRAY_ITEM(conf.headers, i, char *), 
+		    &len, 1);
 		if (hdr == NULL || len == 0)
 			continue;
 		while (isspace((int) *hdr)) {
@@ -570,7 +569,7 @@ make_from(struct mail *m)
 	char	*s, *from = NULL;
 	size_t	 fromlen = 0;
 
-	from = find_header(m, "From:", &fromlen, 1);
+	from = find_header(m, "from", &fromlen, 1);
 	if (from != NULL && fromlen > 0)
 		from = find_address(from, fromlen, &fromlen);
  	if (fromlen > INT_MAX)
