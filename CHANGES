@@ -1,5 +1,6 @@
 22 February 2007
 
+* Included account name in received header.
 * Added stdout delivery.
 * New append-string delivery to add data to a mail.
 
