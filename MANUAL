@@ -414,7 +414,7 @@ for the []s:
 	match string "%a" to "myacct" action "myacctact"
 
 Tag names are limited to 64 bytes and tag values to the maximum system path
-length (usually 1024 bytes). If a tag name or value would exceed this, limit
+length (usually 1024 bytes). If a tag name or value would exceed this limit,
 the tag is silently ignored (not added to the mail). Including a nonexistent tag
 in a string is equivalent to including a tag with an empty value, so
 "abc%[nonexistent]def" will be translated to "abcdef".
