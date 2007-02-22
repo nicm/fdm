@@ -18,9 +18,8 @@
 - loops? how? is this even worth it?
 - get only read/unread mail (IMAP only, probably) (read-only, unread-only) flags
   to account line
-- handle multiple header instances when looking for users (other places?
+- handle multiple header instances when looking for users (other places?)
 - fnmatch in find_header (don't forget ':')
 - move pmatch etc into struct mail to avoid pointer nonsense?
-- deliver to stdout
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
