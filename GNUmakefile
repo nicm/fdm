@@ -41,7 +41,8 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
 
 ifeq ($(shell uname),Linux)
-SRCS+= compat/strlcpy.c compat/strlcat.c compat/strtonum.c
+INCDIRS+= -idirafter compat
+SRCS+= compat/strlcpy.c compat/strlcat.c compat/strtonum.c compat/vis.c
 DEFS+= $(shell getconf LFS_CFLAGS) -D_GNU_SOURCE \
         -DNO_STRLCPY -DNO_STRLCAT -DNO_SETPROCTITLE -DNO_STRTONUM -DNO_QUEUE_H
 # Required for LLONG_MAX and friends
@@ -49,7 +50,7 @@ CFLAGS+= -std=c99
 endif
 
 OBJS= $(patsubst %.c,%.o,$(SRCS))
-CPPFLAGS+= $(DEFS) -I. $(INCDIRS)
+CPPFLAGS+= $(DEFS) -I. -I- $(INCDIRS)
 #CFLAGS+= -g -ggdb -DDEBUG
 #CFLAGS+= -pedantic -std=c99
 #CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-label
