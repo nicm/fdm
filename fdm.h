@@ -883,6 +883,11 @@ struct mbox_data {
 	int		 compress;
 };
 
+/* Deliver stdout data. */
+struct stdout_data {
+	int		 add_from;
+};
+
 /* match-age.c */
 extern struct match	 match_age;
 
@@ -931,6 +936,9 @@ extern struct fetch 	 fetch_imappipe;
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;
 
+/* deliver-smtp.c */
+extern struct deliver	 deliver_stdout;
+
 /* deliver-pipe.c */
 extern struct deliver 	 deliver_pipe;
 
@@ -945,6 +953,9 @@ extern struct deliver 	 deliver_maildir;
 
 /* deliver-remove-header.c */
 extern struct deliver	 deliver_remove_header;
+
+/* deliver-append-string.c */
+extern struct deliver	 deliver_append_string;
 
 /* deliver-mbox.c */
 extern struct deliver 	 deliver_mbox;

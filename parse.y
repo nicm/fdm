@@ -280,7 +280,8 @@ find_macro(char *name)
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER
+%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT
+%token TOKADDFROM TOKAPPENDSTRING
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -332,6 +333,7 @@ find_macro(char *name)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled keep poptype imaptype execpipe compress
+%type  <flag> addfrom
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <match> match
@@ -603,7 +605,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.def_user = $3;
      }
    | TOKSET TOKTIMEOUT time
-/**  [$3: size (long long)] */
+/**  [$3: time (long long)] */
      {
 	     if ($3 > INT_MAX / 1000)
 		     yyerror("timeout too long: %lld", $3);
@@ -983,6 +985,7 @@ user: /* empty */
 	      $$ = $2;
       }
 
+
 /** USERS: <users> (struct { ... } users) */
 users: /* empty */
        {
@@ -1134,6 +1137,16 @@ compress: TOKCOMPRESS
 		  $$ = 0;
 	  }
 
+/** ADDFROM: <flag> (int) */
+addfrom: TOKADDFROM
+	 {
+		 $$ = 1;
+	 }
+       | /* empty */
+	 {
+		 $$ = 0;
+	 }
+
 /** ACTION: <action> (struct action) */
 action: TOKPIPE strv
 /**     [$2: strv (char *)] */
@@ -1199,6 +1212,16 @@ action: TOKPIPE strv
 			*cp = tolower((int) *cp);
 		$$.data = $2;
 	}
+      | TOKAPPENDSTRING strv
+/**     [$2: strv (char *)] */
+	{
+		if (*$2 == '\0')
+			yyerror("invalid string");
+
+		$$.deliver = &deliver_append_string;
+
+		$$.data = $2;
+	}
       | TOKMBOX strv compress
 /**     [$2: strv (char *)] [$3: compress (int)] */
 	{
@@ -1229,6 +1252,18 @@ action: TOKPIPE strv
 		data->server.port = $2.port != NULL ? $2.port : xstrdup("smtp");
 		data->server.ai = NULL;
 		data->to = $3;
+	}
+      | TOKSTDOUT addfrom
+/**     [$2: addfrom (int)] */
+	{
+		struct stdout_data	*data;
+
+		$$.deliver = &deliver_stdout;
+
+		data = xcalloc(1, sizeof *data);
+		$$.data = data;
+
+		data->add_from = $2;
 	}
       | TOKDROP
         {

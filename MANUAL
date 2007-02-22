@@ -16,7 +16,7 @@ fdm ============================================================================
 6.2	POP3 and POP3S
 6.3	IMAP and IMAPS
 6.4	IMAP over a pipe or via ssh
-6.5	Stdin and local mail
+6.5	stdin and local mail
 6.6 	From maildirs
 6.7	Using NNTP
 7	Defining actions
@@ -25,8 +25,9 @@ fdm ============================================================================
 7.3	Mboxes
 7.4	SMTP
 7.5	Write, pipe and append
-7.6 	Rewriting mail
-7.7	Removing headers
+7.6	stdout
+7.7 	Rewriting mail
+7.8	Removing headers and appending a string
 8	Filtering mail
 8.1	Nesting rules
 8.2	The all condition
@@ -512,7 +513,7 @@ Examples are:
 	
 	account "imapssh2" imap pipe "/usr/bin/whatever" user "bob" pass "bah"
 
-Stdin and local mail -----------------------------------------------------------
+stdin and local mail -----------------------------------------------------------
 
 fdm may be configured to fetch mail from stdin, by specifying an account of
 type 'stdin', for example:
@@ -687,6 +688,22 @@ Examples are:
 
 	action "mypipeaction" pipe "cat > /dev/null"
 
+stdout -------------------------------------------------------------------------
+
+fdm can write mails directly to stdout, optionally prepending an mbox-style 
+'From' line:
+
+	action "sofrom" stdout add-from
+
+	action "so" stdout
+
+The append-string action (see below) is useful to include a separator between
+each mail:
+
+	action "sep" append-string "--\n"
+	action "so" stdout
+	match all actions { "sep" "so" } continue
+
 Rewriting mail -----------------------------------------------------------------
 
 Mail may be altered by passing it to a rewrite action. This is similar to
@@ -701,7 +718,7 @@ of this). Possible rewrite action definitions are:
 
 	action "mysedaction" rewrite "sed 's/x/y/'"
 
-Removing headers ---------------------------------------------------------------
+Removing headers and appending a string-----------------------------------------
 
 A simple action is provided to remove all instances of a header from mail,
 for example:
@@ -709,6 +726,10 @@ for example:
 	action "del-ua" remove-header "user-agent"
 
 	action "rmhdr" remove-header "x-stupid-header"
+
+A similar action can append a string to each mail:
+
+	action "append-sep" append-string "--cut here--\n"
 
 Filtering mail =================================================================
 

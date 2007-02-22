@@ -502,9 +502,19 @@ match all action "rewrite" continue
 # this rule will cat the rewritten message
 match all action "cat"
 .Ed
-.Ic remove-header Ar name
+.It Ic remove-header Ar name
 Remove all occurances of header
 .Ar name .
+.It Ic append-string Ar string
+Append
+.Ar string
+to the mail.
+.It Ic stdout Op Ic add-from
+Write the mail to 
+.Em stdout .
+If
+.Ic add-from
+is specified, an mbox-style "From" line is prepended.
 .El
 .Sh RULES
 Rules are specified using the
