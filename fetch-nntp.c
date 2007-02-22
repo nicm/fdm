@@ -122,7 +122,7 @@ nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 	} while (*cdp >= 100 && *cdp <= 199);
 
 	va_start(ap, n);
-	for (i = n; i > 0; i++) {
+	for (i = n; i > 0; i--) {
 		arg = va_arg(ap, int);
 		if (*cdp == arg)
 			break;
