@@ -124,8 +124,8 @@ mail_destroy(struct mail *m)
 void
 resize_mail(struct mail *m, size_t size)
 {
-	if (SIZE_MAX - m->off < m->size)
-		fatalx("resize_mail: SIZE_MAX - m->off < m->size");
+	if (SIZE_MAX - m->off < size)
+		fatalx("resize_mail: SIZE_MAX - m->off < size");
 	while (m->space <= (m->off + size)) {
 		m->base = shm_realloc(&m->shm, 2, m->space);
 		m->space *= 2;
