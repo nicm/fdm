@@ -45,12 +45,12 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 }
 
 int
-re_execute(struct re *re, char *s, int npmatch, regmatch_t *pmatch, int flags,
+re_execute(struct re *re, char *s, int npm, regmatch_t *pm, int flags,
     char **cause)
 {
 	int	res;
 
-	res = regexec(&re->re, s, npmatch, pmatch, flags);
+	res = regexec(&re->re, s, npm, pm, flags);
 	if (res != 0 && res != REG_NOMATCH) {
 		xasprintf(cause, "%s: regexec failed", re->str);
 		return (-1);
