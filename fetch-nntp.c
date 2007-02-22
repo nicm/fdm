@@ -170,6 +170,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	u_int			 n, last;
 
 	group = CURRENT_GROUP(data);
+	log_debug("%s: fetching group: %s", a->name, group->name);
 
 	io_writeline(data->io, "GROUP %s", group->name);
 	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)

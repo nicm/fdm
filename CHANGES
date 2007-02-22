@@ -1,5 +1,6 @@
 22 February 2007
 
+* Fixed silly typo in NNTP code check. SF bug 1650701.
 * Included account name in received header.
 * Added stdout delivery.
 * New append-string delivery to add data to a mail.
