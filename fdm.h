@@ -1015,6 +1015,7 @@ struct macro		*find_macro(char *);
 struct actions		*match_actions(char *);
 
 /* fdm.c */
+double			 get_time(void);
 int			 dropto(uid_t);
 int			 check_incl(char *);
 int		         check_excl(char *);

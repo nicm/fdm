@@ -93,7 +93,6 @@ do_child(int fd, enum fdmop op, struct account *a)
 	struct io	*io;
 	struct msg	 msg;
 	int		 error, res = 0;
-	struct timeval	 tv;
 	double		 tim;
 
 #ifdef DEBUG
@@ -144,9 +143,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	}
 
 	log_debug("%s: processing", a->name);
-	if (gettimeofday(&tv, NULL) != 0)
-		fatal("gettimeofday");
-	tim = tv.tv_sec + tv.tv_usec / 1000000.0;
+	tim = get_time();
 
 	/* connect */
 	if (a->fetch->connect != NULL) {
@@ -229,7 +226,6 @@ int
 fetch_account(struct io *io, struct account *a, double tim)
 {
 	struct mail	 m;
-	struct timeval	 tv;
 	u_int	 	 l, n, dropped, kept;
 	int		 error;
  	const char	*cause = NULL;
@@ -400,9 +396,7 @@ out:
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
 
-	if (gettimeofday(&tv, NULL) != 0)
-		fatal("gettimeofday");
-	tim = (tv.tv_sec + tv.tv_usec / 1000000.0) - tim;
+	tim = get_time() - tim;
 	n = dropped + kept;
 	if (n > 0) {
 		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
