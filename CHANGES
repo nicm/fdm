@@ -41,6 +41,7 @@
 
 26 January 2007
 
+* Started a changelog.
 * Assigned a number to each rule and changed logging to refer to it. Also
   tweaked the -vv configuration file output.
 * Changed some vasprintf to xvasprintf now that the latter exists.
