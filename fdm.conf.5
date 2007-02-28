@@ -31,7 +31,8 @@ from which to fetch mail, a number of possible
 to take, and
 .Em rules
 connecting a regexp with an action.
-The file is parsed once from top to bottom, so action and account definitions must appear before they are referenced in a rule.
+The file is parsed once from top to bottom, so action and account
+definitions must appear before they are referenced in a rule.
 Rules are evaluated from first to last and (unless overridden by the
 .Ic continue
 keyword) evaluation stops at the first match.
@@ -303,7 +304,7 @@ arguments must be strings.
 The port option may be either a string which will be looked up in the
 .Xr services 5
 database, or a number.
-If it is omitted, the default port (143 for POP3, 993 for POP3S) is used.
+If it is omitted, the default port (110 for POP3, 995 for POP3S) is used.
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
@@ -318,6 +319,7 @@ These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3 account, aside from the additional
 .Ic folder
 option which allows the folder name to be specified (the default is to fetch from the inbox).
+The default ports used are 143 for IMAP and 993 for IMAPS.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ic user Ar user Ic pass Ar pass
 .Xc
@@ -344,7 +346,8 @@ These account types instruct
 to fetch mail from the maildir or maildirs specified.
 This allows
 .Xr fdm 1
-to be used to filter mail, fetching from a maildir and deleting (dropping) unwanted mail, or delivering mail to another maildir or to an mbox.
+to be used to filter mail, fetching from a maildir and deleting (dropping)
+unwanted mail, or delivering mail to another maildir or to an mbox.
 .It Xo Ic nntp Ic server Ar host
 .Op Ic port Ar port
 .Ic group Ar group
@@ -360,7 +363,8 @@ to be used to filter mail, fetching from a maildir and deleting (dropping) unwan
 .Xc
 An NNTP account.
 Articles are fetched from the specified group or groups and delivered.
-The index and message-id of the last article fetched in each group is saved in the specified cache file.
+The index and message-id of the last article fetched in each group is
+saved in the specified cache file.
 When
 .Xr fdm 1
 is run again, fetching begins at the cached article.
@@ -370,7 +374,8 @@ As mail is processed by
 .Xr fdm 1 ,
 it is tagged with a number of name/value pairs.
 Some tags are added automatically, and mail may also be tagged explicitly by the user.
-Tags may be inserted in most strings in a similar manner to macros, except tags are processed at runtime rather than as the configuration file is parsed.
+Tags may be inserted in most strings in a similar manner to macros, except tags are
+processed at runtime rather than as the configuration file is parsed.
 A tag's value is inserted by wrapping its name in %[], for example:
 .Bl -tag -width Ds
 .It "abc%[account]def"
@@ -378,9 +383,12 @@ A tag's value is inserted by wrapping its name in %[], for example:
 .El
 .Pp
 The default tags also have a single-letter shorthand.
-Tag names are limited to 64 bytes and tag values to the maximum system path length (usually 1024 bytes).
-If a tag name or value would exceed this, limit the tag is silently ignored (not added to the mail).
-Including a nonexistent tag in a string is equivalent to including a tag with an empty value, so "abc%[nonexistent]def" will be translated to "abcdef".
+Tag names are limited to 64 bytes and tag values to the maximum system path
+length (usually 1024 bytes).
+If a tag name or value would exceed this, limit the tag is silently ignored
+(not added to the mail).
+Including a nonexistent tag in a string is equivalent to including a tag with
+an empty value, so "abc%[nonexistent]def" will be translated to "abcdef".
 .Pp
 The automatically added tags are:
 .Pp
@@ -415,7 +423,8 @@ The current day of the year (000-365).
 The current quarter (1-4).
 .El
 .Pp
-In addition, the shorthand %% is replaced with a literal %, and %0 to %9 are replaced with the result of any bracket expressions in the last regexp.
+In addition, the shorthand %% is replaced with a literal %, and %0 to %9 are
+replaced with the result of any bracket expressions in the last regexp.
 .Sh ACTIONS
 The
 .Ic action
@@ -566,13 +575,15 @@ Matches mails tagged with
 .Op Ic in Ic headers | Ic in body
 .Xc
 Specifies a list of regexps against which each mail should be matched.
-The regexp matches may be restricted to either the headers or body of the message by specifying either
+The regexp matches may be restricted to either the headers or body of
+the message by specifying either
 .Ic in headers
 or
 .Ic in body .
 The
 .Ic case
-keyword forces the regexp to be matched case-sensitively: the default is case-insensitive matching.
+keyword forces the regexp to be matched case-sensitively: the default is
+case-insensitive matching.
 .It Xo Op Ic not
 .Ic exec Ar command Op Ic user Ar user
 .Ic returns
@@ -596,7 +607,8 @@ argument is the numeric return code expected and
 .Ar stdout regexp
 is a regexp to be tested against the output of the command to
 .Em stdout .
-Either of these two arguments may be omitted: if both are specified, both must match for the condition to be true.
+Either of these two arguments may be omitted: if both are specified,
+both must match for the condition to be true.
 The
 .Ic pipe
 version will pipe the mail to the command's
@@ -604,7 +616,8 @@ version will pipe the mail to the command's
 when executing it.
 If a user is specified,
 .Xr fdm 1
-will change to that user before executing the command, otherwise the current user (or root if started as root) is used.
+will change to that user before executing the command, otherwise the
+current user (or root if started as root) is used.
 .It Xo Op Ic not
 .Ic size
 .Li <
@@ -624,7 +637,8 @@ Match
 .Ar string
 against
 .Ar regexp .
-If any of %0 to %9 appear in the string, they will be replaced with the contents of any subexpressions from the regexp executed as part of the last
+If any of %0 to %9 appear in the string, they will be replaced with the
+contents of any subexpressions from the regexp executed as part of the last
 .Ic regexp
 condition.
 If no
@@ -644,7 +658,8 @@ action since the last one, this condition will log a warning and evaluate to fal
 .Xc
 The
 .Ic age
-condition examines the mail's date header to determine its age, and matches if the mail is older (<) or newer (>) than the time specified.
+condition examines the mail's date header to determine its age, and matches if
+the mail is older (<) or newer (>) than the time specified.
 The time may be given as a simple number in seconds, or followed by the word
 .Em seconds ,
 .Em hours ,
@@ -674,7 +689,8 @@ to specify a time in different units.
 .Li !=
 .Ar number
 .Xc
-These conditions match if the mail possesses a number of attachments less than, greater than, equal to or not equal to
+These conditions match if the mail possesses a number of attachments less
+than, greater than, equal to or not equal to
 .Ar number .
 .It Xo Op Ic not
 .Ic attachment Ic total-size
@@ -780,7 +796,8 @@ the
 and
 .Fl x
 command line options.
-The actions are performed from left to right in the order they are specified in the rule definition.
+The actions are performed from left to right in the order they are specified in the
+rule definition.
 .Pp
 If the
 .Ic continue

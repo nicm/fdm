@@ -21,19 +21,22 @@
 5.3	The lock file
 5.4	Testing and debugging
 6	Fetching mail
-6.1	POP3 and POP3S
-6.2	IMAP and IMAPS
-6.3	IMAP over a pipe or via ssh
-6.4	Stdin and local mail
-6.5 	From maildirs
-6.6	Using NNTP
+6.1	Mail tagging
+6.2	POP3 and POP3S
+6.3	IMAP and IMAPS
+6.4	IMAP over a pipe or via ssh
+6.5	stdin and local mail
+6.6 	From maildirs
+6.7	Using NNTP
 7	Defining actions
 7.1	Drop and keep
 7.2	Maildirs
 7.3	Mboxes
 7.4	SMTP
 7.5	Write, pipe and append
-7.6 	Rewriting mail
+7.6	stdout
+7.7 	Rewriting mail
+7.8	Removing headers and appending a string
 8	Filtering mail
 8.1	Nesting rules
 8.2	The all condition
@@ -230,7 +233,8 @@ such as cron(8).
 <h2>Command line arguments </h2>
 The fdm binary has the following synopsis:
 
-fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account] [fetch | poll]
+	fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account]
+		[-D name=value] [fetch | poll]
 
 The meaning of the flags are covered in the fdm(1) man page, but a brief
 description is given below. The flags are also mentioned at relevant points
@@ -238,7 +242,7 @@ in the rest of this document.
 
 Flag	Meaning
 -k 	Keep all mail (do not delete it from the server). This is useful for
-	testing delivery rules without risking mailing ending up permanently
+	testing delivery rules without risking mail ending up permanently
 	in the wrong place.
 -l	Log to syslog(3) using the 'mail' facility rather than outputting to
 	stderr.
@@ -263,6 +267,9 @@ Flag	Meaning
 	Process all accounts except those that match the given pattern. Again,
 	fnmatch(3) wildcards may be used, and the -x option may be specified
 	multiple times.
+-D name=value
+	Define a macro. The macro name must be prefixed with '$' or '%' to
+	indicate if it is a string or numeric macro.
 
 If -n is not specified, the flags must be followed by one of the keywords
 'fetch' or 'poll'. The 'fetch' keyword will fetch and deliver mail, the 'poll'
@@ -387,6 +394,50 @@ rules.
 The &lt;type&gt; item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 'maildir' or 'maildirs'.
 
+<h2>Mail tags </h2>
+As mail is processed by fdm, it is tagged with a number of name/value pairs.
+Some tags are added automatically, and mail may also be tagged explicitly by
+the user (see the later tagging section). Tags may be inserted in strings in
+a similar manner to macros, except tags are processed at runtime rather than
+as the configuration file is parsed. A tag's value is inserted by wrapping its
+name in %[], for example:
+
+	match string "%[account]" to "myacct" action "myacctact"
+
+Most of the default tags have a single-letter shorthand which removes the needs
+for the []s:
+
+	match string "%a" to "myacct" action "myacctact"
+
+Tag names are limited to 64 bytes and tag values to the maximum system path
+length (usually 1024 bytes). If a tag name or value would exceed this limit,
+the tag is silently ignored (not added to the mail). Including a nonexistent tag
+in a string is equivalent to including a tag with an empty value, so
+"abc%[nonexistent]def" will be translated to "abcdef".
+
+The automatically added tags are:
+
+Name		Shorthand	Replaced with
+account		%a		The name of the account from which the mail was
+				fetched.
+home		%h		The delivery user's home directory.
+uid		%n		The delivery user's uid.
+action		%t		The name of the action the mail has matched.
+user		%u		The delivery user's username.
+hour		%H		The current hour (00-23).
+minute		%M		The current minute (00-59).
+second		%S		The current second (00-59).
+day		%d		The current day of the month (00-31).
+month		%m		The current month (01-12).
+year		%y		The current year.
+dayofweek	%W		The current day of the week (0-6, Sunday is 0).
+dayofyear	%Y		The current day of the year (000-365).
+quarter		%Q		The current quarter (1-4).
+
+In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
+replaced with the result of any bracket expressions in the last regexp (see
+later section on regexps).
+	
 <h2>POP3 and POP3S </h2>
 Mail may be fetched from a POP3 account. A POP3 account is defined by
 specifying the following parameters: the server host and optionally port, and
@@ -412,6 +463,10 @@ for the type, and the default port is 'pop3s' rather than 'pop3':
 
 	account "pop3sacct" pop3s server "pop.isp.com" user "bob" pass "pass"
 
+POP3 accounts automatically tag mail with 'server' and 'port' tags, with the
+value of the server and port attributes exactly as specified in the account
+definition.
+
 <h2>IMAP and IMAPS </h2>
 IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
 and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
@@ -432,6 +487,8 @@ Examples of IMAP and IMAPS accounts include:
 	account "workspam" disabled imap server "my-work.ath.cx"
 		user "Nicholas" pass "pass" folder "Junk"
 
+As with POP3, IMAP adds the 'server' and 'port' tags to mail.
+
 <h2>IMAP over a pipe or ssh </h2>
 Mail may be fetched using IMAP via a pipe. This is particularly useful for
 fetching mail over ssh using public keys.
@@ -449,7 +506,7 @@ Examples are:
 	
 	account "imapssh2" imap pipe "/usr/bin/whatever" user "bob" pass "bah"
 
-<h2>Stdin and local mail </h2>
+<h2>stdin and local mail </h2>
 fdm may be configured to fetch mail from stdin, by specifying an account of
 type 'stdin', for example:
 
@@ -478,34 +535,39 @@ Maildir accounts are specified as follows:
 Shell glob wildcards may be included in the path names to match multiple
 maildirs, but every directory found must be a valid maildir.
 
+Maildir accounts tag mail with a 'maildir' tag which is the basename of the
+maildir.
+
 <h2>Using NNTP </h2>
 fdm can fetch news messages from a news server using NNTP. News accounts are
 specified like so:
 
 	account "news1" nntp server "news.server.sk" port 119
-		group "comp.unix.bsd.openbsd.misc" cache "%h/.fdm.cache/%s"
+		group "comp.unix.bsd.openbsd.misc"
+		cache "%h/.fdm.cache/%[group]"
 
 	account "mynews" nntp server "my.news.server" port "nntp"
 		groups { "alt.test" "alt.humor.best-of-usenet" }
 		cache "%h/.fdm.cache"
 
 The cache is a file used to store details of the last article fetched. If only
-one group is supplied in the account definition, %s tokens are replaced by the
-name of the group in the cache path. If multiple groups are provided, %s tokens
-are just removed.
+one group is supplied in the account definition, %[group] tags are replaced by
+the name of the group in the cache path. If multiple groups are provided,
+the %[group] is just removed.
 
 Note that whether a message is kept or deleted is irrelevent to NNTP, articles
 are always left on the server. The index and message-id of the last article
 is recorded in the cache file so that older articles are skipped when the a
 newsgroup is again fetched.
 
-For rules to match based on group name, the %s token may again be used. This
-can ensure articles are matched purely on the group they are fetched on (trying
-to do this using headers is unreliable with cross-posted articles). For example:
+As with POP3 and IMAP, NNTP accounts add the 'server' and 'port' tags to mail.
+In addition, a 'group' tag is added with the group name. This can ensure
+articles are matched purely on the group they are fetched on (trying to do this
+using headers is unreliable with cross-posted articles). For example:
 
 match all account "news" {
-	match string "%s" to "comp.lang.c" action "news-%s"
-	match string "%s" to "comp.std.c" action "news-%s"
+	match string "%[group]" to "comp.lang.c" action "news-%[group]"
+	match string "%[group]" to "comp.std.c" action "news-%[group]"
 	match all action "drop"
 }
 
@@ -565,31 +627,6 @@ Mails may be saved to a maildir through a 'maildir' action, defined like so:
 
 	action "mymaildiraction" maildir "/path/to/maildir"
 
-In the path, the following special tokens are replaced:
-
-Token	Replaced with
-%a	The name of the account this mail was fetched from.
-%s	A string specific to the type of account the mail was fetched from.
-	For maildirs, it is the basename of the maildir, for IMAP and POP3 it
-	is the server hostname as specified in the account definition. For
-	NNTP it is the name of the group.
-%h	The delivery user's home directory.
-%n	The delivery user's uid.
-%t	The name of the action.
-%u	The delivery user's username.
-%H	The current hour (00-23).
-%M	The current minute (00-59).
-%S	The current second (00-59).
-%d	The current day of the month (00-31).
-%m	The current month (01-12).
-%y	The current year.
-%W	The current day of the week (0-6, Sunday is 0).
-%Y	The current day of the year (000-365).
-%Q	The current quarter (1-4).
-%1-%9	The result of any bracket expressions in the last regexp (see later
-	section on regexps).
-%%	Replaced with a literal %.
-
 If the maildir does not exist, it is created.
 
 <h2>Mboxes </h2>
@@ -606,6 +643,8 @@ keyword:
 fdm will append .gz to the mbox path (if it is not already present) and append
 compressed data. If the mbox exists but is not already compressed, uncompressed
 data will be appended.
+
+If the mbox does not exist, it is created.
 
 <h2>SMTP </h2>
 An action may be defined to pass mail on over SMTP. The server host must be
@@ -633,6 +672,21 @@ Examples are:
 
 	action "mypipeaction" pipe "cat &gt; /dev/null"
 
+<h2>stdout </h2>
+fdm can write mails directly to stdout, optionally prepending an mbox-style 
+'From' line:
+
+	action "sofrom" stdout add-from
+
+	action "so" stdout
+
+The append-string action (see below) is useful to include a separator between
+each mail:
+
+	action "sep" append-string "--\n"
+	action "so" stdout
+	match all actions { "sep" "so" } continue
+
 <h2>Rewriting mail </h2>
 Mail may be altered by passing it to a rewrite action. This is similar to
 the pipe action, but the output of the shell command to stdout is reread by fdm
@@ -645,6 +699,19 @@ of this). Possible rewrite action definitions are:
 	action "myspamaction" rewrite "bmf -p"
 
 	action "mysedaction" rewrite "sed 's/x/y/'"
+
+Removing headers and appending a string-----------------------------------------
+
+A simple action is provided to remove all instances of a header from mail,
+for example:
+
+	action "del-ua" remove-header "user-agent"
+
+	action "rmhdr" remove-header "x-stupid-header"
+
+A similar action can append a string to each mail:
+
+	action "append-sep" append-string "--cut here--\n"
 
 <h1>Filtering mail </h1>
 Mail is filtered by defining a set of filtering rules. These rules tie together
@@ -836,18 +903,30 @@ attachment MIME type and name attribute (if any) using fnmatch(3):
 	match attachment any-name "*.doc" action "action"
 
 <h2>Tagging </h2>
-Mails may be assigned one of more tags using a special form of filtering
-rule with the following syntax:
+Mails may be assigned one of more tags manually using a special form of
+filtering rule, with the following syntax:
 
-	match &lt;conditions&gt; [&lt;accounts&gt;] tag &lt;tag&gt;
+	match &lt;conditions&gt; [&lt;accounts&gt;] tag &lt;tag&gt; [value &lt;value&gt;]
 
-The string &lt;tag&gt; is attached to the mail. A mail may have multiple tags.
+The string &lt;tag&gt; is attached to the mail with the specified value, or no
+value if a value is not provided:
 
-The tag may be tested for using the 'tagged' condition:
+	match all account "my*" tag "myaccts"
+
+	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
+
+The existence of a tag may be tested for using the 'tagged' condition:
 
 	match tagged "mytag" action "a"
 
 	match tagged "ohno" and size &gt;1K action "drop"
+
+Or the tags value matched using the 'string' match type (in a similar way to
+matching bracket expressions):
+
+	match string "%[group]" to "comp.lang.c" action "clc"
+
+	match string "%u" to "bob" action "bob"
 
 <h1>Setting options </h1>
 fdm has a number of options that control its behaviour. These are defined
@@ -946,17 +1025,40 @@ Note that for POP3, purging deleted mail involves connecting and reconnecting
 from the server; some POP3 servers refuse reconnections if too many are made too
 quickly, so this option should be used with care.
 
+- no-received
+
+If this option is present, fdm will not insert a "Received" header into fetched
+mail.
+
+- file-umask [user|&lt;umask&gt;]
+
+This specifies the umask to use when creating files. 'user' means to use the
+umask set when fdm is started, or it may be specified as a three-digit octal
+number. The default is 077.
+
+- file-group [user|&lt;group&gt;]
+
+This option allows the default group ownership of files and directories created
+by fdm to be specified. 'group' may be a group name string or a numeric gid. If
+'user' is used, or if this option is not set in the configuration file, fdm
+does not attempt to set the group of new files and directories.
+
+- timeout &lt;time&gt;
+
+This controls the maximum time to wait for a server to send data before closing
+a connection. The default is 900 seconds.
+
 <h1>Archiving and searching mail </h1>
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir
 into another, for example to archive older mail (with drop) or to search for
 mail matching a particular pattern (with keep). The 'age' condition, and the
-%s and time/date % tokens are particularly useful for archiving. For example,
-to archive all mail older than 30 days by quarter, something like this may
-suffice (obviously, the account restriction can be dropped if being used in
+%[maildir] and time/date tags are particularly useful for archiving. For
+example, to archive all mail older than 30 days by quarter, something like this
+may suffice (obviously, the account restriction can be dropped if being used in
 a single-purpose configuration file):
 
 	account "archive" disabled maildir "source-maildir"
-	action "archive" mbox "%sq%Q"
+	action "archive" mbox "%[maildir]q%Q"
 	match age &gt; 30 days account "archive" action "archive"
 	match all account "archive" action "keep"
 
@@ -1071,8 +1173,8 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      <B>fdm </B>- fetch and deliver mail
 
 <B>SYNOPSIS</B>
-     <B>fdm </B>[<B>-klmnv</B>] [<B>-f </B><I>conffile</I>] [<B>-u </B><I>user</I>] [<B>-a </B><I>account</I>] [<B>-x </B><I>account</I>] [<I>fetch </I>|
-         <I>poll</I>]
+     <B>fdm </B>[<B>-klmnv</B>] [<B>-a </B><I>account</I>] [<B>-D </B><I>name=value</I>] [<B>-f </B><I>conffile</I>] [<B>-u </B><I>user</I>]
+         [<B>-x </B><I>account</I>] [<I>fetch </I>| <I>poll</I>]
 
 <B>DESCRIPTION</B>
      The <B>fdm </B>program fetches mail from a POP3 or IMAP server or from <I>stdin </I>and
@@ -1083,6 +1185,11 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
      <B>-a </B><I>name         </I>Process only the specified account. This option may ap-
                      pear multiple times. The account name may include shell
                      glob characters to match multiple accounts.
+
+     <B>-D </B><I>name=value   </I>This option defines a macro for use when parsing the con-
+                     figuration file.  The macro name must be prefixed with or
+                     to specify a string or numeric macro.  This option may
+                     appear multiple times.
 
      <B>-f </B><I>conffile     </I>Specify the configuration file location. Default is
                      <I>~/fdm.conf</I>, or <I>/etc/fdm.conf </I>if that doesn't exist.
@@ -1128,7 +1235,7 @@ FDM(1)                     OpenBSD Reference Manual                     FDM(1)
 <B>AUTHORS</B>
      Nicholas Marriott &lt;nicm@users.sourceforge.net&gt;
 
-OpenBSD 4.0                     August 14, 2006                              1
+OpenBSD 4.1                     August 14, 2006                              2
 </PRE>
 <hr>
 <PRE>
@@ -1225,6 +1332,26 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              potential number of mails refetched if the connetion drops, but
              note that it can incur a considerable speed penalty.
 
+     <B>no-received</B>
+             If this option is present, fdm(1) will not insert a `Received'
+             header into each mail.
+
+     <B>file-umask user </B>| <I>umask</I>
+             This specifies the umask(2) to use when creating files.  <B>user</B>
+             means to use the umask set when fdm(1) is started, or <I>umask </I>may
+             be specified as a three-digit octal number.  The default is 077.
+
+     <B>file-group user </B>| <I>group</I>
+             This option allows the default group ownership of files and di-
+             rectories created by fdm(1) to be specified.  <I>group </I>may be a
+             group name string or a numeric gid.  If <B>user </B>is used, or this op-
+             tion does not appear in the configuration file, fdm(1) does not
+             attempt to set the group of new files and directories.
+
+     <B>timeout </B><I>time</I>
+             This controls the maximum time to wait for a server to send data
+             before closing a connection.  The default is 900 seconds.
+
 <B>INCLUDING FILES</B>
      Further configuration files may be including using the <B>include </B>command:
 
@@ -1265,7 +1392,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      fied, or fdm(1) fails to find any valid users in the headers, the default
      user (set with <B>set default-user</B>) is used.  Users specified as part of the
      account definition may be overridden by similar arguments to action defi-
-     nitions or on match rules. If fdm(1) is run as non-root, it will still
+     nitions or on match rules.  If fdm(1) is run as non-root, it will still
      execute any actions once for each user, but will be unable to change to
      that user so the action will be executed multiple times as the current
      user.
@@ -1321,6 +1448,60 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
              file.  When fdm(1) is run again, fetching begins at the cached
              article.
 
+<B>TAGGING</B>
+     As mail is processed by fdm(1), it is tagged with a number of name/value
+     pairs.  Some tags are added automatically, and mail may also be tagged
+     explicitly by the user.  Tags may be inserted in most strings in a simi-
+     lar manner to macros, except tags are processed at runtime rather than as
+     the configuration file is parsed.  A tag's value is inserted by wrapping
+     its name in %[], for example:
+
+     abc%[account]def
+
+     %[hour]:%[minute]:%[second]
+
+     The default tags also have a single-letter shorthand.  Tag names are lim-
+     ited to 64 bytes and tag values to the maximum system path length (usual-
+     ly 1024 bytes).  If a tag name or value would exceed this, limit the tag
+     is silently ignored (not added to the mail).  Including a nonexistent tag
+     in a string is equivalent to including a tag with an empty value, so
+     "abc%[nonexistent]def" will be translated to "abcdef".
+
+     The automatically added tags are:
+
+           account (%a)
+                   The name of the account from which the mail was fetched.
+           home (%h)
+                   The delivery user's home directory.
+           uid  (%n)
+                   The delivery user's uid.
+           action (%t)
+                   The name of the action the mail has matched.
+           user (%u)
+                   The delivery user's username.
+           hour (%H)
+                   The current hour (00-23).
+           minute (%M)
+                   The current minute (00-59).
+           second (%S)
+                   The current second (00-59).
+           day  (%d)
+                   The current day of the month (00-31).
+           month (%m)
+                   The current month (01-12).
+           year (%y)
+                   The current year.
+           dayofweek (%W)
+                   The current day of the week (0-6, Sunday is 0).
+           dayofyear (%Y)
+                   The current day of the year (000-365).
+           quarter (%Q)
+                   The current quarter (1-4).
+
+     In addition, the shorthand %% is replaced with a literal %, and %0 to %9
+     are replaced with the result of any bracket expressions in the last reg-
+     exp.
+
 <B>ACTIONS</B>
      The <B>action </B>command is used to define actions.  These may be specified by
      name in rules (see below) to perform some action on a mail.  The syntax
@@ -1329,34 +1510,23 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>action </B><I>name </I>[<I>users</I>] <I>action</I>
 
      The <I>name </I>is a string defining a name for the action.  The <I>users </I>argument
-     has the same form as for an account definition. An action's user setting
+     has the same form as for an account definition.  An action's user setting
      may be overridden in the matching rule.
 
-     The possible values for <I>action </I>are listed below.  In actions for which a
-     <I>command </I>or <I>path </I>is specified, the following substitutions are made before
-     it is used: <I>%a </I>is replaced by the account name, <I>%h </I>by the current user's
-     home directory, <I>%t </I>by the name of the current action, <I>%u </I>by the current
-     user's login name, <I>%n </I>by the UID and <I>%H </I>by the current hour (00-23), <I>%M</I>
-     minute (00-59), <I>%S </I>second (00-59), <I>%d </I>day of the month (00-31), <I>%m </I>month
-     (01-12), <I>%y </I>year, <I>%W </I>day of the week (0-6, Sunday is 0), <I>%Y </I>day of the
-     year (000-365), <I>%Q </I>quarter (1-4) and <I>%% </I>with a literal %.  In addition,
-     <I>%s </I>is replaced by a string specific to the type of account and <I>%0 </I>to <I>%9</I>
-     with the contents of any subexpressions from the regexp executed as part
-     of the last <B>regexp </B>condition.  When fetching from a maildir, this is the
-     basename of the maildir path.  With pop3 or imap, it is the hostname of
-     the server, as specified in the account definition.
+     The possible values for <I>action </I>are listed below.
 
      <B>drop    </B>Discard the mail.
 
      <B>keep    </B>Keep the mail, do not remove it from the account.
 
      <B>maildir </B><I>path</I>
-             Save the mail to the maildir specified by <I>path</I>.
+             Save the mail to the maildir specified by <I>path</I>.  If the maildir
+             does not exist, it is created.
 
      <B>mbox </B><I>path </I>[<B>compress</B>]
              Append the mail to the mbox at <I>path</I>.  If <B>compress </B>is specified,
              fdm(1) will add `.gz' to <I>path </I>and attempt to write mail using
-             gzip(1) compression.
+             gzip(1) compression.  If the mbox does not exist, it is created.
 
      <B>pipe </B><I>command</I>
              Pipe the entire mail to <I>command</I>.
@@ -1384,6 +1554,16 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
                    # this rule will cat the rewritten message
                    match all action "cat"
 
+     <B>remove-header </B><I>name</I>
+             Remove all occurances of header <I>name</I>.
+
+     <B>append-string </B><I>string</I>
+             Append <I>string </I>to the mail.
+
+     <B>stdout </B>[<B>add-from</B>]
+             Write the mail to <I>stdout</I>.  If <B>add-from </B>is specified, an mbox-
+             style "From" line is prepended.
+
 <B>RULES</B>
      Rules are specified using the <B>match </B>keyword.  It has one of the following
      basic forms:
@@ -1391,7 +1571,8 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      <B>match </B><I>condition </I>[<B>and </B>| <B>or </B><I>condition ...</I>] [<I>accounts</I>] [<I>users</I>] <I>actions</I>
              [<B>continue</B>]
 
-     <B>match </B><I>condition </I>[<B>and </B>| <B>or </B><I>condition ...</I>] [<I>accounts</I>] <B>tag </B><I>string</I>
+     <B>match </B><I>condition </I>[<B>and </B>| <B>or </B><I>condition ...</I>] [<I>accounts</I>] <B>tag </B><I>string </I>[<B>value</B>
+             <I>value</I>]
 
      The <I>condition </I>argument may be one of:
 
@@ -1485,11 +1666,11 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
      tion.
 
      The first form of the command specifies a number of actions to take when
-     a mail matches the rule.  The second form tags the mail with <I>string</I>,
-     which may be matched using the <B>tagged </B>condition in later rules.  A mail
-     may be tagged with any number of different strings by different rules.
-     Rules which apply a tag do not count as a match for the purposes of the
-     <B>matched </B>or <B>unmatched </B>conditions.
+     a mail matches the rule.  The second form tags the mail with <I>string</I>, and
+     optionally <I>value</I>, which may be matched using the <B>tagged </B>or <B>string </B>condi-
+     tions in later rules.  A mail may be tagged with any number of different
+     strings by different rules.  Rules which apply a tag do not count as a
+     match for the purposes of the <B>matched </B>or <B>unmatched </B>conditions.
 
      The optional <I>users </I>argument to the first form has the same syntax as for
      an <B>action </B>definition.  A rule's user list overrides any users given as
@@ -1538,7 +1719,7 @@ FDM.CONF(5)               OpenBSD Programmer's Manual              FDM.CONF(5)
 <B>AUTHORS</B>
      Nicholas Marriott &lt;nicm@users.sourceforge.net&gt;
 
-OpenBSD 4.0                     August 21, 2006                              7
+OpenBSD 4.1                     August 21, 2006                              8
 </PRE>
 </body>
 </html>

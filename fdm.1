@@ -22,23 +22,16 @@
 .Nd "fetch and deliver mail"
 .Sh SYNOPSIS
 .Nm fdm
+.Bk -words
 .Op Fl klmnv
-.Bk -words
 .Op Fl a Ar account
-.Ek
-.Bk -words
-.Op Fl D Ar name=value
-.Ek
-.Bk -words
+.Oo Fl D Ar name Ns = 
+.Ar value Oc
 .Op Fl f Ar conffile
-.Ek
-.Bk -words
 .Op Fl u Ar user
-.Ek
-.Bk -words
 .Op Fl x Ar account
-.Ek
 .Op Ar fetch | poll
+.Ek
 .Sh DESCRIPTION
 The
 .Nm
@@ -49,9 +42,11 @@ and delivers it based on a ruleset in the configuration file.
 The options are as follows:
 .Bl -tag -width "-f conffileXXX"
 .It Fl a Ar name
-Process only the specified account. This option may appear multiple times. The account name may include shell glob characters to match multiple accounts.
+Process only the specified account.
+This option may appear multiple times.
+The account name may include shell glob characters to match multiple accounts.
 .Pp
-.It Fl D Ar name=value
+.It Fl D Ar name Ns = Ns Ar value
 This option defines a macro for use when parsing the configuration file.
 The macro name must be prefixed with
 .Qu $
@@ -60,7 +55,8 @@ or
 to specify a string or numeric macro.
 This option may appear multiple times.
 .It Fl f Ar conffile
-Specify the configuration file location. Default is
+Specify the configuration file location.
+Default is
 .Pa ~/fdm.conf ,
 or
 .Pa /etc/fdm.conf
@@ -69,7 +65,8 @@ if that doesn't exist.
 .It Fl k
 Keep all mail after delivery, regardless of whether it matches a
 .Ic drop
-action. Note that mails kept in this way will be refetched by
+action.
+Note that mails kept in this way will be refetched by
 .Nm
 if it is run again on the same account.
 .It Fl l
@@ -85,26 +82,30 @@ Ignore the lock file and run regardless of other instances of
 Do not process any accounts, just verify the configuration file syntax and exit.
 .Pp
 .It Fl u Ar user
-Specify the default user for delivery. This overrides the
+Specify the default user for delivery.
+This overrides the
 .Ic default-user
 option in the configuration file.
 .Pp
 .It Fl v
-Request verbose logging. This option may be specified multiple times.
+Request verbose logging.
+This option may be specified multiple times.
 .Fl vv
 will print information on configuration (useful with
 .Fl n ) .
 .Fl vvvv
 duplicates all traffic to and from remote servers to
-.Em stdout ,
-but note that this feature is disabled when using the
+.Em stdout .
+This feature is disabled when using the
 .Fl l
 flag.
 .Pp
 .It Fl x Ar name
-Exclude the named account. Multiple
+Exclude the named account.
+Multiple
 .Fl x
-options may be specified. As with
+options may be specified.
+As with
 .Fl a ,
 shell glob characters may be used.
 .Pp
@@ -113,9 +114,11 @@ The
 .Ar fetch
 command instructs
 .Nm
-to fetch and deliver messages. The
+to fetch and deliver messages.
+The
 .Ar poll
-command polls the accounts in the configuration file and reports a message count for each.
+command polls the accounts in the configuration file and reports a message
+count for each.
 .Pp
 .El
 .Sh FILES

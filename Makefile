@@ -4,7 +4,7 @@
 .PHONY: clean update-index.html upload-index.html lint regress yannotate
 
 PROG= fdm
-VERSION= 1.0
+VERSION= 1.1
 
 OS!= uname
 REL!= uname -r
