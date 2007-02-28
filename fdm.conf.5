@@ -57,7 +57,8 @@ It may be followed by the following options, one per command:
 .Bl -tag -width Ds
 .It Ic maximum-size Ar size
 This is used to set the maximum size of a mail.
-Mails larger than this limit are dropped and, if applicable, not deleted from the server.
+Mails larger than this limit are dropped and, if applicable, not deleted from
+the server.
 .Pp
 The size may be specified as a plain number in bytes or with a suffix of
 .Ql K
@@ -79,7 +80,8 @@ to abort.
 .It Ic allow-multiple
 If this option is specified,
 .Xr fdm 1
-does not attempt to create a lock file and allows multiple instances to run simultaneously.
+does not attempt to create a lock file and allows multiple instances to run
+simultaneously.
 .It Ic lock-file Ar path
 This sets an alternative lock file.
 The default is
@@ -90,7 +92,8 @@ for root.
 .It Ic default-user Ar user
 This sets the default user to change to before delivering mail, if
 .Xr fdm 1
-is running as root and no alternative user is specified as part of the action or rule.
+is running as root and no alternative user is specified as part of the action
+or rule.
 This option may be overridden with the
 .Fl u
 switch on the command line.
@@ -138,14 +141,16 @@ No authentication is supported for HTTP.
 .It Ic unmatched-mail Ar drop | Ar keep
 This option controls what
 .Xr fdm 1
-does with mail that reaches the end of the ruleset (mail that matches no rules or matches only rules with the
+does with mail that reaches the end of the ruleset (mail that matches no rules
+or matches only rules with the
 .Ic continue
 keyword).
 .Ar drop
 will cause such mail to be discarded, and
 .Ar keep
 will attempt to leave the mail on the server.
-The default is to keep the mail and log a warning that it reached the end of the ruleset.
+The default is to keep the mail and log a warning that it reached the end of
+the ruleset.
 .It Ic purge-after Ar count
 The
 .Ic purge-after
@@ -154,7 +159,9 @@ option makes
 attempt to purge deleted mail from the server (if supported) after
 .Ar count
 mails have been retrieved.
-This is useful on unreliable connections to limit the potential number of mails refetched if the connetion drops, but note that it can incur a considerable speed penalty.
+This is useful on unreliable connections to limit the potential number of mails
+refetched if the connetion drops, but note that it can incur a considerable
+speed penalty.
 .It Ic no-received
 If this option is present,
 .Xr fdm 1
@@ -173,7 +180,8 @@ is started, or
 may be specified as a three-digit octal number.
 The default is 077.
 .It Ic file-group Ic user | Ar group
-This option allows the default group ownership of files and directories created by
+This option allows the default group ownership of files and directories created
+by
 .Xr fdm 1
 to be specified. 
 .Ar group
@@ -196,7 +204,8 @@ command:
 .It Ic include Ar path
 .El
 .Pp
-The file to include is searched for first as an absolute path and then relative to the directory containing the main configuration file.
+The file to include is searched for first as an absolute path and then relative
+to the directory containing the main configuration file.
 .Sh MACROS
 Macros may be defined using the following syntax:
 .Bl -tag -width Ds
@@ -204,9 +213,11 @@ Macros may be defined using the following syntax:
 .It Ar %name Ic = Ar number
 .El
 .Pp
-Macros are prefixed with $ to indicate a string value and % to indicate a numeric value.
+Macros are prefixed with $ to indicate a string value and % to indicate a
+numeric value.
 Once defined, a macro may be used in any place a string or number is expected.
-Macros may be embedded in strings by surrounding their name (after the $ or %) with {}s, like so:
+Macros may be embedded in strings by surrounding their name (after the $ or %)
+with {}s, like so:
 .Bd -ragged -offset indent
 "abc ${mymacro} %{anothermacro} def"
 .Ed
@@ -241,7 +252,8 @@ argument has the following form:
 .Xc
 .El
 .Pp
-The first two options specify a user or list of users as which the mail should be delivered when an action is executed.
+The first two options specify a user or list of users as which the mail should
+be delivered when an action is executed.
 If
 .Ic user Ic from-headers
 is specified,
@@ -256,10 +268,13 @@ If no headers are specified, or
 fails to find any valid users in the headers, the default user (set with
 .Ic set Ic default-user )
 is used.
-Users specified as part of the account definition may be overridden by similar arguments to action definitions or on match rules.
+Users specified as part of the account definition may be overridden by similar
+arguments to action definitions or on match rules.
 If
 .Xr fdm 1
-is run as non-root, it will still execute any actions once for each user, but will be unable to change to that user so the action will be executed multiple times as the current user.
+is run as non-root, it will still execute any actions once for each user, but
+will be unable to change to that user so the action will be executed multiple
+times as the current user.
 .Pp
 The
 .Ic disabled
@@ -270,7 +285,8 @@ to ignore this account unless it is explicitly enabled with a
 option on the command line.
 If the
 .Ic keep
-keyword is specified, all mail collected from this account is kept (not deleted) even if it matches a
+keyword is specified, all mail collected from this account is kept (not
+deleted) even if it matches a
 .Ic drop
 action.
 .Pp
@@ -318,7 +334,8 @@ If it is omitted, the default port (110 for POP3, 995 for POP3S) is used.
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3 account, aside from the additional
 .Ic folder
-option which allows the folder name to be specified (the default is to fetch from the inbox).
+option which allows the folder name to be specified (the default is to fetch
+from the inbox).
 The default ports used are 143 for IMAP and 993 for IMAPS.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ic user Ar user Ic pass Ar pass
@@ -373,9 +390,10 @@ is run again, fetching begins at the cached article.
 As mail is processed by 
 .Xr fdm 1 ,
 it is tagged with a number of name/value pairs.
-Some tags are added automatically, and mail may also be tagged explicitly by the user.
-Tags may be inserted in most strings in a similar manner to macros, except tags are
-processed at runtime rather than as the configuration file is parsed.
+Some tags are added automatically, and mail may also be tagged explicitly by
+the user.
+Tags may be inserted in most strings in a similar manner to macros, except tags
+are processed at runtime rather than as the configuration file is parsed.
 A tag's value is inserted by wrapping its name in %[], for example:
 .Bl -tag -width Ds
 .It "abc%[account]def"
@@ -429,7 +447,8 @@ replaced with the result of any bracket expressions in the last regexp.
 The
 .Ic action
 command is used to define actions.
-These may be specified by name in rules (see below) to perform some action on a mail.
+These may be specified by name in rules (see below) to perform some action on a
+mail.
 The syntax is:
 .Bl -tag -width Ds
 .It Xo Ic action Ar name Op Ar users
@@ -645,7 +664,8 @@ If no
 .Ic regexp
 condition has yet been seen, or the mail contents has been modified by a
 .Ic rewrite
-action since the last one, this condition will log a warning and evaluate to false.
+action since the last one, this condition will log a warning and evaluate to
+false.
 .It Xo Op Ic not
 .Ic age
 .Li <
@@ -725,7 +745,8 @@ and match if any of them are smaller or larger.
 .Ic attachment Ic any-name
 .Ar string
 .Xc
-Match true if any of a mail's attachments possesses a MIME type or filename that matches
+Match true if any of a mail's attachments possesses a MIME type or filename
+that matches
 .Ar string .
 .Xr fnmatch 3
 wildcards may be used.
@@ -743,7 +764,8 @@ The
 .Ic not
 keyword may be specified to invert the sense of a condition.
 .Pp
-The first form of the command specifies a number of actions to take when a mail matches the rule.
+The first form of the command specifies a number of actions to take when a mail
+matches the rule.
 The second form tags the mail with
 .Ar string ,
 and optionally
@@ -790,14 +812,14 @@ The
 list is used to limit rules to matching mail within a set of accounts, and the
 .Ar actions
 list specifies the actions to perform when the rule matches a mail.
-The account names may include shell glob wildcards to match multiple accounts, as with
-the
+The account names may include shell glob wildcards to match multiple accounts,
+as with the
 .Fl a
 and
 .Fl x
 command line options.
-The actions are performed from left to right in the order they are specified in the
-rule definition.
+The actions are performed from left to right in the order they are specified in
+the rule definition.
 .Pp
 If the
 .Ic continue
