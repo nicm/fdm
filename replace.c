@@ -86,7 +86,7 @@ static const char *aliases[] = {
 };
 
 void printflike3
-add_tag(struct cache **tags, const char *key, const char *fmt, ...)
+add_tag(struct strb **tags, const char *key, const char *fmt, ...)
 {
 	va_list		 ap;
 	char		*value;
@@ -95,42 +95,42 @@ add_tag(struct cache **tags, const char *key, const char *fmt, ...)
 	xvasprintf(&value, fmt, ap);
 	va_end(ap);
 
-	cache_add(tags, key, value, strlen(value) + 1);
+	strb_add(tags, key, value);
 
 	xfree(value);
 }
 
 const char *
-find_tag(struct cache *tags, const char *key)
+find_tag(struct strb *tags, const char *key)
 {
-	struct cacheent	*ce;
+	struct strbent	*sbe;
 
-	ce = cache_find(tags, key);
-	if (ce == NULL)
+	sbe = strb_find(tags, key);
+	if (sbe == NULL)
 		return (NULL);
 
-	return (CACHE_VALUE(tags, ce));
+	return (STRB_VALUE(tags, sbe));
 }
 
 const char *
-match_tag(struct cache *tags, const char *pattern)
+match_tag(struct strb *tags, const char *pattern)
 {
-	struct cacheent	*ce;
+	struct strbent	*sbe;
 
-	ce = cache_match(tags, pattern);
-	if (ce == NULL)
+	sbe = strb_match(tags, pattern);
+	if (sbe == NULL)
 		return (NULL);
 
-	return (CACHE_VALUE(tags, ce));
+	return (STRB_VALUE(tags, sbe));
 }
 
 void
-default_tags(struct cache **tags, char *src, struct account *a)
+default_tags(struct strb **tags, char *src, struct account *a)
 {
 	struct tm	*tm;
 	time_t		 t;
 
-	cache_clear(tags);
+	strb_clear(tags);
 	add_tag(tags, "home", "%s", conf.info.home);
 	add_tag(tags, "uid", "%s", conf.info.uid);
 	add_tag(tags, "user", "%s", conf.info.user);
@@ -155,7 +155,7 @@ default_tags(struct cache **tags, char *src, struct account *a)
 }
 
 void
-update_tags(struct cache **tags)
+update_tags(struct strb **tags)
 {
 	add_tag(tags, "home", "%s", conf.info.home);
 	add_tag(tags, "uid", "%s", conf.info.uid);
@@ -163,7 +163,7 @@ update_tags(struct cache **tags)
 }
 
 char *
-replace(char *src, struct cache *tags, struct mail *m, int pm_valid,
+replace(char *src, struct strb *tags, struct mail *m, int pm_valid,
     regmatch_t pm[NPMATCH])
 {
 	char		*ptr, *tend;

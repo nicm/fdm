@@ -103,17 +103,6 @@ do_child(int fd, enum fdmop op, struct account *a)
 	io = io_create(fd, NULL, IO_LF, INFTIM);
 	log_debug("%s: started, pid %ld", a->name, (long) getpid());
 
-	if (a->fetch->init != NULL) {
-		log_debug("%s: initialising", a->name);
-		if (a->fetch->init(a) != 0) {
-			log_debug("%s: initialisation error. aborting",
-			    a->name);
-			res = 1;
-			goto out;
-		}
-		log_debug("%s: finished initialising", a->name);
-	}
-
 	if (geteuid() != 0) {
 		log_debug("%s: not root user. not dropping privileges",
 		    a->name);
@@ -126,6 +115,17 @@ do_child(int fd, enum fdmop op, struct account *a)
 #ifndef NO_SETPROCTITLE
 	setproctitle("child: %s", a->name);
 #endif
+
+	if (a->fetch->init != NULL) {
+		log_debug("%s: initialising", a->name);
+		if (a->fetch->init(a) != 0) {
+			log_debug("%s: initialisation error. aborting",
+			    a->name);
+			res = 1;
+			goto out;
+		}
+		log_debug("%s: finished initialising", a->name);
+	}
 
 	switch (op) {
 	case FDMOP_POLL:
@@ -664,8 +664,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
 		mail_send(m, &msg);
 
-		if (privsep_send(mctx->io, &msg, m->tags, 
-		    CACHE_SIZE(m->tags)) != 0) 
+		if (privsep_send(mctx->io, &msg, m->tags,
+		    STRB_SIZE(m->tags)) != 0) 
 			fatalx("child: privsep_send error");
 
 		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)

@@ -279,43 +279,37 @@ enum decision {
 	DECISION_KEEP
 };
 
-/* Cache entry. */
-struct cacheent {
-	int	used;
-
+/* String block entry. */
+struct strbent {
 	size_t	key;
-
 	size_t	value;
-	size_t	length;
 };
 
-/* Cache header. */
-struct cache {
-	int		 sorted;
-	u_int		 entries;
+/* String block header. */
+struct strb {
+	u_int		 ent_used;
+	u_int		 ent_max;
 
 	size_t		 str_used;
 	size_t	 	 str_size;
 };
 
-/* Initial cache slots and buffer size. */
-#define CACHEENTRIES 64
-#define CACHEBUFFER 512
+/* Initial string block slots and block size. */
+#define STRBENTRIES 64
+#define STRBBLOCK 512
 
-/* Cache access macros. */
-#define CACHE_KEY(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->key)
-#define CACHE_VALUE(cc, ce) ((void *) \
-	(((char *) (cc)) + (sizeof *(cc)) + ce->value))
-#define CACHE_LENGTH(cc, ce) (ce->length)
+/* String block acsess macros. */
+#define STRB_KEY(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + sbe->key)
+#define STRB_VALUE(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + sbe->value)
 
-#define CACHE_ENTRY(cc, n) ((struct cacheent *) (((char *) (cc)) + \
-	(sizeof *(cc)) + (cc)->str_size + ((n) * (sizeof (struct cacheent)))))
-#define CACHE_ENTRYSIZE(cc) ((cc)->entries * (sizeof (struct cacheent)))
-#define CACHE_SIZE(cc) ((sizeof *(cc)) + (cc)->str_size + CACHE_ENTRYSIZE((cc)))
+#define STRB_ENTRY(sb, n) ((struct strbent *) (((char *) (sb)) + \
+	(sizeof *(sb)) + (sb)->str_size + ((n) * (sizeof (struct strbent)))))
+#define STRB_ENTSIZE(sb) ((sb)->ent_max * (sizeof (struct strbent)))
+#define STRB_SIZE(sb) ((sizeof *(sb)) + (sb)->str_size + STRB_ENTSIZE((sb)))
 
 /* A single mail. */
 struct mail {
-	struct cache		*tags;
+	struct strb		*tags;
 
 	struct shm		 shm;
 
@@ -868,6 +862,10 @@ struct imap_data {
 	char		*pass;
 	char		*folder;
 
+	char		*path;
+	long long	 delete;
+	long long	 expire;
+
 	int		 tag;
 	u_int		 cur;
 	u_int		 num;
@@ -1137,29 +1135,24 @@ void			 cleanup_purge(void);
 void			 cleanup_register(char *);
 void			 cleanup_deregister(char *);
 
-/* cache.c */
-int			 cache_save(struct cache **, const char *);
-int			 cache_load(struct cache **, const char *, int *);
-void		 	 cache_create(struct cache **);
-void			 cache_clear(struct cache **);
-void			 cache_destroy(struct cache **);
-void			 cache_dump(struct cache *, const char *,
+/* strb.c */
+void		 	 strb_create(struct strb **);
+void			 strb_clear(struct strb **);
+void			 strb_destroy(struct strb **);
+void			 strb_dump(struct strb *, const char *,
     			     void (*)(const char *, ...));
-void			 cache_add(struct cache **, const char *, const void *,
-    			     size_t);
-void			 cache_delete(struct cache **, struct cacheent *);
-struct cacheent 	*cache_find(struct cache *, const char *);
-struct cacheent 	*cache_match(struct cache *, const char *);
+void			 strb_add(struct strb **, const char *, const char *);
+struct strbent 		*strb_find(struct strb *, const char *);
+struct strbent	 	*strb_match(struct strb *, const char *);
 
 /* replace.c */
-void printflike3	 add_tag(struct cache **, const char *, const char *,
+void printflike3	 add_tag(struct strb **, const char *, const char *,
 			     ...);
-const char 		*find_tag(struct cache *, const char *);
-const char		*match_tag(struct cache *, const char *);
-void			 default_tags(struct cache **, char *,
-			     struct account *);
-void			 update_tags(struct cache **);
-char 			*replace(char *, struct cache *, struct mail *, int,
+const char 		*find_tag(struct strb *, const char *);
+const char		*match_tag(struct strb *, const char *);
+void			 default_tags(struct strb **, char *, struct account *);
+void			 update_tags(struct strb **);
+char 			*replace(char *, struct strb *, struct mail *, int,
 			     regmatch_t [NPMATCH]);
 
 /* io.c */

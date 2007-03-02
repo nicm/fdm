@@ -49,7 +49,7 @@ mail_open(struct mail *m, size_t size)
 	m->off = 0;
 	m->data = m->base + m->off;
 
-	cache_create(&m->tags);
+	strb_create(&m->tags);
 	ARRAY_INIT(&m->wrapped);
 	m->attach = NULL;
 }
@@ -91,7 +91,7 @@ mail_free(struct mail *m)
 	if (m->attach != NULL)
 		attach_free(m->attach);
 	if (m->tags != NULL)
-		cache_destroy(&m->tags);
+		strb_destroy(&m->tags);
 	ARRAY_FREE(&m->wrapped);
 }
 

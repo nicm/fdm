@@ -48,7 +48,7 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 
 	mail_send(m, &msg);
 
-	if (privsep_send(io, &msg, m->tags, CACHE_SIZE(m->tags)) != 0)
+	if (privsep_send(io, &msg, m->tags, STRB_SIZE(m->tags)) != 0)
 		fatalx("child: privsep_send error");
 
 	if (privsep_recv(io, &msg, NULL, 0) != 0)
