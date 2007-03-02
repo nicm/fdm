@@ -39,7 +39,6 @@ do_parent(struct child *child)
 	struct match_ctx	 mctx;
 	struct mail		 m;
 	int			 error;
-	u_int			 ntags;
 	uid_t			 uid;
 	void			*buf;
 	size_t			 len;
@@ -54,14 +53,11 @@ do_parent(struct child *child)
 
 	switch (msg.type) {
 	case MSG_ACTION:
-		ntags = ARRAY_LENGTH(&data->mail.tags);
 		mail_receive(&m, &msg);
-		if (buf != NULL) {
-			m.tags.num = ntags;
-			m.tags.list = buf;
-			m.tags.space = len;
-		}
-
+		if (buf == NULL || len == 0)
+			fatalx("parent: bad tags");
+		m.tags = buf;
+		
 		uid = data->uid;
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = data->account;
@@ -82,13 +78,10 @@ do_parent(struct child *child)
 		mail_close(&m);
 		break;
 	case MSG_COMMAND:
-		ntags = ARRAY_LENGTH(&data->mail.tags);
 		mail_receive(&m, &msg);
-		if (buf != NULL) {
-			m.tags.num = ntags;
-			m.tags.list = buf;
-			m.tags.space = len;
-		}
+		if (buf == NULL || len == 0)
+			fatalx("parent: bad tags");
+		m.tags = buf;
 
 		uid = data->uid;
 		memset(&mctx, 0, sizeof mctx);
@@ -315,7 +308,7 @@ parent_command(struct match_ctx *mctx, struct command_data *data, uid_t uid)
 	    conf.info.home);
 
 	/* sort out the command */
-	s = replace(data->cmd, &m->tags, m, mctx->pm_valid, mctx->pm);
+	s = replace(data->cmd, m->tags, m, mctx->pm_valid, mctx->pm);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		child_exit(MATCH_ERROR);

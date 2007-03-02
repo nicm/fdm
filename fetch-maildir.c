@@ -64,8 +64,9 @@ maildir_makepaths(struct account *a)
 	u_int			 i, j;
 	glob_t			 g;
 	struct stat		 sb;
-	struct tags		 tags;
+	struct cache		*tags;
 
+	cache_create(&tags);
 	default_tags(&tags, NULL, a);
 
 	data->paths = xmalloc(sizeof *data->paths);
@@ -73,7 +74,7 @@ maildir_makepaths(struct account *a)
 
 	for (i = 0; i < ARRAY_LENGTH(data->maildirs); i++) {
 		path = ARRAY_ITEM(data->maildirs, i, char *);
-		s = replace(path, &tags, NULL, 0, NULL);
+		s = replace(path, tags, NULL, 0, NULL);
 		if (s == NULL || *s == '\0') {
 			log_warnx("%s: empty path", a->name);
 			goto error;
@@ -114,7 +115,7 @@ maildir_makepaths(struct account *a)
 		xfree(s);
 	}
 
-	ARRAY_FREE(&tags);
+	cache_destroy(&tags);
 	return (0);
 
 error:
@@ -122,7 +123,7 @@ error:
 		xfree(s);
 	maildir_freepaths(a);
 
-	ARRAY_FREE(&tags);
+	cache_destroy(&tags);
 	return (1);
 }
 

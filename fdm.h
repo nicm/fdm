@@ -47,7 +47,6 @@
 #define DEFTIMEOUT	900
 #define LOCKSLEEPTIME	2
 #define MAXNAMESIZE	64
-#define MAXVALUESIZE	MAXPATHLEN
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define DIRMODE		(S_IRWXU|S_IRWXG|S_IRWXO)
@@ -280,18 +279,29 @@ enum decision {
 	DECISION_KEEP
 };
 
-/* A mail tag. */
-struct tag {
-	char	name[MAXNAMESIZE];
-	char	value[MAXVALUESIZE];
+/* Cache entry. */
+struct cacheent {
+	size_t	key;
+	size_t	value;
 };
 
-/* Array of tags. */
-ARRAY_DECL(tags, struct tag);
+/* Cache header. */
+struct cache {
+	u_int	 entries;
+
+	size_t	 str_used;
+	size_t	 str_size;
+};
+
+/* Cache access macros. */
+#define CACHE_KEY(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->key)
+#define CACHE_VALUE(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->value)
+#define CACHE_SIZE(cc) ((sizeof *(cc)) + \
+	(cc)->str_size + ((cc)->entries * (sizeof (struct cacheent))))
 
 /* A single mail. */
 struct mail {
-	struct tags		 tags;
+	struct cache		*tags;
 
 	struct shm		 shm;
 
@@ -425,7 +435,8 @@ struct rule {
 
 	int			 stop;		/* stop matching at this rule */
 
-	struct tag		 tag;
+	char			*key;
+	char			*value;
 
 	struct rules		 rules;
 	struct strings		*actions;
@@ -1112,15 +1123,26 @@ void			 cleanup_purge(void);
 void			 cleanup_register(char *);
 void			 cleanup_deregister(char *);
 
+/* cache.c */
+void		 	 cache_create(struct cache **);
+void			 cache_clear(struct cache **);
+void			 cache_destroy(struct cache **);
+void			 cache_dump(struct cache *, const char *,
+    			     void (*)(const char *, ...));
+void			 cache_add(struct cache **, const char *, const char *);
+struct cacheent 	*cache_find(struct cache *, const char *);
+struct cacheent 	*cache_match(struct cache *, const char *);
+
 /* replace.c */
-void printflike3	 add_tag(struct tags *, const char *, const char *,
+void printflike3	 add_tag(struct cache **, const char *, const char *,
 			     ...);
-struct tag 		*find_tag(struct tags *, const char *);
-struct tag 		*match_tag(struct tags *, const char *);
-void			 default_tags(struct tags *, char *, struct account *);
-void			 update_tags(struct tags *);
-char 			*replace(const char *, struct tags *, struct mail *, 
-    			     int, regmatch_t [NPMATCH]);
+const char 		*find_tag(struct cache *, const char *);
+const char		*match_tag(struct cache *, const char *);
+void			 default_tags(struct cache **, char *,
+			     struct account *);
+void			 update_tags(struct cache **);
+char 			*replace(char *, struct cache *, struct mail *, int,
+			     regmatch_t [NPMATCH]);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *, int);

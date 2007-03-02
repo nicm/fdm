@@ -18,7 +18,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       match-tagged.c match-size.c match-string.c match-matched.c match-age.c \
       match-unmatched.c match-attachment.c child.c parent.c privsep.c attach.c \
       cleanup.c imap-common.c fetch-imappipe.c deliver-remove-header.c \
-      deliver-stdout.c deliver-append-string.c \
+      deliver-stdout.c deliver-append-string.c cache.c \
       parse.y lex.l
 
 LEX= lex
@@ -30,7 +30,7 @@ CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE
 CFLAGS+= -pg -DPROFILE
 .endif
-#CFLAGS+= -g -ggdb -DDEBUG
+CFLAGS+= -g -ggdb -DDEBUG
 #CFLAGS+= -pedantic -std=c99
 #CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-labels
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2

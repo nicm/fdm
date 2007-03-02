@@ -1,6 +1,10 @@
 02 March 2007
 
 * Made add_tag use varargs and added a server_uid tag to POP3/IMAP messages.
+* Added infrastructure to maintain a cache of variable-length strings within a
+  single contiguous block of data (cache.c), so it can be passed easily up
+  to the parent process. Use this for storing mail tags to get rid of the
+  arbitrary tag length limits.
 
 28 February 2007
 

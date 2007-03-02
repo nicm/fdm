@@ -239,7 +239,6 @@ fetch_account(struct io *io, struct account *a, double tim)
         for (;;) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
-		ARRAY_INIT(&m.tags);
 
 		memset(&mctx, 0, sizeof mctx);
 		mctx.io = io;
@@ -416,7 +415,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 	struct strings		*aa;
 	u_int		 	 i;
 	int		 	 error;
-	char			*name, *tname, *tvalue;
+	char			*name, *tkey, *tvalue;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
 
@@ -466,20 +465,20 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		}
 
 		/* tag mail if needed */
-		if (*r->tag.name != '\0') {
-			tname = replace(r->tag.name, &m->tags, m,
-			    mctx->pm_valid, mctx->pm);
-			tvalue = replace(r->tag.value, &m->tags, m,
-			    mctx->pm_valid, mctx->pm);
+		if (r->key != NULL) {
+			tkey = replace(r->key, m->tags, m, mctx->pm_valid,
+			    mctx->pm);
+			tvalue = replace(r->value, m->tags, m, mctx->pm_valid,
+			    mctx->pm);
 
-			if (tname != NULL && *tname != '\0' && tvalue != NULL) {
+			if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
 				log_debug2("%s: tagging message: %s (%s)", 
-				    a->name, tname, tvalue);
-				add_tag(&m->tags, tname, "%s", tvalue);
+				    a->name, tkey, tvalue);
+				add_tag(&m->tags, tkey, "%s", tvalue);
 			}
 
-			if (tname != NULL)
-				xfree(tname);
+			if (tkey != NULL)
+				xfree(tkey);
 			if (tvalue != NULL)
 				xfree(tvalue);
 		}
@@ -566,7 +565,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		name = ARRAY_ITEM(r->actions, i, char *);
 
-		s = replace(name, &m->tags, m, mctx->pm_valid, mctx->pm);
+		s = replace(name, m->tags, m, mctx->pm_valid, mctx->pm);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = match_actions(s);
@@ -665,8 +664,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
 		mail_send(m, &msg);
 
-		if (privsep_send(mctx->io, &msg, m->tags.list,
-		    m->tags.space) != 0)
+		if (privsep_send(mctx->io, &msg, m->tags, 
+		    CACHE_SIZE(m->tags)) != 0) 
 			fatalx("child: privsep_send error");
 
 		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)

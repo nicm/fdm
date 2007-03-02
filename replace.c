@@ -86,71 +86,51 @@ static const char *aliases[] = {
 };
 
 void printflike3
-add_tag(struct tags *tags, const char *name, const char *fmt, ...)
+add_tag(struct cache **tags, const char *key, const char *fmt, ...)
 {
-	struct tag	*tag;
 	va_list		 ap;
-	int		 len;
-
-	if ((tag = find_tag(tags, name)) == NULL) {
-		ARRAY_EXPAND(tags, 1, struct tag);
-		tag = &ARRAY_LAST(tags, struct tag);
-	}
-
-	if (strlcpy(tag->name, name, sizeof tag->name) >= sizeof tag->name)
-		goto error;
+	char		*value;
 
 	va_start(ap, fmt);
-	len = xvsnprintf(tag->value, sizeof tag->value, fmt, ap);
+	xvasprintf(&value, fmt, ap);
 	va_end(ap);
-	if ((size_t) len >= sizeof tag->value)
-		goto error;
 
-	return;
+	cache_add(tags, key, value);
 
-error:
-	/* XXX this sucks */
-	ARRAY_TRUNC(tags, 1, struct tag);
+	xfree(value);
 }
 
-struct tag *
-find_tag(struct tags *tags, const char *name)
+const char *
+find_tag(struct cache *tags, const char *key)
 {
-	struct tag	*tag;
-	u_int		 i;
+	struct cacheent	*ce;
 
-	for (i = 0; i < ARRAY_LENGTH(tags); i++) {
-		tag = &ARRAY_ITEM(tags, i, struct tag);
-		if (strcmp(name, tag->name) == 0)
-			return (tag);
-	}
+	ce = cache_find(tags, key);
+	if (ce == NULL)
+		return (NULL);
 
-	return (NULL);
+	return (CACHE_VALUE(tags, ce));
 }
 
-struct tag *
-match_tag(struct tags *tags, const char *name)
+const char *
+match_tag(struct cache *tags, const char *pattern)
 {
-	struct tag	*tag;
-	u_int		 i;
+	struct cacheent	*ce;
 
-	for (i = 0; i < ARRAY_LENGTH(tags); i++) {
-		tag = &ARRAY_ITEM(tags, i, struct tag);
-		if (fnmatch(name, tag->name, 0) == 0)
-			return (tag);
-	}
+	ce = cache_match(tags, pattern);
+	if (ce == NULL)
+		return (NULL);
 
-	return (NULL);
+	return (CACHE_VALUE(tags, ce));
 }
 
 void
-default_tags(struct tags *tags, char *src, struct account *a)
+default_tags(struct cache **tags, char *src, struct account *a)
 {
 	struct tm	*tm;
 	time_t		 t;
 
-	ARRAY_INIT(tags);
-
+	cache_clear(tags);
 	add_tag(tags, "home", "%s", conf.info.home);
 	add_tag(tags, "uid", "%s", conf.info.uid);
 	add_tag(tags, "user", "%s", conf.info.user);
@@ -175,7 +155,7 @@ default_tags(struct tags *tags, char *src, struct account *a)
 }
 
 void
-update_tags(struct tags *tags)
+update_tags(struct cache **tags)
 {
 	add_tag(tags, "home", "%s", conf.info.home);
 	add_tag(tags, "uid", "%s", conf.info.uid);
@@ -183,17 +163,19 @@ update_tags(struct tags *tags)
 }
 
 char *
-replace(const char *src, struct tags *tags, struct mail *m, int pm_valid,
+replace(char *src, struct cache *tags, struct mail *m, int pm_valid,
     regmatch_t pm[NPMATCH])
 {
-	struct tag	*tag;
-	const char	*ptr, *tptr, *tend, *alias;
-	char		*dst, name[MAXNAMESIZE], ch;
+	char		*ptr, *tend;
+	const char	*tptr, *alias;
+	char		*dst, ch;
 	size_t	 	 off, len, tlen;
 	u_int		 idx;
 
-	if (src == NULL || *src == '\0')
+	if (src == NULL)
 		return (NULL);
+	if (*src == '\0')
+		return (xstrdup(""));
 
 	off = 0;
 	len = BUFSIZ;
@@ -226,19 +208,15 @@ replace(const char *src, struct tags *tags, struct mail *m, int pm_valid,
 				continue;
 			}
 			ptr++;
-			if (tend - ptr >= MAXNAMESIZE) {
+			*tend = '\0';
+			if ((tptr = find_tag(tags, ptr)) == NULL) {
+				*tend = ']';
 				ptr = tend;
 				continue;
 			}
-			strlcpy(name, ptr, (tend - ptr) + 1);
-			if ((tag = find_tag(tags, name)) == NULL) {
-				ptr = tend;
-				continue;
-			}
-
-			tptr = tag->value;
 			tlen = strlen(tptr);
 
+			*tend = ']';
 			ptr = tend;
 			break;
 		default:
@@ -259,9 +237,8 @@ replace(const char *src, struct tags *tags, struct mail *m, int pm_valid,
 			if (alias == NULL)
 				continue;
 
-			if ((tag = find_tag(tags, alias)) == NULL)
+			if ((tptr = find_tag(tags, alias)) == NULL)
 				continue;
-			tptr = tag->value;
 			tlen = strlen(tptr);
 			break;
 		}

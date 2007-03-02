@@ -49,7 +49,7 @@ mail_open(struct mail *m, size_t size)
 	m->off = 0;
 	m->data = m->base + m->off;
 
-	ARRAY_INIT(&m->tags);
+	cache_create(&m->tags);
 	ARRAY_INIT(&m->wrapped);
 	m->attach = NULL;
 }
@@ -69,8 +69,8 @@ mail_receive(struct mail *m, struct msg *msg)
 {
 	struct mail	*mm = &msg->data.mail;
 
-	memcpy(&mm->tags, &m->tags, sizeof mm->tags);
-	ARRAY_INIT(&m->tags);
+	mm->tags = m->tags;
+	m->tags = NULL;
 	mm->attach = m->attach;
 	m->attach = NULL;
 
@@ -90,8 +90,8 @@ mail_free(struct mail *m)
 {
 	if (m->attach != NULL)
 		attach_free(m->attach);
-	/* copies of the pointers in rules, so free the array only */
-	ARRAY_FREE(&m->tags);
+	if (m->tags != NULL)
+		cache_destroy(&m->tags);
 	ARRAY_FREE(&m->wrapped);
 }
 
