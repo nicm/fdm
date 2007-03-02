@@ -333,7 +333,7 @@ find_macro(char *name)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled keep poptype imaptype execpipe compress
-%type  <flag> addfrom delete expire
+%type  <flag> addfrom
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <match> match
@@ -2115,9 +2115,6 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->user = $4;
 		   data->pass = $6;
 		   data->folder = $7 == NULL ? xstrdup("INBOX") : $7;
-		   data->path = $8.path;
-		   data->expire = $8.expire;
-		   data->delete = $8.delete;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
