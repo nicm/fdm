@@ -95,7 +95,7 @@ add_tag(struct cache **tags, const char *key, const char *fmt, ...)
 	xvasprintf(&value, fmt, ap);
 	va_end(ap);
 
-	cache_add(tags, key, value);
+	cache_add(tags, key, value, strlen(value) + 1);
 
 	xfree(value);
 }

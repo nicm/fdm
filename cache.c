@@ -17,12 +17,17 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
+#include <fcntl.h>
 #include <fnmatch.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "fdm.h"
+
+/* With gcc 2.95.x, you can't include zlib.h before openssl.h. */
+#include <zlib.h>
 
 struct cache *cache_reference; /* XXX */
 
@@ -60,6 +65,82 @@ cache_searchcmp(const void *ptr1, const void *ptr2)
 
 	key2 = CACHE_KEY(cache_reference, ce);
 	return (strcmp(key1, key2));
+}
+
+int
+cache_save(struct cache **cp, const char *path)
+{
+	struct cache	*c = *cp;
+	u_long		 checksum;
+	int		 fd = -1;
+
+	if ((fd = openlock(path, conf.lock_types, O_WRONLY|O_CREAT, 0)) != 0)
+		goto error;
+
+	checksum = adler32(0, Z_NULL, 0);
+	checksum = adler32((uLong) checksum, (Bytef *) c, (uInt) CACHE_SIZE(c));
+	
+	if (write(fd, &checksum, sizeof checksum) != 0)
+		goto error;
+	if (write(fd, c, CACHE_SIZE(c)) != 0)
+		goto error;
+
+	close(fd);
+	return (0);
+
+error:
+	if (fd != -1)
+		close(fd);
+	return (1);
+}
+
+int
+cache_load(struct cache **cp, const char *path, int *bad)
+{
+	struct cache	*c = NULL;
+	struct stat	sb;
+	u_long		checksum, in;
+	int 		fd = -1;
+	ssize_t		n;
+
+	*bad = 0;
+
+	if (stat(path, &sb) != 0)
+		goto error;
+	if (sb.st_size < sizeof checksum)
+		goto bad;
+
+	if ((fd = openlock(path, conf.lock_types, O_RDONLY, 0)) != 0)
+		goto error;
+
+	if ((n = read(fd, &in, sizeof in)) == -1)
+		goto bad;
+	if (n != sizeof in)
+		goto bad;
+	
+	c = *cp = xmalloc(sb.st_size);
+	if ((n = read(fd, c, sb.st_size)) == -1)
+		goto bad;
+	if (n != 4)
+		goto bad;
+
+	checksum = adler32(0, NULL, 0);
+	checksum = adler32((uLong) checksum, (Bytef *) c, (uInt) CACHE_SIZE(c));
+	if (checksum != in)
+		goto bad;
+	
+	close(fd);
+	return (0);
+
+bad:
+	*bad = 1;
+
+error:
+	if (fd != -1)
+		close(fd);
+	if (c != NULL)
+		xfree(c);
+	return (1);
 }
 
 void
@@ -102,24 +183,24 @@ cache_dump(struct cache *c, const char *prefix, void (*p)(const char *, ...))
 		ce = CACHE_ENTRY(c, i);
 		if (!ce->used)
 			continue;
-		p("%s: %s: %s", prefix, CACHE_KEY(c, ce), CACHE_VALUE(c, ce));
+		p("%s: %s: %.*s", prefix, CACHE_KEY(c, ce), 
+		    ce->length, (char *) CACHE_VALUE(c, ce));
 	}
 }
 
 void
-cache_add(struct cache **cp, const char *key, const char *value)
+cache_add(struct cache **cp, const char *key, const void *val, size_t vallen)
 {
 	struct cache	*c = *cp;
-	size_t		 size, keylen, valuelen;
+	size_t		 size, keylen;
 	u_int		 i, entries;
 	struct cacheent *ce;
 
 	keylen = strlen(key) + 1;
-	valuelen = strlen(value) + 1;
 
 	ce = CACHE_ENTRY(c, 0);
 	size = c->str_size;
-	while (c->str_size - c->str_used < keylen + valuelen) {
+	while (c->str_size - c->str_used < keylen + vallen) {
 		if (CACHE_SIZE(c) > SIZE_MAX / 2)
 			fatalx("cache_add: size too large");
 		c->str_size *= 2;
@@ -155,8 +236,9 @@ cache_add(struct cache **cp, const char *key, const char *value)
 		c->str_used += keylen;
 	}
 	ce->value = c->str_used;
-	memcpy(CACHE_VALUE(c, ce), value, valuelen);
-	c->str_used += valuelen;
+	ce->length = vallen;
+	memcpy(CACHE_VALUE(c, ce), val, vallen);
+	c->str_used += vallen;
 
  	if (!ce->used) {
 		/* if replacing an existing key, there is no need to resort */

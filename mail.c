@@ -170,7 +170,7 @@ printpath(char *buf, size_t len, const char *fmt, ...)
 	return (0);
 }
 int
-openlock(char *path, u_int locks, int flags, mode_t mode)
+openlock(const char *path, u_int locks, int flags, mode_t mode)
 {
 	char		*lock;
 	int	 	 fd, error;
@@ -228,7 +228,7 @@ error:
 }
 
 void
-closelock(int fd, char *path, u_int locks)
+closelock(int fd, const char *path, u_int locks)
 {
 	char	*lock;
 
@@ -243,7 +243,7 @@ closelock(int fd, char *path, u_int locks)
 }
 
 int
-checkperms(char *hdr, char *path, int *exists)
+checkperms(const char *hdr, const char *path, int *exists)
 {
 	struct stat	sb;
 	gid_t		gid;

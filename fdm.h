@@ -284,16 +284,18 @@ struct cacheent {
 	int	used;
 
 	size_t	key;
+
 	size_t	value;
+	size_t	length;
 };
 
 /* Cache header. */
 struct cache {
-	int	 sorted;
-	u_int	 entries;
+	int		 sorted;
+	u_int		 entries;
 
-	size_t	 str_used;
-	size_t	 str_size;
+	size_t		 str_used;
+	size_t	 	 str_size;
 };
 
 /* Initial cache slots and buffer size. */
@@ -302,7 +304,9 @@ struct cache {
 
 /* Cache access macros. */
 #define CACHE_KEY(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->key)
-#define CACHE_VALUE(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->value)
+#define CACHE_VALUE(cc, ce) ((void *) \
+	(((char *) (cc)) + (sizeof *(cc)) + ce->value))
+#define CACHE_LENGTH(cc, ce) (ce->length)
 
 #define CACHE_ENTRY(cc, n) ((struct cacheent *) (((char *) (cc)) + \
 	(sizeof *(cc)) + (cc)->str_size + ((n) * (sizeof (struct cacheent)))))
@@ -1109,9 +1113,9 @@ void			 mail_destroy(struct mail *);
 void			 resize_mail(struct mail *, size_t);
 char 			*rfc822_time(time_t, char *, size_t);
 int 			 printpath(char *, size_t, const char *, ...);
-int			 openlock(char *, u_int, int, mode_t);
-void			 closelock(int, char *, u_int);
-int			 checkperms(char *, char *, int *);
+int			 openlock(const char *, u_int, int, mode_t);
+void			 closelock(int, const char *, u_int);
+int			 checkperms(const char *, const char *, int *);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
 int			 insert_header(struct mail *, const char *,
@@ -1134,12 +1138,15 @@ void			 cleanup_register(char *);
 void			 cleanup_deregister(char *);
 
 /* cache.c */
+int			 cache_save(struct cache **, const char *);
+int			 cache_load(struct cache **, const char *, int *);
 void		 	 cache_create(struct cache **);
 void			 cache_clear(struct cache **);
 void			 cache_destroy(struct cache **);
 void			 cache_dump(struct cache *, const char *,
     			     void (*)(const char *, ...));
-void			 cache_add(struct cache **, const char *, const char *);
+void			 cache_add(struct cache **, const char *, const void *,
+    			     size_t);
 void			 cache_delete(struct cache **, struct cacheent *);
 struct cacheent 	*cache_find(struct cache *, const char *);
 struct cacheent 	*cache_match(struct cache *, const char *);
