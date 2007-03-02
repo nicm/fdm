@@ -574,9 +574,9 @@ restart:
 
 	mail_open(m, IO_BLOCKSIZE);
 	default_tags(&m->tags, CURRENT_GROUP(data)->name, a);
-	add_tag(&m->tags, "group", CURRENT_GROUP(data)->name);
-	add_tag(&m->tags, "server", data->server.host);
-	add_tag(&m->tags, "port", data->server.port);
+	add_tag(&m->tags, "group", "%s", CURRENT_GROUP(data)->name);
+	add_tag(&m->tags, "server", "%s", data->server.host);
+	add_tag(&m->tags, "port", "%s", data->server.port);
 
 	flushing = 0;
 	off = lines = 0;

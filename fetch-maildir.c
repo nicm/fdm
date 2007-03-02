@@ -260,7 +260,7 @@ restart:
 
 	mail_open(m, IO_ROUND(sb.st_size));
 	default_tags(&m->tags, basename(dirname(data->path)), a);
-	add_tag(&m->tags, "maildir", basename(dirname(data->path)));
+	add_tag(&m->tags, "maildir", "%s", basename(dirname(data->path)));
 
 	log_debug2("%s: reading %ju bytes", a->name, (uintmax_t) sb.st_size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {

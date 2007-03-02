@@ -292,8 +292,9 @@ restart:
 
 	mail_open(m, IO_ROUND(size));
 	default_tags(&m->tags, data->server.host, a);
-	add_tag(&m->tags, "server", data->server.host);
-	add_tag(&m->tags, "port", data->server.port);
+	add_tag(&m->tags, "server", "%s", data->server.host);
+	add_tag(&m->tags, "port", "%s", data->server.port);
+	add_tag(&m->tags, "server_uid", "%s", data->uid);
 
 	flushing = 0;
 	off = lines = 0;

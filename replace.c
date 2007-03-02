@@ -19,6 +19,7 @@
 #include <sys/types.h>
 
 #include <fnmatch.h>
+#include <stdarg.h>
 #include <string.h>
 #include <time.h>
 
@@ -84,20 +85,27 @@ static const char *aliases[] = {
 	NULL, 		/* Z */
 };
 
-void
-add_tag(struct tags *tags, const char *name, const char *value)
+void printflike3
+add_tag(struct tags *tags, const char *name, const char *fmt, ...)
 {
 	struct tag	*tag;
+	va_list		 ap;
+	int		 len;
 
 	if ((tag = find_tag(tags, name)) == NULL) {
 		ARRAY_EXPAND(tags, 1, struct tag);
 		tag = &ARRAY_LAST(tags, struct tag);
 	}
 
-	if (strlcpy(tag->value, value, sizeof tag->value) >= sizeof tag->value)
-		goto error;
 	if (strlcpy(tag->name, name, sizeof tag->name) >= sizeof tag->name)
 		goto error;
+
+	va_start(ap, fmt);
+	len = xvsnprintf(tag->value, sizeof tag->value, fmt, ap);
+	va_end(ap);
+	if ((size_t) len >= sizeof tag->value)
+		goto error;
+
 	return;
 
 error:
@@ -138,50 +146,40 @@ match_tag(struct tags *tags, const char *name)
 void
 default_tags(struct tags *tags, char *src, struct account *a)
 {
-	char		 tmp[16];
 	struct tm	*tm;
 	time_t		 t;
 
 	ARRAY_INIT(tags);
 
-	add_tag(tags, "home", conf.info.home);
-	add_tag(tags, "uid", conf.info.uid);
-	add_tag(tags, "user", conf.info.user);
+	add_tag(tags, "home", "%s", conf.info.home);
+	add_tag(tags, "uid", "%s", conf.info.uid);
+	add_tag(tags, "user", "%s", conf.info.user);
 
 	if (src != NULL)
-		add_tag(tags, "source", src);
+		add_tag(tags, "source", "%s", src);
 	if (a != NULL)
-		add_tag(tags, "account", a->name);
+		add_tag(tags, "account", "%s", a->name);
 
 	t = time(NULL);
 	if ((tm = localtime(&t)) != NULL) {
-		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_hour);
-		add_tag(tags, "hour", tmp);
-		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_min);
-		add_tag(tags, "minute", tmp);
-		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_sec);
-		add_tag(tags, "second", tmp);
-		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_mday);
-		add_tag(tags, "day", tmp);
-		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_mon);
-		add_tag(tags, "month", tmp);
-		xsnprintf(tmp, sizeof tmp, "%.4d", 1900 + tm->tm_year);
-		add_tag(tags, "year", tmp);
-		xsnprintf(tmp, sizeof tmp, "%d", tm->tm_wday);
-		add_tag(tags, "dayofweek", tmp);
-		xsnprintf(tmp, sizeof tmp, "%.2d", tm->tm_yday);
-		add_tag(tags, "dayofyear", tmp);
-		xsnprintf(tmp, sizeof tmp, "%d", (tm->tm_mon - 1) / 3 + 1);
-		add_tag(tags, "quarter", tmp);
+		add_tag(tags, "hour", "%.2d", tm->tm_hour);
+		add_tag(tags, "minute", "%.2d", tm->tm_min);
+		add_tag(tags, "second", "%.2d", tm->tm_sec);
+		add_tag(tags, "day", "%.2d", tm->tm_mday);
+		add_tag(tags, "month", "%.2d", tm->tm_mon);
+		add_tag(tags, "year", "%.4d", 1900 + tm->tm_year);
+		add_tag(tags, "dayofweek", "%d", tm->tm_wday);
+		add_tag(tags, "dayofyear", "%.2d", tm->tm_yday);
+		add_tag(tags, "quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
 	}
 }
 
 void
 update_tags(struct tags *tags)
 {
-	add_tag(tags, "home", conf.info.home);
-	add_tag(tags, "uid", conf.info.uid);
-	add_tag(tags, "user", conf.info.user);
+	add_tag(tags, "home", "%s", conf.info.home);
+	add_tag(tags, "uid", "%s", conf.info.uid);
+	add_tag(tags, "user", "%s", conf.info.user);
 }
 
 char *

@@ -475,7 +475,7 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 			if (tname != NULL && *tname != '\0' && tvalue != NULL) {
 				log_debug2("%s: tagging message: %s (%s)", 
 				    a->name, tname, tvalue);
-				add_tag(&m->tags, tname, tvalue);
+				add_tag(&m->tags, tname, "%s", tvalue);
 			}
 
 			if (tname != NULL)
@@ -608,7 +608,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
  	if (t->deliver->deliver == NULL)
 		return (0);
-	add_tag(&m->tags, "action", t->name);
+	add_tag(&m->tags, "action", "%s", t->name);
 
 	/* just deliver now for in-child delivery */
 	if (t->deliver->type == DELIVER_INCHILD) {

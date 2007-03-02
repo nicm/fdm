@@ -8,7 +8,8 @@
 	rules
 	% tokens
 	maildir
-- message-id cache, weed out message duplicates
+- message-id cache, to weed out message duplicates and allow keep for offline
+  backups with imap without refetching: to-cache and in-cache actions.
 - balance man pages/manual
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
@@ -23,3 +24,4 @@
 - move pmatch etc into struct mail to avoid pointer nonsense?
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
+- -D should override macros in file

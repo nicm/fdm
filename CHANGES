@@ -1,3 +1,7 @@
+02 March 2007
+
+* Made add_tag use varargs and added a server_uid tag to POP3/IMAP messages.
+
 28 February 2007
 
 * Man page cleanups, from Tamas TEVESZ.
