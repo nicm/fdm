@@ -281,7 +281,7 @@ find_macro(char *name)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT
-%token TOKADDFROM TOKAPPENDSTRING TOKDELETEAFTER TOKEXPIREAFTER
+%token TOKADDFROM TOKAPPENDSTRING
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -320,11 +320,6 @@ find_macro(char *name)
 		char		*user;
 		char		*pass;
 	} userpass;
-	struct {
-		char		*path;
-		long long	 delete;
-		long long	 expire;
-	} cache;
 }
 
 %token <number> NUMBER
@@ -332,7 +327,6 @@ find_macro(char *name)
 
 %type  <action> action
 %type  <area> area
-%type  <cache> cache
 %type  <cmp> cmp cmp2
 %type  <expr> expr exprlist
 %type  <expritem> expritem
@@ -2039,35 +2033,6 @@ groups: TOKGROUP strv
 		$$ = weed_strings($3);
 	}
 
-delete: /* empty */
-        {
-		$$ = -1;
-	}
-      | TOKDELETEAFTER time
-	{
-		$$ = $2;
-	}
-
-expire: /* empty */
-	{
-		$$ = -1;
-	}
-      | TOKEXPIREAFTER time
-	{
-		$$ = $2;
-	}
-
-cache: /* empty */
-       {
-	       $$.path = NULL;
-       }
-     | TOKCACHE strv expire delete
-       {
-	       $$.path = $2;
-	       $$.expire = $3;
-	       $$.delete = $4;
-       }
-
 /** POPTYPE: <flag> (int) */
 poptype: TOKPOP3
          {
@@ -2131,7 +2096,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
 	   }
-         | imaptype server TOKUSER strv TOKPASS strv folder cache
+         | imaptype server TOKUSER strv TOKPASS strv folder
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$4: strv (char *)] [$6: strv (char *)] [$7: folder (char *)] */
            {
@@ -2161,7 +2126,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
 	   }
-	 | TOKIMAP TOKPIPE strv userpass folder cache
+	 | TOKIMAP TOKPIPE strv userpass folder
 /**        [$3: strv (char *)] */
 /**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
 	   {
@@ -2177,9 +2142,6 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 		   data->user = $4.user;
 		   data->pass = $4.pass;
 		   data->folder = $5 == NULL ? xstrdup("INBOX") : $5;
-		   data->path = $6.path;
-		   data->expire = $6.expire;
-		   data->delete = $6.delete;
 		   strb_create(&tags);
 		   default_tags(&tags, NULL, NULL);
 		   data->pipecmd = replace($5, tags, NULL, 0, NULL);

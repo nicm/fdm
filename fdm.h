@@ -862,10 +862,6 @@ struct imap_data {
 	char		*pass;
 	char		*folder;
 
-	char		*path;
-	long long	 delete;
-	long long	 expire;
-
 	int		 tag;
 	u_int		 cur;
 	u_int		 num;
