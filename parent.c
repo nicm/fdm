@@ -57,7 +57,7 @@ do_parent(struct child *child)
 		if (buf == NULL || len == 0)
 			fatalx("parent: bad tags");
 		m.tags = buf;
-		
+
 		uid = data->uid;
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = data->account;

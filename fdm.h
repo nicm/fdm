@@ -281,6 +281,8 @@ enum decision {
 
 /* Cache entry. */
 struct cacheent {
+	int	used;
+
 	size_t	key;
 	size_t	value;
 };
@@ -293,11 +295,18 @@ struct cache {
 	size_t	 str_size;
 };
 
+/* Initial cache slots and buffer size. */
+#define CACHEENTRIES 64
+#define CACHEBUFFER 512
+
 /* Cache access macros. */
 #define CACHE_KEY(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->key)
 #define CACHE_VALUE(cc, ce) (((char *) (cc)) + (sizeof *(cc)) + ce->value)
-#define CACHE_SIZE(cc) ((sizeof *(cc)) + \
-	(cc)->str_size + ((cc)->entries * (sizeof (struct cacheent))))
+
+#define CACHE_ENTRY(cc, n) ((struct cacheent *) (((char *) (cc)) + \
+	(sizeof *(cc)) + (cc)->str_size + ((n) * (sizeof (struct cacheent)))))
+#define CACHE_ENTRYSIZE(cc) ((cc)->entries * (sizeof (struct cacheent)))
+#define CACHE_SIZE(cc) ((sizeof *(cc)) + (cc)->str_size + CACHE_ENTRYSIZE((cc)))
 
 /* A single mail. */
 struct mail {
@@ -1130,6 +1139,7 @@ void			 cache_destroy(struct cache **);
 void			 cache_dump(struct cache *, const char *,
     			     void (*)(const char *, ...));
 void			 cache_add(struct cache **, const char *, const char *);
+void			 cache_delete(struct cache **, struct cacheent *);
 struct cacheent 	*cache_find(struct cache *, const char *);
 struct cacheent 	*cache_match(struct cache *, const char *);
 
