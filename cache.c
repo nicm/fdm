@@ -19,7 +19,6 @@
 #include <sys/types.h>
 
 #include <fnmatch.h>
-#include <search.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -29,7 +28,6 @@ struct cache *cache_reference; /* XXX */
 
 int	cache_sortcmp(const void *, const void *);
 int	cache_searchcmp(const void *, const void *);
-int	cache_matchcmp(const void *, const void *);
 
 int
 cache_sortcmp(const void *ptr1, const void *ptr2)
@@ -64,20 +62,6 @@ cache_searchcmp(const void *ptr1, const void *ptr2)
 	return (strcmp(key1, key2));
 }
 
-int
-cache_matchcmp(const void *ptr1, const void *ptr2)
-{
-	const struct cacheent	*ce = ptr2;
-	const char		*pattern = ptr1;
-	const char		*key;
-
-	if (!ce->used)
-		return (-1);
-
-	key = CACHE_KEY(cache_reference, ce);
-	return (fnmatch(pattern, key, 0) == FNM_NOMATCH);
-}
-   
 void
 cache_create(struct cache **cp)
 {
@@ -118,8 +102,7 @@ cache_dump(struct cache *c, const char *prefix, void (*p)(const char *, ...))
 		ce = CACHE_ENTRY(c, i);
 		if (!ce->used)
 			continue;
-		p("%s: %u: %s: %s", 
-		    prefix, i, CACHE_KEY(c, ce), CACHE_VALUE(c, ce));
+		p("%s: %s: %s", prefix, CACHE_KEY(c, ce), CACHE_VALUE(c, ce));
 	}
 }
 
@@ -185,9 +168,7 @@ cache_add(struct cache **cp, const char *key, const char *value)
 void
 cache_delete(struct cache **cp, struct cacheent *ce)
 {
-	struct cache	*c = *cp;
-
-	c->sorted = 0;
+	(*cp)->sorted = 0;
 	ce->used = 0;
 }
 
@@ -209,9 +190,15 @@ struct cacheent *
 cache_match(struct cache *c, const char *pattern)
 {
 	struct cacheent	*ce;
-	size_t		 n = c->entries;
+	u_int		 i;
 
-	cache_reference = c;
-	ce = lfind(pattern, CACHE_ENTRY(c, 0), &n, sizeof *ce, cache_matchcmp);
+	ce = NULL;
+	for (i = 0; i < c->entries; i++) {
+		ce = CACHE_ENTRY(c, i);
+		if (ce->used && fnmatch(pattern, CACHE_KEY(c, ce), 0) == 0)
+			break;
+	}
+	if (i == c->entries)
+		return (NULL);
 	return (ce);
 }
