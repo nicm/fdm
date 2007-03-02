@@ -79,131 +79,139 @@ cache_matchcmp(const void *ptr1, const void *ptr2)
 }
    
 void
-cache_create(struct cache **cc)
+cache_create(struct cache **cp)
 {
-	*cc = xmalloc(sizeof **cc);
-	cache_clear(cc);
+	*cp = xmalloc(sizeof **cp);
+	cache_clear(cp);
 }
 
 void
-cache_clear(struct cache **cc)
+cache_clear(struct cache **cp)
 {
-	(*cc)->entries = CACHEENTRIES;
+	struct cache	*c = *cp;
 
-	(*cc)->str_size = CACHEBUFFER;
-	(*cc)->str_used = 0;
+	c->entries = CACHEENTRIES;
 
-	*cc = xrealloc(*cc, 1, CACHE_SIZE(*cc));
-	memset(CACHE_ENTRY(*cc, 0), 0, CACHE_ENTRYSIZE(*cc));
+	c->str_size = CACHEBUFFER;
+	c->str_used = 0;
+
+	c->sorted = 1;
+
+	*cp = xrealloc(c, 1, CACHE_SIZE(c));
+	memset(CACHE_ENTRY(*cp, 0), 0, CACHE_ENTRYSIZE(*cp));
 }
 
 void
-cache_destroy(struct cache **cc)
+cache_destroy(struct cache **cp)
 {
-	xfree(*cc);
-	*cc = NULL;
+	xfree(*cp);
+	*cp = NULL;
 }
 
 void
-cache_dump(struct cache *cc, const char *prefix, void (*p)(const char *, ...))
+cache_dump(struct cache *c, const char *prefix, void (*p)(const char *, ...))
 {
 	struct cacheent *ce;
 	u_int		 i;
 
-	for (i = 0; i < cc->entries; i++) {
-		ce = CACHE_ENTRY(cc, i);
-		if (!ce->used) {
-			p("%s: %u: unused", prefix, i);
+	for (i = 0; i < c->entries; i++) {
+		ce = CACHE_ENTRY(c, i);
+		if (!ce->used)
 			continue;
-		}
 		p("%s: %u: %s: %s", 
-		    prefix, i, CACHE_KEY(cc, ce), CACHE_VALUE(cc, ce));
+		    prefix, i, CACHE_KEY(c, ce), CACHE_VALUE(c, ce));
 	}
 }
 
 void
-cache_add(struct cache **cc, const char *key, const char *value)
+cache_add(struct cache **cp, const char *key, const char *value)
 {
+	struct cache	*c = *cp;
 	size_t		 size, keylen, valuelen;
-	u_int		 entries;
+	u_int		 i, entries;
 	struct cacheent *ce;
 
 	keylen = strlen(key) + 1;
 	valuelen = strlen(value) + 1;
 
-	ce = CACHE_ENTRY(*cc, 0);
-	size = (*cc)->str_size;
-	while ((*cc)->str_size - (*cc)->str_used < keylen + valuelen) {
-		if (CACHE_SIZE(*cc) > SIZE_MAX / 2)
+	ce = CACHE_ENTRY(c, 0);
+	size = c->str_size;
+	while (c->str_size - c->str_used < keylen + valuelen) {
+		if (CACHE_SIZE(c) > SIZE_MAX / 2)
 			fatalx("cache_add: size too large");
-		(*cc)->str_size *= 2;
+		c->str_size *= 2;
 	}
-	if (size != (*cc)->str_size) {
-		*cc = xrealloc(*cc, 1, CACHE_SIZE(*cc));
-		memmove(CACHE_ENTRY(*cc, 0), ce, CACHE_ENTRYSIZE(*cc));
+	if (size != c->str_size) {
+		c = *cp = xrealloc(c, 1, CACHE_SIZE(c));
+		memmove(CACHE_ENTRY(c, 0), ce, CACHE_ENTRYSIZE(c));
 	}
 
-	ce = cache_find(*cc, key);
+	ce = cache_find(c, key);
 	if (ce == NULL) {
-		/* all of the unused entries are at the end */
-		ce = CACHE_ENTRY(*cc, (*cc)->entries - 1);
-		if (ce->used) {
-			/* allocate some more */
-			if ((*cc)->entries > UINT_MAX / 2)
-				fatalx("cache_add: entries too large");
-			entries = (*cc)->entries;
-			
-			(*cc)->entries *= 2;
-			*cc = xrealloc(*cc, 1, CACHE_SIZE(*cc));
-			memset(CACHE_ENTRY(*cc, entries), 0,
-			    CACHE_ENTRYSIZE(*cc) / 2);
-			ce = CACHE_ENTRY(*cc, (*cc)->entries - 1);
+		/* unused entries start at the end if sorted */
+		for (i = c->entries; i > 0; i--) {
+			ce = CACHE_ENTRY(c, i - 1);
+			if (!ce->used)
+				break;
 		}
-		ce->key = (*cc)->str_used;
-		memcpy(CACHE_KEY(*cc, ce), key, keylen);
-		(*cc)->str_used += keylen;
-	}
-	ce->value = (*cc)->str_used;
-	memcpy(CACHE_VALUE(*cc, ce), value, valuelen);
-	(*cc)->str_used += valuelen;
+		if (i == 0) {
+			/* allocate some more */
+			if (c->entries > UINT_MAX / 2)
+				fatalx("cache_add: entries too large");
+			entries = c->entries;
+			
+			c->entries *= 2;
+			c = *cp = xrealloc(c, 1, CACHE_SIZE(c));
 
-	if (ce->used) {
+			memset(CACHE_ENTRY(c, entries), 0,
+			    CACHE_ENTRYSIZE(c) / 2);
+			ce = CACHE_ENTRY(c, c->entries - 1);
+		}
+		ce->key = c->str_used;
+		memcpy(CACHE_KEY(c, ce), key, keylen);
+		c->str_used += keylen;
+	}
+	ce->value = c->str_used;
+	memcpy(CACHE_VALUE(c, ce), value, valuelen);
+	c->str_used += valuelen;
+
+ 	if (!ce->used) {
 		/* if replacing an existing key, there is no need to resort */
-		return;
+		c->sorted = 0;
 	}
 	ce->used = 1;
-
-	cache_reference = *cc;
-	qsort(CACHE_ENTRY(*cc, 0), (*cc)->entries, sizeof *ce, cache_sortcmp);
 }
 
 void
-cache_delete(struct cache **cc, struct cacheent *ce)
+cache_delete(struct cache **cp, struct cacheent *ce)
 {
-	ce->used = 0;
+	struct cache	*c = *cp;
 
-	cache_reference = *cc;
-	qsort(CACHE_ENTRY(*cc, 0), (*cc)->entries, sizeof *ce, cache_sortcmp);
+	c->sorted = 0;
+	ce->used = 0;
 }
 
 struct cacheent *
-cache_find(struct cache *cc, const char *key)
+cache_find(struct cache *c, const char *key)
 {
 	struct cacheent	*ce;
 
-	cache_reference = cc;
+	cache_reference = c;
+
+	if (!c->sorted)
+		qsort(CACHE_ENTRY(c, 0), c->entries, sizeof *ce, cache_sortcmp);
 	ce = bsearch(key,
-	    CACHE_ENTRY(cc, 0), cc->entries, sizeof *ce, cache_searchcmp);
+	    CACHE_ENTRY(c, 0), c->entries, sizeof *ce, cache_searchcmp);
 	return (ce);
 }
 
 struct cacheent *
-cache_match(struct cache *cc, const char *pattern)
+cache_match(struct cache *c, const char *pattern)
 {
 	struct cacheent	*ce;
-	size_t		 n = cc->entries;
+	size_t		 n = c->entries;
 
-	cache_reference = cc;
-	ce = lfind(pattern, CACHE_ENTRY(cc, 0), &n, sizeof *ce, cache_matchcmp);
+	cache_reference = c;
+	ce = lfind(pattern, CACHE_ENTRY(c, 0), &n, sizeof *ce, cache_matchcmp);
 	return (ce);
 }

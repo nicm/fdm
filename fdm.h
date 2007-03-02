@@ -289,6 +289,7 @@ struct cacheent {
 
 /* Cache header. */
 struct cache {
+	int	 sorted;
 	u_int	 entries;
 
 	size_t	 str_used;
