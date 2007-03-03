@@ -206,13 +206,19 @@ maildir_fetch(struct account *a, struct mail *m)
 {
 	struct maildir_data	*data = a->data;
 	struct dirent		*dp;
-	char	       		*ptr;
+	char	       		*ptr, path[MAXPATHLEN];
 	struct stat		 sb;
 	int			 fd;
 
 restart:
 	if (data->dirp == NULL) {
 		data->path = ARRAY_ITEM(data->paths, data->index, char *);
+
+		/* make the maildir name for the tag */
+		/* XXX this sucks a bit, too much copying */
+		strlcpy(path, data->path, sizeof path);
+		strlcpy(data->maildir,
+		    basename(dirname(path)), sizeof data->maildir);
 
 		log_debug("%s: trying path: %s", a->name, data->path);
 		if ((data->dirp = opendir(data->path)) == NULL) {
@@ -260,9 +266,9 @@ restart:
 	}
 
 	mail_open(m, IO_ROUND(sb.st_size));
-	default_tags(&m->tags, basename(dirname(data->path)), a);
-	add_tag(&m->tags, "maildir", "%s", basename(dirname(data->path)));
-
+	default_tags(&m->tags, data->maildir, a);
+	add_tag(&m->tags, "maildir", "%s", data->maildir);
+	
 	log_debug2("%s: reading %ju bytes", a->name, (uintmax_t) sb.st_size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
 		close(fd);
