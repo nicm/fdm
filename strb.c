@@ -21,6 +21,7 @@
 #include <fnmatch.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "fdm.h"
 
@@ -66,7 +67,17 @@ strb_dump(struct strb *sb, const char *prefix, void (*p)(const char *, ...))
 }
 
 void
-strb_add(struct strb **sbp, const char *key, const char *value)
+strb_add(struct strb **sbp, const char *key, const char *value, ...)
+{
+	va_list	ap;
+
+	va_start(ap, value);
+	strb_vadd(sbp, key, value, ap);
+	va_end(ap);
+}
+	
+void
+strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 {
 	struct strb	*sb = *sbp;
 	size_t		 size, keylen, valuelen;
@@ -74,7 +85,7 @@ strb_add(struct strb **sbp, const char *key, const char *value)
 	struct strbent	*sbe;
 
 	keylen = strlen(key) + 1;
-	valuelen = strlen(value) + 1;
+	valuelen = xvsnprintf(NULL, 0, value, ap) + 1;
 
 	sbe = STRB_ENTRY(sb, 0);
 	size = sb->str_size;
@@ -112,7 +123,7 @@ strb_add(struct strb **sbp, const char *key, const char *value)
 		sb->str_used += keylen;
 	}
 	sbe->value = sb->str_used;
-	memcpy(STRB_VALUE(sb, sbe), value, valuelen);
+	xvsnprintf(STRB_VALUE(sb, sbe), valuelen, value, ap);
 	sb->str_used += valuelen;
 }
 

@@ -48,7 +48,7 @@ CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
 # FreeBSD
 .if ${OS} == "FreeBSD"
 SRCS+= compat/vis.c
-INCDIRS+= -Icompat
+INCDIRS+= -Icompat -I/usr/local/include/openssl
 
 # FreeBSD 5
 .if ${REL:R} == 5

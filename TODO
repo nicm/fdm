@@ -25,4 +25,3 @@
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
 - -D should override macros in file
-- strb should allow vararg value to get rid of asprintf in replace.c

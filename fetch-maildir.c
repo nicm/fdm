@@ -255,7 +255,7 @@ restart:
 		return (FETCH_OVERSIZE);
 
 	if ((fd = open(data->entry, O_RDONLY, 0)) < 0) {
-		log_warn("%s: %s: stat", a->name, data->entry);
+		log_warn("%s: %s: open", a->name, data->entry);
 		return (FETCH_ERROR);
 	}
 

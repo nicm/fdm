@@ -1137,7 +1137,10 @@ void			 strb_clear(struct strb **);
 void			 strb_destroy(struct strb **);
 void			 strb_dump(struct strb *, const char *,
     			     void (*)(const char *, ...));
-void			 strb_add(struct strb **, const char *, const char *);
+void			 strb_add(struct strb **, const char *, const char *,
+			     ...);
+void			 strb_vadd(struct strb **, const char *, const char *,
+			     va_list);
 struct strbent 		*strb_find(struct strb *, const char *);
 struct strbent	 	*strb_match(struct strb *, const char *);
 

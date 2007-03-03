@@ -86,18 +86,13 @@ static const char *aliases[] = {
 };
 
 void printflike3
-add_tag(struct strb **tags, const char *key, const char *fmt, ...)
+add_tag(struct strb **tags, const char *key, const char *value, ...)
 {
 	va_list		 ap;
-	char		*value;
 
-	va_start(ap, fmt);
-	xvasprintf(&value, fmt, ap);
+	va_start(ap, value);
+	strb_vadd(tags, key, value, ap);
 	va_end(ap);
-
-	strb_add(tags, key, value);
-
-	xfree(value);
 }
 
 const char *
