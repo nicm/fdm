@@ -1123,9 +1123,6 @@ to: /* empty */
   | TOKTO strv
 /**  [$2: strv (char *)] */
     {
-	    if (*$2 == '\0')
-		    yyerror("invalid to");
-
 	    $$ = $2;
     }
 
