@@ -52,6 +52,10 @@ re_execute(struct re *re, char *s, int npm, regmatch_t *pm, int flags,
 {
 	int	res;
 
+	/*
+	 * If the source string is empty, there is no regexp, so just check
+	 * whether or not the target string is also empty.
+	 */
 	if (*re->str == '\0') {
 		if (*s == '\0')
 			return (1);
