@@ -311,13 +311,6 @@ fetch_account(struct io *io, struct account *a, double tim)
 		l = fill_wrapped(&m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
 
-		/* fill attachments */
-		m.attach = attach_build(&m);
-		if (m.attach != NULL)
-			attach_log(m.attach, "%s: attachment", a->name);
-		else
-			log_debug("%s: no attachments", a->name);
-
 		/* handle rule evaluation and actions */
 		mctx.matched = mctx.stopped = 0;
 		if (do_rules(&mctx, &conf.rules, &cause) != 0)
