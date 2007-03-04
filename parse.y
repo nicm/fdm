@@ -725,14 +725,17 @@ defmacro: STRMACRO '=' STRING
 			  macro = xmalloc(sizeof *macro);
 			  if (strlen($1) > MAXNAMESIZE)
 				  yyerror("macro name too long: %s", $1);
+			  macro->fixed = 0;
 			  strlcpy(macro->name, $1, sizeof macro->name);
 			  TAILQ_INSERT_HEAD(&macros, macro, entry);
 		  }
-		  macro->type = MACRO_STRING;
-		  macro->value.str = $3;
-		  log_debug3("added macro \"%s\": \"%s\"", macro->name,
-		      macro->value.str);
-		  xfree($1);
+		  if (!macro->fixed) {
+			  macro->type = MACRO_STRING;
+			  macro->value.str = $3;
+			  log_debug3("added macro \"%s\": \"%s\"", macro->name,
+			      macro->value.str);
+			  xfree($1);
+		  }
 	  }
         | NUMMACRO '=' NUMBER
 	  {
@@ -742,14 +745,17 @@ defmacro: STRMACRO '=' STRING
 			  macro = xmalloc(sizeof *macro);
 			  if (strlen($1) > MAXNAMESIZE)
 				  yyerror("macro name too long: %s", $1);
+			  macro->fixed = 0;
 			  strlcpy(macro->name, $1, sizeof macro->name);
 			  TAILQ_INSERT_HEAD(&macros, macro, entry);
 		  }
-		  macro->type = MACRO_NUMBER;
-		  macro->value.num = $3;
-		  log_debug3("added macro \"%s\": %lld", macro->name,
-		      macro->value.num);
-		  xfree($1);
+		  if (!macro->fixed) {
+			  macro->type = MACRO_NUMBER;
+			  macro->value.num = $3;
+			  log_debug3("added macro \"%s\": %lld", macro->name,
+			      macro->value.num);
+			  xfree($1);
+		  }
 	  }
 
 /** DOMAINS: <strings> (struct strings *) */

@@ -1,3 +1,9 @@
+04 March 2007
+
+* Bug fix: fill in the correct size for maildir fetched mail rather than using
+  the rounded-up size and adding a ton of nulls.
+* -D on the command line overrides macro definitions in the configuration file.
+
 03 March 2007
 
 * add-header action and lines, body_lines, header_lines tags for IMAP/POP3,

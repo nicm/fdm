@@ -324,6 +324,7 @@ main(int argc, char **argv)
 			}
 
 			macro = xmalloc(sizeof *macro);
+			macro->fixed = 1;
 			strlcpy(macro->name, optarg, sizeof macro->name);
 			TAILQ_INSERT_HEAD(&macros, macro, entry);
 

@@ -268,7 +268,9 @@ Flag	Meaning
 	multiple times.
 -D name=value
 	Define a macro. The macro name must be prefixed with '$' or '%' to
-	indicate if it is a string or numeric macro.
+	indicate if it is a string or numeric macro. Macros defined on the
+	command line override any macros with the same name defined in the
+	configuration file.
 
 If -n is not specified, the flags must be followed by one of the keywords
 'fetch' or 'poll'. The 'fetch' keyword will fetch and deliver mail, the 'poll'
