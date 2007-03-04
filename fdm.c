@@ -174,7 +174,7 @@ dropto(uid_t uid)
 	struct passwd	*pw;
 	gid_t		 gid;
 
-	if (uid == 0)
+	if (uid == NOUSR || uid == 0)
 		return (0);
 
 	pw = getpwuid(uid);
