@@ -105,7 +105,8 @@ int
 stdin_fetch(struct account *a, struct mail *m)
 {
 	struct stdin_data	*data = a->data;
-	int		 	 error;
+	u_int			 lines;
+	int		 	 error, bodylines;
 	char			*line, *cause, *lbuf;
 	size_t			 len, llen;
 
@@ -120,6 +121,8 @@ stdin_fetch(struct account *a, struct mail *m)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
+	lines = 0;
+	bodylines = -1;
 	for (;;) {
 		error = io_pollline2(data->io, &line, &lbuf, &llen, &cause);
 		if (error != 1) {
@@ -133,8 +136,13 @@ stdin_fetch(struct account *a, struct mail *m)
 		}
 
 		len = strlen(line);
-		if (len == 0 && m->body == -1)
+		if (len == 0 && m->body == -1) {
 			m->body = m->size + 1;
+			bodylines = 0;
+		}
+		lines++;
+		if (bodylines != -1)
+			bodylines++;
 
 		resize_mail(m, m->size + len + 1);
 
@@ -156,6 +164,15 @@ stdin_fetch(struct account *a, struct mail *m)
 		log_warnx("%s: zero-length message", a->name);
 		xfree(lbuf);
 		return (FETCH_ERROR);
+	}
+
+	add_tag(&m->tags, "lines", "%u", lines);
+	if (bodylines == -1) {
+		add_tag(&m->tags, "body_lines", "0");
+		add_tag(&m->tags, "header_lines", "%u", lines - 1);
+	} else {
+		add_tag(&m->tags, "body_lines", "%d", bodylines - 1);
+		add_tag(&m->tags, "header_lines", "%d", lines - bodylines);
 	}
 
  	data->complete = 1;
