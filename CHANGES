@@ -1,3 +1,9 @@
+03 March 2007
+
+* Linux dirname(3)/basename(3) screws up the buffer. Fixed it thanks to Frank
+  Terbeck.
+* Fixed bugs in string parsing thanks to Frank Terbeck.
+
 02 March 2007
 
 * Made add_tag use varargs and added a server_uid tag to POP3/IMAP messages.

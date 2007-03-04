@@ -206,13 +206,18 @@ read_str(char endc, int esc)
         buf = xmalloc(len + 1);
 
         while (!done) {
-                switch (ch = input()) {
+		ch = input();
+		if (ch == endc) {
+                        done = 1;
+                        continue;
+		}
+                switch (ch) {
 		case 0:
 		case EOF:
 			yyerror("unterminated string");
                 case '\\':
 			if (!esc)
-				continue;
+				break;
                         switch (ch = input()) {
 			case 0:
 			case EOF:
@@ -278,10 +283,6 @@ read_str(char endc, int esc)
 				xfree(s);
 			continue;
                 }
-		if (ch == endc) {
-                        done = 1;
-                        continue;
-		}
 
                 buf[pos] = ch;
                 pos++;

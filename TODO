@@ -25,3 +25,4 @@
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
 - -D should override macros in file
+- add-header and a line count for pop3/imap (%[lines])
