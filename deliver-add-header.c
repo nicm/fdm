@@ -38,22 +38,26 @@ add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	char			*value;
 	
 	value = replace(data->value, m->tags, m, *dctx->pm_valid, dctx->pm);
-	if (value == NULL)
-		return (DELIVER_SUCCESS);
+	if (value == NULL) {
+		log_warnx("%s: bad value for header %s", a->name, data->hdr);
+		return (DELIVER_FAILURE);
+	}
 	
 	if (insert_header(m, NULL, "%s: %s", data->hdr, value) != 0) {
 		log_warnx("%s: failed to add header %s (%s)", a->name,
 		    data->hdr, value);
+		xfree(value);
 		return (DELIVER_FAILURE);
 	}
-	
-	xfree(value);
 
+	/* XXX needed? */
 	ARRAY_FREE(&m->wrapped);
 	fill_wrapped(m);
 
+	/* invalidate the pmatch data since stuff may have moved */
 	*dctx->pm_valid = 0;
 	
+	xfree(value);
 	return (DELIVER_SUCCESS);
 }
 
