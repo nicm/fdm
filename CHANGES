@@ -5,6 +5,7 @@
 * -D on the command line overrides macro definitions in the configuration file.
 * Build the attachment list when the first attachment match rule is found rather
   than for every mail regardless.
+* Add a message_id tag to each mail.
 
 03 March 2007
 

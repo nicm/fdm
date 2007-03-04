@@ -278,8 +278,9 @@ fetch_account(struct io *io, struct account *a, double tim)
 		if (hdr == NULL || len == 0 || len > INT_MAX)
 			log_debug("%s: message-id not found", a->name);
 		else {
-			log_debug("%s: message-id is: %.*s", a->name, (int) len,
-			    hdr);
+			log_debug("%s: message-id is: %.*s", a->name, 
+			    (int) len, hdr);
+			add_tag(&m.tags, "message_id", "%.*s", (int) len, hdr);
 		}
 
 		/*
