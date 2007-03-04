@@ -289,6 +289,7 @@ restart:
 			break;
 		}
 	}
+	m->size = sb.st_size;
 
 	return (FETCH_SUCCESS);
 }
