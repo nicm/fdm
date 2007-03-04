@@ -204,7 +204,7 @@ imap_fetch(struct account *a, struct mail *m)
 	char			*line, *ptr;
 	u_int	 		 n, i, lines;
 	size_t	 		 size, off, len;
-	int	 		 flushing;
+	int	 		 flushing, bodylines;
 
 	data->cur++;
 	if (data->cur > data->num)
@@ -279,13 +279,16 @@ restart:
 	if (size > conf.max_size)
 		flushing = 1;
 	off = lines = 0;
+	bodylines = -1;
 	for (;;) {
 		if ((line = data->getln(a, IMAP_RAW)) == NULL)
 			return (FETCH_ERROR);
 
 		len = strlen(line);
-		if (len == 0 && m->body == -1)
+		if (len == 0 && m->body == -1) {
 			m->body = off + 1;
+			bodylines = 0;
+		}
 
 		if (!flushing) {
 			resize_mail(m, off + len + 1);
@@ -296,6 +299,8 @@ restart:
 		}
 
 		lines++;
+		if (bodylines != -1)
+			bodylines++;
 		off += len + 1;
 		if (off + lines >= size)
 			break;
@@ -317,6 +322,15 @@ restart:
 		return (FETCH_ERROR);
 	}
 	m->size = off;
+
+	add_tag(&m->tags, "lines", "%u", lines);
+	if (bodylines == -1) {
+		add_tag(&m->tags, "body_lines", "0");
+		add_tag(&m->tags, "header_lines", "%u", lines - 1);
+	} else {
+		add_tag(&m->tags, "body_lines", "%d", bodylines - 1);
+		add_tag(&m->tags, "header_lines", "%d", lines - bodylines);
+	}
 
 	if (flushing)
 		return (FETCH_OVERSIZE);

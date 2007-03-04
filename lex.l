@@ -101,6 +101,7 @@ accounts return (TOKACCOUNTS);
 action return (TOKACTION);
 actions return (TOKACTIONS);
 add-from return (TOKADDFROM);
+add-header return (TOKADDHEADER);
 age return (TOKAGE);
 all return (TOKALL);
 allow-multiple return (TOKALLOWMANY);

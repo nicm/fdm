@@ -281,7 +281,7 @@ find_macro(char *name)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT
-%token TOKADDFROM TOKAPPENDSTRING
+%token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1210,6 +1210,22 @@ action: TOKPIPE strv
 		for (cp = $2; *cp != '\0'; cp++)
 			*cp = tolower((int) *cp);
 		$$.data = $2;
+	}
+      | TOKADDHEADER strv strv
+/**     [$2: strv (char *)] [$3: strv (char *)] */
+	{
+		struct add_header_data	*data;
+
+		if (*$2 == '\0')
+			yyerror("invalid header");
+
+		$$.deliver = &deliver_add_header;
+
+		data = xcalloc(1, sizeof *data);
+		$$.data = data;
+
+		data->hdr = $2;
+		data->value = $3;
 	}
       | TOKAPPENDSTRING strv
 /**     [$2: strv (char *)] */

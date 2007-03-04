@@ -1,5 +1,7 @@
 03 March 2007
 
+* add-header action and lines, body_lines, header_lines tags for IMAP/POP3,
+  suggested by Frank Terbeck.
 * Linux dirname(3)/basename(3) screws up the buffer. Fixed it thanks to Frank
   Terbeck.
 * Fixed bugs in string parsing thanks to Frank Terbeck.

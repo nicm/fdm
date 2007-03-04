@@ -217,7 +217,7 @@ pop3_fetch(struct account *a, struct mail *m)
 	char			*lbuf, *line, *uid;
 	size_t			 llen, size, off, len;
 	u_int			 lines, n, i;
-	int			 flushing;
+	int			 flushing, bodylines;
 
 	data->cur++;
 	if (data->cur > data->num)
@@ -298,6 +298,7 @@ restart:
 
 	flushing = 0;
 	off = lines = 0;
+	bodylines = -1;
 	for (;;) {
 		if ((line = pop3_line(a, &lbuf, &llen)) == NULL)
 			goto error;
@@ -316,8 +317,10 @@ restart:
 		}
 
 		len = strlen(line);
-		if (len == 0 && m->body == -1)
+		if (len == 0 && m->body == -1) {
 			m->body = off + 1;
+			bodylines = 0;
+		}
 
 		if (!flushing) {
 			resize_mail(m, off + len + 1);
@@ -328,9 +331,19 @@ restart:
 		}
 
 		lines++;
+		if (bodylines != -1)
+			bodylines++;
 		off += len + 1;
 		if (off + lines > conf.max_size)
 			flushing = 1;
+	}
+	add_tag(&m->tags, "lines", "%u", lines);
+	if (bodylines == -1) {
+		add_tag(&m->tags, "body_lines", "0");
+		add_tag(&m->tags, "header_lines", "%u", lines - 1);
+	} else {
+		add_tag(&m->tags, "body_lines", "%d", bodylines - 1);
+		add_tag(&m->tags, "header_lines", "%d", lines - bodylines);
 	}
 
 	xfree(lbuf);
