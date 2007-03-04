@@ -37,13 +37,14 @@ attachment_match(struct match_ctx *mctx, struct expritem *ei)
 	size_t			 size;
 	u_int			 n;
 
-	if (m->attach == NULL) {
+	if (!m->attach_built) {
 		/* fill attachments */
 		m->attach = attach_build(m);
 		if (m->attach != NULL)
 			attach_log(m->attach, "%s: attachment", a->name);
 		else
 			log_debug("%s: no attachments", a->name);
+		m->attach_built = 1;
 	}
 
 	if (data->op == ATTACHOP_COUNT || data->op == ATTACHOP_TOTALSIZE) {

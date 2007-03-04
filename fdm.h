@@ -315,6 +315,7 @@ struct mail {
 	struct shm		 shm;
 
 	struct attach		*attach;
+	int			 attach_built;
 
 	char			*base;
 

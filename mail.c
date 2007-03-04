@@ -52,6 +52,7 @@ mail_open(struct mail *m, size_t size)
 	strb_create(&m->tags);
 	ARRAY_INIT(&m->wrapped);
 	m->attach = NULL;
+	m->attach_built = 0;
 }
 
 void
