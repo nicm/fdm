@@ -172,7 +172,8 @@ restart:
 		delivered++;
 	} while (fd == -1);
 	cleanup_register(src);
-	if (conf.file_group != NOGRP && fchown(fd, -1, conf.file_group) == -1) {
+	if (conf.file_group != NOGRP && 
+	    fchown(fd, (uid_t) -1, conf.file_group) == -1) {
 		log_warn("%s: %s: fchown", a->name, path);
 		goto out;
 	}
