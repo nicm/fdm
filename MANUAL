@@ -440,6 +440,8 @@ quarter		%Q		The current quarter (1-4).
 In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
 replaced with the result of any bracket expressions in the last regexp (see
 later section on regexps).
+
+Some accounts add additional tags, discussed below.
 	
 POP3 and POP3S -----------------------------------------------------------------
 
@@ -469,7 +471,14 @@ for the type, and the default port is 'pop3s' rather than 'pop3':
 
 POP3 accounts automatically tag mail with 'server' and 'port' tags, with the
 value of the server and port attributes exactly as specified in the account
-definition.
+definition. A 'server_uid' tag is also added with the server unique id (UIDL).
+
+POP3 adds 'lines', 'body_lines' and 'header_lines' tags with the number of
+lines in the complete mail and its body and header. These when the mail is
+fetched. If the server adds a 'From ' line when delivering (sendmail does when
+delivering to a pipe), it is included in the counts even though fdm later
+strips it. These tags are not updated to reflect any changes made to the mail
+by fdm rules.
 
 IMAP and IMAPS -----------------------------------------------------------------
 
@@ -492,7 +501,8 @@ Examples of IMAP and IMAPS accounts include:
 	account "workspam" disabled imap server "my-work.ath.cx"
 		user "Nicholas" pass "pass" folder "Junk"
 
-As with POP3, IMAP adds the 'server' and 'port' tags to mail.
+As with POP3, IMAP adds the 'server', 'port', 'server_uid' and the three line
+count tags to mail.
 
 IMAP over a pipe or ssh --------------------------------------------------------
 
@@ -527,6 +537,8 @@ it for single-user use with sendmail, the simplest method it to add:
 To the user's ~/.forward file (including the double quotes). Note the use of
 '-m' to prevent stdin delivery from interfering with any normal cronjob, and
 '-a' to specify that only the disabled "stdin" account should be fetched.
+
+stdin accounts add the three line count tags described in the POP3 section.
 
 From maildirs ------------------------------------------------------------------
 
