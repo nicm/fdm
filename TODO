@@ -23,4 +23,3 @@
 - move pmatch etc into struct mail to avoid pointer nonsense?
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
-- document add-header

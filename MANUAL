@@ -27,7 +27,7 @@ fdm ============================================================================
 7.5	Write, pipe and append
 7.6	stdout
 7.7 	Rewriting mail
-7.8	Removing headers and appending a string
+7.8	Adding or removing headers and appending a string
 8	Filtering mail
 8.1	Nesting rules
 8.2	The all condition
@@ -729,10 +729,13 @@ of this). Possible rewrite action definitions are:
 
 	action "mysedaction" rewrite "sed 's/x/y/'"
 
-Removing headers and appending a string-----------------------------------------
+Adding or removing headers and appending a string ------------------------------
 
-A simple action is provided to remove all instances of a header from mail,
-for example:
+Simple actions are provided to add a header to a mail:
+
+	action "lines" add-header "Lines" "%[lines]"
+
+Or to remove all instances of a header from mail:
 
 	action "del-ua" remove-header "user-agent"
 
