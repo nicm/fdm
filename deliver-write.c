@@ -44,7 +44,7 @@ write_desc(struct action *t, char *buf, size_t len)
 }
 
 int
-do_write(struct deliver_ctx *dctx, struct action *t, int append)
+do_write(struct deliver_ctx *dctx, struct action *t, int appendf)
 {
 	struct account	*a = dctx->account;
 	struct mail	*m = dctx->mail;
@@ -59,11 +59,11 @@ do_write(struct deliver_ctx *dctx, struct action *t, int append)
                 return (DELIVER_FAILURE);
         }
 
-	if (append)
+	if (appendf)
 		log_debug("%s: appending to %s", a->name, path);
 	else
 		log_debug("%s: writing to %s", a->name, path);
-        f = fopen(path, append ? "a" : "w");
+        f = fopen(path, appendf ? "a" : "w");
         if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, path);
 		xfree(path);

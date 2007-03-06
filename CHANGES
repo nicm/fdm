@@ -1,7 +1,11 @@
 06 March 2007
 
+* pipe actions now use the command.c framework, which means their stderr is
+  logged and stdout discarded.
 * mail_file tag added by maildir delivery and mbox_file by mbox. Also pass the
   tags block up and down between parent and child so these tags actually stick.
+* A new exec action, similar to pipe but stdin is /dev/null. This is useful
+  in combination with the mail_file and mbox_file tags.
 
 04 March 2007
 

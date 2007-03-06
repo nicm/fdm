@@ -34,45 +34,82 @@ struct deliver deliver_pipe = { DELIVER_ASUSER, pipe_deliver, pipe_desc };
 int
 pipe_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account	*a = dctx->account;
-	struct mail	*m = dctx->mail;
-        char		*cmd;
-        FILE    	*f;
-	int	 	 error;
-
-	cmd = replace(t->data, m->tags, m, *dctx->pm_valid, dctx->pm);
-        if (cmd == NULL || *cmd == '\0') {
-		log_warnx("%s: empty command", a->name);
-		if (cmd != NULL)
-			xfree(cmd);
-                return (DELIVER_FAILURE);
-        }
-
-	log_debug("%s: piping to %s", a->name, cmd);
-        f = popen(cmd, "w");
-        if (f == NULL) {
-		log_warn("%s: %s: popen", a->name, cmd);
-		xfree(cmd);
-		return (DELIVER_FAILURE);
-	}
-	if (fwrite(m->data, m->size, 1, f) != 1) {
-		log_warn("%s: %s: fwrite", a->name, cmd);
-		xfree(cmd);
-		return (DELIVER_FAILURE);
-	}
-	if ((error = pclose(f)) != 0) {
-		log_warn("%s: %s: pipe error, return value %d", a->name,
-		    cmd, error);
-		xfree(cmd);
-		return (DELIVER_FAILURE);
-	}
-
-	xfree(cmd);
-	return (DELIVER_SUCCESS);
+	return (do_pipe(dctx, t, 1));
 }
 
 void
 pipe_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "pipe \"%s\"", (char *) t->data);
+}
+
+int
+do_pipe(struct deliver_ctx *dctx, struct action *t, int pipef)
+{
+	struct account	*a = dctx->account;
+	struct mail	*m = dctx->mail;
+        char		*s, *cause, *err;
+	int		 status;
+	struct cmd	*cmd;
+	char		*lbuf;
+	size_t		 llen;
+
+	s = replace(t->data, m->tags, m, *dctx->pm_valid, dctx->pm);
+        if (s == NULL || *s == '\0') {
+		log_warnx("%s: empty command", a->name);
+		if (s != NULL)
+			xfree(s);
+                return (DELIVER_FAILURE);
+        }
+
+	if (pipef)
+		log_debug("%s: piping to \"%s\"", a->name, s);
+	else
+		log_debug("%s: executing \"%s\"", a->name, s);
+
+	log_debug2("%s: %s: starting", a->name, s);
+	if (pipef)
+		cmd = cmd_start(s, CMD_IN|CMD_ONCE, m->data, m->size, &cause);
+	else
+		cmd = cmd_start(s, 0, NULL, 0, &cause);
+	if (cmd == NULL) {
+		log_warnx("%s: %s: %s", a->name, s, cause);
+		xfree(cause);
+		goto error;
+	}
+	log_debug2("%s: %s: started", a->name, s);
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	do {
+		status = cmd_poll(cmd, NULL, &err, &lbuf, &llen, &cause);
+		if (status > 0) {
+			log_warnx("%s: %s: %s", a->name, s, cause);
+			xfree(cause);
+			xfree(lbuf);
+			goto error;
+		}
+       		if (status == 0) {
+			if (err != NULL)
+				log_warnx("%s: %s: %s", a->name, s, err);
+		}
+	} while (status >= 0);
+
+	xfree(lbuf);
+
+	status = -1 - status;
+	if (status != 0) {
+		log_warnx("%s: %s: command returned %d", a->name, s, status);
+		goto error;
+	}
+
+	cmd_free(cmd);
+	xfree(s);
+	return (DELIVER_SUCCESS);
+
+error:
+	cmd_free(cmd);
+	xfree(s);
+	return (DELIVER_FAILURE);
 }

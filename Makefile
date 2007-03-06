@@ -19,6 +19,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       match-unmatched.c match-attachment.c child.c parent.c privsep.c attach.c \
       cleanup.c imap-common.c fetch-imappipe.c deliver-remove-header.c \
       deliver-stdout.c deliver-append-string.c strb.c deliver-add-header.c \
+      deliver-exec.c \
       parse.y lex.l
 
 LEX= lex

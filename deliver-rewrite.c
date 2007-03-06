@@ -63,6 +63,7 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 	cmd = cmd_start(s, CMD_IN|CMD_OUT|CMD_ONCE, m->data, m->size, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
+		xfree(cause);
 		goto error;
 	}
 	log_debug2("%s: %s: started", a->name, s);
@@ -74,6 +75,7 @@ rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
 		if (status > 0) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
+			xfree(cause);
 			xfree(lbuf);
 			goto error;
 		}

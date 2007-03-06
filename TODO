@@ -27,4 +27,4 @@
 - exec as well as pipe actions
 - deliver-pipe should use cmd framework
 - refactor & clean up privsep mail transfer code
-- document mail_file
+- document mail_file, mbox_file and exec action

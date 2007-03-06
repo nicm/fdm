@@ -1163,6 +1163,16 @@ action: TOKPIPE strv
 
 		$$.data = $2;
 	}
+      | TOKEXEC strv
+/**     [$2: strv (char *)] */
+	{
+		if (*$2 == '\0')
+			yyerror("invalid command");
+
+		$$.deliver = &deliver_exec;
+
+		$$.data = $2;
+	}
       | TOKREWRITE strv
 /**     [$2: strv (char *)] */
 	{

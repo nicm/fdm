@@ -969,6 +969,10 @@ extern struct deliver	 deliver_stdout;
 
 /* deliver-pipe.c */
 extern struct deliver 	 deliver_pipe;
+int	 		 do_pipe(struct deliver_ctx *, struct action *, int);
+
+/* deliver-exec.c */
+extern struct deliver 	 deliver_exec;
 
 /* deliver-drop.c */
 extern struct deliver 	 deliver_drop;
