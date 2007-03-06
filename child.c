@@ -598,6 +598,8 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 	u_int		 	 i, l;
 	int		 	 find;
 	struct strings	        *users;
+	void			*buf;
+	size_t			 len;
 
  	if (t->deliver->deliver == NULL)
 		return (0);
@@ -662,10 +664,17 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		    STRB_SIZE(m->tags)) != 0) 
 			fatalx("child: privsep_send error");
 
-		if (privsep_recv(mctx->io, &msg, NULL, 0) != 0)
+		if (privsep_recv(mctx->io, &msg, &buf, &len) != 0)
 			fatalx("child: privsep_recv error");
 		if (msg.type != MSG_DONE)
 			fatalx("child: unexpected message");
+
+		if (buf == NULL || len == 0)
+			fatalx("child: bad tags");
+		strb_destroy(&m->tags);
+		m->tags = buf;
+		update_tags(&m->tags);
+
 		if (msg.data.error != 0) {
 			ARRAY_FREEALL(users);
 			return (1);

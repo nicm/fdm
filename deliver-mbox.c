@@ -87,6 +87,9 @@ mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	}
 	log_debug("%s: saving to mbox %s", a->name, path);
 
+	/* save the mbox path */
+	add_tag(&m->tags, "mbox_file", "%s", path);
+
 	/* create a from line for the mail */
 	from = make_from(m);
 	log_debug("%s: using from line: %s", a->name, from);

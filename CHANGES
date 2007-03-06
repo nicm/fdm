@@ -1,3 +1,8 @@
+06 March 2007
+
+* mail_file tag added by maildir delivery and mbox_file by mbox. Also pass the
+  tags block up and down between parent and child so these tags actually stick.
+
 04 March 2007
 
 * Bug fix: fill in the correct size for maildir fetched mail rather than using

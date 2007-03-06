@@ -23,5 +23,8 @@
 - move pmatch etc into struct mail to avoid pointer nonsense?
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
-- mail_file tag for maildirs
-- flags option for maildir delivery
+- flags option for maildir delivery (or mark-read on maildir/mbox)
+- exec as well as pipe actions
+- deliver-pipe should use cmd framework
+- refactor & clean up privsep mail transfer code
+- document mail_file

@@ -72,7 +72,8 @@ do_parent(struct child *child)
 		msg.type = MSG_DONE;
 		msg.data.error = error;
 		mail_send(&m, &msg);
-		if (privsep_send(child->io, &msg, NULL, 0) != 0)
+		if (privsep_send(child->io, &msg, m.tags,
+		    STRB_SIZE(m.tags)) != 0)
 			fatalx("parent: privsep_send error");
 
 		mail_close(&m);
@@ -95,7 +96,7 @@ do_parent(struct child *child)
 		memset(&msg, 0, sizeof msg);
 		msg.type = MSG_DONE;
 		msg.data.error = error;
-		if (privsep_send(child->io, &msg, NULL, 0) != 0)
+		if (privsep_send(child->io, &msg, 0, NULL) != 0)
 			fatalx("parent: privsep_send error");
 
 		mail_close(&m);
@@ -118,6 +119,8 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	pid_t		 	 pid;
 	struct io		*io;
 	struct msg	 	 msg;
+	void			*buf;
+	size_t			 len;
 
 	memset(&dctx->wr_mail, 0, sizeof dctx->wr_mail);
 	/* if writing back, open a new mail now and set its ownership so it
@@ -141,7 +144,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 		log_debug2("%s: forked. child pid is %ld", a->name, (long) pid);
 
 		do {
-			if (privsep_recv(io, &msg, NULL, 0) != 0)
+			if (privsep_recv(io, &msg, &buf, &len) != 0)
 				fatalx("parent2: privsep_recv error");
 			log_debug2("parent2: got message type %d", msg.type);
 
@@ -153,6 +156,11 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 			}
 		} while (msg.type != MSG_DONE);
 		error = msg.data.error;
+
+		if (buf == NULL || len == 0)
+			fatalx("parent2: bad tags");
+		strb_destroy(&m->tags);
+		m->tags = buf;
 
 		/* use new mail if necessary */
 		if (t->deliver->type == DELIVER_WRBACK) {
@@ -232,7 +240,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 	/* inform parent we're done */
 	msg.type = MSG_DONE;
 	msg.data.error = error;
-	if (privsep_send(io, &msg, NULL, 0) != 0)
+	if (privsep_send(io, &msg, m->tags, STRB_SIZE(m->tags)) != 0)
 		fatalx("deliver: privsep_send error");
 
 	/* free the io */

@@ -218,6 +218,9 @@ restart:
 	}
 	cleanup_deregister(src);
 
+	/* save the mail file as a tag */
+	add_tag(&m->tags, "mail_file", "%s", dst);
+
 	res = DELIVER_SUCCESS;
 out:
 	if (path != NULL)
