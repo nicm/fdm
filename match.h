@@ -46,7 +46,7 @@ struct match {
 };
 
 /* Match attachment data. */
-struct attachment_data {
+struct match_attachment_data {
 	enum {
 		ATTACHOP_COUNT,
 		ATTACHOP_TOTALSIZE,
@@ -65,38 +65,38 @@ struct attachment_data {
 };
 
 /* Match age data. */
-struct age_data {
+struct match_age_data {
 	long long	 time;
 	enum cmp	 cmp;
 };
 
 /* Match size data. */
-struct size_data {
+struct match_size_data {
 	size_t		 size;
 	enum cmp	 cmp;
 };
 
 /* Match tagged data. */
-struct tagged_data {
+struct match_tagged_data {
 	char		*tag;
 };
 
 /* Match string data. */
-struct string_data {
+struct match_string_data {
 	struct re	 re;
 
 	char		*str;
 };
 
 /* Match regexp data. */
-struct regexp_data {
+struct match_regexp_data {
 	struct re	 re;
 
 	enum area 	 area;
 };
 
 /* Match command data. */
-struct command_data {
+struct match_command_data {
 	char		*cmd;
 	uid_t		 uid;
 	int		 pipe;		/* pipe mail to command */

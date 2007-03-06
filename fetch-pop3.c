@@ -58,7 +58,7 @@ struct fetch fetch_pop3 = {
 char *
 pop3_line(struct account *a, char **lbuf, size_t *llen)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 	char			*line, *cause;
 
 	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
@@ -93,7 +93,7 @@ pop3_check(struct account *a, char **lbuf, size_t *llen)
 int
 fetch_pop3_free(struct account *a)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 	u_int			 i;
 
 	if (data->uid != NULL)
@@ -109,7 +109,7 @@ fetch_pop3_free(struct account *a)
 int
 fetch_pop3_init(struct account *a)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 
 	ARRAY_INIT(&data->kept);
 
@@ -119,7 +119,7 @@ fetch_pop3_init(struct account *a)
 int
 fetch_pop3_connect(struct account *a)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 	char			*lbuf, *line, *cause;
 	size_t			 llen;
 
@@ -174,7 +174,7 @@ error:
 int
 fetch_pop3_disconnect(struct account *a)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 	char			*lbuf;
 	size_t			 llen;
 
@@ -205,7 +205,7 @@ error:
 int
 fetch_pop3_poll(struct account *a, u_int *n)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 
 	*n = data->num;
 
@@ -215,7 +215,7 @@ fetch_pop3_poll(struct account *a, u_int *n)
 int
 fetch_pop3_fetch(struct account *a, struct mail *m)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 	char			*lbuf, *line, *uid;
 	size_t			 llen, size, off, len;
 	u_int			 lines, n, i;
@@ -369,7 +369,7 @@ fetch_pop3_purge(struct account *a)
 int
 fetch_pop3_delete(struct account *a)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 	char			*lbuf;
 	size_t			 llen;
 
@@ -391,7 +391,7 @@ error:
 int
 fetch_pop3_keep(struct account *a)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 
 	ARRAY_ADD(&data->kept, xstrdup(data->uid), char *);
 
@@ -401,7 +401,7 @@ fetch_pop3_keep(struct account *a)
 void
 fetch_pop3_desc(struct account *a, char *buf, size_t len)
 {
-	struct pop3_data	*data = a->data;
+	struct fetch_pop3_data	*data = a->data;
 
 	xsnprintf(buf, len, "pop3%s server \"%s\" port %s user \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,

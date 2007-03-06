@@ -67,13 +67,14 @@ mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 int
 deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account		*a = dctx->account;
-	struct mail		*m = dctx->mail;
-	struct mbox_data	*data = t->data;
-	char			*path, *ptr, *ptr2, *from = NULL;
-	size_t	 		 len, len2;
-	int	 		 exists, fd = -1, fd2, res = DELIVER_FAILURE;
-	gzFile			 gzf = NULL;
+	struct account			*a = dctx->account;
+	struct mail			*m = dctx->mail;
+	struct deliver_mbox_data	*data = t->data;
+	char				*path, *ptr, *ptr2, *from = NULL;
+	size_t	 			 len, len2;
+	int	 			 exists, fd = -1, fd2;
+	int				 res = DELIVER_FAILURE;
+	gzFile				 gzf = NULL;
 
 	path = replace(data->path, m->tags, m, *dctx->pm_valid, dctx->pm);
 	if (path == NULL || *path == '\0') {
@@ -201,7 +202,7 @@ out:
 void
 deliver_mbox_desc(struct action *t, char *buf, size_t len)
 {
-	struct mbox_data	*data = t->data;
+	struct deliver_mbox_data	*data = t->data;
 
 	if (data->compress)
 		xsnprintf(buf, len, "mbox \"%s\" compress", data->path);

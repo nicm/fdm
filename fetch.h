@@ -48,7 +48,7 @@ struct fetch {
 };
 
 /* Fetch maildir data. */
-struct maildir_data {
+struct fetch_maildir_data {
 	struct strings	*maildirs;
 
 	struct strings	*paths;
@@ -74,7 +74,7 @@ struct nntp_group {
 ARRAY_DECL(nntp_groups, struct nntp_group *);
 
 /* Fetch nntp data. */
-struct nntp_data {
+struct fetch_nntp_data {
 	char		*path;
 
 	struct server	 server;
@@ -91,14 +91,14 @@ struct nntp_data {
 #define ADD_GROUP(d, g) ARRAY_ADD(&d->groups, g, struct nntp_group *)
 
 /* Fetch stdin data. */
-struct stdin_data {
+struct fetch_stdin_data {
 	int		 complete;
 
 	struct io	*io;
 };
 
 /* Fetch pop3 data. */
-struct pop3_data {
+struct fetch_pop3_data {
 	char		*user;
 	char		*pass;
 
@@ -125,7 +125,7 @@ struct pop3_data {
 #define IMAP_RAW 3
 
 /* Fetch imap data. */
-struct imap_data {
+struct fetch_imap_data {
 	struct server	 server;
 	char		*pipecmd;
 

@@ -60,12 +60,12 @@ struct fetch fetch_maildir = {
 int
 maildir_makepaths(struct account *a)
 {
-	struct maildir_data	*data = a->data;
-	char			*s, *path;
-	u_int			 i, j;
-	glob_t			 g;
-	struct stat		 sb;
-	struct strb		*tags;
+	struct fetch_maildir_data	*data = a->data;
+	char				*s, *path;
+	u_int				 i, j;
+	glob_t				 g;
+	struct stat			 sb;
+	struct strb			*tags;
 
 	strb_create(&tags);
 	default_tags(&tags, NULL, a);
@@ -132,8 +132,8 @@ error:
 void
 maildir_freepaths(struct account *a)
 {
-	struct maildir_data	*data = a->data;
-	u_int			 i;
+	struct fetch_maildir_data	*data = a->data;
+	u_int			 	 i;
 
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++)
 		xfree(ARRAY_ITEM(data->paths, i, char *));
@@ -144,7 +144,7 @@ maildir_freepaths(struct account *a)
 int
 fetch_maildir_connect(struct account *a)
 {
-	struct maildir_data	*data = a->data;
+	struct fetch_maildir_data	*data = a->data;
 
 	data->dirp = NULL;
 
@@ -160,12 +160,12 @@ fetch_maildir_connect(struct account *a)
 int
 fetch_maildir_poll(struct account *a, u_int *n)
 {
-	struct maildir_data	*data = a->data;
-	u_int			 i;
-	char			*path, entry[MAXPATHLEN];
-	DIR			*dirp;
-	struct dirent		*dp;
-	struct stat		 sb;
+	struct fetch_maildir_data	*data = a->data;
+	u_int				 i;
+	char				*path, entry[MAXPATHLEN];
+	DIR				*dirp;
+	struct dirent			*dp;
+	struct stat			 sb;
 
 	*n = 0;
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
@@ -205,11 +205,11 @@ fetch_maildir_poll(struct account *a, u_int *n)
 int
 fetch_maildir_fetch(struct account *a, struct mail *m)
 {
-	struct maildir_data	*data = a->data;
-	struct dirent		*dp;
-	char	       		*ptr, path[MAXPATHLEN];
-	struct stat		 sb;
-	int			 fd;
+	struct fetch_maildir_data	*data = a->data;
+	struct dirent			*dp;
+	char	       			*ptr, path[MAXPATHLEN];
+	struct stat			 sb;
+	int				 fd;
 
 restart:
 	if (data->dirp == NULL) {
@@ -298,7 +298,7 @@ restart:
 int
 fetch_maildir_delete(struct account *a)
 {
-	struct maildir_data	*data = a->data;
+	struct fetch_maildir_data	*data = a->data;
 
 	if (unlink(data->entry) != 0) {
 		log_warn("%s: %s: unlink", a->name, data->entry);
@@ -311,7 +311,7 @@ fetch_maildir_delete(struct account *a)
 int
 fetch_maildir_disconnect(struct account *a)
 {
-	struct maildir_data	*data = a->data;
+	struct fetch_maildir_data	*data = a->data;
 
 	maildir_freepaths(a);
 
@@ -324,8 +324,8 @@ fetch_maildir_disconnect(struct account *a)
 void
 fetch_maildir_desc(struct account *a, char *buf, size_t len)
 {
-	struct maildir_data	*data = a->data;
-	char			*maildirs;
+	struct fetch_maildir_data	*data = a->data;
+	char				*maildirs;
 
 	maildirs = fmt_strings("maildirs ", data->maildirs);
 	strlcpy(buf, maildirs, len);

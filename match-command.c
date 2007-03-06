@@ -34,11 +34,11 @@ struct match match_command = {
 int
 match_command_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct command_data	*data = ei->data;
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct io		*io = mctx->io;
-	struct msg		 msg;
+	struct match_command_data	*data = ei->data;
+	struct account			*a = mctx->account;
+	struct mail			*m = mctx->mail;
+	struct io			*io = mctx->io;
+	struct msg			 msg;
 
 	/* we are called as the child so to change uid this needs to be done
 	   largely in the parent */
@@ -66,9 +66,9 @@ match_command_match(struct match_ctx *mctx, struct expritem *ei)
 void
 match_command_desc(struct expritem *ei, char *buf, size_t len)
 {
-	struct command_data	*data = ei->data;
-	char			ret[11];
-	const char		*type;
+	struct match_command_data	*data = ei->data;
+	char				ret[11];
+	const char			*type;
 
 	*ret = '\0';
 	if (data->ret != -1)

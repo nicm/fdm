@@ -36,10 +36,10 @@ struct deliver deliver_stdout = {
 int
 deliver_stdout_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account		*a = dctx->account;
-	struct mail		*m = dctx->mail;
-	struct stdout_data	*data = t->data;
-        char			*from;
+	struct account			*a = dctx->account;
+	struct mail			*m = dctx->mail;
+	struct deliver_stdout_data	*data = t->data;
+        char				*from;
 
 	log_debug("%s: writing to stdout", a->name);
 	
@@ -69,7 +69,7 @@ deliver_stdout_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 deliver_stdout_desc(struct action *t, char *buf, size_t len)
 {
-	struct stdout_data	*data = t->data;
+	struct deliver_stdout_data	*data = t->data;
 
 	xsnprintf(buf, len, "stdout%s", data->add_from ? " add-from" : "");
 }

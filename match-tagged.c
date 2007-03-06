@@ -35,8 +35,8 @@ struct match match_tagged = {
 int
 match_tagged_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct tagged_data	*data = ei->data;
-	struct mail		*m = mctx->mail;
+	struct match_tagged_data	*data = ei->data;
+	struct mail			*m = mctx->mail;
 
 	if (match_tag(m->tags, data->tag) != NULL)
 		return (MATCH_TRUE);
@@ -46,7 +46,7 @@ match_tagged_match(struct match_ctx *mctx, struct expritem *ei)
 void
 match_tagged_desc(struct expritem *ei, char *buf, size_t len)
 {
-	struct tagged_data	*data = ei->data;
+	struct match_tagged_data	*data = ei->data;
 
 	xsnprintf(buf, len, "tagged %s", data->tag);
 }

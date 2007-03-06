@@ -81,16 +81,16 @@ age_tzlookup(const char *tz, int *off)
 int
 match_age_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct age_data	*data = ei->data;
-	struct account	*a = mctx->account;
-	struct mail	*m = mctx->mail;
-	char		*s, *ptr, *endptr, *hdr;
-	const char	*errstr;
-	size_t		 len;
-	struct tm	 tm;
-	time_t		 then, now;
-	long long	 diff;
-	int		 tz;
+	struct match_age_data	*data = ei->data;
+	struct account		*a = mctx->account;
+	struct mail		*m = mctx->mail;
+	char			*s, *ptr, *endptr, *hdr;
+	const char		*errstr;
+	size_t			 len;
+	struct tm		 tm;
+	time_t			 then, now;
+	long long		 diff;
+	int			 tz;
 
 	memset(&tm, 0, sizeof tm);
 
@@ -174,7 +174,7 @@ invalid:
 void
 match_age_desc(struct expritem *ei, char *buf, size_t len)
 {
-	struct age_data	*data = ei->data;
+	struct match_age_data	*data = ei->data;
 	const char		*cmp = "";
 
 	if (data->time < 0) {

@@ -64,14 +64,14 @@ smtp_code(char *line)
 int
 deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account		*a = dctx->account;
-	struct mail		*m = dctx->mail;
-	struct smtp_data	*data = t->data;
-	int		 	 done, code;
-	struct io		*io;
-	char			*cause, *to, *from, *line, *ptr, *lbuf;
-	enum smtp_state		 state;
-	size_t		 	 len, llen;
+	struct account			*a = dctx->account;
+	struct mail			*m = dctx->mail;
+	struct deliver_smtp_data	*data = t->data;
+	int		 		 done, code;
+	struct io			*io;
+	char				*cause, *to, *from, *line, *ptr, *lbuf;
+	enum smtp_state			 state;
+	size_t		 		 len, llen;
 
 	io = connectproxy(&data->server, conf.proxy, IO_CRLF,
 	    conf.timeout * 1000, &cause);
@@ -197,7 +197,7 @@ error:
 void
 deliver_smtp_desc(struct action *t, char *buf, size_t len)
 {
-	struct smtp_data	*data = t->data;
+	struct deliver_smtp_data	*data = t->data;
 
 	xsnprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,

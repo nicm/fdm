@@ -34,12 +34,12 @@ struct match match_attachment = {
 int
 match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct attachment_data	*data = ei->data;
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct attach		*at;
-	size_t			 size;
-	u_int			 n;
+	struct match_attachment_data	*data = ei->data;
+	struct account			*a = mctx->account;
+	struct mail			*m = mctx->mail;
+	struct attach			*at;
+	size_t				 size;
+	u_int				 n;
 
 	if (!m->attach_built) {
 		/* fill attachments */
@@ -149,8 +149,8 @@ match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 void
 match_attachment_desc(struct expritem *ei, char *buf, size_t len)
 {
-	struct attachment_data	*data = ei->data;
-	const char 		*cmp = "";
+	struct match_attachment_data	*data = ei->data;
+	const char 			*cmp = "";
 
 	if (data->cmp == CMP_LT)
 		cmp = "<";

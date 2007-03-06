@@ -66,7 +66,7 @@ imap_okay(struct account *a, char *line)
 int
 imap_init(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	ARRAY_INIT(&data->kept);
 
@@ -81,7 +81,7 @@ imap_init(struct account *a)
 int
 imap_free(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	ARRAY_FREE(&data->kept);
 
@@ -93,7 +93,7 @@ imap_free(struct account *a)
 int
 imap_login(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if ((line = data->getln(a, IMAP_UNTAGGED)) == NULL)
@@ -129,7 +129,7 @@ imap_login(struct account *a)
 int
 imap_select(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if (data->putln(a, "%u SELECT %s", ++data->tag, data->folder) != 0)
@@ -150,7 +150,7 @@ imap_select(struct account *a)
 int
 imap_close(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if (data->putln(a, "%u CLOSE", ++data->tag) != 0)
@@ -166,7 +166,7 @@ imap_close(struct account *a)
 int
 imap_logout(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if (data->putln(a, "%u LOGOUT", ++data->tag) != 0)
@@ -182,7 +182,7 @@ imap_logout(struct account *a)
 void
 imap_abort(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	data->putln(a, "%u LOGOUT", ++data->tag);
 	data->flush(a);
@@ -191,7 +191,7 @@ imap_abort(struct account *a)
 int
 imap_poll(struct account *a, u_int *n)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	*n = data->num;
 
@@ -201,7 +201,7 @@ imap_poll(struct account *a, u_int *n)
 int
 imap_fetch(struct account *a, struct mail *m)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line, *ptr;
 	u_int	 		 n, i, lines;
 	size_t	 		 size, off, len;
@@ -341,7 +341,7 @@ restart:
 int
 imap_keep(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	ARRAY_ADD(&data->kept, data->uid, u_int);
 
@@ -351,7 +351,7 @@ imap_keep(struct account *a)
 int
 imap_delete(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if (data->putln(a, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
@@ -368,7 +368,7 @@ imap_delete(struct account *a)
 int
 imap_purge(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if (data->putln(a, "%u EXPUNGE", ++data->tag) != 0)

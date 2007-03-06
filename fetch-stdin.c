@@ -51,7 +51,7 @@ struct fetch fetch_stdin = {
 int
 fetch_stdin_connect(struct account *a)
 {
-	struct stdin_data	*data = a->data;
+	struct fetch_stdin_data	*data = a->data;
 
 	if (isatty(STDIN_FILENO)) {
 		log_warnx("%s: stdin is a tty. ignoring", a->name);
@@ -77,7 +77,7 @@ fetch_stdin_connect(struct account *a)
 int
 fetch_stdin_disconnect(struct account *a)
 {
-	struct stdin_data	*data = a->data;
+	struct fetch_stdin_data	*data = a->data;
 
 	io_free(data->io);
 
@@ -89,7 +89,7 @@ fetch_stdin_disconnect(struct account *a)
 int
 fetch_stdin_delete(struct account *a)
 {
-	struct stdin_data	*data = a->data;
+	struct fetch_stdin_data	*data = a->data;
 	char		        *line, *lbuf;
 	size_t			 llen;
 
@@ -106,7 +106,7 @@ fetch_stdin_delete(struct account *a)
 int
 fetch_stdin_fetch(struct account *a, struct mail *m)
 {
-	struct stdin_data	*data = a->data;
+	struct fetch_stdin_data	*data = a->data;
 	u_int			 lines;
 	int		 	 error, bodylines;
 	char			*line, *cause, *lbuf;

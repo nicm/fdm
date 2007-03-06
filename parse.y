@@ -2110,7 +2110,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
 /**        [$4: strv (char *)] [$6: strv (char *)] */
            {
-		   struct pop3_data	*data;
+		   struct fetch_pop3_data	*data;
 
 		   if (*$4 == '\0')
 			   yyerror("invalid user");
@@ -2134,7 +2134,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$4: strv (char *)] [$6: strv (char *)] [$7: folder (char *)] */
            {
-		   struct imap_data	*data;
+		   struct fetch_imap_data	*data;
 
 		   if (*$4 == '\0')
 			   yyerror("invalid user");
@@ -2161,8 +2161,8 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$3: strv (char *)] */
 /**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
 	   {
-		   struct imap_data	*data;
-		   struct strb		*tags;
+		   struct fetch_imap_data	*data;
+		   struct strb			*tags;
 
 		   if ($5 != NULL && *$5 == '\0')
 			   yyerror("invalid folder");
@@ -2182,7 +2182,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 	   }
 	 | TOKSTDIN
 	   {
-		   struct stdin_data	*data;
+		   struct fetch_stdin_data	*data;
 
 		   $$.fetch = &fetch_stdin;
 		   data = xcalloc(1, sizeof *data);
@@ -2191,7 +2191,7 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
          | maildirs
 /**        [$1: maildirs (struct strings *)] */
 	   {
-		   struct maildir_data	*data;
+		   struct fetch_maildir_data	*data;
 
 		   $$.fetch = &fetch_maildir;
 		   data = xcalloc(1, sizeof *data);
@@ -2202,8 +2202,8 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 /**        [$2: server (struct { ... } server)] */
 /**        [$3: groups (struct strings *)] [$5: strv (char *)] */
            {
-		   struct nntp_data	*data;
-		   char			*group;
+		   struct fetch_nntp_data	*data;
+		   char				*group;
 		   struct strb		*tags;
 
 		   if (*$5 == '\0')

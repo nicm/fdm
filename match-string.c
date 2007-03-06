@@ -35,11 +35,11 @@ struct match match_string = {
 int
 match_string_match(struct match_ctx *mctx, struct expritem *ei)
 {
-	struct string_data	*data = ei->data;
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	int			 res;
-	char			*s, *cause;
+	struct match_string_data	*data = ei->data;
+	struct account			*a = mctx->account;
+	struct mail			*m = mctx->mail;
+	int				 res;
+	char				*s, *cause;
 
 	if (!mctx->pm_valid) {
 		log_warnx("%s: string match but no regexp match data", a->name);
@@ -66,7 +66,7 @@ match_string_match(struct match_ctx *mctx, struct expritem *ei)
 void
 match_string_desc(struct expritem *ei, char *buf, size_t len)
 {
-	struct string_data	*data = ei->data;
+	struct match_string_data	*data = ei->data;
 
 	xsnprintf(buf, len, "string \"%s\" to \"%s\"", data->str, data->re.str);
 }

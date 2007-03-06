@@ -299,7 +299,7 @@ struct strb {
 #define STRBENTRIES 64
 #define STRBBLOCK 512
 
-/* String block acsess macros. */
+/* String block access macros. */
 #define STRB_KEY(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + sbe->key)
 #define STRB_VALUE(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + sbe->value)
 
@@ -600,18 +600,18 @@ enum msgtype {
 
 /* Privsep message data. */
 struct msgdata {
-	int	 	 	 error;
-	struct mail	 	 mail;
+	int	 		 	 error;
+	struct mail		 	 mail;
 
-	int		 	 pm_valid;
-	regmatch_t	 	 pm[NPMATCH];
+	int		 	 	 pm_valid;
+	regmatch_t	 		 pm[NPMATCH];
 
 	/* these only work so long as they aren't moved in either process */
-	struct account		*account;
-	struct action		*action;
-	struct command_data	*cmddata;
+	struct account			*account;
+	struct action			*action;
+	struct match_command_data	*cmddata;
 
-	uid_t		 	 uid;
+	uid_t			 	 uid;
 };
 
 /* Privsep message. */

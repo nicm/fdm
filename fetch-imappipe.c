@@ -48,7 +48,7 @@ struct fetch fetch_imappipe = {
 int printflike2
 imappipe_putln(struct account *a, const char *fmt, ...)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	va_list	ap;
 
@@ -62,7 +62,7 @@ imappipe_putln(struct account *a, const char *fmt, ...)
 char *
 imappipe_getln(struct account *a, int type)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
 	size_t			*llen = &data->llen;
 	char			*out, *err, *cause;
@@ -120,7 +120,7 @@ invalid:
 void
 imappipe_flush(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	io_flush(data->cmd->io_in, NULL);
 }
@@ -128,7 +128,7 @@ imappipe_flush(struct account *a)
 int
 fetch_imappipe_connect(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 	char			*cause;
 
 	data->cmd = cmd_start(data->pipecmd, CMD_IN|CMD_OUT, NULL, 0, &cause);
@@ -161,7 +161,7 @@ fetch_imappipe_connect(struct account *a)
 int
 fetch_imappipe_disconnect(struct account *a)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	if (imap_close(a) != 0)
 		goto error;
@@ -183,7 +183,7 @@ error:
 void
 fetch_imappipe_desc(struct account *a, char *buf, size_t len)
 {
-	struct imap_data	*data = a->data;
+	struct fetch_imap_data	*data = a->data;
 
 	if (data->user == NULL) {
 		xsnprintf(buf, len, "imap pipe \"%s\" folder \"%s\"",

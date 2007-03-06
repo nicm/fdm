@@ -87,7 +87,7 @@ nntp_code(char *line)
 char *
 nntp_line(struct account *a, char **lbuf, size_t *llen)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	char			*line, *cause;
 
 	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
@@ -166,7 +166,7 @@ nntp_parse223(char *line, u_int *n, char **id)
 int
 nntp_group(struct account *a, char **lbuf, size_t *llen)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	struct nntp_group	*group;
 	char			*line, *id;
 	u_int			 n, last;
@@ -232,7 +232,7 @@ invalid:
 int
 nntp_load(struct account *a)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	struct nntp_group	*group;
 	int			 fd = -1, fd2;
 	FILE			*f = NULL;
@@ -317,7 +317,7 @@ error:
 int
 nntp_save(struct account *a)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	struct nntp_group	*group;
 	char			 tmp[MAXPATHLEN];
 	int			 fd = -1;
@@ -367,7 +367,7 @@ error:
 int
 fetch_nntp_init(struct account *a)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	struct nntp_group	*group;
 	u_int			 i;
 
@@ -388,7 +388,7 @@ fetch_nntp_init(struct account *a)
 int
 fetch_nntp_free(struct account *a)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	struct nntp_group	*group;
 	u_int			 i;
 
@@ -407,7 +407,7 @@ fetch_nntp_free(struct account *a)
 int
 fetch_nntp_connect(struct account *a)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	char			*lbuf, *line, *cause;
 	size_t			 llen;
 
@@ -460,7 +460,7 @@ error:
 int
 fetch_nntp_disconnect(struct account *a)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	char			*lbuf, *line;
 	size_t			 llen;
 
@@ -493,7 +493,7 @@ error:
 int
 fetch_nntp_poll(struct account *a, u_int *n)
 {
-	struct nntp_data       	*data = a->data;
+	struct fetch_nntp_data       	*data = a->data;
 	char			*lbuf;
 	size_t			 llen;
 
@@ -524,7 +524,7 @@ error:
 int
 fetch_nntp_fetch(struct account *a, struct mail *m)
 {
-	struct nntp_data      	*data = a->data;
+	struct fetch_nntp_data      	*data = a->data;
 	struct nntp_group	*group;
 	char			*lbuf, *line, *id;
 	size_t			 llen, off, len;
@@ -624,7 +624,7 @@ error:
 void
 fetch_nntp_desc(struct account *a, char *buf, size_t len)
 {
-	struct nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;
 	char			*names;
 
 	names = fmt_strings("groups ", data->names);
