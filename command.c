@@ -158,7 +158,10 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 	size_t		 len;
 
 	/* retrieve a line if possible */
-	*err = *out = NULL;
+	if (err != NULL)
+		*err = NULL;
+	if (out != NULL)
+		*out = NULL;
 	if (cmd->io_err != NULL) {
 		if (lbuf != NULL)
 			*err = io_readline2(cmd->io_err, lbuf, llen);
