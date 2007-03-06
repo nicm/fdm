@@ -61,7 +61,7 @@ struct fetch_maildir_data {
 };
 
 /* NNTP group entry. */
-struct nntp_group {
+struct fetch_nntp_group {
 	char		*name;
 	int		 ignore;
 
@@ -70,9 +70,6 @@ struct nntp_group {
 	char		*id;
 };
 
-/* NNTP group list. */
-ARRAY_DECL(nntp_groups, struct nntp_group *);
-
 /* Fetch nntp data. */
 struct fetch_nntp_data {
 	char		*path;
@@ -80,15 +77,11 @@ struct fetch_nntp_data {
 	struct server	 server;
 	struct strings	*names;
 
-	u_int		 group;
-	struct nntp_groups groups;
+	u_int			 group;
+	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
 	struct io	*io;
 };
-#define GET_GROUP(d, i) ARRAY_ITEM(&d->groups, i, struct nntp_group *)
-#define CURRENT_GROUP(d) GET_GROUP(d, d->group)
-#define TOTAL_GROUPS(d) ARRAY_LENGTH(&d->groups)
-#define ADD_GROUP(d, g) ARRAY_ADD(&d->groups, g, struct nntp_group *)
 
 /* Fetch stdin data. */
 struct fetch_stdin_data {

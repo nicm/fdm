@@ -48,6 +48,11 @@ int	nntp_parse223(char *, u_int *, char **);
 int	nntp_load(struct account *);
 int	nntp_save(struct account *);
 
+#define GET_GROUP(d, i) ARRAY_ITEM(&d->groups, i, struct fetch_nntp_group *)
+#define CURRENT_GROUP(d) GET_GROUP(d, d->group)
+#define TOTAL_GROUPS(d) ARRAY_LENGTH(&d->groups)
+#define ADD_GROUP(d, g) ARRAY_ADD(&d->groups, g, struct fetch_nntp_group *)
+
 struct fetch fetch_nntp = {
 	{ "nntp", NULL },
 	fetch_nntp_init,
@@ -167,7 +172,7 @@ int
 nntp_group(struct account *a, char **lbuf, size_t *llen)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct nntp_group	*group;
+	struct fetch_nntp_group	*group;
 	char			*line, *id;
 	u_int			 n, last;
 
@@ -233,7 +238,7 @@ int
 nntp_load(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct nntp_group	*group;
+	struct fetch_nntp_group	*group;
 	int			 fd = -1, fd2;
 	FILE			*f = NULL;
 	char			*name, *id;
@@ -318,7 +323,7 @@ int
 nntp_save(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct nntp_group	*group;
+	struct fetch_nntp_group	*group;
 	char			 tmp[MAXPATHLEN];
 	int			 fd = -1;
 	FILE			*f = NULL;
@@ -368,7 +373,7 @@ int
 fetch_nntp_init(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct nntp_group	*group;
+	struct fetch_nntp_group	*group;
 	u_int			 i;
 
 	ARRAY_INIT(&data->groups);
@@ -389,7 +394,7 @@ int
 fetch_nntp_free(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct nntp_group	*group;
+	struct fetch_nntp_group	*group;
 	u_int			 i;
 
 	for (i = 0; i < TOTAL_GROUPS(data); i++) {
@@ -524,8 +529,8 @@ error:
 int
 fetch_nntp_fetch(struct account *a, struct mail *m)
 {
-	struct fetch_nntp_data      	*data = a->data;
-	struct nntp_group	*group;
+	struct fetch_nntp_data 	*data = a->data;
+	struct fetch_nntp_group	*group;
 	char			*lbuf, *line, *id;
 	size_t			 llen, off, len;
 	u_int			 lines, n;

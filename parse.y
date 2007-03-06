@@ -1233,7 +1233,7 @@ action: TOKPIPE strv
       | TOKADDHEADER strv strv
 /**     [$2: strv (char *)] [$3: strv (char *)] */
 	{
-		struct add_header_data	*data;
+		struct deliver_add_header_data	*data;
 
 		if (*$2 == '\0')
 			yyerror("invalid header");
@@ -1259,7 +1259,7 @@ action: TOKPIPE strv
       | TOKMBOX strv compress
 /**     [$2: strv (char *)] [$3: compress (int)] */
 	{
-		struct mbox_data	*data;
+		struct deliver_mbox_data	*data;
 
 		if (*$2 == '\0')
 			yyerror("invalid path");
@@ -1275,7 +1275,7 @@ action: TOKPIPE strv
       | TOKSMTP server to
 /**     [$2: server (struct { ... } server)] [$3: to (char *)] */
 	{
-		struct smtp_data	*data;
+		struct deliver_smtp_data	*data;
 
 		$$.deliver = &deliver_smtp;
 
@@ -1290,7 +1290,7 @@ action: TOKPIPE strv
       | TOKSTDOUT addfrom
 /**     [$2: addfrom (int)] */
 	{
-		struct stdout_data	*data;
+		struct deliver_stdout_data	*data;
 
 		$$.deliver = &deliver_stdout;
 
@@ -1532,9 +1532,9 @@ expritem: not icase strv area
 /**       [$1: not (int)] [$2: icase (int)] [$3: strv (char *)] */
 /**       [$4: area (enum area)] */
           {
-		  struct regexp_data	*data;
-		  int	 		 flags;
-		  char			*cause;
+		  struct match_regexp_data	*data;
+		  int	 			 flags;
+		  char				*cause;
 
 		  $$ = xcalloc(1, sizeof *$$);
 		  $$->match = &match_regexp;
@@ -1555,9 +1555,9 @@ expritem: not icase strv area
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
 /**       [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */
 	  {
-		  struct command_data	*data;
-		  int	 		 flags;
-		  char			*cause;
+		  struct match_command_data	*data;
+		  int	 			 flags;
+		  char				*cause;
 
 		  if (*$3 == '\0' || ($3[0] == '|' && $3[1] == '\0'))
 			  yyerror("invalid command");
@@ -1587,7 +1587,7 @@ expritem: not icase strv area
 	| not TOKTAGGED strv
 /**       [$1: not (int)] [$3: strv (char *)] */
 	  {
-		  struct tagged_data	*data;
+		  struct match_tagged_data	*data;
 
 		  if (*$3 == '\0')
 			  yyerror("invalid tag");
@@ -1605,7 +1605,7 @@ expritem: not icase strv area
         | not TOKSIZE cmp size
 /**       [$1: not (int)] [$3: cmp (enum cmp)] [$4: size (long long)] */
 	  {
-		  struct size_data	*data;
+		  struct match_size_data	*data;
 
 #if SIZE_MAX < LLONG_MAX
 		  if ($4 > SIZE_MAX)
@@ -1626,9 +1626,9 @@ expritem: not icase strv area
         | not TOKSTRING strv TOKTO strv
 /**       [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
 	  {
-		  struct string_data	*data;
-		  int	 		 flags;
-		  char			*cause;
+		  struct match_string_data	*data;
+		  int	 			 flags;
+		  char				*cause;
 
 		  if (*$3 == '\0')
 			  yyerror("invalid string");
@@ -1666,7 +1666,7 @@ expritem: not icase strv area
         | not TOKAGE cmp time
 /**       [$1: not (int)] [$3: cmp (enum cmp)] [$4: time (long long)] */
 	  {
-		  struct age_data	*data;
+		  struct match_age_data	*data;
 
 		  if ($4 == 0)
 			  yyerror("invalid time");
@@ -1685,7 +1685,7 @@ expritem: not icase strv area
         | not TOKAGE TOKINVALID
 /**       [$1: not (int)] */
 	  {
-		  struct age_data	*data;
+		  struct match_age_data	*data;
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1700,7 +1700,7 @@ expritem: not icase strv area
         | not TOKATTACHMENT TOKCOUNT cmp2 numv
 /**       [$1: not (int)] [$4: cmp2 (enum cmp)] [$5: numv (long long)] */
 	  {
-		  struct attachment_data	*data;
+		  struct match_attachment_data	*data;
 
 		  $$ = xcalloc(1, sizeof *$$);
 
@@ -1717,7 +1717,7 @@ expritem: not icase strv area
         | not TOKATTACHMENT TOKTOTALSIZE cmp size
 /**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: size (long long)] */
 	  {
-		  struct attachment_data	*data;
+		  struct match_attachment_data	*data;
 
 #if SIZE_MAX < LLONG_MAX
 		  if ($5 > SIZE_MAX)
@@ -1739,7 +1739,7 @@ expritem: not icase strv area
         | not TOKATTACHMENT TOKANYSIZE cmp size
 /**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: size (long long)] */
 	  {
-		  struct attachment_data	*data;
+		  struct match_attachment_data	*data;
 
 #if SIZE_MAX < LLONG_MAX
 		  if ($5 > SIZE_MAX)
@@ -1761,7 +1761,7 @@ expritem: not icase strv area
         | not TOKATTACHMENT TOKANYTYPE strv
 /**       [$1: not (int)] [$4: strv (char *)] */
 	  {
-		  struct attachment_data	*data;
+		  struct match_attachment_data	*data;
 
 		  if (*$4 == '\0')
 			  yyerror("invalid string");
@@ -1780,7 +1780,7 @@ expritem: not icase strv area
         | not TOKATTACHMENT TOKANYNAME strv
 /**       [$1: not (int)] [$4: strv (char *)] */
 	  {
-		  struct attachment_data	*data;
+		  struct match_attachment_data	*data;
 
 		  if (*$4 == '\0')
 			  yyerror("invalid string");
