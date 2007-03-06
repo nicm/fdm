@@ -28,7 +28,7 @@
 int	match_age_match(struct match_ctx *, struct expritem *);
 void	match_age_desc(struct expritem *, char *, size_t);
 
-int	age_tzlookup(const char *, int *);
+int	match_age_tzlookup(const char *, int *);
 
 struct match match_age = {
 	match_age_match,
@@ -43,7 +43,7 @@ struct match match_age = {
  * using tzset, which catches the few most common abbreviations.
  */
 int
-age_tzlookup(const char *tz, int *off)
+match_age_tzlookup(const char *tz, int *off)
 {
 	char		*saved_tz;
 	struct tm	*tm;
@@ -131,7 +131,7 @@ match_age_match(struct match_ctx *mctx, struct expritem *ei)
 	tz = strtonum(endptr, -2359, 2359, &errstr);
 	if (errstr != NULL) {
 		/* try it using tzset */
-		if (age_tzlookup(endptr, &tz) != 0) {
+		if (match_age_tzlookup(endptr, &tz) != 0) {
 			xfree(s);
 			goto invalid;
 		}

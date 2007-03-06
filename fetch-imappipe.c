@@ -27,9 +27,9 @@ int	 	 fetch_imappipe_connect(struct account *);
 int	 	 fetch_imappipe_disconnect(struct account *);
 void		 fetch_imappipe_desc(struct account *, char *, size_t);
 
-int printflike2	 imappipe_putln(struct account *, const char *, ...);
-char	        *imappipe_getln(struct account *, int);
-void		 imappipe_flush(struct account *);
+int printflike2	 fetch_imappipe_putln(struct account *, const char *, ...);
+char	        *fetch_imappipe_getln(struct account *, int);
+void		 fetch_imappipe_flush(struct account *);
 
 struct fetch fetch_imappipe = {
 	{ NULL, NULL },
@@ -46,7 +46,7 @@ struct fetch fetch_imappipe = {
 };
 
 int printflike2
-imappipe_putln(struct account *a, const char *fmt, ...)
+fetch_imappipe_putln(struct account *a, const char *fmt, ...)
 {
 	struct fetch_imap_data	*data = a->data;
 
@@ -60,7 +60,7 @@ imappipe_putln(struct account *a, const char *fmt, ...)
 }
 
 char *
-imappipe_getln(struct account *a, int type)
+fetch_imappipe_getln(struct account *a, int type)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
@@ -118,7 +118,7 @@ invalid:
 }
 
 void
-imappipe_flush(struct account *a)
+fetch_imappipe_flush(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
@@ -142,9 +142,9 @@ fetch_imappipe_connect(struct account *a)
 		data->cmd->io_out->dup_fd = STDOUT_FILENO;
 	}
 
-	data->getln = imappipe_getln;
-	data->putln = imappipe_putln;
-	data->flush = imappipe_flush;
+	data->getln = fetch_imappipe_getln;
+	data->putln = fetch_imappipe_putln;
+	data->flush = fetch_imappipe_flush;
 	data->src = NULL;
 
 	if (imap_login(a) != 0)

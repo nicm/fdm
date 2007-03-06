@@ -39,14 +39,15 @@ int	fetch_nntp_delete(struct account *);
 int	fetch_nntp_keep(struct account *);
 void	fetch_nntp_desc(struct account *, char *, size_t);
 
-int	nntp_code(char *);
-char   *nntp_line(struct account *, char **, size_t *);
-char   *nntp_check(struct account *, char **, size_t *, int *, u_int, ...);
-int	nntp_group(struct account *, char **, size_t *);
-int	nntp_parse223(char *, u_int *, char **);
+int	fetch_nntp_code(char *);
+char   *fetch_nntp_line(struct account *, char **, size_t *);
+char   *fetch_nntp_check(struct account *, char **, size_t *, int *, u_int,
+	    ...);
+int	fetch_nntp_group(struct account *, char **, size_t *);
+int	fetch_nntp_parse223(char *, u_int *, char **);
 
-int	nntp_load(struct account *);
-int	nntp_save(struct account *);
+int	fetch_nntp_load(struct account *);
+int	fetch_nntp_save(struct account *);
 
 #define GET_GROUP(d, i) ARRAY_ITEM(&d->groups, i, struct fetch_nntp_group *)
 #define CURRENT_GROUP(d) GET_GROUP(d, d->group)
@@ -59,7 +60,7 @@ struct fetch fetch_nntp = {
 	fetch_nntp_connect,
 	fetch_nntp_poll,
 	fetch_nntp_fetch,
-	nntp_save,
+	fetch_nntp_save,
 	NULL,
 	NULL,
 	fetch_nntp_disconnect,
@@ -68,7 +69,7 @@ struct fetch fetch_nntp = {
 };
 
 int
-nntp_code(char *line)
+fetch_nntp_code(char *line)
 {
 	char		 ch;
 	const char	*errstr;
@@ -90,7 +91,7 @@ nntp_code(char *line)
 }
 
 char *
-nntp_line(struct account *a, char **lbuf, size_t *llen)
+fetch_nntp_line(struct account *a, char **lbuf, size_t *llen)
 {
 	struct fetch_nntp_data	*data = a->data;
 	char			*line, *cause;
@@ -109,7 +110,8 @@ nntp_line(struct account *a, char **lbuf, size_t *llen)
 }
 
 char *
-nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
+fetch_nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, 
+    u_int n, ...)
 {
 	char	*line;
 	va_list	 ap;
@@ -120,10 +122,10 @@ nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, u_int n, ...)
 		cdp = &code;
 
 	do {
-		if ((line = nntp_line(a, lbuf, llen)) == NULL)
+		if ((line = fetch_nntp_line(a, lbuf, llen)) == NULL)
 			return (NULL);
 
-		*cdp = nntp_code(line);
+		*cdp = fetch_nntp_code(line);
 		if (*cdp == -1)
 			goto error;
 	} while (*cdp >= 100 && *cdp <= 199);
@@ -146,7 +148,7 @@ error:
 }
 
 int
-nntp_parse223(char *line, u_int *n, char **id)
+fetch_nntp_parse223(char *line, u_int *n, char **id)
 {
 	char	*ptr, *ptr2;
 
@@ -169,7 +171,7 @@ nntp_parse223(char *line, u_int *n, char **id)
 }
 
 int
-nntp_group(struct account *a, char **lbuf, size_t *llen)
+fetch_nntp_group(struct account *a, char **lbuf, size_t *llen)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
@@ -180,7 +182,7 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	log_debug("%s: fetching group: %s", a->name, group->name);
 
 	io_writeline(data->io, "GROUP %s", group->name);
-	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)
+	if ((line = fetch_nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)
 		return (1);
 	if (sscanf(line, "211 %u %*u %u", &group->size, &last) != 2) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -195,10 +197,10 @@ nntp_group(struct account *a, char **lbuf, size_t *llen)
 	group->size = last - group->last;
 
 	io_writeline(data->io, "STAT %u", group->last);
-	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 223)) == NULL)
+	if ((line = fetch_nntp_check(a, lbuf, llen, NULL, 1, 223)) == NULL)
 		return (1);
 
-	if (nntp_parse223(line, &n, &id) != 0)
+	if (fetch_nntp_parse223(line, &n, &id) != 0)
 		goto invalid;
 	if (n != group->last) {
 		log_warnx("%s: unexpected message number", a->name);
@@ -218,7 +220,7 @@ invalid:
 	log_warnx("%s: last message not found. resetting group", a->name);
 
 	io_writeline(data->io, "GROUP %s", group->name);
-	if ((line = nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)
+	if ((line = fetch_nntp_check(a, lbuf, llen, NULL, 1, 211)) == NULL)
 		return (1);
 	if (sscanf(line, "211 %u %*u %*u", &group->size) != 1) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -235,7 +237,7 @@ invalid:
 }
 
 int
-nntp_load(struct account *a)
+fetch_nntp_load(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
@@ -289,8 +291,10 @@ nntp_load(struct account *a)
 				break;
 		}
 		if (i == TOTAL_GROUPS(data)) {
-			/* not found. add it so it is saved when nntp_save is
-			   called, but with ignore set so it is fetched */
+			/*
+			 * Not found. add it so it is saved when the file is
+			 * resaved, but with ignore set so it isn't fetched.
+			 */
 			group = xcalloc(1, sizeof *group);
 			ADD_GROUP(data, group);
 			group->ignore = 1;
@@ -320,7 +324,7 @@ error:
 }
 
 int
-nntp_save(struct account *a)
+fetch_nntp_save(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
@@ -429,7 +433,7 @@ fetch_nntp_connect(struct account *a)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	if (nntp_load(a) != 0)
+	if (fetch_nntp_load(a) != 0)
 		goto error;
 	data->group = 0;
 	if (CURRENT_GROUP(data)->ignore) {
@@ -442,10 +446,10 @@ fetch_nntp_connect(struct account *a)
 		} while (CURRENT_GROUP(data)->ignore);
 	}
 
-	if ((line = nntp_check(a, &lbuf, &llen, NULL, 1, 200)) == NULL)
+	if ((line = fetch_nntp_check(a, &lbuf, &llen, NULL, 1, 200)) == NULL)
 		goto error;
 
-	if (nntp_group(a, &lbuf, &llen) != 0)
+	if (fetch_nntp_group(a, &lbuf, &llen) != 0)
 		goto error;
 
 	xfree(lbuf);
@@ -469,13 +473,13 @@ fetch_nntp_disconnect(struct account *a)
 	char			*lbuf, *line;
 	size_t			 llen;
 
-	nntp_save(a);
+	fetch_nntp_save(a);
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
 	io_writeline(data->io, "QUIT");
-	if ((line = nntp_check(a, &lbuf, &llen, NULL, 1, 205)) == NULL)
+	if ((line = fetch_nntp_check(a, &lbuf, &llen, NULL, 1, 205)) == NULL)
 		goto error;
 
 	io_close(data->io);
@@ -513,7 +517,7 @@ fetch_nntp_poll(struct account *a, u_int *n)
 		if (CURRENT_GROUP(data)->ignore)
 			continue;
 
-		if (nntp_group(a, &lbuf, &llen) != 0)
+		if (fetch_nntp_group(a, &lbuf, &llen) != 0)
 			goto error;
 		(*n) += CURRENT_GROUP(data)->size;
 	}
@@ -541,7 +545,8 @@ fetch_nntp_fetch(struct account *a, struct mail *m)
 
 restart:
 	io_writeline(data->io, "NEXT");
-	if ((line = nntp_check(a, &lbuf, &llen, &code, 2, 223, 421)) == NULL)
+	line = fetch_nntp_check(a, &lbuf, &llen, &code, 2, 223, 421);
+	if (line == NULL)
 		goto error;
 	if (code == 421) {
 		do {
@@ -551,13 +556,13 @@ restart:
 				return (FETCH_COMPLETE);
 			}
 		} while (CURRENT_GROUP(data)->ignore);
-		if (nntp_group(a, &lbuf, &llen) != 0)
+		if (fetch_nntp_group(a, &lbuf, &llen) != 0)
 			goto error;
 		goto restart;
 	}
 
 	/* fill this in as the last article */
-	if (nntp_parse223(line, &n, &id) != 0) {
+	if (fetch_nntp_parse223(line, &n, &id) != 0) {
 		log_warnx("%s: malformed response: %s", a->name, line);
 		goto restart;
 	}
@@ -573,7 +578,7 @@ restart:
 
 	/* retrieve the article */
 	io_writeline(data->io, "ARTICLE");
-	line = nntp_check(a, &lbuf, &llen, &code, 3, 220, 423, 430);
+	line = fetch_nntp_check(a, &lbuf, &llen, &code, 3, 220, 423, 430);
 	if (line == NULL)
 		goto error;
 	if (code == 423 || code == 430)
@@ -588,7 +593,7 @@ restart:
 	flushing = 0;
 	off = lines = 0;
 	for (;;) {
-		if ((line = nntp_line(a, &lbuf, &llen)) == NULL)
+		if ((line = fetch_nntp_line(a, &lbuf, &llen)) == NULL)
 			goto error;
 
 		if (line[0] == '.' && line[1] == '.')

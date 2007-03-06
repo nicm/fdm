@@ -53,7 +53,7 @@ struct deliver {
 };
 
 /* Deliver smtp states. */
-enum smtp_state {
+enum deliver_smtp_state {
 	SMTP_CONNECTING,
 	SMTP_HELO,
 	SMTP_FROM,

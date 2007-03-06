@@ -38,8 +38,8 @@ int	fetch_pop3_delete(struct account *);
 int	fetch_pop3_keep(struct account *);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
-char   *pop3_line(struct account *, char **, size_t *);
-char   *pop3_check(struct account *, char **, size_t *);
+char   *fetch_pop3_line(struct account *, char **, size_t *);
+char   *fetch_pop3_check(struct account *, char **, size_t *);
 
 struct fetch fetch_pop3 = {
 	{ "pop3", "pop3s" },
@@ -56,7 +56,7 @@ struct fetch fetch_pop3 = {
 };
 
 char *
-pop3_line(struct account *a, char **lbuf, size_t *llen)
+fetch_pop3_line(struct account *a, char **lbuf, size_t *llen)
 {
 	struct fetch_pop3_data	*data = a->data;
 	char			*line, *cause;
@@ -75,11 +75,11 @@ pop3_line(struct account *a, char **lbuf, size_t *llen)
 }
 
 char *
-pop3_check(struct account *a, char **lbuf, size_t *llen)
+fetch_pop3_check(struct account *a, char **lbuf, size_t *llen)
 {
 	char	*line;
 
-	if ((line = pop3_line(a, lbuf, llen)) == NULL)
+	if ((line = fetch_pop3_line(a, lbuf, llen)) == NULL)
 		return (NULL);
 
 	if (strncmp(line, "+OK", 3) != 0) {
@@ -136,20 +136,20 @@ fetch_pop3_connect(struct account *a)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	if (pop3_check(a, &lbuf, &llen) == NULL)
+	if (fetch_pop3_check(a, &lbuf, &llen) == NULL)
 		goto error;
 
 	/* log the user in */
 	io_writeline(data->io, "USER %s", data->user);
-	if (pop3_check(a, &lbuf, &llen) == NULL)
+	if (fetch_pop3_check(a, &lbuf, &llen) == NULL)
 		goto error;
 	io_writeline(data->io, "PASS %s", data->pass);
-	if (pop3_check(a, &lbuf, &llen) == NULL)
+	if (fetch_pop3_check(a, &lbuf, &llen) == NULL)
 		goto error;
 
 	/* find the number of messages */
 	io_writeline(data->io, "STAT");
-	if ((line = pop3_check(a, &lbuf, &llen)) == NULL)
+	if ((line = fetch_pop3_check(a, &lbuf, &llen)) == NULL)
 		goto error;
 	if (sscanf(line, "+OK %u %*u", &data->num) != 1) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -182,7 +182,7 @@ fetch_pop3_disconnect(struct account *a)
 	lbuf = xmalloc(llen);
 
 	io_writeline(data->io, "QUIT");
-	if (pop3_check(a, &lbuf, &llen) == NULL)
+	if (fetch_pop3_check(a, &lbuf, &llen) == NULL)
 		goto error;
 
 	io_close(data->io);
@@ -231,7 +231,7 @@ fetch_pop3_fetch(struct account *a, struct mail *m)
 restart:
 	/* list the current message to get its size */
 	io_writeline(data->io, "LIST %u", data->cur);
-	if ((line = pop3_check(a, &lbuf, &llen)) == NULL)
+	if ((line = fetch_pop3_check(a, &lbuf, &llen)) == NULL)
 		goto error;
 	if (sscanf(line, "+OK %*u %zu", &size) != 1) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -249,7 +249,7 @@ restart:
 
 	/* find and store the UID */
 	io_writeline(data->io, "UIDL %u", data->cur);
-	if ((line = pop3_check(a, &lbuf, &llen)) == NULL)
+	if ((line = fetch_pop3_check(a, &lbuf, &llen)) == NULL)
 		goto error;
 	if (sscanf(line, "+OK %u ", &n) != 1) {
  		log_warnx("%s: invalid response: %s", a->name, line);
@@ -289,7 +289,7 @@ restart:
 
 	/* retrieve the message */
 	io_writeline(data->io, "RETR %u", data->cur);
-	if (pop3_check(a, &lbuf, &llen) == NULL)
+	if (fetch_pop3_check(a, &lbuf, &llen) == NULL)
 		goto error;
 
 	mail_open(m, IO_ROUND(size));
@@ -302,7 +302,7 @@ restart:
 	off = lines = 0;
 	bodylines = -1;
 	for (;;) {
-		if ((line = pop3_line(a, &lbuf, &llen)) == NULL)
+		if ((line = fetch_pop3_line(a, &lbuf, &llen)) == NULL)
 			goto error;
 
 		if (line[0] == '.' && line[1] == '.')
@@ -377,7 +377,7 @@ fetch_pop3_delete(struct account *a)
 	lbuf = xmalloc(llen);
 
 	io_writeline(data->io, "DELE %u", data->cur);
-	if (pop3_check(a, &lbuf, &llen) == NULL)
+	if (fetch_pop3_check(a, &lbuf, &llen) == NULL)
 		goto error;
 
 	xfree(lbuf);

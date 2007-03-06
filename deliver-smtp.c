@@ -31,7 +31,7 @@
 int	 deliver_smtp_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_smtp_desc(struct action *, char *, size_t);
 
-int	 smtp_code(char *);
+int	 deliver_smtp_code(char *);
 
 struct deliver deliver_smtp = {
 	DELIVER_ASUSER,
@@ -40,7 +40,7 @@ struct deliver deliver_smtp = {
 };
 
 int
-smtp_code(char *line)
+deliver_smtp_code(char *line)
 {
 	char		 ch;
 	const char	*errstr;
@@ -70,7 +70,7 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	int		 		 done, code;
 	struct io			*io;
 	char				*cause, *to, *from, *line, *ptr, *lbuf;
-	enum smtp_state			 state;
+	enum deliver_smtp_state		 state;
 	size_t		 		 len, llen;
 
 	io = connectproxy(&data->server, conf.proxy, IO_CRLF,
@@ -103,7 +103,7 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 		case -1:
 			goto error;
 		}
-		code = smtp_code(line);
+		code = deliver_smtp_code(line);
 
 		switch (state) {
 		case SMTP_CONNECTING:

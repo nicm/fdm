@@ -39,8 +39,8 @@ int	 fetch_maildir_fetch(struct account *, struct mail *);
 int	 fetch_maildir_delete(struct account *);
 void	 fetch_maildir_desc(struct account *, char *, size_t);
 
-int	 maildir_makepaths(struct account *);
-void	 maildir_freepaths(struct account *);
+int	 fetch_maildir_makepaths(struct account *);
+void	 fetch_maildir_freepaths(struct account *);
 
 struct fetch fetch_maildir = {
 	{ NULL, NULL },
@@ -58,7 +58,7 @@ struct fetch fetch_maildir = {
 
 /* Make an array of all the paths to visit. */
 int
-maildir_makepaths(struct account *a)
+fetch_maildir_makepaths(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 	char				*s, *path;
@@ -122,7 +122,7 @@ maildir_makepaths(struct account *a)
 error:
 	if (s != NULL)
 		xfree(s);
-	maildir_freepaths(a);
+	fetch_maildir_freepaths(a);
 
 	strb_destroy(&tags);
 	return (1);
@@ -130,7 +130,7 @@ error:
 
 /* Free the array. */
 void
-maildir_freepaths(struct account *a)
+fetch_maildir_freepaths(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 	u_int			 	 i;
@@ -150,7 +150,7 @@ fetch_maildir_connect(struct account *a)
 
 	data->path = NULL;
 
-	if (maildir_makepaths(a) != 0)
+	if (fetch_maildir_makepaths(a) != 0)
 		return (1);
 	data->index = 0;
 
@@ -313,7 +313,7 @@ fetch_maildir_disconnect(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 
-	maildir_freepaths(a);
+	fetch_maildir_freepaths(a);
 
 	if (data->dirp != NULL)
 		closedir(data->dirp);

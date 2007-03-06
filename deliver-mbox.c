@@ -36,7 +36,7 @@
 int	 deliver_mbox_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_mbox_desc(struct action *, char *, size_t);
 
-int	 mbox_write(int, gzFile, const void *, size_t);
+int	 deliver_mbox_write(int, gzFile, const void *, size_t);
 
 struct deliver deliver_mbox = {
 	DELIVER_ASUSER,
@@ -45,7 +45,7 @@ struct deliver deliver_mbox = {
 };
 
 int
-mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
+deliver_mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 {
 	ssize_t	n;
 
@@ -142,11 +142,11 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	}
 
 	/* write the from line */
-	if (mbox_write(fd, gzf, from, strlen(from)) < 0) {
+	if (deliver_mbox_write(fd, gzf, from, strlen(from)) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
-	if (mbox_write(fd, gzf, "\n", 1) < 0) {
+	if (deliver_mbox_write(fd, gzf, "\n", 1) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
@@ -165,7 +165,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			if (len2 >= 5 && strncmp(ptr2, "From ", 5) == 0) {
 				log_debug2("%s: quoting from line: %.*s",
 				    a->name, (int) len - 1, ptr);
-				if (mbox_write(fd, gzf, ">", 1) < 0) {
+				if (deliver_mbox_write(fd, gzf, ">", 1) < 0) {
 					log_warn("%s: %s: write", a->name,
 					    path);
 					goto out;
@@ -173,7 +173,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 			}
 		}
 
-		if (mbox_write(fd, gzf, ptr, len) < 0) {
+		if (deliver_mbox_write(fd, gzf, ptr, len) < 0) {
 			log_warn("%s: %s: write", a->name, path);
 			goto out;
 		}
@@ -181,7 +181,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 		line_next(m, &ptr, &len);
 	}
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
-	if (mbox_write(fd, gzf, "\n\n", len) < 0) {
+	if (deliver_mbox_write(fd, gzf, "\n\n", len) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out;
 	}
