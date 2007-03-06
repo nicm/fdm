@@ -115,7 +115,8 @@ cmd_start(const char *s, int flags, char *buf, size_t len, char **cause)
 			io_writefixed(cmd->io_in, buf, len);
 		}
 		cmd->io_in->flags &= ~IO_RD;
-	}
+	} else
+		cmd->io_in = NULL;
 	if (fd_out[0] != -1) {
 		cmd->io_out = io_create(fd_out[0], NULL, IO_LF, INFTIM);
 		cmd->io_out->flags &= ~IO_WR;
