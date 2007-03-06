@@ -164,4 +164,20 @@ extern struct fetch 	 fetch_imap;
 /* fetch-imappipe.c */
 extern struct fetch 	 fetch_imappipe;
 
+/* imap-common.c */
+int			 imap_tag(char *);
+int			 imap_init(struct account *);
+int			 imap_free(struct account *);
+int			 imap_login(struct account *);
+int			 imap_select(struct account *);
+int			 imap_close(struct account *);
+int			 imap_logout(struct account *);
+void			 imap_abort(struct account *);
+int			 imap_uid(struct account *);
+int			 imap_poll(struct account *, u_int *);
+int			 imap_fetch(struct account *, struct mail *);
+int			 imap_purge(struct account *);
+int			 imap_delete(struct account *);
+int	 		 imap_keep(struct account *);
+
 #endif
