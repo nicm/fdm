@@ -2070,21 +2070,21 @@ groups: TOKGROUP strv
 /** POPTYPE: <flag> (int) */
 poptype: TOKPOP3
          {
-		 $$ = 0;
+		 $$ = FETCHPORT_NORMAL;
          }
        | TOKPOP3S
 	 {
-		 $$ = 1;
+		 $$ = FETCHPORT_SSL;
 	 }
 
 /** IMAPTYPE: <flag> (int) */
 imaptype: TOKIMAP
           {
-		  $$ = 0;
+		  $$ = FETCHPORT_NORMAL;
           }
         | TOKIMAPS
 	  {
-		  $$ = 1;
+		  $$ = FETCHPORT_SSL;
 	  }
 
 /** USERPASS: <userpass> (struct { ... } userpass) */
