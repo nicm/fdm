@@ -21,14 +21,18 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "match.h"
 
-int	size_match(struct match_ctx *, struct expritem *);
-void	size_desc(struct expritem *, char *, size_t);
+int	match_size_match(struct match_ctx *, struct expritem *);
+void	match_size_desc(struct expritem *, char *, size_t);
 
-struct match match_size = { size_match, size_desc };
+struct match match_size = {
+	match_size_match,
+	match_size_desc
+};
 
 int
-size_match(struct match_ctx *mctx, struct expritem *ei)
+match_size_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct size_data	*data = ei->data;
 	struct mail		*m = mctx->mail;
@@ -41,7 +45,7 @@ size_match(struct match_ctx *mctx, struct expritem *ei)
 }
 
 void
-size_desc(struct expritem *ei, char *buf, size_t len)
+match_size_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct size_data	*data = ei->data;
 	const char		*cmp = "";

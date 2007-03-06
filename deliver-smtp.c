@@ -26,13 +26,18 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 smtp_deliver(struct deliver_ctx *, struct action *);
-void	 smtp_desc(struct action *, char *, size_t);
+int	 deliver_smtp_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_smtp_desc(struct action *, char *, size_t);
 
 int	 smtp_code(char *);
 
-struct deliver deliver_smtp = { DELIVER_ASUSER, smtp_deliver, smtp_desc };
+struct deliver deliver_smtp = {
+	DELIVER_ASUSER,
+	deliver_smtp_deliver, 
+	deliver_smtp_desc
+};
 
 int
 smtp_code(char *line)
@@ -57,7 +62,7 @@ smtp_code(char *line)
 }
 
 int
-smtp_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct account		*a = dctx->account;
 	struct mail		*m = dctx->mail;
@@ -190,7 +195,7 @@ error:
 }
 
 void
-smtp_desc(struct action *t, char *buf, size_t len)
+deliver_smtp_desc(struct action *t, char *buf, size_t len)
 {
 	struct smtp_data	*data = t->data;
 

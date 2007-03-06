@@ -26,6 +26,8 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
+#include "match.h"
 
 int	parent_action(struct action *, struct deliver_ctx *, uid_t);
 int	parent_command(struct match_ctx *, struct command_data *, uid_t);

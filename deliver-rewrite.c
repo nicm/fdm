@@ -27,15 +27,19 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 rewrite_deliver(struct deliver_ctx *, struct action *);
-void	 rewrite_desc(struct action *, char *, size_t);
+int	 deliver_rewrite_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_rewrite_desc(struct action *, char *, size_t);
 
-struct deliver deliver_rewrite = { DELIVER_WRBACK, rewrite_deliver,
-				   rewrite_desc };
+struct deliver deliver_rewrite = {
+	DELIVER_WRBACK,
+	deliver_rewrite_deliver,
+	deliver_rewrite_desc
+};
 
 int
-rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct account	*a = dctx->account;
 	struct mail	*m = dctx->mail;
@@ -125,7 +129,7 @@ error:
 }
 
 void
-rewrite_desc(struct action *t, char *buf, size_t len)
+deliver_rewrite_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "rewrite \"%s\"", (char *) t->data);
 }

@@ -21,14 +21,18 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "match.h"
 
-int	command_match(struct match_ctx *, struct expritem *);
-void	command_desc(struct expritem *, char *, size_t);
+int	match_command_match(struct match_ctx *, struct expritem *);
+void	match_command_desc(struct expritem *, char *, size_t);
 
-struct match match_command = { command_match, command_desc };
+struct match match_command = {
+	match_command_match,
+	match_command_desc
+};
 
 int
-command_match(struct match_ctx *mctx, struct expritem *ei)
+match_command_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct command_data	*data = ei->data;
 	struct account		*a = mctx->account;
@@ -60,7 +64,7 @@ command_match(struct match_ctx *mctx, struct expritem *ei)
 }
 
 void
-command_desc(struct expritem *ei, char *buf, size_t len)
+match_command_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct command_data	*data = ei->data;
 	char			ret[11];

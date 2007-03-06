@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "fetch.h"
 
 int	imap_okay(struct account *, char *);
 

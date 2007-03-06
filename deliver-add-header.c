@@ -21,16 +21,19 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 add_header_deliver(struct deliver_ctx *, struct action *);
-void	 add_header_desc(struct action *, char *, size_t);
+int	 deliver_add_header_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_add_header_desc(struct action *, char *, size_t);
 
-struct deliver deliver_add_header = { DELIVER_INCHILD,
-				      add_header_deliver,
-				      add_header_desc };
+struct deliver deliver_add_header = {
+	DELIVER_INCHILD,
+	deliver_add_header_deliver,
+	deliver_add_header_desc
+};
 
 int
-add_header_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct account		*a = dctx->account;
 	struct mail		*m = dctx->mail;
@@ -62,7 +65,7 @@ add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 }
 
 void
-add_header_desc(struct action *t, char *buf, size_t len)
+deliver_add_header_desc(struct action *t, char *buf, size_t len)
 {
 	struct add_header_data	*data = t->data;
 

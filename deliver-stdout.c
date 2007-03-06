@@ -22,16 +22,19 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 stdout_deliver(struct deliver_ctx *, struct action *);
-void	 stdout_desc(struct action *, char *, size_t);
+int	 deliver_stdout_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_stdout_desc(struct action *, char *, size_t);
 
-struct deliver deliver_stdout = { DELIVER_INCHILD, 
-				  stdout_deliver,
-				  stdout_desc };
+struct deliver deliver_stdout = {
+	DELIVER_INCHILD, 
+	deliver_stdout_deliver,
+	deliver_stdout_desc
+};
 
 int
-stdout_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_stdout_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct account		*a = dctx->account;
 	struct mail		*m = dctx->mail;
@@ -64,7 +67,7 @@ stdout_deliver(struct deliver_ctx *dctx, struct action *t)
 }
 
 void
-stdout_desc(struct action *t, char *buf, size_t len)
+deliver_stdout_desc(struct action *t, char *buf, size_t len)
 {
 	struct stdout_data	*data = t->data;
 

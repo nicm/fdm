@@ -29,6 +29,9 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
+#include "fetch.h"
+#include "match.h"
 
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *, double);

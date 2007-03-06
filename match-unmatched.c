@@ -21,14 +21,18 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "match.h"
 
-int	unmatched_match(struct match_ctx *, struct expritem *);
-void	unmatched_desc(struct expritem *, char *, size_t);
+int	match_unmatched_match(struct match_ctx *, struct expritem *);
+void	match_unmatched_desc(struct expritem *, char *, size_t);
 
-struct match match_unmatched = { unmatched_match, unmatched_desc };
+struct match match_unmatched = { 
+	match_unmatched_match,
+	match_unmatched_desc
+};
 
 int
-unmatched_match(struct match_ctx *mctx, unused struct expritem *ei)
+match_unmatched_match(struct match_ctx *mctx, unused struct expritem *ei)
 {
 	if (mctx->matched)
 		return (MATCH_FALSE);
@@ -36,7 +40,7 @@ unmatched_match(struct match_ctx *mctx, unused struct expritem *ei)
 }
 
 void
-unmatched_desc(unused struct expritem *ei, char *buf, size_t len)
+match_unmatched_desc(unused struct expritem *ei, char *buf, size_t len)
 {
 	strlcpy(buf, "unmatched", len);
 }

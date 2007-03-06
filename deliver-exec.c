@@ -25,20 +25,25 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 exec_deliver(struct deliver_ctx *, struct action *);
-void	 exec_desc(struct action *, char *, size_t);
+int	 deliver_exec_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_exec_desc(struct action *, char *, size_t);
 
-struct deliver deliver_exec = { DELIVER_ASUSER, exec_deliver, exec_desc };
+struct deliver deliver_exec = {
+	DELIVER_ASUSER,
+	deliver_exec_deliver,
+	deliver_exec_desc
+};
 
 int
-exec_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_exec_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	return (do_pipe(dctx, t, 0));
 }
 
 void
-exec_desc(struct action *t, char *buf, size_t len)
+deliver_exec_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "exec \"%s\"", (char *) t->data);
 }

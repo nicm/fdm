@@ -25,32 +25,34 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "fetch.h"
 
-int	pop3_init(struct account *);
-int	pop3_free(struct account *);
-int	pop3_connect(struct account *);
-int	pop3_disconnect(struct account *);
-int	pop3_poll(struct account *, u_int *);
-int	pop3_fetch(struct account *, struct mail *);
-int	pop3_purge(struct account *);
-int	pop3_delete(struct account *);
-int	pop3_keep(struct account *);
-void	pop3_desc(struct account *, char *, size_t);
+int	fetch_pop3_init(struct account *);
+int	fetch_pop3_free(struct account *);
+int	fetch_pop3_connect(struct account *);
+int	fetch_pop3_disconnect(struct account *);
+int	fetch_pop3_poll(struct account *, u_int *);
+int	fetch_pop3_fetch(struct account *, struct mail *);
+int	fetch_pop3_purge(struct account *);
+int	fetch_pop3_delete(struct account *);
+int	fetch_pop3_keep(struct account *);
+void	fetch_pop3_desc(struct account *, char *, size_t);
 
 char   *pop3_line(struct account *, char **, size_t *);
 char   *pop3_check(struct account *, char **, size_t *);
 
-struct fetch	fetch_pop3 = { { "pop3", "pop3s" },
-			       pop3_init,
-			       pop3_connect,
-			       pop3_poll,
-			       pop3_fetch,
-			       pop3_purge,
-			       pop3_delete,
-			       pop3_keep,
-			       pop3_disconnect,
-			       pop3_free,
-			       pop3_desc
+struct fetch fetch_pop3 = {
+	{ "pop3", "pop3s" },
+	fetch_pop3_init,
+	fetch_pop3_connect,
+	fetch_pop3_poll,
+	fetch_pop3_fetch,
+	fetch_pop3_purge,
+	fetch_pop3_delete,
+	fetch_pop3_keep,
+	fetch_pop3_disconnect,
+	fetch_pop3_free,
+	fetch_pop3_desc
 };
 
 char *
@@ -89,7 +91,7 @@ pop3_check(struct account *a, char **lbuf, size_t *llen)
 }
 
 int
-pop3_free(struct account *a)
+fetch_pop3_free(struct account *a)
 {
 	struct pop3_data	*data = a->data;
 	u_int			 i;
@@ -105,7 +107,7 @@ pop3_free(struct account *a)
 }
 
 int
-pop3_init(struct account *a)
+fetch_pop3_init(struct account *a)
 {
 	struct pop3_data	*data = a->data;
 
@@ -115,7 +117,7 @@ pop3_init(struct account *a)
 }
 
 int
-pop3_connect(struct account *a)
+fetch_pop3_connect(struct account *a)
 {
 	struct pop3_data	*data = a->data;
 	char			*lbuf, *line, *cause;
@@ -170,7 +172,7 @@ error:
 }
 
 int
-pop3_disconnect(struct account *a)
+fetch_pop3_disconnect(struct account *a)
 {
 	struct pop3_data	*data = a->data;
 	char			*lbuf;
@@ -201,7 +203,7 @@ error:
 }
 
 int
-pop3_poll(struct account *a, u_int *n)
+fetch_pop3_poll(struct account *a, u_int *n)
 {
 	struct pop3_data	*data = a->data;
 
@@ -211,7 +213,7 @@ pop3_poll(struct account *a, u_int *n)
 }
 
 int
-pop3_fetch(struct account *a, struct mail *m)
+fetch_pop3_fetch(struct account *a, struct mail *m)
 {
 	struct pop3_data	*data = a->data;
 	char			*lbuf, *line, *uid;
@@ -357,15 +359,15 @@ error:
 }
 
 int
-pop3_purge(struct account *a)
+fetch_pop3_purge(struct account *a)
 {
-	if (pop3_disconnect(a) != 0)
+	if (fetch_pop3_disconnect(a) != 0)
 		return (1);
-	return (pop3_connect(a));
+	return (fetch_pop3_connect(a));
 }
 
 int
-pop3_delete(struct account *a)
+fetch_pop3_delete(struct account *a)
 {
 	struct pop3_data	*data = a->data;
 	char			*lbuf;
@@ -387,7 +389,7 @@ error:
 }
 
 int
-pop3_keep(struct account *a)
+fetch_pop3_keep(struct account *a)
 {
 	struct pop3_data	*data = a->data;
 
@@ -397,7 +399,7 @@ pop3_keep(struct account *a)
 }
 
 void
-pop3_desc(struct account *a, char *buf, size_t len)
+fetch_pop3_desc(struct account *a, char *buf, size_t len)
 {
 	struct pop3_data	*data = a->data;
 

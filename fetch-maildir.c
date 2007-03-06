@@ -30,29 +30,30 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "fetch.h"
 
-int	 maildir_connect(struct account *);
-int	 maildir_disconnect(struct account *);
-int	 maildir_poll(struct account *, u_int *);
-int	 maildir_fetch(struct account *, struct mail *);
-int	 maildir_delete(struct account *);
-/* conflicts with deliver-maildir.c */
-void	 maildir_desc2(struct account *, char *, size_t);
+int	 fetch_maildir_connect(struct account *);
+int	 fetch_maildir_disconnect(struct account *);
+int	 fetch_maildir_poll(struct account *, u_int *);
+int	 fetch_maildir_fetch(struct account *, struct mail *);
+int	 fetch_maildir_delete(struct account *);
+void	 fetch_maildir_desc(struct account *, char *, size_t);
 
 int	 maildir_makepaths(struct account *);
 void	 maildir_freepaths(struct account *);
 
-struct fetch	 fetch_maildir = { { NULL, NULL },
-				   NULL,
-				   maildir_connect,
-				   maildir_poll,
-				   maildir_fetch,
-				   NULL,
-				   maildir_delete,
-				   NULL,
-				   maildir_disconnect,
-				   NULL,
-				   maildir_desc2
+struct fetch fetch_maildir = {
+	{ NULL, NULL },
+	NULL,
+	fetch_maildir_connect,
+	fetch_maildir_poll,
+	fetch_maildir_fetch,
+	NULL,
+	fetch_maildir_delete,
+	NULL,
+	fetch_maildir_disconnect,
+	NULL,
+	fetch_maildir_desc
 };
 
 /* Make an array of all the paths to visit. */
@@ -141,7 +142,7 @@ maildir_freepaths(struct account *a)
 }
 
 int
-maildir_connect(struct account *a)
+fetch_maildir_connect(struct account *a)
 {
 	struct maildir_data	*data = a->data;
 
@@ -157,7 +158,7 @@ maildir_connect(struct account *a)
 }
 
 int
-maildir_poll(struct account *a, u_int *n)
+fetch_maildir_poll(struct account *a, u_int *n)
 {
 	struct maildir_data	*data = a->data;
 	u_int			 i;
@@ -202,7 +203,7 @@ maildir_poll(struct account *a, u_int *n)
 }
 
 int
-maildir_fetch(struct account *a, struct mail *m)
+fetch_maildir_fetch(struct account *a, struct mail *m)
 {
 	struct maildir_data	*data = a->data;
 	struct dirent		*dp;
@@ -295,7 +296,7 @@ restart:
 }
 
 int
-maildir_delete(struct account *a)
+fetch_maildir_delete(struct account *a)
 {
 	struct maildir_data	*data = a->data;
 
@@ -308,7 +309,7 @@ maildir_delete(struct account *a)
 }
 
 int
-maildir_disconnect(struct account *a)
+fetch_maildir_disconnect(struct account *a)
 {
 	struct maildir_data	*data = a->data;
 
@@ -321,7 +322,7 @@ maildir_disconnect(struct account *a)
 }
 
 void
-maildir_desc2(struct account *a, char *buf, size_t len)
+fetch_maildir_desc(struct account *a, char *buf, size_t len)
 {
 	struct maildir_data	*data = a->data;
 	char			*maildirs;

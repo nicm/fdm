@@ -21,14 +21,19 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 drop_deliver(struct deliver_ctx *, struct action *);
-void	 drop_desc(struct action *, char *, size_t);
+int	 deliver_drop_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_drop_desc(struct action *, char *, size_t);
 
-struct deliver deliver_drop = { DELIVER_INCHILD, drop_deliver, drop_desc };
+struct deliver deliver_drop = {
+	DELIVER_INCHILD,
+	deliver_drop_deliver,
+	deliver_drop_desc
+};
 
 int
-drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
+deliver_drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
 {
 	*dctx->decision = DECISION_DROP;
 
@@ -36,7 +41,7 @@ drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
 }
 
 void
-drop_desc(unused struct action *t, char *buf, size_t len)
+deliver_drop_desc(unused struct action *t, char *buf, size_t len)
 {
 	strlcpy(buf, "drop", len);
 }

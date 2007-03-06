@@ -21,16 +21,19 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 remove_header_deliver(struct deliver_ctx *, struct action *);
-void	 remove_header_desc(struct action *, char *, size_t);
+int	 deliver_remove_header_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_remove_header_desc(struct action *, char *, size_t);
 
-struct deliver deliver_remove_header = { DELIVER_INCHILD,
-					 remove_header_deliver,
-					 remove_header_desc };
+struct deliver deliver_remove_header = {
+	DELIVER_INCHILD,
+	deliver_remove_header_deliver,
+	deliver_remove_header_desc
+};
 
 int
-remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct mail	*m = dctx->mail;
 	char		*ptr;
@@ -78,7 +81,7 @@ remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 }
 
 void
-remove_header_desc(struct action *t, char *buf, size_t len)
+deliver_remove_header_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "remove-header \"%s\"", (char *) t->data);
 }

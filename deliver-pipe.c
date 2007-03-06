@@ -25,20 +25,25 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 pipe_deliver(struct deliver_ctx *, struct action *);
-void	 pipe_desc(struct action *, char *, size_t);
+int	 deliver_pipe_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_pipe_desc(struct action *, char *, size_t);
 
-struct deliver deliver_pipe = { DELIVER_ASUSER, pipe_deliver, pipe_desc };
+struct deliver deliver_pipe = { 
+	DELIVER_ASUSER,
+	deliver_pipe_deliver,
+	deliver_pipe_desc
+};
 
 int
-pipe_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_pipe_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	return (do_pipe(dctx, t, 1));
 }
 
 void
-pipe_desc(struct action *t, char *buf, size_t len)
+deliver_pipe_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "pipe \"%s\"", (char *) t->data);
 }

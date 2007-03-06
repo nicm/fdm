@@ -23,13 +23,17 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "match.h"
 
-int	age_match(struct match_ctx *, struct expritem *);
-void	age_desc(struct expritem *, char *, size_t);
+int	match_age_match(struct match_ctx *, struct expritem *);
+void	match_age_desc(struct expritem *, char *, size_t);
 
 int	age_tzlookup(const char *, int *);
 
-struct match match_age = { age_match, age_desc };
+struct match match_age = {
+	match_age_match,
+	match_age_desc
+};
 
 /*
  * Some mailers, notably AOL's, use the timezone string instead of an offset
@@ -75,7 +79,7 @@ age_tzlookup(const char *tz, int *off)
 }
 
 int
-age_match(struct match_ctx *mctx, struct expritem *ei)
+match_age_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct age_data	*data = ei->data;
 	struct account	*a = mctx->account;
@@ -168,7 +172,7 @@ invalid:
 }
 
 void
-age_desc(struct expritem *ei, char *buf, size_t len)
+match_age_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct age_data	*data = ei->data;
 	const char		*cmp = "";

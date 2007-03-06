@@ -21,26 +21,28 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "fetch.h"
 
-int	 	 imappipe_connect(struct account *);
-int	 	 imappipe_disconnect(struct account *);
-void		 imappipe_desc(struct account *, char *, size_t);
+int	 	 fetch_imappipe_connect(struct account *);
+int	 	 fetch_imappipe_disconnect(struct account *);
+void		 fetch_imappipe_desc(struct account *, char *, size_t);
 
 int printflike2	 imappipe_putln(struct account *, const char *, ...);
 char	        *imappipe_getln(struct account *, int);
 void		 imappipe_flush(struct account *);
 
-struct fetch	fetch_imappipe = { { NULL, NULL },
-				   imap_init,	/* from imap-common.c */
-				   imappipe_connect,
-				   imap_poll,	/* from imap-common.c */
-				   imap_fetch,	/* from imap-common.c */
-				   imap_purge,	/* from imap-common.c */
-				   imap_delete,	/* from imap-common.c */
-				   imap_keep,	/* from imap-common.c */
-				   imappipe_disconnect,
-				   imap_free,	/* from imap-common.c */
-				   imappipe_desc,
+struct fetch fetch_imappipe = {
+	{ NULL, NULL },
+	imap_init,	/* from imap-common.c */
+	fetch_imappipe_connect,
+	imap_poll,	/* from imap-common.c */
+	imap_fetch,	/* from imap-common.c */
+	imap_purge,	/* from imap-common.c */
+	imap_delete,	/* from imap-common.c */
+	imap_keep,	/* from imap-common.c */
+	fetch_imappipe_disconnect,
+	imap_free,	/* from imap-common.c */
+	fetch_imappipe_desc,
 };
 
 int printflike2
@@ -124,7 +126,7 @@ imappipe_flush(struct account *a)
 }
 
 int
-imappipe_connect(struct account *a)
+fetch_imappipe_connect(struct account *a)
 {
 	struct imap_data	*data = a->data;
 	char			*cause;
@@ -157,7 +159,7 @@ imappipe_connect(struct account *a)
 }
 
 int
-imappipe_disconnect(struct account *a)
+fetch_imappipe_disconnect(struct account *a)
 {
 	struct imap_data	*data = a->data;
 
@@ -179,7 +181,7 @@ error:
 }
 
 void
-imappipe_desc(struct account *a, char *buf, size_t len)
+fetch_imappipe_desc(struct account *a, char *buf, size_t len)
 {
 	struct imap_data	*data = a->data;
 

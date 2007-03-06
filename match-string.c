@@ -22,14 +22,18 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "match.h"
 
-int	string_match(struct match_ctx *, struct expritem *);
-void	string_desc(struct expritem *, char *, size_t);
+int	match_string_match(struct match_ctx *, struct expritem *);
+void	match_string_desc(struct expritem *, char *, size_t);
 
-struct match match_string = { string_match, string_desc };
+struct match match_string = {
+	match_string_match,
+	match_string_desc
+};
 
 int
-string_match(struct match_ctx *mctx, struct expritem *ei)
+match_string_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct string_data	*data = ei->data;
 	struct account		*a = mctx->account;
@@ -60,7 +64,7 @@ string_match(struct match_ctx *mctx, struct expritem *ei)
 }
 
 void
-string_desc(struct expritem *ei, char *buf, size_t len)
+match_string_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct string_data	*data = ei->data;
 

@@ -26,28 +26,30 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "fetch.h"
 
-int	 stdin_connect(struct account *);
-int	 stdin_disconnect(struct account *);
-int	 stdin_fetch(struct account *, struct mail *);
-int	 stdin_delete(struct account *);
-void	 stdin_desc(struct account *, char *, size_t);
+int	 fetch_stdin_connect(struct account *);
+int	 fetch_stdin_disconnect(struct account *);
+int	 fetch_stdin_fetch(struct account *, struct mail *);
+int	 fetch_stdin_delete(struct account *);
+void	 fetch_stdin_desc(struct account *, char *, size_t);
 
-struct fetch	fetch_stdin = { { NULL, NULL },
-				NULL,
-				stdin_connect,
-				NULL,
-				stdin_fetch,
-				NULL,
-				stdin_delete,
-				NULL,
-				stdin_disconnect,
-				NULL,
-				stdin_desc
+struct fetch fetch_stdin = {
+	{ NULL, NULL },
+	NULL,
+	fetch_stdin_connect,
+	NULL,
+	fetch_stdin_fetch,
+	NULL,
+	fetch_stdin_delete,
+	NULL,
+	fetch_stdin_disconnect,
+	NULL,
+	fetch_stdin_desc
 };
 
 int
-stdin_connect(struct account *a)
+fetch_stdin_connect(struct account *a)
 {
 	struct stdin_data	*data = a->data;
 
@@ -73,7 +75,7 @@ stdin_connect(struct account *a)
 }
 
 int
-stdin_disconnect(struct account *a)
+fetch_stdin_disconnect(struct account *a)
 {
 	struct stdin_data	*data = a->data;
 
@@ -85,7 +87,7 @@ stdin_disconnect(struct account *a)
 }
 
 int
-stdin_delete(struct account *a)
+fetch_stdin_delete(struct account *a)
 {
 	struct stdin_data	*data = a->data;
 	char		        *line, *lbuf;
@@ -102,7 +104,7 @@ stdin_delete(struct account *a)
 }
 
 int
-stdin_fetch(struct account *a, struct mail *m)
+fetch_stdin_fetch(struct account *a, struct mail *m)
 {
 	struct stdin_data	*data = a->data;
 	u_int			 lines;
@@ -181,7 +183,7 @@ stdin_fetch(struct account *a, struct mail *m)
 }
 
 void
-stdin_desc(unused struct account *a, char *buf, size_t len)
+fetch_stdin_desc(unused struct account *a, char *buf, size_t len)
 {
 	strlcpy(buf, "stdin", len);
 }

@@ -25,20 +25,25 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 append_deliver(struct deliver_ctx *, struct action *);
-void	 append_desc(struct action *, char *, size_t);
+int	 deliver_append_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_append_desc(struct action *, char *, size_t);
 
-struct deliver deliver_append = { DELIVER_ASUSER, append_deliver, append_desc };
+struct deliver deliver_append = {
+	DELIVER_ASUSER,
+	deliver_append_deliver,
+	deliver_append_desc
+};
 
 int
-append_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_append_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	return (do_write(dctx, t, 1));
 }
 
 void
-append_desc(struct action *t, char *buf, size_t len)
+deliver_append_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "append \"%s\"", (char *) t->data);
 }

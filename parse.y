@@ -38,6 +38,9 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
+#include "fetch.h"
+#include "match.h"
 
 struct macros	macros = TAILQ_HEAD_INITIALIZER(macros);
 u_int		ruleidx;

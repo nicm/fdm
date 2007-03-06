@@ -27,16 +27,17 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "fetch.h"
 
-int	nntp_init(struct account *);
-int	nntp_free(struct account *);
-int	nntp_connect(struct account *);
-int	nntp_disconnect(struct account *);
-int	nntp_poll(struct account *, u_int *);
-int	nntp_fetch(struct account *, struct mail *);
-int	nntp_delete(struct account *);
-int	nntp_keep(struct account *);
-void	nntp_desc(struct account *, char *, size_t);
+int	fetch_nntp_init(struct account *);
+int	fetch_nntp_free(struct account *);
+int	fetch_nntp_connect(struct account *);
+int	fetch_nntp_disconnect(struct account *);
+int	fetch_nntp_poll(struct account *, u_int *);
+int	fetch_nntp_fetch(struct account *, struct mail *);
+int	fetch_nntp_delete(struct account *);
+int	fetch_nntp_keep(struct account *);
+void	fetch_nntp_desc(struct account *, char *, size_t);
 
 int	nntp_code(char *);
 char   *nntp_line(struct account *, char **, size_t *);
@@ -47,17 +48,18 @@ int	nntp_parse223(char *, u_int *, char **);
 int	nntp_load(struct account *);
 int	nntp_save(struct account *);
 
-struct fetch	fetch_nntp = { { "nntp", NULL },
-			       nntp_init,
-			       nntp_connect,
-			       nntp_poll,
-			       nntp_fetch,
-			       nntp_save,
-			       NULL,
-			       NULL,
-			       nntp_disconnect,
-			       nntp_free,
-			       nntp_desc
+struct fetch fetch_nntp = {
+	{ "nntp", NULL },
+	fetch_nntp_init,
+	fetch_nntp_connect,
+	fetch_nntp_poll,
+	fetch_nntp_fetch,
+	nntp_save,
+	NULL,
+	NULL,
+	fetch_nntp_disconnect,
+	fetch_nntp_free,
+	fetch_nntp_desc
 };
 
 int
@@ -363,7 +365,7 @@ error:
 }
 
 int
-nntp_init(struct account *a)
+fetch_nntp_init(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	struct nntp_group	*group;
@@ -384,7 +386,7 @@ nntp_init(struct account *a)
 }
 
 int
-nntp_free(struct account *a)
+fetch_nntp_free(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	struct nntp_group	*group;
@@ -403,7 +405,7 @@ nntp_free(struct account *a)
 }
 
 int
-nntp_connect(struct account *a)
+fetch_nntp_connect(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	char			*lbuf, *line, *cause;
@@ -456,7 +458,7 @@ error:
 }
 
 int
-nntp_disconnect(struct account *a)
+fetch_nntp_disconnect(struct account *a)
 {
 	struct nntp_data	*data = a->data;
 	char			*lbuf, *line;
@@ -489,7 +491,7 @@ error:
 }
 
 int
-nntp_poll(struct account *a, u_int *n)
+fetch_nntp_poll(struct account *a, u_int *n)
 {
 	struct nntp_data       	*data = a->data;
 	char			*lbuf;
@@ -520,7 +522,7 @@ error:
 }
 
 int
-nntp_fetch(struct account *a, struct mail *m)
+fetch_nntp_fetch(struct account *a, struct mail *m)
 {
 	struct nntp_data      	*data = a->data;
 	struct nntp_group	*group;
@@ -620,7 +622,7 @@ error:
 }
 
 void
-nntp_desc(struct account *a, char *buf, size_t len)
+fetch_nntp_desc(struct account *a, char *buf, size_t len)
 {
 	struct nntp_data	*data = a->data;
 	char			*names;

@@ -22,14 +22,18 @@
 #include <string.h>
 
 #include "fdm.h"
+#include "match.h"
 
-int	tagged_match(struct match_ctx *, struct expritem *);
-void	tagged_desc(struct expritem *, char *, size_t);
+int	match_tagged_match(struct match_ctx *, struct expritem *);
+void	match_tagged_desc(struct expritem *, char *, size_t);
 
-struct match match_tagged = { tagged_match, tagged_desc };
+struct match match_tagged = {
+	match_tagged_match,
+	match_tagged_desc
+};
 
 int
-tagged_match(struct match_ctx *mctx, struct expritem *ei)
+match_tagged_match(struct match_ctx *mctx, struct expritem *ei)
 {
 	struct tagged_data	*data = ei->data;
 	struct mail		*m = mctx->mail;
@@ -40,7 +44,7 @@ tagged_match(struct match_ctx *mctx, struct expritem *ei)
 }
 
 void
-tagged_desc(struct expritem *ei, char *buf, size_t len)
+match_tagged_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct tagged_data	*data = ei->data;
 

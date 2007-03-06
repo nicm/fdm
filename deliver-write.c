@@ -25,20 +25,25 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
-int	 write_deliver(struct deliver_ctx *, struct action *);
-void	 write_desc(struct action *, char *, size_t);
+int	 deliver_write_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_write_desc(struct action *, char *, size_t);
 
-struct deliver deliver_write = { DELIVER_ASUSER, write_deliver, write_desc };
+struct deliver deliver_write = {
+	DELIVER_ASUSER,
+	deliver_write_deliver,
+	deliver_write_desc
+};
 
 int
-write_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_write_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	return (do_write(dctx, t, 0));
 }
 
 void
-write_desc(struct action *t, char *buf, size_t len)
+deliver_write_desc(struct action *t, char *buf, size_t len)
 {
 	xsnprintf(buf, len, "write \"%s\"", (char *) t->data);
 }

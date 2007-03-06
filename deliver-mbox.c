@@ -28,16 +28,21 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "deliver.h"
 
 /* With gcc 2.95.x, you can't include zlib.h before openssl.h. */
 #include <zlib.h>
 
-int	 mbox_deliver(struct deliver_ctx *, struct action *);
-void	 mbox_desc(struct action *, char *, size_t);
+int	 deliver_mbox_deliver(struct deliver_ctx *, struct action *);
+void	 deliver_mbox_desc(struct action *, char *, size_t);
 
 int	 mbox_write(int, gzFile, const void *, size_t);
 
-struct deliver deliver_mbox = { DELIVER_ASUSER, mbox_deliver, mbox_desc };
+struct deliver deliver_mbox = {
+	DELIVER_ASUSER,
+	deliver_mbox_deliver,
+	deliver_mbox_desc
+};
 
 int
 mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
@@ -60,7 +65,7 @@ mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 }
 
 int
-mbox_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 {
 	struct account		*a = dctx->account;
 	struct mail		*m = dctx->mail;
@@ -194,7 +199,7 @@ out:
 }
 
 void
-mbox_desc(struct action *t, char *buf, size_t len)
+deliver_mbox_desc(struct action *t, char *buf, size_t len)
 {
 	struct mbox_data	*data = t->data;
 
