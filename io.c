@@ -151,8 +151,9 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 			pfd->fd = SSL_get_fd(io->ssl);
 		else
 			pfd->fd = io->fd;
+		pfd->events = 0;
 		if (io->flags & IO_RD)
-			pfd->events = POLLIN;
+			pfd->events |= POLLIN;
 		if (io->flags & IO_WR && (io->wsize > 0 ||
 		    (io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0))
 			pfd->events |= POLLOUT;
@@ -178,11 +179,13 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 			continue;
 		pfd = pfds + i;
 
-		if (pfd->revents & POLLERR || pfd->revents & POLLNVAL) {
+		/* close on POLLERR or POLLNVAL hard */
+		if (pfd->revents & (POLLERR|POLLNVAL)) {
 			io->closed = 1;
 			continue;
 		}
-		if (pfd->revents & POLLERR || pfd->revents & POLLNVAL) {
+		/* close on POLLHUP but only if there is nothing to read */ 
+		if (pfd->revents & POLLHUP && (pfd->revents & POLLIN) == 0) {
 			io->closed = 1;
 			continue;
 		}

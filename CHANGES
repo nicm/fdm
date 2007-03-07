@@ -1,3 +1,8 @@
+07 March 2007
+
+* Handle POLLHUP properly in io.c: if it is set and POLLIN isn't set, the 
+  fd has closed. This makes stdin delivery work properly on Linux 2.4.
+
 06 March 2007
 
 * Submatches with commands are now added as tags command0 to command9.
