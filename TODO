@@ -24,7 +24,8 @@
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
 - flags option for maildir delivery (or mark-read on maildir/mbox)
-- exec as well as pipe actions
 - deliver-pipe should use cmd framework
 - refactor & clean up privsep mail transfer code
+- clean up parent.c
 - document mail_file, mbox_file and exec action
+- document command0 etc

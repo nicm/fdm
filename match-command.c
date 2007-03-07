@@ -39,6 +39,8 @@ match_command_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail			*m = mctx->mail;
 	struct io			*io = mctx->io;
 	struct msg			 msg;
+	void				*buf;
+	size_t				 len;
 
 	/* we are called as the child so to change uid this needs to be done
 	   largely in the parent */
@@ -55,10 +57,15 @@ match_command_match(struct match_ctx *mctx, struct expritem *ei)
 	if (privsep_send(io, &msg, m->tags, STRB_SIZE(m->tags)) != 0)
 		fatalx("child: privsep_send error");
 
-	if (privsep_recv(io, &msg, NULL, 0) != 0)
+	if (privsep_recv(io, &msg, &buf, &len) != 0)
 		fatalx("child: privsep_recv error");
 	if (msg.type != MSG_DONE)
 		fatalx("child: unexpected message");
+
+	if (buf == NULL || len == 0)
+		fatalx("child: bad tags");
+	strb_destroy(&m->tags);
+	m->tags = buf;
 
 	return (msg.data.error);
 }

@@ -663,10 +663,10 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 
 		mail_send(m, &msg);
 
-		if (privsep_send(mctx->io, &msg, m->tags,
+		if (privsep_send(mctx->io, &msg, m->tags, 
 		    STRB_SIZE(m->tags)) != 0) 
 			fatalx("child: privsep_send error");
-
+		
 		if (privsep_recv(mctx->io, &msg, &buf, &len) != 0)
 			fatalx("child: privsep_recv error");
 		if (msg.type != MSG_DONE)

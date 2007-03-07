@@ -21,6 +21,7 @@
 #include <sys/types.h>
 
 #include <string.h>
+#include <unistd.h>
 
 #include "fdm.h"
 
@@ -130,7 +131,8 @@ xmalloc_callreport(const char *hdr)
 		}
 
 		xsnprintf(fn, sizeof fn, "%s:%u", call->file, call->line);
-		XMALLOC_PRINT("%s: %-10s %-24s %u", hdr, type, fn, call->count);
+		XMALLOC_PRINT("%s: %ld: %-10s %-24s %u", hdr, (long) getpid(),
+		    type, fn, call->count);
 	}
 }
 
@@ -171,11 +173,13 @@ xmalloc_report(const char *hdr)
  	size_t	 		 off, size;
   	u_int	 		 i, j, n;
 
- 	XMALLOC_PRINT("%s: allocated=%zu, freed=%zu, difference=%zd, peak=%zu",
- 	    hdr, xmalloc_ctx.allocated, xmalloc_ctx.freed,
-	    xmalloc_ctx.allocated - xmalloc_ctx.freed, xmalloc_ctx.peak);
- 	XMALLOC_PRINT("%s: mallocs=%u, reallocs=%u, frees=%u", hdr,
-	    xmalloc_ctx.mallocs, xmalloc_ctx.reallocs, xmalloc_ctx.frees);
+ 	XMALLOC_PRINT("%s: %ld: allocated=%zu, freed=%zu, difference=%zd, "
+	    "peak=%zu", hdr, (long) getpid(), xmalloc_ctx.allocated,
+	    xmalloc_ctx.freed, xmalloc_ctx.allocated - xmalloc_ctx.freed,
+	    xmalloc_ctx.peak);
+ 	XMALLOC_PRINT("%s: %ld: mallocs=%u, reallocs=%u, frees=%u", hdr,
+	    (long) getpid(), xmalloc_ctx.mallocs, xmalloc_ctx.reallocs,
+	    xmalloc_ctx.frees);
 
 	xmalloc_callreport(hdr);
 
@@ -218,10 +222,10 @@ xmalloc_report(const char *hdr)
 		line[off++] = ']';
 		line[off] = '\0';
 
-		XMALLOC_PRINT("%s: %s", hdr, line);
+		XMALLOC_PRINT("%s: %ld: %s", hdr, (long) getpid(), line);
 	}
 
-	XMALLOC_PRINT("%s: %u unfreed blocks", hdr, n);
+	XMALLOC_PRINT("%s: %ld: %u unfreed blocks", hdr, (long) getpid(), n);
 }
 
 void
@@ -327,7 +331,10 @@ dxrealloc(const char *file, u_int line, void *oldptr, size_t nmemb, size_t size)
 	newptr = xxrealloc(oldptr, nmemb, size);
 
 	xmalloc_ctx.reallocs++;
-	xmalloc_change(file, line, oldptr, newptr, nmemb * size);
+	if (oldptr != NULL)
+		xmalloc_change(file, line, oldptr, newptr, nmemb * size);
+	else
+		xmalloc_new(file, line, newptr, nmemb * size);
 
 	xmalloc_called(file, line, XMALLOC_REALLOC);
 

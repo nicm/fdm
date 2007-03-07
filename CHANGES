@@ -1,5 +1,6 @@
 06 March 2007
 
+* Submatches with commands are now added as tags command0 to command9.
 * pipe actions now use the command.c framework, which means their stderr is
   logged and stdout discarded.
 * mail_file tag added by maildir delivery and mbox_file by mbox. Also pass the
