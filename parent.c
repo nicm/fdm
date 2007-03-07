@@ -33,9 +33,8 @@ void	parent_get(struct mail *, struct msg *, void *, struct deliver_ctx *,
 	    struct match_ctx *);
 void	parent_done(struct io *, struct mail *, struct msg *, int);
 int	parent_child(struct account *, struct mail *, const char *, uid_t,
-  	    int (*)(struct account *, struct msg *, void *, int *), void *,
-	    int (*)(struct account *, struct msg *, void *, int *), void *,
-	    int *);
+  	    int (*)(pid_t, struct account *, struct msg *, void *, int *), 
+	    void *, int *);
 
 struct parent_action_data {
 	struct action		*action;
@@ -44,8 +43,7 @@ struct parent_action_data {
 };
 
 int	parent_action(struct action *, struct deliver_ctx *, uid_t);
-int	parent_action_parenthook(struct account *, struct msg *, void *, int *);
-int	parent_action_childhook(struct account *, struct msg *, void *, int *);
+int	parent_action_hook(int, struct account *, struct msg *, void *, int *);
 
 struct parent_cmd_data {
 	struct match_ctx	 	*mctx;
@@ -54,7 +52,7 @@ struct parent_cmd_data {
 };
 
 int	parent_cmd(struct match_ctx *, struct match_command_data *, uid_t);
-int	parent_cmd_childhook(struct account *, struct msg *, void *, int *);
+int	parent_cmd_hook(int, struct account *, struct msg *, void *, int *);
 
 void
 parent_get(struct mail *m, struct msg *msg, void *buf, struct deliver_ctx *dctx,
@@ -100,9 +98,8 @@ parent_done(struct io *io, struct mail *m, struct msg *msg, int error)
 
 int
 parent_child(struct account *a, struct mail *m, const char *name, uid_t uid,
-    int (*parenthook)(struct account *, struct msg *, void *, int *),
-    void *parentdata, int (*childhook)(struct account *, struct msg *, void *,
-    int *), void *childdata, int *result)
+    int (*hook)(pid_t, struct account *, struct msg *, void *, int *), 
+    void *hookdata, int *result)
 {
 	struct io	*io;
 	struct msg 	 msg;
@@ -142,8 +139,7 @@ parent_child(struct account *a, struct mail *m, const char *name, uid_t uid,
 		m->tags = buf;
 
 		/* call the hook */
-		if (parenthook != NULL &&
-		    parenthook(a, &msg, parentdata, result) != 0)
+		if (hook(pid, a, &msg, hookdata, result) != 0)
 			error = 1;
 
 		/* free the io */
@@ -200,7 +196,7 @@ parent_child(struct account *a, struct mail *m, const char *name, uid_t uid,
 	    conf.info.home);
 
 	/* call the hook */
-	if (childhook(a, &msg, childdata, result) != 0)
+	if (hook(pid, a, &msg, hookdata, result) != 0)
 		error = 1;
 
 	/* inform parent we're done */
@@ -289,15 +285,15 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 			fatal("fchown");
 	}
 	
-	if (parent_child(a, m, "deliver", uid, parent_action_parenthook, &ad,
-	    parent_action_childhook, &ad, &result) != 0)
+	if (parent_child(a,
+	    m, "deliver", uid, parent_action_hook, &ad, &result) != 0)
 		return (DELIVER_FAILURE);
 	return (result);
 }
 
 int
-parent_action_parenthook(struct account *a, struct msg *msg, void *hookdata,
-    int *result)
+parent_action_hook(pid_t pid, struct account *a, struct msg *msg,
+    void *hookdata, int *result)
 {
 	struct parent_action_data	*ad = hookdata;
 	struct action			*t = ad->action;
@@ -305,33 +301,26 @@ parent_action_parenthook(struct account *a, struct msg *msg, void *hookdata,
 	struct mail			*m = ad->mail;
 	struct mail			*md = &dctx->wr_mail;
 
-	/* use new mail if necessary */
-	if (t->deliver->type != DELIVER_WRBACK)
-		return (0);
+	/* check if this is the parent */
+	if (pid != 0) { 
+		/* use new mail if necessary */
+		if (t->deliver->type != DELIVER_WRBACK)
+			return (0);
+		
+		if (*result != DELIVER_SUCCESS) {
+			mail_destroy(md);
+			return (0);
+		}
+		
+		mail_close(md);
+		mail_receive(m, msg);
+		log_debug2("%s: got new mail from delivery: size %zu, body %zd",
+		    a->name, m->size, m->body);
 
-	if (*result != DELIVER_SUCCESS) {
-		mail_destroy(md);
 		return (0);
 	}
 
-	mail_close(md);
-	mail_receive(m, msg);
-	log_debug2("%s: got new mail from delivery: size %zu, body %zd",
-	    a->name, m->size, m->body);
-
-	return (0);
-}
-
-int
-parent_action_childhook(struct account *a, struct msg *msg, void *hookdata,
-    int *result)
-{
-	struct parent_action_data	*ad = hookdata;
-	struct action			*t = ad->action;
-	struct deliver_ctx		*dctx = ad->dctx;
-	struct mail			*md = &dctx->wr_mail;
-
-	/* do the delivery */
+	/* this is the child. do the delivery */
 	*result = t->deliver->deliver(dctx, t);
 	if (t->deliver->type != DELIVER_WRBACK || *result != DELIVER_SUCCESS)
 		return (0);
@@ -354,15 +343,15 @@ parent_cmd(struct match_ctx *mctx, struct match_command_data *data,
 	cd.mctx = mctx;
 	cd.data = data;
 
-	if (parent_child(a, m, "command", uid, NULL, NULL,
-	    parent_cmd_childhook, &cd, &result) != 0)
+	if (parent_child(a,
+	    m, "command", uid, parent_cmd_hook, &cd, &result) != 0)
 		return (MATCH_ERROR);
 	return (result);
 }
 
 int
-parent_cmd_childhook(struct account *a, unused struct msg *msg, void *hookdata,
-    int *result)
+parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg, 
+    void *hookdata, int *result)
 {
 	struct parent_cmd_data		*cd = hookdata;
 	struct match_ctx		*mctx = cd->mctx;
@@ -374,6 +363,10 @@ parent_cmd_childhook(struct account *a, unused struct msg *msg, void *hookdata,
 	struct cmd		 	*cmd = NULL;
 	regmatch_t			 pm[NPMATCH];
 	u_int				 i;
+
+	/* if this is the parent, do nothing */
+	if (pid != 0)
+		return (0);
 
 	/* sort out the command */
 	s = replace(data->cmd, m->tags, m, mctx->pm_valid, mctx->pm);
