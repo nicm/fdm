@@ -26,7 +26,6 @@
 #include <ctype.h>
 #include <fnmatch.h>
 #include <grp.h>
-#include <libgen.h>
 #include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
@@ -470,7 +469,7 @@ include: TOKINCLUDE strv
 
 		 yyin = fopen($2, "r");
 		 if (yyin == NULL) {
-			 xasprintf(&path, "%s/%s", dirname(conf.conf_file), $2);
+			 xasprintf(&path, "%s/%s", xdirname(conf.conf_file), $2);
 			 if (access(path, R_OK) != 0)
 				 yyerror("%s: %s", $2, strerror(errno));
 			 yyin = fopen(path, "r");

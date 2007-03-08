@@ -827,6 +827,8 @@ int printflike2	 xxasprintf(char **, const char *, ...);
 int		 xxvasprintf(char **, const char *, va_list);
 int printflike3	 xsnprintf(char *, size_t, const char *, ...);
 int		 xvsnprintf(char *, size_t, const char *, va_list);
+char 		*xdirname(const char *);
+char 		*xbasename(const char *);
 
 /* xmalloc-debug.c */
 #ifdef DEBUG

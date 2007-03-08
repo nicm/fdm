@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -207,7 +206,7 @@ fetch_maildir_fetch(struct account *a, struct mail *m)
 {
 	struct fetch_maildir_data	*data = a->data;
 	struct dirent			*dp;
-	char	       			*ptr, path[MAXPATHLEN];
+	char	       			*ptr;
 	struct stat			 sb;
 	int				 fd;
 
@@ -216,10 +215,8 @@ restart:
 		data->path = ARRAY_ITEM(data->paths, data->index, char *);
 
 		/* make the maildir name for the tag */
-		/* XXX this sucks a bit, too much copying */
-		strlcpy(path, data->path, sizeof path);
 		strlcpy(data->maildir,
-		    basename(dirname(path)), sizeof data->maildir);
+		    xbasename(xdirname(data->path)), sizeof data->maildir);
 
 		log_debug("%s: trying path: %s", a->name, data->path);
 		if ((data->dirp = opendir(data->path)) == NULL) {
