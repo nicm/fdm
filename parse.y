@@ -68,6 +68,7 @@ int 			 	 yywrap(void);
 struct account 			*find_account(char *);
 int				 have_accounts(char *);
 struct action  			*find_action(char *);
+void				 print_rule(struct rule *);
 
 __dead printflike1 void
 yyerror(const char *fmt, ...)
@@ -126,6 +127,17 @@ yywrap(void)
         return (0);
 }
 
+void
+free_strings(struct strings *sp)
+{
+	u_int	i;
+
+	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
+		xfree(ARRAY_ITEM(sp, i, char *));
+	}
+	ARRAY_FREE(sp);
+}
+
 struct strings *
 weed_strings(struct strings *sp)
 {
@@ -144,8 +156,10 @@ weed_strings(struct strings *sp)
 			if (ARRAY_ITEM(sp, j, char *) == NULL)
 				continue;
 
-			if (strcmp(s, ARRAY_ITEM(sp, j, char *)) == 0)
+			if (strcmp(s, ARRAY_ITEM(sp, j, char *)) == 0) {
+				xfree(ARRAY_ITEM(sp, j, char *));
 				ARRAY_ITEM(sp, j, char *) = NULL;
+			}
 		}
 	}
 
@@ -270,6 +284,221 @@ find_macro(char *name)
 	}
 
 	return (NULL);
+}
+
+void
+print_rule(struct rule *r) 
+{
+	struct expritem	*ei;
+	char		 s[1024], *sa, *ss, desc[DESCBUFSIZE];
+	size_t		 off;
+
+	switch (r->type) {
+	case RULE_ALL:
+		strlcpy(s, "all", sizeof s);
+		break;
+	case RULE_EXPRESSION:
+		*s = '\0';
+		off = 0;
+		TAILQ_FOREACH(ei, r->expr, entry) {
+			if (ei->inverted)
+				off = strlcat(s, "not ", sizeof s);
+			switch (ei->op) {
+			case OP_AND:
+				strlcat(s, "and ", sizeof s);
+				break;
+			case OP_OR:
+				strlcat(s, "or ", sizeof s);
+				break;
+			case OP_NONE:
+				break;
+			}
+			ei->match->desc(ei, desc, sizeof desc);
+			strlcat(s, desc, sizeof s);
+			strlcat(s, " ", sizeof s);
+		}
+		break;
+	}
+	if (r->accounts != NULL)
+		sa = fmt_strings(" accounts=", r->accounts);
+	else
+		sa = xstrdup("");
+	if (r->actions != NULL) {
+		ss = fmt_strings(NULL, (struct strings *) r->actions);
+		log_debug2("added rule %u:%s actions=%s matches=%s", r->idx,
+		    sa, ss, s);
+		xfree(ss);
+	} else if (r->key.str != NULL) {
+		log_debug2("added rule %u:%s tag=%s (%s) matches=%s", r->idx,
+		    sa, r->key.str, r->value.str, s);
+	} else
+		log_debug2("added rule %u:%s nested matches=%s", r->idx, sa, s);
+	xfree(sa);
+}
+
+void
+free_action(struct action *t)
+{
+	if (t->users != NULL) { 
+		free_strings(t->users);
+		ARRAY_FREEALL(t->users);
+	}
+
+	if (t->deliver == &deliver_pipe || t->deliver == &deliver_exec) {
+		struct deliver_pipe_data		*data = t->data;
+		xfree(data->cmd.str);
+	} else if (t->deliver == &deliver_rewrite) {
+		struct deliver_rewrite_data		*data = t->data;
+		xfree(data->cmd.str);
+	} else if (t->deliver == &deliver_write ||
+	    t->deliver == &deliver_append) {
+		struct deliver_write_data		*data = t->data;
+		xfree(data->path.str);
+	} else if (t->deliver == &deliver_maildir) {
+		struct deliver_maildir_data		*data = t->data;
+		xfree(data->path.str);
+	} else if (t->deliver == &deliver_remove_header) {
+		struct deliver_remove_header_data	*data = t->data;
+		xfree(data->hdr.str);
+	} else if (t->deliver == &deliver_add_header) {
+		struct deliver_add_header_data		*data = t->data;
+		xfree(data->hdr.str);
+		xfree(data->value.str);
+	} else if (t->deliver == &deliver_append_string) {
+		struct deliver_append_string_data	*data = t->data;
+		xfree(data->str.str);
+	} else if (t->deliver == &deliver_mbox) {
+		struct deliver_mbox_data		*data = t->data;
+		xfree(data->path.str);
+	} else if (t->deliver == &deliver_smtp) {
+		struct deliver_smtp_data		*data = t->data;
+		xfree(data->to.str);
+		xfree(data->server.host);
+		xfree(data->server.port);
+		if (data->server.ai != NULL)
+			freeaddrinfo(data->server.ai);
+	}
+	if (t->data != NULL)
+		xfree(t->data);
+
+	xfree(t);
+}
+
+void
+free_rule(struct rule *r)
+{
+	struct rule	*rr;
+	struct expritem	*ei;
+	
+	if (r->accounts != NULL) {
+		free_strings(r->accounts);
+		ARRAY_FREEALL(r->accounts);
+	}
+	if (r->users != NULL) {
+		free_strings(r->users);
+		ARRAY_FREEALL(r->users);
+	}
+	if (r->actions != NULL) {
+		free_strings((struct strings *) r->actions);
+		ARRAY_FREEALL(r->actions);
+	}
+
+	if (r->key.str != NULL)
+		xfree(r->key.str);
+	if (r->value.str != NULL)
+		xfree(r->value.str);
+
+	while (!TAILQ_EMPTY(&r->rules)) {
+		rr = TAILQ_FIRST(&r->rules);
+		TAILQ_REMOVE(&r->rules, rr, entry);
+		free_rule(rr);
+	}
+	if (r->expr == NULL) {
+		xfree(r);
+		return;
+	}
+
+	while (!TAILQ_EMPTY(r->expr)) {
+		ei = TAILQ_FIRST(r->expr);
+		TAILQ_REMOVE(r->expr, ei, entry);
+
+		if (ei->match == &match_regexp) {
+			struct match_regexp_data	*data = ei->data;
+			re_free(&data->re);
+		} else if (ei->match == &match_command) {
+			struct match_command_data	*data = ei->data;
+			xfree(data->cmd.str);
+		} else if (ei->match == &match_tagged) {
+			struct match_tagged_data	*data = ei->data;
+			xfree(data->tag.str);
+		} else if (ei->match == &match_string) {
+			struct match_string_data	*data = ei->data;
+			xfree(data->str.str);
+			re_free(&data->re);
+		} else if (ei->match == &match_attachment) {
+			struct match_attachment_data	*data = ei->data;
+			if (data->op == ATTACHOP_ANYTYPE ||
+			    data->op == ATTACHOP_ANYNAME)
+				xfree(data->value.str.str);
+		}
+		if (ei->data != NULL)
+			xfree(ei->data);
+		
+		xfree(ei);
+	}
+	xfree(r->expr);
+
+	xfree(r);
+}
+
+void
+free_account(struct account *a)
+{
+	if (a->users != NULL) {
+		free_strings(a->users);
+		ARRAY_FREEALL(a->users);
+	}
+
+	if (a->fetch == &fetch_pop3) {
+		struct fetch_pop3_data		*data = a->data;
+		xfree(data->user);
+		xfree(data->pass);
+		xfree(data->server.host);
+		xfree(data->server.port);
+		if (data->server.ai != NULL)
+			freeaddrinfo(data->server.ai);
+	} else if (a->fetch == &fetch_imap) {
+		struct fetch_imap_data		*data = a->data;
+		xfree(data->user);
+		xfree(data->pass);
+		xfree(data->folder);
+		xfree(data->server.host);
+		xfree(data->server.port);
+		if (data->server.ai != NULL)
+			freeaddrinfo(data->server.ai);
+	} else if (a->fetch == &fetch_imappipe) {
+		struct fetch_imap_data		*data = a->data;
+		xfree(data->user);
+		xfree(data->pass);
+		xfree(data->pipecmd);
+	} else if (a->fetch == &fetch_maildir) {
+		struct fetch_maildir_data	*data = a->data;
+		free_strings(data->maildirs);	
+		ARRAY_FREEALL(data->maildirs);
+	} else if (a->fetch == &fetch_nntp) {
+		struct fetch_nntp_data		*data = a->data;
+		free_strings(data->names);
+		ARRAY_FREEALL(data->names);
+		xfree(data->path);
+		xfree(data->server.host);
+		xfree(data->server.port);
+		if (data->server.ai != NULL)
+			freeaddrinfo(data->server.ai);
+	}
+	if (a->data != NULL)
+		xfree(a->data);
+
+	xfree(a);
 }
 %}
 
@@ -1617,6 +1846,7 @@ expritem: not icase replstrv area
 			  flags |= REG_ICASE;
 		  if (re_compile(&data->re, $3, flags, &cause) != 0)
 			  yyerror("%s", cause);
+		  xfree($3);
 	  }
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
@@ -1648,6 +1878,7 @@ expritem: not icase replstrv area
 			  flags = REG_EXTENDED|REG_NEWLINE;
 			  if (re_compile(&data->re, $9, flags, &cause) != 0)
 				  yyerror("%s", cause);
+			  xfree($9);
 		  }
 
 	  }
@@ -1713,6 +1944,7 @@ expritem: not icase replstrv area
 		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
 		  if (re_compile(&data->re, $5, flags, &cause) != 0)
 			  yyerror("%s", cause);
+		  xfree($5);
 	  }
         | not TOKMATCHED
 /**       [$1: not (int)] */
@@ -2011,57 +2243,11 @@ rule: match accounts perform
 /**   [$1: match (struct { ... } match)] [$2: accounts (struct strings *)] */
 /**   [$3: perform (struct rule *)] */
       {
-	      struct expritem	*ei;
-	      char		 s[1024], *sa, *ss, desc[DESCBUFSIZE];
-	      size_t		 off;
-
 	      $3->accounts = $2;
 	      $3->expr = $1.expr;
 	      $3->type = $1.type;
 
-	      switch ($3->type) {
- 	      case RULE_ALL:
-		      strlcpy(s, "all", sizeof s);
-		      break;
-	      case RULE_EXPRESSION:
-		      *s = '\0';
-		      off = 0;
-		      TAILQ_FOREACH(ei, $3->expr, entry) {
-			      if (ei->inverted)
-				      off = strlcat(s, "not ", sizeof s);
-			      switch (ei->op) {
-			      case OP_AND:
-				      strlcat(s, "and ", sizeof s);
-				      break;
-			      case OP_OR:
-				      strlcat(s, "or ", sizeof s);
-				      break;
-			      case OP_NONE:
-				      break;
-			      }
-			      ei->match->desc(ei, desc, sizeof desc);
-			      strlcat(s, desc, sizeof s);
-			      strlcat(s, " ", sizeof s);
-		      }
-		      break;
-	      }
-	      if ($3->accounts != NULL)
-		      sa = fmt_strings(" accounts=", $3->accounts);
-	      else
-		      sa = xstrdup("");
-	      if ($3->actions != NULL) {
-		      ss = fmt_strings(NULL, (struct strings *) $3->actions);
-		      log_debug2("added rule %u:%s actions=%s matches=%s",
-			  $3->idx, sa, ss, s);
-		      xfree(ss);
-	      } else if ($3->key.str != NULL) {
-		      log_debug2("added rule %u:%s tag=%s (%s) matches=%s",
-			  $3->idx, sa, $3->key.str, $3->value.str, s);
-	      } else {
-		      log_debug2("added rule %u:%s nested matches=%s",
-			  $3->idx, sa, s);
-	      }
-	      xfree(sa);
+	      print_rule($3);
       }
 
 /** FOLDER: <string> (char *) */

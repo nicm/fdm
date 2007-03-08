@@ -273,7 +273,7 @@ main(int argc, char **argv)
 	struct utsname	 un;
 	struct passwd	*pw;
 	struct stat	 sb;
-	time_t		 t;
+	time_t		 tt;
 	struct account	*a;
 	pid_t		 pid;
 	struct children	 children;
@@ -284,6 +284,10 @@ main(int argc, char **argv)
 	struct msg	 msg;
 	size_t		 off;
 	struct macro	*macro;
+#ifdef DEBUG
+	struct rule	*r;
+	struct action	*t;
+#endif
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -313,11 +317,8 @@ main(int argc, char **argv)
 				exit(1);
 			}
 			ptr = strchr(optarg, '=');
-			if (ptr == NULL) {
-				log_warnx("missing value: %s", optarg);
-				exit(1);
-			}
-			*ptr++ = '\0';
+			if (ptr != NULL)
+				*ptr++ = '\0';
 			if (strlen(optarg) > MAXNAMESIZE) {
 				log_warnx("macro name too long: %s", optarg);
 				exit(1);
@@ -330,21 +331,27 @@ main(int argc, char **argv)
 
 			if (*optarg == '$') {
 				macro->type = MACRO_STRING;
-				macro->value.str = xstrdup(ptr);
+				if (ptr == NULL)
+					macro->value.str = xstrdup("");
+				else
+					macro->value.str = xstrdup(ptr);
 				log_debug2("added -D macro \"%s\": %s",
 				    macro->name, macro->value.str);
-			} else {
-				macro->type = MACRO_NUMBER;
-				macro->value.num = strtonum(ptr, 0, LLONG_MAX,
-				    &errstr);
-				if (errstr != NULL) {
-					log_warnx("number is %s: %s", errstr,
-					    ptr);
-					exit(1);
-				}
-				log_debug2("added -D macro \"%s\": %lld",
-				    macro->name, macro->value.num);
+				break;
 			}
+
+			macro->type = MACRO_NUMBER;
+			if (ptr == NULL) {
+				macro->value.num = 0;
+				break;
+			}
+			macro->value.num = strtonum(ptr, 0, LLONG_MAX, &errstr);
+			if (errstr != NULL) {
+				log_warnx("number is %s: %s", errstr, ptr);
+				exit(1);
+			}
+			log_debug2("added -D macro \"%s\": %lld", macro->name,
+			    macro->value.num);
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
@@ -414,9 +421,9 @@ main(int argc, char **argv)
 
 	/* start logging to syslog if necessary */
 	log_init(!conf.syslog);
-	t = time(NULL);
+	tt = time(NULL);
 	log_debug("version is: %s " BUILD ", started at: %.24s", __progname,
-	    ctime(&t));
+	    ctime(&tt));
 
 	/* and the OS version */
 	if (uname(&un) == 0) {
@@ -498,11 +505,15 @@ main(int argc, char **argv)
 	if (conf.domains == NULL) {
 		conf.domains = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.domains);
-		ARRAY_ADD(conf.domains, conf.info.host, char *);
-		if (conf.info.fqdn != NULL)
-			ARRAY_ADD(conf.domains, conf.info.fqdn, char *);
-		if (conf.info.addr != NULL)
-			ARRAY_ADD(conf.domains, conf.info.addr, char *);
+		ARRAY_ADD(conf.domains, xstrdup(conf.info.host), char *);
+		if (conf.info.fqdn != NULL) {
+			ptr = xstrdup(conf.info.fqdn);
+			ARRAY_ADD(conf.domains, ptr, char *);
+		}
+		if (conf.info.addr != NULL) {
+			ptr = xstrdup(conf.info.addr);
+			ARRAY_ADD(conf.domains, ptr, char *);
+		}
 	}
 	strs = fmt_strings(NULL, conf.domains);
 	log_debug("domains are: %s", strs);
@@ -563,16 +574,16 @@ main(int argc, char **argv)
 	}
 
 	/* save and print tmp dir */
-	conf.tmp_dir = getenv("TMPDIR");
-	if (conf.tmp_dir == NULL || *conf.tmp_dir == '\0')
-		conf.tmp_dir = _PATH_TMP;
+	s = getenv("TMPDIR");
+	if (s == NULL || *s == '\0')
+		s = _PATH_TMP;
 	else {
-		if (stat(conf.tmp_dir, &sb) == -1 || !S_ISDIR(sb.st_mode)) {
-			log_warn("%s", conf.tmp_dir);
-			conf.tmp_dir = _PATH_TMP;
+		if (stat(s, &sb) == -1 || !S_ISDIR(sb.st_mode)) {
+			log_warn("%s", s);
+			s = _PATH_TMP;
 		}
 	}
-	conf.tmp_dir = xstrdup(conf.tmp_dir);
+	conf.tmp_dir = xstrdup(s);
 	while ((ptr = strrchr(conf.tmp_dir, '/')) != NULL) {
 		if (ptr == conf.tmp_dir || ptr[1] != '\0')
 			break;
@@ -653,7 +664,6 @@ main(int argc, char **argv)
         SSL_load_error_strings();
 
 #ifdef DEBUG
-	xmalloc_clear();
 	COUNTFDS("parent");
 #endif
 
@@ -825,12 +835,46 @@ main(int argc, char **argv)
  	log_debug("parent: finished, total time %.3f seconds", tim);
 
 out:
+	if (*conf.lock_file != '\0' && !conf.allow_many)
+		unlink(conf.lock_file);
+
 #ifdef DEBUG
 	COUNTFDS("parent");
+
+	/* free everything */
+	while (!TAILQ_EMPTY(&conf.accounts)) {
+		a = TAILQ_FIRST(&conf.accounts);
+		TAILQ_REMOVE(&conf.accounts, a, entry);
+		free_account(a);
+	}
+	while (!TAILQ_EMPTY(&conf.rules)) {
+		r = TAILQ_FIRST(&conf.rules);
+		TAILQ_REMOVE(&conf.rules, r, entry);
+		free_rule(r);
+	}
+	while (!TAILQ_EMPTY(&conf.actions)) {
+		t = TAILQ_FIRST(&conf.actions);
+		TAILQ_REMOVE(&conf.actions, t, entry);
+		free_action(t);
+	}
+	xfree(conf.info.home);
+	xfree(conf.info.user);
+	xfree(conf.info.uid);
+	xfree(conf.info.host);
+	if (conf.info.fqdn != NULL)
+		xfree(conf.info.fqdn);
+	if (conf.info.addr != NULL)
+		xfree(conf.info.addr);
+	xfree(conf.conf_file);
+	xfree(conf.lock_file);
+	xfree(conf.tmp_dir);
+	free_strings(conf.domains);
+	ARRAY_FREEALL(conf.domains);
+	free_strings(conf.headers);
+	ARRAY_FREEALL(conf.headers);
+
 	xmalloc_report("parent");
 #endif
 
-	if (*conf.lock_file != '\0' && !conf.allow_many)
-		unlink(conf.lock_file);
 	exit(res);
 }

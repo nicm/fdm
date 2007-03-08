@@ -26,7 +26,6 @@
 - flags option for maildir delivery (or mark-read on maildir/mbox)
 - deliver to IMAP folder
 - refactor & clean up privsep mail transfer code
-- clean up parent.c
 - document mail_file, mbox_file and exec action
 - document command0 etc
 - expand ~s (special function on paths, check escaping)

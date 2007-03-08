@@ -31,7 +31,7 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 		*cause = xstrdup("invalid regexp");
 		return (1);
 	}
-	re->str = s;
+	re->str = xstrdup(s);
 	if (*s == '\0')
 		return (0);
 
@@ -77,4 +77,11 @@ int
 re_simple(struct re *re, char *s, char **cause)
 {
 	return (re_execute(re, s, 0, NULL, 0, cause));
+}
+
+void
+re_free(struct re *re)
+{
+	xfree(re->str);
+	regfree(&re->re);
 }

@@ -183,6 +183,9 @@ extern char	*__progname;
 /* Description buffer size. */
 #define DESCBUFSIZE 512
 
+/* Replace buffer size. */
+#define REPLBUFSIZE 64
+
 /* Lengths of time. */
 #define TIME_MINUTE 60LL
 #define TIME_HOUR 3600LL
@@ -476,7 +479,7 @@ struct conf {
 
 	uid_t			 child_uid;
 	gid_t			 child_gid;
-	const char		*tmp_dir;
+	char			*tmp_dir;
 
 	struct strings	 	 incl;
 	struct strings		 excl;
@@ -682,9 +685,13 @@ void			 shm_destroy(struct shm *);
 /* parse.y */
 extern struct macros	 macros;
 struct strings 		*weed_strings(struct strings *);
+void			 free_strings(struct strings *);
 char 			*fmt_strings(const char *, struct strings *);
 struct macro		*find_macro(char *);
 struct actions		*match_actions(char *);
+void			 free_action(struct action *);
+void			 free_rule(struct rule *);
+void			 free_account(struct account *); 
 
 /* fdm.c */
 double			 get_time(void);
@@ -700,6 +707,7 @@ int			 re_compile(struct re *, char *, int, char **);
 int			 re_execute(struct re *, char *, int, regmatch_t *,
 			     int, char **);
 int			 re_simple(struct re *, char *, char **);
+void			 re_free(struct re *);
 
 /* attach.c */
 struct attach 		*attach_visit(struct attach *, u_int *);

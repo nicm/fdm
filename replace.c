@@ -174,7 +174,7 @@ replace(struct replstr *rs, struct strb *tags, struct mail *m, int pm_valid,
 		return (xstrdup(""));
 
 	off = 0;
-	len = BUFSIZ;
+	len = REPLBUFSIZE;
 	dst = xmalloc(len);
 
 	for (ptr = src; *ptr != '\0'; ptr++) {
