@@ -287,7 +287,7 @@ find_macro(char *name)
 }
 
 void
-print_rule(struct rule *r) 
+print_rule(struct rule *r)
 {
 	struct expritem	*ei;
 	char		 s[1024], *sa, *ss, desc[DESCBUFSIZE];
@@ -339,7 +339,7 @@ print_rule(struct rule *r)
 void
 free_action(struct action *t)
 {
-	if (t->users != NULL) { 
+	if (t->users != NULL) {
 		free_strings(t->users);
 		ARRAY_FREEALL(t->users);
 	}
@@ -389,7 +389,7 @@ free_rule(struct rule *r)
 {
 	struct rule	*rr;
 	struct expritem	*ei;
-	
+
 	if (r->accounts != NULL) {
 		free_strings(r->accounts);
 		ARRAY_FREEALL(r->accounts);
@@ -443,7 +443,7 @@ free_rule(struct rule *r)
 		}
 		if (ei->data != NULL)
 			xfree(ei->data);
-		
+
 		xfree(ei);
 	}
 	xfree(r->expr);
@@ -483,7 +483,7 @@ free_account(struct account *a)
 		xfree(data->pipecmd);
 	} else if (a->fetch == &fetch_maildir) {
 		struct fetch_maildir_data	*data = a->data;
-		free_strings(data->maildirs);	
+		free_strings(data->maildirs);
 		ARRAY_FREEALL(data->maildirs);
 	} else if (a->fetch == &fetch_nntp) {
 		struct fetch_nntp_data		*data = a->data;
@@ -2506,6 +2506,8 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 
 		 a->fetch->desc(a, desc, sizeof desc);
 		 log_debug2("added account \"%s\": fetch=%s", a->name, desc);
+
+		 xfree($2);
 	 }
 
 %%
