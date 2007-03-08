@@ -553,6 +553,10 @@ main(int argc, char **argv)
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "file-group=%lu, ", (u_long) conf.file_group);
 	}
+	if (sizeof tmp > off && conf.lock_file != NULL) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "lock-file=\"%s\", ", conf.lock_file);
+	}
 	if (off >= 2) {
 		tmp[off - 2] = '\0';
 		log_debug("options are: %s", tmp);
