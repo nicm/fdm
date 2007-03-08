@@ -40,7 +40,7 @@ match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 	struct attach			*at;
 	size_t				 size;
 	u_int				 n;
-	char				*value;
+	char				*value = NULL;
 
 	if (!m->attach_built) {
 		/* fill attachments */
@@ -100,63 +100,63 @@ match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 		default:
 			return (MATCH_ERROR);
 		}
-	} else {
-		/* if no attachments, none of these conditions are true */
-		if (m->attach == NULL)
-			return (MATCH_FALSE);
+	}
+	
+	/* if no attachments, none of the following conditions are true */
+	if (m->attach == NULL)
+		return (MATCH_FALSE);
+	
+	/* for any type or name matches, construct the value */  
+	if (data->op == ATTACHOP_ANYTYPE || data->op == ATTACHOP_ANYNAME) {
+		value = replace(&data->value.str,
+		    m->tags, m, mctx->pm_valid, mctx->pm);
+	}
 
-		at = m->attach;
-		while (at != NULL) {
-			switch (data->op) {
-			case ATTACHOP_ANYSIZE:
-				switch (data->cmp) {
-				case CMP_LT:
-					if (at->size < data->value.size)
-						return (MATCH_TRUE);
-					break;
-				case CMP_GT:
-					if (at->size > data->value.size)
-						return (MATCH_TRUE);
-					break;
-				default:
-					return (MATCH_ERROR);
-				}
-				break;
-			case ATTACHOP_ANYTYPE:
-				if (at->type == NULL)
-					break;
-
-				value = replace(&data->value.str, m->tags, m,
-				    mctx->pm_valid, mctx->pm);
-				if (fnmatch(value, 
-				    at->type, FNM_CASEFOLD) == 0) {
-					xfree(value);
+	at = m->attach;
+	while (at != NULL) {
+		switch (data->op) {
+		case ATTACHOP_ANYSIZE:
+			switch (data->cmp) {
+			case CMP_LT:
+				if (at->size < data->value.size)
 					return (MATCH_TRUE);
-				}
-				xfree(value);
 				break;
-			case ATTACHOP_ANYNAME:
-				if (at->name == NULL)
-					break;
-
-				value = replace(&data->value.str, m->tags, m,
-				    mctx->pm_valid, mctx->pm);
-				if (fnmatch(value, 
-				    at->type, FNM_CASEFOLD) == 0) {
-					xfree(value);
+			case CMP_GT:
+				if (at->size > data->value.size)
 					return (MATCH_TRUE);
-				}
-				xfree(value);
 				break;
 			default:
 				return (MATCH_ERROR);
 			}
-
-			at = attach_visit(at, NULL);
+			break;
+		case ATTACHOP_ANYTYPE:
+			if (at->type == NULL)
+				break;
+				
+			if (fnmatch(value, at->type, FNM_CASEFOLD) == 0) {
+				xfree(value);
+				return (MATCH_TRUE);
+			}
+			break;
+		case ATTACHOP_ANYNAME:
+			if (at->name == NULL)
+				break;
+			
+			if (fnmatch(value, at->name, FNM_CASEFOLD) == 0) {
+				xfree(value);
+				return (MATCH_TRUE);
+			}
+			break;
+		default:
+			return (MATCH_ERROR);
 		}
-
-		return (MATCH_FALSE);
+		
+		at = attach_visit(at, NULL);
 	}
+
+	if (value != NULL)
+		xfree(value);
+	return (MATCH_FALSE);
 }
 
 void
