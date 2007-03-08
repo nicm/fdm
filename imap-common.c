@@ -275,6 +275,7 @@ restart:
 		add_tag(&m->tags, "port", "%s", data->server.port);
 	}
 	add_tag(&m->tags, "server_uid", "%u", data->uid);
+	add_tag(&m->tags, "folder", "%s", data->folder);
 
 	flushing = 0;
 	if (size > conf.max_size)
