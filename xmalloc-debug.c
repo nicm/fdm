@@ -320,7 +320,7 @@ dxcalloc(const char *file, u_int line, size_t nmemb, size_t size)
 	ptr = xxcalloc(nmemb, size);
 
 	xmalloc_ctx.mallocs++;
-	xmalloc_new(file, line, ptr, size);
+	xmalloc_new(file, line, ptr, nmemb * size);
 
 	xmalloc_called(file, line, XMALLOC_MALLOC);
 
