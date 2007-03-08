@@ -1,3 +1,11 @@
+08 March 2007
+
+* Try to introduce some consistency into tag replacement in strings. Introduce
+  a new type (struct replstr) which indicates a string that should be replaced
+  before use, and try to make sure replacement happens possibly for all strings
+  where replacement should happen on parse. Hopefully this will make it easier
+  to handle replacement properly in future too.
+
 07 March 2007
 
 * Handle POLLHUP properly in io.c: if it is set and POLLIN isn't set, the 

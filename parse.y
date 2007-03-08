@@ -1376,8 +1376,8 @@ action: TOKPIPE strv
 	}
 
 /** DEFACTION */
-defaction: TOKACTION strv users action
-/**        [$2: strv (char *)] [$3: users (struct { ... } users)] */
+defaction: TOKACTION replstrv users action
+/**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
 /**        [$4: action (struct action)] */
 	   {
 		   struct action	*t;
@@ -2079,8 +2079,8 @@ folder: /* empty */
 	}
 
 /** GROUPSLIST: <strings> (struct strings *) */
-groupslist: groupslist strv
-/**         [$1: groupslist (struct strings *)] [$2: strv (char *)] */
+groupslist: groupslist replstrv
+/**         [$1: groupslist (struct strings *)] [$2: replstrv (char *)] */
  	    {
 		    char		*cp;
 
@@ -2094,8 +2094,8 @@ groupslist: groupslist strv
 
 		    ARRAY_ADD($$, $2, char *);
 	    }
-	  | strv
-/**         [$1: strv (char *)] */
+	  | replstrv
+/**         [$1: replstrv (char *)] */
 	    {
 		    char		*cp;
 
@@ -2112,8 +2112,8 @@ groupslist: groupslist strv
 	    }
 
 /** GROUPS: <strings> (struct strings *) */
-groups: TOKGROUP strv
-/**     [$2: strv (char *)] */
+groups: TOKGROUP replstrv
+/**     [$2: replstrv (char *)] */
 	{
 		char			*cp;
 
@@ -2173,9 +2173,9 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server TOKUSER strv TOKPASS strv
+fetchtype: poptype server TOKUSER replstrv TOKPASS replstrv
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
-/**        [$4: strv (char *)] [$6: strv (char *)] */
+/**        [$4: replstrv (char *)] [$6: replstrv (char *)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2293,8 +2293,8 @@ fetchtype: poptype server TOKUSER strv TOKPASS strv
 	   }
 
 /** ACCOUNT */
-account: TOKACCOUNT strv disabled users fetchtype keep
-/**      [$2: strv (char *)] [$3: disabled (int)] */
+account: TOKACCOUNT replstrv disabled users fetchtype keep
+/**      [$2: replstrv (char *)] [$3: disabled (int)] */
 /**      [$4: users (struct { ... } users)] [$5: fetchtype (struct { ... } fetch)] */
 /**      [$6: keep (int)] */
          {
