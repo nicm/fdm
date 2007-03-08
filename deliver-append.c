@@ -45,5 +45,7 @@ deliver_append_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 deliver_append_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "append \"%s\"", (char *) t->data);
+	struct deliver_write_data	*data = t->data;
+
+	xsnprintf(buf, len, "append \"%s\"", data->path.str);
 }

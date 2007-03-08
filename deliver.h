@@ -65,25 +65,55 @@ enum deliver_smtp_state {
 
 /* Deliver smtp data. */
 struct deliver_smtp_data {
-	struct server	 server;
-	char		*to;
+	struct server	server;
+	struct replstr	to;
 };
 
 /* Deliver mbox data. */
 struct deliver_mbox_data {
-	char		*path;
-	int		 compress;
+	struct replstr	path;
+	int		compress;
 };
 
 /* Deliver stdout data. */
 struct deliver_stdout_data {
-	int		 add_from;
+	int		add_from;
 };
 
 /* Deliver add-header data. */
 struct deliver_add_header_data {
-	char		*hdr;
-	char		*value;
+	struct replstr	hdr;
+	struct replstr	value;
+};
+
+/* Deliver remove-header data. */
+struct deliver_remove_header_data {
+	struct replstr	hdr;
+};
+
+/* Deliver write data. */
+struct deliver_write_data {
+	struct replstr	path;
+};
+
+/* Deliver maildir data. */
+struct deliver_maildir_data {
+	struct replstr	path;
+};
+
+/* Deliver rewrite data. */
+struct deliver_rewrite_data {
+	struct replstr	cmd;
+};
+
+/* Deliver pipe data. */
+struct deliver_pipe_data {
+	struct replstr	cmd;
+};
+
+/* Deliver append-string data. */
+struct deliver_append_string_data {
+	struct replstr	str;
 };
 
 /* deliver-smtp.c */

@@ -76,7 +76,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	int				 res = DELIVER_FAILURE;
 	gzFile				 gzf = NULL;
 
-	path = replace(data->path, m->tags, m, *dctx->pm_valid, dctx->pm);
+	path = replace(&data->path, m->tags, m, *dctx->pm_valid, dctx->pm);
 	if (path == NULL || *path == '\0') {
 		if (path != NULL)
 			xfree(path);
@@ -205,7 +205,7 @@ deliver_mbox_desc(struct action *t, char *buf, size_t len)
 	struct deliver_mbox_data	*data = t->data;
 
 	if (data->compress)
-		xsnprintf(buf, len, "mbox \"%s\" compress", data->path);
+		xsnprintf(buf, len, "mbox \"%s\" compress", data->path.str);
 	else
-		xsnprintf(buf, len, "mbox \"%s\"", data->path);
+		xsnprintf(buf, len, "mbox \"%s\"", data->path.str);
 }

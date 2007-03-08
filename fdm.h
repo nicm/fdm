@@ -238,6 +238,16 @@ enum fdmop {
 	FDMOP_FETCH
 };
 
+/*
+ * Wrapper struct for a string that needs tag replacement before it is used.
+ * This is used for anything that needs to be replaced after account and mail
+ * data are available, everything else is replaced at parse time.
+ */
+struct replstr {
+	char		*str;
+};
+ARRAY_DECL(replstrs, struct replstr);
+
 /* Server description. */
 struct server {
 	char		*host;
@@ -445,11 +455,11 @@ struct rule {
 
 	int			 stop;		/* stop matching at this rule */
 
-	char			*key;
-	char			*value;
+	struct replstr		 key;
+	struct replstr		 value;
 
 	struct rules		 rules;
-	struct strings		*actions;
+	struct replstrs		*actions;
 
 	TAILQ_ENTRY(rule)	 entry;
 };
@@ -778,8 +788,8 @@ const char 		*find_tag(struct strb *, const char *);
 const char		*match_tag(struct strb *, const char *);
 void			 default_tags(struct strb **, char *, struct account *);
 void			 update_tags(struct strb **);
-char 			*replace(char *, struct strb *, struct mail *, int,
-			     regmatch_t [NPMATCH]);
+char 			*replace(struct replstr *, struct strb *, struct mail *,
+			     int, regmatch_t [NPMATCH]);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *, int);

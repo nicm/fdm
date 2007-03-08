@@ -42,18 +42,21 @@ struct deliver deliver_maildir = {
 int
 deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account	*a = dctx->account;
-	struct mail	*m = dctx->mail;
-	static u_int	 delivered = 0;
-	char		*path, ch;
-	char	 	 host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN], *host;
-	char	 	 name[MAXPATHLEN], src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 	 exists, fd, len, res = DELIVER_FAILURE;
-	ssize_t	 	 n;
-	size_t	 	 first, last;
-	gid_t		 gid;
+	struct account			*a = dctx->account;
+	struct mail			*m = dctx->mail;
+	struct deliver_maildir_data	*data = t->data;
+	static u_int			 delivered = 0;
+	char				*path, ch;
+	char			 	 host1[MAXHOSTNAMELEN];
+	char				 host2[MAXHOSTNAMELEN], *host;
+	char	 			 name[MAXPATHLEN];
+	char				 src[MAXPATHLEN], dst[MAXPATHLEN];
+	int	 			 exists, fd, len, res = DELIVER_FAILURE;
+	ssize_t			 	 n;
+	size_t	 			 first, last;
+	gid_t				 gid;
 
-	path = replace(t->data, m->tags, m, *dctx->pm_valid, dctx->pm);
+	path = replace(&data->path, m->tags, m, *dctx->pm_valid, dctx->pm);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto out;
@@ -235,5 +238,7 @@ out:
 void
 deliver_maildir_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "maildir \"%s\"", (char *) t->data);
+	struct deliver_maildir_data	*data = t->data;
+
+	xsnprintf(buf, len, "maildir \"%s\"", data->path.str);
 }

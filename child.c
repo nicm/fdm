@@ -462,10 +462,10 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 		}
 
 		/* tag mail if needed */
-		if (r->key != NULL) {
-			tkey = replace(r->key, m->tags, m, mctx->pm_valid,
+		if (r->key.str != NULL) {
+			tkey = replace(&r->key, m->tags, m, mctx->pm_valid,
 			    mctx->pm);
-			tvalue = replace(r->value, m->tags, m, mctx->pm_valid,
+			tvalue = replace(&r->value, m->tags, m, mctx->pm_valid,
 			    mctx->pm);
 
 			if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
@@ -554,21 +554,21 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
  	struct action	*t;
 	struct actions	*ta;
 	u_int		 i, j;
-	char		*s, *name;
+	char		*s;
+	struct replstr	*rs;
 
 	if (r->actions == NULL)
 		return (0);
 
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		name = ARRAY_ITEM(r->actions, i, char *);
-
-		s = replace(name, m->tags, m, mctx->pm_valid, mctx->pm);
+		rs = &ARRAY_ITEM(r->actions, i, struct replstr);
+		s = replace(rs, m->tags, m, mctx->pm_valid, mctx->pm);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = match_actions(s);
 		if (ARRAY_EMPTY(ta)) {
 			log_warnx("%s: no actions matching: %s (was %s)",
-			    a->name, s, name);
+			    a->name, s, rs->str);
 			xfree(s);
 			ARRAY_FREEALL(ta);
 			return (1);

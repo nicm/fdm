@@ -40,6 +40,7 @@ match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 	struct attach			*at;
 	size_t				 size;
 	u_int				 n;
+	char				*value;
 
 	if (!m->attach_built) {
 		/* fill attachments */
@@ -124,16 +125,28 @@ match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 			case ATTACHOP_ANYTYPE:
 				if (at->type == NULL)
 					break;
-				if (fnmatch(data->value.str, at->type,
-				    FNM_CASEFOLD) == 0)
+
+				value = replace(&data->value.str, m->tags, m,
+				    mctx->pm_valid, mctx->pm);
+				if (fnmatch(value, 
+				    at->type, FNM_CASEFOLD) == 0) {
+					xfree(value);
 					return (MATCH_TRUE);
+				}
+				xfree(value);
 				break;
 			case ATTACHOP_ANYNAME:
 				if (at->name == NULL)
 					break;
-				if (fnmatch(data->value.str, at->name,
-				    FNM_CASEFOLD) == 0)
+
+				value = replace(&data->value.str, m->tags, m,
+				    mctx->pm_valid, mctx->pm);
+				if (fnmatch(value, 
+				    at->type, FNM_CASEFOLD) == 0) {
+					xfree(value);
 					return (MATCH_TRUE);
+				}
+				xfree(value);
 				break;
 			default:
 				return (MATCH_ERROR);
@@ -176,11 +189,11 @@ match_attachment_desc(struct expritem *ei, char *buf, size_t len)
 		break;
 	case ATTACHOP_ANYTYPE:
 		xsnprintf(buf, len,
-		    "attachment any-type \"%s\"", data->value.str);
+		    "attachment any-type \"%s\"", data->value.str.str);
 		break;
 	case ATTACHOP_ANYNAME:
 		xsnprintf(buf, len,
-		    "attachment any-name \"%s\"", data->value.str);
+		    "attachment any-name \"%s\"", data->value.str.str);
 		break;
 	default:
 		if (len > 0)

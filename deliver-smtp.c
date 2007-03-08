@@ -84,10 +84,15 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 		io->dup_fd = STDOUT_FILENO;
 
 	xasprintf(&from, "%s@%s", conf.info.user, conf.info.host);
-	if (data->to == NULL)
-		to = from;
-	else
-		to = data->to;
+	if (data->to.str == NULL)
+		to = xstrdup(from);
+	else {
+		to = replace(&data->to, m->tags, m, *dctx->pm_valid, dctx->pm);
+		if (to == NULL || *to == '\0') {
+			log_warnx("%s: empty to", a->name);
+			goto error;
+		}
+	}
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
@@ -169,6 +174,7 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 
 	xfree(lbuf);
 	xfree(from);
+	xfree(to);
 
 	io_close(io);
 	io_free(io);
@@ -186,7 +192,10 @@ error:
 	io_flush(io, NULL);
 
 	xfree(lbuf);
-	xfree(from);
+	if (from != NULL)
+		xfree(from);
+	if (to != NULL)
+		xfree(to);
 
 	io_close(io);
 	io_free(io);
@@ -201,5 +210,5 @@ deliver_smtp_desc(struct action *t, char *buf, size_t len)
 
 	xsnprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->to);
+	    data->to.str);
 }

@@ -35,10 +35,20 @@ struct deliver deliver_remove_header = {
 int
 deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct mail	*m = dctx->mail;
-	char		*ptr;
-	size_t	 	 len, off, wrap;
-	u_int		 i;
+	struct account				*a = dctx->account;
+	struct mail				*m = dctx->mail;
+	struct deliver_remove_header_data	*data = t->data;
+	char					*ptr, *hdr;
+	size_t				  	 len, off, wrap;
+	u_int					 i;
+
+	hdr = replace(&data->hdr, m->tags, m, *dctx->pm_valid, dctx->pm);
+	if (hdr == NULL || *hdr == '\0') {
+		if (hdr != NULL)
+			xfree(hdr);
+		log_warnx("%s: empty header", a->name);
+		return (DELIVER_FAILURE);
+	}
 
 	/* XXX necessary? */
 	ARRAY_FREE(&m->wrapped);
@@ -46,7 +56,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 
 	set_wrapped(m, ' ');
 
-	while ((ptr = find_header(m, t->data, &len, 0)) != NULL) {
+	while ((ptr = find_header(m, hdr, &len, 0)) != NULL) {
 		log_debug("found header to remove: %.*s", (int) len, ptr);
 		
 		/* include the \n */
@@ -83,5 +93,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 deliver_remove_header_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "remove-header \"%s\"", (char *) t->data);
+	struct deliver_remove_header_data	*data = t->data;
+
+	xsnprintf(buf, len, "remove-header \"%s\"", data->hdr.str);
 }

@@ -60,27 +60,18 @@ int
 fetch_maildir_makepaths(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
-	char				*s, *path;
+	char				*path;
 	u_int				 i, j;
 	glob_t				 g;
 	struct stat			 sb;
-	struct strb			*tags;
-
-	strb_create(&tags);
-	default_tags(&tags, NULL, a);
 
 	data->paths = xmalloc(sizeof *data->paths);
 	ARRAY_INIT(data->paths);
 
 	for (i = 0; i < ARRAY_LENGTH(data->maildirs); i++) {
 		path = ARRAY_ITEM(data->maildirs, i, char *);
-		s = replace(path, tags, NULL, 0, NULL);
-		if (s == NULL || *s == '\0') {
-			log_warnx("%s: empty path", a->name);
-			goto error;
-		}
-		if (glob(s, GLOB_BRACE|GLOB_NOCHECK, NULL, &g) != 0) {
-			log_warn("%s: glob(\"%s\")", a->name, s);
+		if (glob(path, GLOB_BRACE|GLOB_NOCHECK, NULL, &g) != 0) {
+			log_warn("%s: glob(\"%s\")", a->name, path);
 			goto error;
 		}
 
@@ -111,19 +102,12 @@ fetch_maildir_makepaths(struct account *a)
 				goto error;
 			}
 		}
-
-		xfree(s);
 	}
 
-	strb_destroy(&tags);
 	return (0);
 
 error:
-	if (s != NULL)
-		xfree(s);
 	fetch_maildir_freepaths(a);
-
-	strb_destroy(&tags);
 	return (1);
 }
 

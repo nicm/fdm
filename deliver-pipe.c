@@ -45,21 +45,24 @@ deliver_pipe_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 deliver_pipe_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "pipe \"%s\"", (char *) t->data);
+	struct deliver_pipe_data	*data = t->data;
+
+	xsnprintf(buf, len, "pipe \"%s\"", data->cmd.str);
 }
 
 int
 do_pipe(struct deliver_ctx *dctx, struct action *t, int pipef)
 {
-	struct account	*a = dctx->account;
-	struct mail	*m = dctx->mail;
-        char		*s, *cause, *err;
-	int		 status;
-	struct cmd	*cmd;
-	char		*lbuf;
-	size_t		 llen;
+	struct account			*a = dctx->account;
+	struct mail			*m = dctx->mail;
+	struct deliver_pipe_data	*data = t->data;
+        char				*s, *cause, *err;
+	int				 status;
+	struct cmd			*cmd;
+	char				*lbuf;
+	size_t				 llen;
 
-	s = replace(t->data, m->tags, m, *dctx->pm_valid, dctx->pm);
+	s = replace(&data->cmd, m->tags, m, *dctx->pm_valid, dctx->pm);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		if (s != NULL)

@@ -86,10 +86,10 @@ match_command_desc(struct expritem *ei, char *buf, size_t len)
 
 	if (data->re.str == NULL) {
 		xsnprintf(buf, len, "%s \"%s\" user %lu returns (%s, )",
-		    type, data->cmd, (u_long) data->uid, ret);
+		    type, data->cmd.str, (u_long) data->uid, ret);
 	} else {
 		xsnprintf(buf, len,
 		    "command %s \"%s\" user %lu returns (%s, \"%s\")",
-		    type, data->cmd, (u_long) data->uid, ret, data->re.str);
+		    type, data->cmd.str, (u_long) data->uid, ret, data->re.str);
 	}
 }

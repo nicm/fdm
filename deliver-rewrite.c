@@ -41,17 +41,18 @@ struct deliver deliver_rewrite = {
 int
 deliver_rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 {
-	struct account	*a = dctx->account;
-	struct mail	*m = dctx->mail;
-	struct mail	*md = &dctx->wr_mail;
-        char		*s, *cause, *out, *err;
-	size_t		 len;
-	int	 	 status;
-	struct cmd	*cmd;
-	char		*lbuf;
-	size_t		 llen;
+	struct account			*a = dctx->account;
+	struct mail			*m = dctx->mail;
+	struct deliver_rewrite_data	*data = t->data;
+	struct mail			*md = &dctx->wr_mail;
+        char				*s, *cause, *out, *err;
+	size_t				 len;
+	int	 			 status;
+	struct cmd			*cmd;
+	char				*lbuf;
+	size_t				 llen;
 
-	s = replace(t->data, m->tags, m, *dctx->pm_valid, dctx->pm);
+	s = replace(&data->cmd, m->tags, m, *dctx->pm_valid, dctx->pm);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		if (s != NULL)
@@ -131,5 +132,7 @@ error:
 void
 deliver_rewrite_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "rewrite \"%s\"", (char *) t->data);
+	struct deliver_rewrite_data	*data = t->data;
+
+	xsnprintf(buf, len, "rewrite \"%s\"", data->cmd.str);
 }

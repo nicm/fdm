@@ -158,15 +158,16 @@ update_tags(struct strb **tags)
 }
 
 char *
-replace(char *src, struct strb *tags, struct mail *m, int pm_valid,
+replace(struct replstr *rs, struct strb *tags, struct mail *m, int pm_valid,
     regmatch_t pm[NPMATCH])
 {
 	char		*ptr, *tend;
 	const char	*tptr, *alias;
-	char		*dst, ch;
+	char		*src, *dst, ch;
 	size_t	 	 off, len, tlen;
 	u_int		 idx;
 
+	src = rs->str;
 	if (src == NULL)
 		return (NULL);
 	if (*src == '\0')

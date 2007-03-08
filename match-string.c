@@ -41,12 +41,7 @@ match_string_match(struct match_ctx *mctx, struct expritem *ei)
 	int				 res;
 	char				*s, *cause;
 
-	if (!mctx->pm_valid) {
-		log_warnx("%s: string match but no regexp match data", a->name);
-		return (MATCH_FALSE);
-	}
-
-	s = replace(data->str, m->tags, m, 1, mctx->pm);
+	s = replace(&data->str, m->tags, m, mctx->pm_valid, mctx->pm);
 	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.str);
 
 	res = re_simple(&data->re, s, &cause);
@@ -68,5 +63,6 @@ match_string_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct match_string_data	*data = ei->data;
 
-	xsnprintf(buf, len, "string \"%s\" to \"%s\"", data->str, data->re.str);
+	xsnprintf(buf, len,
+	    "string \"%s\" to \"%s\"", data->str.str, data->re.str);
 }

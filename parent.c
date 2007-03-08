@@ -369,7 +369,7 @@ parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		return (0);
 
 	/* sort out the command */
-	s = replace(data->cmd, m->tags, m, mctx->pm_valid, mctx->pm);
+	s = replace(&data->cmd, m->tags, m, mctx->pm_valid, mctx->pm);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;

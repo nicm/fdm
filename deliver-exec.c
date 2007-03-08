@@ -45,5 +45,7 @@ deliver_exec_deliver(struct deliver_ctx *dctx, struct action *t)
 void
 deliver_exec_desc(struct action *t, char *buf, size_t len)
 {
-	xsnprintf(buf, len, "exec \"%s\"", (char *) t->data);
+	struct deliver_pipe_data	*data = t->data;
+
+	xsnprintf(buf, len, "exec \"%s\"", data->cmd.str);
 }
