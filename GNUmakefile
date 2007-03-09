@@ -41,6 +41,12 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
 
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
 
+ifeq ($(shell uname),Darwin)
+INCDIRS+= -I/usr/local/include/openssl -Icompat
+SRCS+= compat/strtonum.c compat/vis.c
+DEFS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
+endif
+
 ifeq ($(shell uname),Linux)
 INCDIRS+= -I/usr/include/openssl -Icompat
 SRCS+= compat/strlcpy.c compat/strlcat.c compat/strtonum.c compat/vis.c
