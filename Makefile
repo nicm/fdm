@@ -39,6 +39,13 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
+# OS X
+.if ${OS} == "Darwin"
+SRCS+= compat/strtonum.c compat/vis.c
+INCDIRS+= -Icompat -I/usr/local/include/openssl
+CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
+.endif
+
 # NetBSD
 .if ${OS} == "NetBSD"
 SRCS+= compat/strtonum.c compat/vis.c
