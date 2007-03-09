@@ -44,7 +44,7 @@ DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
 ifeq ($(shell uname),Darwin)
 INCDIRS+= -I/usr/local/include/openssl -Icompat
 SRCS+= compat/strtonum.c compat/vis.c
-DEFS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
+DEFS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE
 endif
 
 ifeq ($(shell uname),Linux)

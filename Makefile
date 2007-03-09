@@ -43,7 +43,7 @@ CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 .if ${OS} == "Darwin"
 SRCS+= compat/strtonum.c compat/vis.c
 INCDIRS+= -Icompat -I/usr/local/include/openssl
-CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
+CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE
 .endif
 
 # NetBSD
