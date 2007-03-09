@@ -94,7 +94,7 @@ ${PROG}:	${OBJS}
 		${CC} ${LDFLAGS} -o ${PROG} ${LIBS} ${OBJS}
 
 dist:		clean
-		grep '^#CFLAGS.*-DDEBUG' Makefile
+		grep '^#CFLAGS.*-DDEBUG' Makefile GNUmakefile
 		tar -zxc \
 			-s '/.*/${PROG}-${VERSION}\/\0/' \
 			-f ${PROG}-${VERSION}.tar.gz ${DISTFILES}

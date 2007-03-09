@@ -25,6 +25,8 @@
 
 #include "fdm.h"
 
+void	*strb_address(struct strb *, const char *);
+
 void
 strb_create(struct strb **sbp)
 {
@@ -82,12 +84,13 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	struct strb	*sb = *sbp;
 	size_t		 size, keylen, valuelen;
 	u_int		 n;
-	struct strbent	*sbe;
+	struct strbent	 sbe;
+	void		*sbep;
 
 	keylen = strlen(key) + 1;
 	valuelen = xvsnprintf(NULL, 0, value, ap) + 1;
 
-	sbe = STRB_ENTRY(sb, 0);
+	sbep = STRB_ENTRY(sb, 0);
 	size = sb->str_size;
 	while (sb->str_size - sb->str_used < keylen + valuelen) {
 		if (STRB_SIZE(sb) > SIZE_MAX / 2)
@@ -96,16 +99,16 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	}
 	if (size != sb->str_size) {
 		sb = *sbp = xrealloc(sb, 1, STRB_SIZE(sb));
-		memmove(STRB_ENTRY(sb, 0), sbe, STRB_ENTSIZE(sb));
+		memmove(STRB_ENTRY(sb, 0), sbep, STRB_ENTSIZE(sb));
 		memset(((char *) sb) + (sizeof *sb) + size, 0,
 		    sb->str_size - size);
 	}
 
-	sbe = strb_find(sb, key);
-	if (sbe == NULL) {
+	sbep = strb_address(sb, key);
+	if (sbep == NULL) {
 		if (sb->ent_used > sb->ent_max) {
 			/* allocate some more */
-			if (sb->ent_max > UINT_MAX / 2)
+			if (sb->ent_max > UINT_MAX / 2) /* XXX */
 				fatalx("strb_add: ent_max too large");
 			n = sb->ent_max;
 			
@@ -115,46 +118,59 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 			memset(STRB_ENTRY(sb, n), 0, STRB_ENTSIZE(sb) / 2);
 		}
 
-		sbe = STRB_ENTRY(sb, sb->ent_used);
+		sbep = STRB_ENTRY(sb, sb->ent_used);
 		sb->ent_used++;
 
-		sbe->key = sb->str_used;
-		memcpy(STRB_KEY(sb, sbe), key, keylen);
+		sbe.key = sb->str_used;
+		memcpy(STRB_KEY(sb, &sbe), key, keylen);
 		sb->str_used += keylen;
-	}
-	sbe->value = sb->str_used;
-	xvsnprintf(STRB_VALUE(sb, sbe), valuelen, value, ap);
+	} else
+		memcpy(&sbe, sbep, sizeof sbe);
+	sbe.value = sb->str_used;
+	xvsnprintf(STRB_VALUE(sb, &sbe), valuelen, value, ap);
 	sb->str_used += valuelen;
+
+	memcpy(sbep, &sbe, sizeof sbe);
+}
+
+void *
+strb_address(struct strb *sb, const char *key)
+{
+	struct strbent	 sbe;
+	u_int		  i;
+
+	for (i = 0; i < sb->ent_used; i++) {
+		memcpy(&sbe, STRB_ENTRY(sb, i), sizeof sbe);
+		if (strcmp(key, STRB_KEY(sb, &sbe)) == 0)
+			return (STRB_ENTRY(sb, i));
+	}
+	return (NULL);
 }
 
 struct strbent *
 strb_find(struct strb *sb, const char *key)
 {
-	struct strbent	*sbe;
-	u_int		 i;
+	static struct strbent	 sbe;
+	void			*sbep;
 
-	sbe = NULL;
-	for (i = 0; i < sb->ent_used; i++) {
-		if (strcmp(key, STRB_KEY(sb, STRB_ENTRY(sb, i))) == 0) {
-			sbe = STRB_ENTRY(sb, i);
-			break;
-		}
-	}
-	return (sbe);
+	sbep = strb_address(sb, key);
+	if (sbep == NULL)
+		return (NULL);
+	memcpy(&sbe, sbep, sizeof sbe);
+	return (&sbe);
 }
 
 struct strbent *
 strb_match(struct strb *sb, const char *patt)
 {
-	struct strbent	*sbe;
-	u_int		 i;
+	static struct strbent	 sbe;
+	u_int		 	 i;
 
-	sbe = NULL;
 	for (i = 0; i < sb->ent_used; i++) {
-		if (fnmatch(patt, STRB_KEY(sb, STRB_ENTRY(sb, i)), 0) == 0) {
-			sbe = STRB_ENTRY(sb, i);
-			break;
-		}
+		memcpy(&sbe, STRB_ENTRY(sb, i), sizeof sbe);
+		if (fnmatch(patt, STRB_KEY(sb, &sbe), 0) == 0)
+			return (&sbe);
 	}
-	return (sbe);
+	return (NULL);
 }
+

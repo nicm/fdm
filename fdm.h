@@ -313,10 +313,10 @@ struct strb {
 #define STRBBLOCK 512
 
 /* String block access macros. */
-#define STRB_KEY(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + sbe->key)
-#define STRB_VALUE(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + sbe->value)
+#define STRB_KEY(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + (sbe)->key)
+#define STRB_VALUE(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + (sbe)->value)
 
-#define STRB_ENTRY(sb, n) ((struct strbent *) (((char *) (sb)) + \
+#define STRB_ENTRY(sb, n) ((void *) (((char *) (sb)) + \
 	(sizeof *(sb)) + (sb)->str_size + ((n) * (sizeof (struct strbent)))))
 #define STRB_ENTSIZE(sb) ((sb)->ent_max * (sizeof (struct strbent)))
 #define STRB_SIZE(sb) ((sizeof *(sb)) + (sb)->str_size + STRB_ENTSIZE((sb)))
