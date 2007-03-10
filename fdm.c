@@ -306,7 +306,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:D:f:klmnu:vx:")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:D:f:klmnu:vx:?")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, optarg, char *);
