@@ -808,7 +808,7 @@ The matched and unmatched conditions are used to match mail that has matched
 or has not matched previous rules and been passed on with the 'continue'
 keyword. For example,
 
-	match all action "act1" continue
+	match "myregexp" action "act1" continue
 	# This rule will match only mails that also matched the first.
 	match matched action "act2"
 	# This rule will match only mails that matched neither of the first two.
@@ -841,12 +841,12 @@ and may be made use of using the 'string' condition, or used to construct an
 action name, maildir or mbox path, etc. The bracket expressions may be
 substituted using the %1 to %9 tokens. For example,
 
-	match regexp "^From:.*([a-z]*)@domain" in headers action "all" continue
+	match "^From:.*([a-z]*)@domain" in headers action "all" continue
 	match string "%1" to "bob" action "bobmail"
 
 Or:
 
-	match regexp "^From:.*([a-z]*)@domain" in headers action "all" continue
+	match "^From:.*([a-z]*)@domain" in headers action "all" continue
 	match all action "%1mail"
 
 This is particularly useful in combination with nested rules (see later):
