@@ -86,18 +86,13 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	u_int		 n;
 	struct strbent	 sbe;
 	void		*sbep;
-	char		*vp;
+	va_list		 aq;
 
 	keylen = strlen(key) + 1;
-	
-	/*
-	 * glibc's vsnprintf is buggy and segfaults on ppc when writing directly
-	 * into the string buffer. I haven't got access to a ppc machine to
-	 * investigate this in detail myself but I guess it is an alignment 
-	 * problem. OS X and OpenBSD/ppc appear to be fine. So, instead of
-	 * writing directly, we asprintf to a buffer and memcpy it later.
-	 */
-	valuelen = xvasprintf(&vp, value, ap) + 1;
+
+	va_copy(aq, ap);
+	valuelen = xvsnprintf(NULL, 0, value, aq) + 1;
+	va_end(aq);
 
 	sbep = STRB_ENTRY(sb, 0);
 	size = sb->str_size;
@@ -136,8 +131,7 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	} else
 		memcpy(&sbe, sbep, sizeof sbe);
 	sbe.value = sb->str_used;
-	memcpy(STRB_VALUE(sb, &sbe), vp, valuelen);
-	xfree(vp);
+	xvsnprintf(STRB_VALUE(sb, &sbe), valuelen, value, ap);
 	sb->str_used += valuelen;
 
 	memcpy(sbep, &sbe, sizeof sbe);
