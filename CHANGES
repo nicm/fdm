@@ -1,3 +1,10 @@
+11 March 2007
+
+* glibc's vsnprintf appears to be buggy and this causes problems when
+  writing directly into a string buffer on PPC. Sadly I haven't got a PPC
+  machine to investigate in detail, but a workaround (asprintf first then
+  memcpy) seems to fix it. Reported by Daniel Wilmer.
+
 08 March 2007
 
 * Try to introduce some consistency into tag replacement in strings. Introduce
