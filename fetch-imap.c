@@ -154,19 +154,12 @@ fetch_imap_connect(struct account *a)
 int
 fetch_imap_disconnect(struct account *a)
 {
-	struct fetch_imap_data	*data = a->data;
-
-	if (imap_close(a) != 0)
-		goto error;
-	if (imap_logout(a) != 0)
-		goto error;
+	if (imap_close(a) != 0 || imap_logout(a) != 0) {
+		imap_abort(a);
+		return (1);
+	}
 
 	return (0);
-
-error:
-	imap_abort(a);
-
-	return (1);
 }
 
 int
