@@ -25,6 +25,7 @@
 
 int	 	 fetch_imap_connect(struct account *);
 int	 	 fetch_imap_disconnect(struct account *);
+int	 	 fetch_imap_free(struct account *);
 void		 fetch_imap_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imap_putln(struct account *, const char *, ...);
@@ -41,7 +42,7 @@ struct fetch fetch_imap = {
 	imap_delete,	/* from imap-common.c */
 	imap_keep,	/* from imap-common.c */
 	fetch_imap_disconnect,
-	imap_free,	/* from imap-common.c */
+	fetch_imap_free,
 	fetch_imap_desc
 };
 
@@ -160,18 +161,28 @@ fetch_imap_disconnect(struct account *a)
 	if (imap_logout(a) != 0)
 		goto error;
 
-	io_close(data->io);
-	io_free(data->io);
-
 	return (0);
 
 error:
 	imap_abort(a);
 
-	io_close(data->io);
-	io_free(data->io);
-
 	return (1);
+}
+
+int
+fetch_imap_free(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	if (data->io != NULL) { 
+		io_close(data->io);
+		io_free(data->io);
+	}
+
+	if (imap_free(a) != 0)
+		return (1);
+		
+	return (0);
 }
 
 void
