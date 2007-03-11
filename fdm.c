@@ -309,7 +309,7 @@ main(int argc, char **argv)
         while ((opt = getopt(argc, argv, "a:D:f:klmnu:vx:?")) != EOF) {
                 switch (opt) {
 		case 'a':
-			ARRAY_ADD(&conf.incl, optarg, char *);
+			ARRAY_ADD(&conf.incl, xstrdup(optarg), char *);
 			break;
 		case 'D':
 			if (*optarg != '$' && *optarg != '%') {
@@ -375,7 +375,7 @@ main(int argc, char **argv)
                         conf.debug++;
                         break;
 		case 'x':
-			ARRAY_ADD(&conf.excl, optarg, char *);
+			ARRAY_ADD(&conf.excl, xstrdup(optarg), char *);
 			break;
                 case '?':
                 default:
@@ -835,7 +835,7 @@ main(int argc, char **argv)
  	log_debug("parent: finished, total time %.3f seconds", tim);
 
 out:
-	if (*conf.lock_file != '\0' && !conf.allow_many)
+	if (!conf.allow_many && *conf.lock_file != '\0')
 		unlink(conf.lock_file);
 
 #ifdef DEBUG
@@ -872,6 +872,8 @@ out:
 	ARRAY_FREEALL(conf.domains);
 	free_strings(conf.headers);
 	ARRAY_FREEALL(conf.headers);
+	free_strings(&conf.incl);
+	free_strings(&conf.excl);
 
 	xmalloc_report("parent");
 #endif
