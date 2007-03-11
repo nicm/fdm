@@ -401,9 +401,11 @@ parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 			break;
 		if (err != NULL)
 			log_warnx("%s: %s: %s", a->name, s, err);
-		if (out == NULL || found)
+		if (out == NULL)
 			continue;
 		log_debug3("%s: %s: out: %s", a->name, s, out);
+		if (found) /* XXX stop early? */
+			continue;
 			
 		found = re_execute(&data->re, out, NPMATCH, pm, 0, &cause);
 		if (found == -1) {
