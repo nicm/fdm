@@ -76,10 +76,11 @@ do_pipe(struct deliver_ctx *dctx, struct action *t, int pipef)
 		log_debug("%s: executing \"%s\"", a->name, s);
 
 	log_debug2("%s: %s: starting", a->name, s);
-	if (pipef)
-		cmd = cmd_start(s, CMD_IN|CMD_ONCE, m->data, m->size, &cause);
-	else
-		cmd = cmd_start(s, 0, NULL, 0, &cause);
+	if (pipef) {
+		cmd = cmd_start(s, CMD_IN|CMD_ONCE, conf.timeout, m->data,
+		    m->size, &cause);
+	} else
+		cmd = cmd_start(s, 0, conf.timeout, NULL, 0, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);

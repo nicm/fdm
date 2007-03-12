@@ -28,7 +28,8 @@
 #include "fdm.h"
 
 struct cmd *
-cmd_start(const char *s, int flags, char *buf, size_t len, char **cause)
+cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
+    char **cause)
 {
 	struct cmd	*cmd;
 	int	 	 fd_in[2], fd_out[2], fd_err[2];
@@ -36,6 +37,7 @@ cmd_start(const char *s, int flags, char *buf, size_t len, char **cause)
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
 	cmd->flags = flags;
+	cmd->timeout = timeout;
 
 	fd_in[0] = fd_in[1] = -1;
 	fd_out[0] = fd_out[1] = -1;
@@ -203,7 +205,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
 		ios[2] = cmd->io_err;
-		switch (io_polln(ios, 3, &io, INFTIM /* XXX */, cause)) {
+		switch (io_polln(ios, 3, &io, cmd->timeout, cause)) {
 		case -1:
 			return (1);
 		case 0:

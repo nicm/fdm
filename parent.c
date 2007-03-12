@@ -382,7 +382,7 @@ parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		flags |= CMD_IN;
 	if (data->re.str != NULL)
 		flags |= CMD_OUT;
-	cmd = cmd_start(s, flags, m->data, m->size, &cause);
+	cmd = cmd_start(s, flags, conf.timeout, m->data, m->size, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		goto error;
