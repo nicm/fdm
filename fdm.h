@@ -602,6 +602,7 @@ struct cmd {
 	pid_t	 	 pid;
 	int		 status;
 	int		 flags;
+	int		 timeout;
 
 	struct io	*io_in;
 	struct io	*io_out;
@@ -729,7 +730,8 @@ int			 privsep_recv(struct io *, struct msg *, void **,
 			     size_t *);
 
 /* command.c */
-struct cmd 		*cmd_start(const char *, int, char *, size_t, char **);
+struct cmd 		*cmd_start(const char *, int, int, char *, size_t,
+			     char **);
 int			 cmd_poll(struct cmd *, char **, char **, char **,
 			     size_t *, char **);
 void			 cmd_free(struct cmd *);

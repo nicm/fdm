@@ -1,5 +1,6 @@
 12 March 2007
 
+* The timeout setting is now used for commands too.
 * Expand leading ~s into home directories where appropriate.
 * Section headings are now numbered in MANUAL.
 
