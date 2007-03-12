@@ -69,7 +69,7 @@ function wspace(s, o) {
 
 BEGIN {
 	union = 0;
-	name = ""
+	name = "";
 }
 
 /^[ \t]*\/\*\*/ {

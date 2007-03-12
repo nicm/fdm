@@ -1,3 +1,7 @@
+12 March 2007
+
+* Section headings are now numbered in MANUAL.
+
 11 March 2007
 
 * You can't use a va_list twice even when it's passed in as an argument. Duh.

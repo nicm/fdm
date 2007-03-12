@@ -1,50 +1,50 @@
 fdm ============================================================================
 
-1	Introduction
-2	Installation
-3	Quick start
-4	The configuration file
-4.1	Macros
-4.2	Including other files
-5	Invoking fdm
-5.1	Command line arguments
-5.2	Running from cron
-5.3	The lock file
-5.4	Testing and debugging
-6	Fetching mail
-6.1	Mail tagging
-6.2	POP3 and POP3S
-6.3	IMAP and IMAPS
-6.4	IMAP over a pipe or via ssh
-6.5	stdin and local mail
-6.6 	From maildirs
-6.7	Using NNTP
-7	Defining actions
-7.1	Drop and keep
-7.2	Maildirs
-7.3	Mboxes
-7.4	SMTP
-7.5	Write, pipe and append
-7.6	stdout
-7.7 	Rewriting mail
-7.8	Adding or removing headers and appending a string
-8	Filtering mail
-8.1	Nesting rules
-8.2	The all condition
-8.3	Matched and unmatched
-8.4	Matching a regexp
-8.5	Matching bracket expressions
-8.6	Matching by age or size
-8.7	Using a shell command
-8.8	Attachments
-8.9	Tagging
-9	Setting options
-10	Archiving and searching mail
-11	Using fdm behind a proxy
-12	Bug reports and queries
-13	Frequently asked questions
+##	Introduction
+##	Installation
+##	Quick start
+##	The configuration file
+%%	Macros
+%%	Including other files
+##	Invoking fdm
+%%	Command line arguments
+%%	Running from cron
+%%	The lock file
+%%	Testing and debugging
+##	Fetching mail
+%%	Mail tagging
+%%	POP3 and POP3S
+%%	IMAP and IMAPS
+%%	IMAP over a pipe or via ssh
+%%	stdin and local mail
+%% 	From maildirs
+%%	Using NNTP
+##	Defining actions
+%%	Drop and keep
+%%	Maildirs
+%%	Mboxes
+%%	SMTP
+%%	Write, pipe and append
+%%	stdout
+%% 	Rewriting mail
+%%	Adding or removing headers and appending a string
+##	Filtering mail
+%%	Nesting rules
+%%	The all condition
+%%	Matched and unmatched
+%%	Matching a regexp
+%%	Matching bracket expressions
+%%	Matching by age or size
+%%	Using a shell command
+%%	Attachments
+%%	Tagging
+##	Setting options
+##	Archiving and searching mail
+##	Using fdm behind a proxy
+##	Bug reports and queries
+##	Frequently asked questions
 
-1 Introduction =================================================================
+### Introduction
 
 fdm is a program to fetch mail and deliver it in various ways depending on as
 user-supplied ruleset. Mail may be fetched from stdin, IMAP or POP3 servers, or
@@ -58,7 +58,7 @@ configuration syntax. It is primarily designed for single-user uses but may
 also be configured to deliver mail in a multi-user setup. In this case, it uses
 privilege separation to minimise the amount of code running as the root user.
 
-2 Installation =================================================================
+### Installation
 
 Installing fdm is simple. Download the source tarball, and run:
 
@@ -81,7 +81,7 @@ OpenBSD with, for example:
 
 It is not necessary to add a user if fdm is always started by a non-root user.
 
-3 Quick start ==================================================================
+### Quick start
 
 A simple ~/.fdm.conf file for a single user fetching from POP3, POP3S and IMAP
 accounts and delivering to one maildir may look similar to:
@@ -136,7 +136,7 @@ To run fdm every half hour from cron, add something like this:
 See the fdm.conf(5) man page or the rest of this manual for more detail of the
 configuration file format.
 
-4 The configuration file =======================================================
+### The configuration file
 
 fdm is controlled by its configuration file. It first searches for a .fdm.conf
 file in the invoking user's home directory. If that fails, fdm attempts to use
@@ -185,7 +185,7 @@ Example lines that may appear in a configuration file are:
 		or "^(To:|Cc:):.*@vger.kernel.org" in headers
 		action "linux-kernel"
 
-4.1 Including other files ------------------------------------------------------
+%%% Including other files
 
 The fdm configuration may be split into several files. Additional files may
 be referenced using the 'include' keyword:
@@ -194,7 +194,7 @@ be referenced using the 'include' keyword:
 
 	include	"/etc/fdm.d/shared-conf-1.conf"
 
-4.2 Macros ---------------------------------------------------------------------
+%%% Macros
 
 Macros may be defined and used in the configuration file. fdm makes a
 distinction between macros which may hold a number (numeric macros) and
@@ -223,12 +223,12 @@ Or embedded in a string by enclosing the macro name in {}s:
 	%anum = 57
 	include "/etc/file-number-%{anum}"
 
-5 Invoking fdm =================================================================
+### Invoking fdm
 
 fdm may be invoked manually from the command line or regularly using a program
 such as cron(8).
 
-5.1 Command line arguments -----------------------------------------------------
+%%% Command line arguments
 
 The fdm binary has the following synopsis:
 
@@ -289,7 +289,7 @@ Examples:
 
 	# fdm -u nicholas -vv f
 
-5.2 Running from cron ----------------------------------------------------------
+%%% Running from cron
 
 To fetch mail regularly, fdm must be run from cron. This line in a crontab(5)
 will run fdm every 30 minutes:
@@ -306,7 +306,7 @@ Will append extremely verbose fdm output to the ~/.fdm.log file. Note that this
 log file can become pretty large, so another cronjob may be required to remove
 it occasionally!
 
-5.3 The lock file --------------------------------------------------------------
+%%% The lock file
 
 fdm makes use of a lock file to prevent two instances running simultaneously.
 By default, this lock file is .fdm.lock in the home directory of the user who
@@ -322,7 +322,7 @@ Or disabled altogether by being set to the empty string:
 The '-m' command line option may be used to force fdm to ignore the lock file
 and run regardless of its existence and without attempting to create it.
 
-5.4 Testing and debugging ------------------------------------------------------
+%%% Testing and debugging
 
 fdm has some features to assist with testing and debugging a ruleset:
 
@@ -374,7 +374,7 @@ The '-k' command line option (and the 'keep' keywords on actions and accounts,
 covered later) prevent fdm from deleting any mail after delivery. This may be
 used to perform any number of test deliveries without risk of losing mail.
 
-6 Fetching mail ================================================================
+### Fetching mail
 
 fdm fetches mail from a set of 'accounts', defined using the 'account'
 keyword. Each account has a name, a type, a number of account specific
@@ -399,7 +399,7 @@ rules.
 The <type> item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 'maildir' or 'maildirs'.
 
-6.1 Mail tags ------------------------------------------------------------------
+%%% Mail tags
 
 As mail is processed by fdm, it is tagged with a number of name/value pairs.
 Some tags are added automatically, and mail may also be tagged explicitly by
@@ -443,7 +443,7 @@ later section on regexps).
 
 Some accounts add additional tags, discussed below.
 	
-6.2 POP3 and POP3S -------------------------------------------------------------
+%%% POP3 and POP3S
 
 Mail may be fetched from a POP3 account. A POP3 account is defined by
 specifying the following parameters: the server host and optionally port, and
@@ -480,7 +480,7 @@ delivering to a pipe), it is included in the counts even though fdm later
 strips it. These tags are not updated to reflect any changes made to the mail
 by fdm rules.
 
-6.3 IMAP and IMAPS -------------------------------------------------------------
+%%% IMAP and IMAPS
 
 IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
 and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
@@ -504,7 +504,7 @@ Examples of IMAP and IMAPS accounts include:
 As with POP3, IMAP adds the 'server', 'port', 'server_uid' and the three line
 count tags to mail.
 
-6.4 IMAP over a pipe or ssh ----------------------------------------------------
+%%% IMAP over a pipe or ssh
 
 Mail may be fetched using IMAP via a pipe. This is particularly useful for
 fetching mail over ssh using public keys.
@@ -522,7 +522,7 @@ Examples are:
 	
 	account "imapssh2" imap pipe "/usr/bin/whatever" user "bob" pass "bah"
 
-6.5 stdin and local mail -------------------------------------------------------
+%%% stdin and local mail
 
 fdm may be configured to fetch mail from stdin, by specifying an account of
 type 'stdin', for example:
@@ -540,7 +540,7 @@ To the user's ~/.forward file (including the double quotes). Note the use of
 
 stdin accounts add the three line count tags described in the POP3 section.
 
-6.6 From maildirs --------------------------------------------------------------
+%%% From maildirs
 
 Fetching from maildirs allows fdm to be used to filter mail on the local
 machine. This is covered more detail in the later section on archiving and
@@ -558,7 +558,7 @@ maildirs, but every directory found must be a valid maildir.
 Maildir accounts tag mail with a 'maildir' tag which is the basename of the
 maildir.
 
-6.7 Using NNTP -----------------------------------------------------------------
+%%% Using NNTP
 
 fdm can fetch news messages from a news server using NNTP. News accounts are
 specified like so:
@@ -592,7 +592,7 @@ match all account "news" {
 	match all action "drop"
 }
 
-7 Defining actions =============================================================
+### Defining actions
 
 An action is a particular command to execute on a mail when it matches a
 filtering rule (see the next section on filtering mail). Actions are named,
@@ -628,7 +628,7 @@ filtering rule (see the section on filtering below), the default user is
 used, see the '-u' command line option and the 'default-user' option in the
 setting options section
 
-7.1 Drop and keep actions ------------------------------------------------------
+%%% Drop and keep actions
 
 The simplest actions are the 'drop' and 'keep' actions. They have no parameters
 and are specified like this:
@@ -645,7 +645,7 @@ filtering rule contains a 'continue' keyword, and it may be overridden by a
 The 'keep' action is similar to 'drop', but it arranges for the mail to be
 kept once rule evaluation is complete, rather than dropped.
 
-7.2 Maildirs -------------------------------------------------------------------
+%%% Maildirs
 
 Mails may be saved to a maildir through a 'maildir' action, defined like so:
 
@@ -653,7 +653,7 @@ Mails may be saved to a maildir through a 'maildir' action, defined like so:
 
 If the maildir does not exist, it is created.
 
-7.3 Mboxes ---------------------------------------------------------------------
+%%% Mboxes
 
 An action to deliver to an mbox is defined in the same way as for a maildir:
 
@@ -671,7 +671,7 @@ data will be appended.
 
 If the mbox does not exist, it is created.
 
-7.4 SMTP -----------------------------------------------------------------------
+%%% SMTP
 
 An action may be defined to pass mail on over SMTP. The server host must be
 specified and optionally the port and a string to pass to the server with
@@ -686,7 +686,7 @@ Examples include:
 
 	action "mysmtpaction" smtp server "smtp.server" to "me@somewhere"
 
-7.5 Write, pipe and append -----------------------------------------------------
+%%% Write, pipe and append
 
 Actions may be defined to write or append a mail to a file, or to pipe it to
 a shell command. The append action appends to and write overwrites the file.
@@ -699,7 +699,7 @@ Examples are:
 
 	action "mypipeaction" pipe "cat > /dev/null"
 
-7.6 stdout ---------------------------------------------------------------------
+%%% stdout
 
 fdm can write mails directly to stdout, optionally prepending an mbox-style 
 'From' line:
@@ -715,7 +715,7 @@ each mail:
 	action "so" stdout
 	match all actions { "sep" "so" } continue
 
-7.7 Rewriting mail -------------------------------------------------------------
+%%% Rewriting mail
 
 Mail may be altered by passing it to a rewrite action. This is similar to
 the pipe action, but the output of the shell command to stdout is reread by fdm
@@ -729,7 +729,7 @@ of this). Possible rewrite action definitions are:
 
 	action "mysedaction" rewrite "sed 's/x/y/'"
 
-7.8 Adding or removing headers and appending a string --------------------------
+%%% Adding or removing headers and appending a string
 
 Simple actions are provided to add a header to a mail:
 
@@ -745,7 +745,7 @@ A similar action can append a string to each mail:
 
 	action "append-sep" append-string "--cut here--\n"
 
-8 Filtering mail ===============================================================
+### Filtering mail
 
 Mail is filtered by defining a set of filtering rules. These rules tie together
 mail fetched from an account and passed to one or more actions. Rules are
@@ -778,7 +778,7 @@ It is in the same list format: 'action "name"' or "actions { "name1" "name2" }'.
 If a rule with the 'continue' keyword matches, evaluation does not stop after
 the actions are executed, instead subsequent rules are matched.
 
-8.1 Nesting rules --------------------------------------------------------------
+%%% Nesting rules
 
 Filtering rules may be nested by using the special form:
 
@@ -791,7 +791,7 @@ none of the inner rules match (or they all specify the 'continue' keyword)
 evaluation continues outside to rules following the nested rule, otherwise it
 stops.
 
-8.2 The all condition ----------------------------------------------------------
+%%% The all condition
 
 The all condition matches all mail. It may not be used as part of an expression
 with the 'and', 'or' and 'not' operators.
@@ -802,7 +802,7 @@ Examples include:
 
 	match all rewrite "rewaction" continue
 
-8.3 Matched and unmatched ------------------------------------------------------
+%%% Matched and unmatched
 
 The matched and unmatched conditions are used to match mail that has matched
 or has not matched previous rules and been passed on with the 'continue'
@@ -814,7 +814,7 @@ keyword. For example,
 	# This rule will match only mails that matched neither of the first two.
 	match unmatched action "act3"
 
-8.4 Matching a regexp ----------------------------------------------------------
+%%% Matching a regexp
 
 Matching against a regexp is the most common form of condition. It takes the
 following syntax:
@@ -834,7 +834,7 @@ Examples include:
 
 	match ".*YAHOO.*BOOTER.*" in body action "junk"
 
-8.5 Matching bracket expressions -----------------------------------------------
+%%% Matching bracket expressions
 
 The results of any bracket expressions within the last regexp are remembered,
 and may be made use of using the 'string' condition, or used to construct an
@@ -853,7 +853,7 @@ This is particularly useful in combination with nested rules (see later):
 bracket expressions in regexp on the outer rule may be compared on inner
 rules.
 
-8.6 Matching by age or size ----------------------------------------------------
+%%% Matching by age or size
 
 Mail may be matched based on its age, or its size. An age condition is
 specified as follows:
@@ -880,7 +880,7 @@ as:
 
 	match size > 2G action "whoa"
 
-8.7 Using a shell command ------------------------------------------------------
+%%% Using a shell command
 
 Mail may be matched using the result of a shell command. This condition follows
 the form:
@@ -908,7 +908,7 @@ Examples:
 
 	match exec "blah" (12, "^Out") action "meep"
 
-8.8 Attachments ----------------------------------------------------------------
+%%% Attachments
 
 There are five conditions available to filter based on the size, quantity, type
 and name of attachments. Thay all specified prefixed with the 'attachment'
@@ -943,7 +943,7 @@ attachment MIME type and name attribute (if any) using fnmatch(3):
 
 	match attachment any-name "*.doc" action "action"
 
-8.9 Tagging --------------------------------------------------------------------
+%%% Tagging
 
 Mails may be assigned one of more tags manually using a special form of
 filtering rule, with the following syntax:
@@ -970,7 +970,7 @@ matching bracket expressions):
 
 	match string "%u" to "bob" action "bob"
 
-9 Setting options ==============================================================
+### Setting options
 
 fdm has a number of options that control its behaviour. These are defined
 using the set command:
@@ -1091,7 +1091,7 @@ does not attempt to set the group of new files and directories.
 This controls the maximum time to wait for a server to send data before closing
 a connection. The default is 900 seconds.
 
-10 Archiving and searching mail ================================================
+### Archiving and searching mail
 
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir
 into another, for example to archive older mail (with drop) or to search for
@@ -1122,7 +1122,7 @@ rules it matches:
 All mail matching the regexp will be copied to the target mbox. There are
 several other ways to write this ruleset and achieve the same end.
 
-11 Using fdm behind a proxy ====================================================
+### Using fdm behind a proxy
 
 fdm may be used behind a proxy by specifying the proxy URL using the 'proxy'
 option. HTTP and SOCKS5 proxies are supported:
@@ -1141,7 +1141,7 @@ option. HTTP and SOCKS5 proxies are supported:
 
 Authentication is not support for HTTP proxies.
 
-12 Bug reports and queries =====================================================
+### Bug reports and queries
 
 Bug reports, queries, suggestions and code are best sent by email to:
 
@@ -1151,9 +1151,9 @@ Bug reports may also be registered on Sourceforge, but they are likely to be
 dealt with much faster by email, particularly as it is easier to elicit
 further information if it is required.
 
-13 Frequently asked questions ==================================================
+### Frequently asked questions
 
-13.1 Why? ----------------------------------------------------------------------
+%%% Why?
 
 Two main reasons:
 
@@ -1173,7 +1173,7 @@ Two main reasons:
    syntaxes, and weird quirks. I now have three programs: sendmail, fdm and
    mutt, and fewer weird configurations to learn and potential problems.
 
-13.2 How do I write regexps? ---------------------------------------------------
+%%% How do I write regexps?
 
 See the re_format(7) man page. It is online here (for OpenBSD):
 
@@ -1181,7 +1181,7 @@ See the re_format(7) man page. It is online here (for OpenBSD):
 
 There are also a number of books and probably websites on the subject.
 
-13.3 Keep doesn't work with gmail! ---------------------------------------------
+%%% Keep doesn't work with gmail!
 
 This is because gmail is broken, see:
 
@@ -1190,7 +1190,7 @@ This is because gmail is broken, see:
 Gmail also consistently gives false sizes when asked using the POP3 LIST
 command, which fdm will warn about.
 
-13.4 Why doesn't fdm run as a daemon? ------------------------------------------
+%%% Why doesn't fdm run as a daemon?
 
 Because that is what cron is for: it comes as standard with all sensible
 operating systems, and by using it I avoid a lot of code to deal with signals,
@@ -1198,12 +1198,12 @@ configuration reload, extra configuration options and general other crap
 related to running all the time. Daemonising is for servers, for stuff that
 needs to run periodically, use cron.
 
-13.5 Why does fdm fork child processes when not running as root? ---------------
+%%% Why does fdm fork child processes when not running as root?
 
 Because one design is much cleaner and easier to work with than two. And it
 has a negligible practical effect on performance in any case.
 
-13.6 Can fdm get rid of that crap in []s some mailing lists add to subjects? ---
+%%% Can fdm get rid of that crap in []s some mailing lists add to subjects?
 
 Yes! Rewrite the mail using sed to remove the crap, for example:
 

@@ -29,7 +29,6 @@
 - document mail_file, mbox_file and exec action
 - document command0 etc
 - expand ~s (special function on paths, check escaping)
-- section headings are unnumbered in MANUAL. this is confusing and crappy
 - matching by account section in manual
 - -q option to silence normal (info) output
 - sort out so normal (info) goes to stdout and all else to stderr

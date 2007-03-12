@@ -1,7 +1,8 @@
 # $Id$
 
 .SUFFIXES: .c .o .y .l .h
-.PHONY: clean update-index.html upload-index.html lint regress yannotate
+.PHONY: clean lint regress yannotate \
+	update-index.html upload-index.html update-manual
 
 PROG= fdm
 VERSION= 1.1
@@ -78,7 +79,7 @@ LIBS= -lssl -lcrypto -lz
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
 DISTFILES= *.[chyl] *.awk Makefile GNUmakefile *.[1-9] fdm-sanitize \
-	   README MANUAL TODO CHANGES \
+	   README MANUAL.in MANUAL TODO CHANGES \
 	   `find examples regress compat -type f -and ! -path '*CVS*'`
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
@@ -124,11 +125,14 @@ upload-index.html:
 		scp index.html nicm@shell.sf.net:index.html
 		ssh nicm@shell.sf.net sh update-index-fdm.sh
 
-update-index.html:
+update-index.html: update-manual
 		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
 		nroff -mdoc fdm.1|m2h -u > fdm.1.html
 		awk -f makeindex.awk index.html.in > index.html
 		rm -f fdm.conf.5.html fdm.1.html
+
+update-manual:
+		awk -f makemanual.awk MANUAL.in > MANUAL
 
 install:	all
 		${INSTALLBIN} ${PROG} ${PREFIX}/bin/${PROG}
