@@ -111,7 +111,7 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 
 	/* create ios */
 	if (fd_in[1] != -1) {
-		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, INFTIM);
+		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, conf.timeout);
 		if (buf != NULL && len > 0) {
 			/* write the buffer directly, without copying */
 			io_writefixed(cmd->io_in, buf, len);
@@ -120,12 +120,12 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 	} else
 		cmd->io_in = NULL;
 	if (fd_out[0] != -1) {
-		cmd->io_out = io_create(fd_out[0], NULL, IO_LF, INFTIM);
+		cmd->io_out = io_create(fd_out[0], NULL, IO_LF, conf.timeout);
 		cmd->io_out->flags &= ~IO_WR;
 	} else
 		cmd->io_out = NULL;
 	if (fd_err[0] != -1) {
-		cmd->io_err = io_create(fd_err[0], NULL, IO_LF, INFTIM);
+		cmd->io_err = io_create(fd_err[0], NULL, IO_LF, conf.timeout);
 		cmd->io_err->flags &= ~IO_WR;
 	} else
 		cmd->io_err = NULL;
