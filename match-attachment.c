@@ -108,7 +108,7 @@ match_attachment_match(struct match_ctx *mctx, struct expritem *ei)
 	
 	/* for any type or name matches, construct the value */  
 	if (data->op == ATTACHOP_ANYTYPE || data->op == ATTACHOP_ANYNAME) {
-		value = replace(&data->value.str,
+		value = replacestr(&data->value.str,
 		    m->tags, m, mctx->pm_valid, mctx->pm);
 	}
 

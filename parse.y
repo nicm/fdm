@@ -500,6 +500,49 @@ free_account(struct account *a)
 
 	xfree(a);
 }
+
+char *
+expand_path(char *path)
+{
+	char		*src, *ptr;
+	struct passwd	*pw;
+
+	src = path;
+	while (isspace((int) *src))
+		src++;
+	if (src[0] != '~')
+		return (NULL);
+
+	/* ~ */
+	if (src[1] == '\0')
+		return (xstrdup(conf.info.home));
+
+	/* ~/ */
+	if (src[1] == '/') {
+		xasprintf(&ptr, "%s/%s", conf.info.home, src + 2);
+		return (ptr);
+	}
+
+	/* ~user or ~user/ */
+	ptr = strchr(src + 1, '/');
+	if (ptr != NULL)
+		*ptr = '\0';
+
+	pw = getpwnam(src + 1);
+	if (pw == NULL || pw->pw_dir == NULL || *pw->pw_dir == '\0') {
+		endpwent();
+		return (NULL);
+	}
+	
+	if (ptr == NULL)
+		ptr = xstrdup(pw->pw_dir);
+	else
+		xasprintf(&ptr, "%s/%s", pw->pw_dir, ptr + 1);
+
+	endpwent();
+
+	return (ptr);
+}
 %}
 
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
@@ -577,7 +620,7 @@ free_account(struct account *a)
 %type  <replstrs> actions actionslist
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to folder strv replstrv retre
+%type  <string> port to folder strv replstrv retre replpathv
 %type  <strings> domains domainslist headers headerslist accounts accountslist
 %type  <strings> maildirslist maildirs groupslist groups
 %type  <users> users userslist
@@ -698,12 +741,26 @@ replstrv: strv
 		  }
 
 		  rs.str = $1;
-		  $$ = replace(&rs, parse_tags, NULL, 0, NULL);
+		  $$ = replacestr(&rs, parse_tags, NULL, 0, NULL);
 		  xfree($1);
 	  }
 
+replpathv: strv
+	   {
+		  struct replpath	rp;
+
+		  if (parse_tags == NULL) {
+			  strb_create(&parse_tags);
+			  default_tags(&parse_tags, NULL, NULL);
+		  }
+
+		  rp.str = $1;
+		  $$ = replacepath(&rp, parse_tags, NULL, 0, NULL);
+		  xfree($1);
+	   }
+
 /** INCLUDE */
-include: TOKINCLUDE replstrv
+include: TOKINCLUDE replpathv
 /**      [$2: replstrv (char *)] */
 	 {
 		 char			*path;
@@ -838,7 +895,7 @@ set: TOKSET TOKMAXSIZE size
 		     yyerror("fcntl and flock locking cannot be used together");
 	     conf.lock_types = $3;
      }
-   | TOKSET TOKLOCKFILE replstrv
+   | TOKSET TOKLOCKFILE replpathv
 /**  [$3: replstrv (char *)] */
      {
 	     if (conf.lock_file != NULL)
@@ -1113,7 +1170,7 @@ headerslist: headerslist replstrv
 	     }
 
 /** MAILDIRSLIST: <strings> (struct strings *) */
-maildirslist: maildirslist replstrv
+maildirslist: maildirslist replpathv
 /**           [$1: maildirslist (struct strings *)] [$2: replstrv (char *)] */
 	   {
 		   if (*$2 == '\0')
@@ -1122,7 +1179,7 @@ maildirslist: maildirslist replstrv
 		   $$ = $1;
 		   ARRAY_ADD($$, $2, char *);
 	   }
-	 | replstrv
+	 | replpathv
 /**        [$1: replstrv (char *)] */
 	   {
 		   if (*$1 == '\0')
@@ -1134,7 +1191,7 @@ maildirslist: maildirslist replstrv
 	   }
 
 /** MAILDIRS: <strings> (struct strings *) */
-maildirs: TOKMAILDIR replstrv
+maildirs: TOKMAILDIR replpathv
 /**       [$2: replstrv (char *)] */
 	  {
 		  if (*$2 == '\0')
@@ -2447,7 +2504,7 @@ fetchtype: poptype server TOKUSER replstrv TOKPASS replstrv
 		   $$.data = data;
 		   data->maildirs = $1;
 	   }
-	 | TOKNNTP server groups TOKCACHE replstrv
+	 | TOKNNTP server groups TOKCACHE replpathv
 /**        [$2: server (struct { ... } server)] */
 /**        [$3: groups (struct strings *)] [$5: replstrv (char *)] */
            {

@@ -463,10 +463,10 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 
 		/* tag mail if needed */
 		if (r->key.str != NULL) {
-			tkey = replace(&r->key, m->tags, m, mctx->pm_valid,
-			    mctx->pm);
-			tvalue = replace(&r->value, m->tags, m, mctx->pm_valid,
-			    mctx->pm);
+			tkey = replacestr(&r->key, 
+			    m->tags, m, mctx->pm_valid, mctx->pm);
+			tvalue = replacestr(&r->value,
+			    m->tags, m, mctx->pm_valid, mctx->pm);
 
 			if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
 				log_debug2("%s: tagging message: %s (%s)", 
@@ -562,7 +562,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		rs = &ARRAY_ITEM(r->actions, i, struct replstr);
-		s = replace(rs, m->tags, m, mctx->pm_valid, mctx->pm);
+		s = replacestr(rs, m->tags, m, mctx->pm_valid, mctx->pm);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = match_actions(s);

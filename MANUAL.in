@@ -223,6 +223,8 @@ Or embedded in a string by enclosing the macro name in {}s:
 	%anum = 57
 	include "/etc/file-number-%{anum}"
 
+Macros are not substituted in strings specified using single-quotes.
+
 ### Invoking fdm
 
 fdm may be invoked manually from the command line or regularly using a program
@@ -442,7 +444,12 @@ replaced with the result of any bracket expressions in the last regexp (see
 later section on regexps).
 
 Some accounts add additional tags, discussed below.
-	
+
+Tags are replaced in almost all strings (including those in single-quotes!),
+some when the configuration file is parsed and some when the string is used. In
+addition, a leading ~ or ~user is expanded to a home directory where
+appropriate.
+
 %%% POP3 and POP3S
 
 Mail may be fetched from a POP3 account. A POP3 account is defined by

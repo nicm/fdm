@@ -28,7 +28,5 @@
 - refactor & clean up privsep mail transfer code
 - document mail_file, mbox_file and exec action
 - document command0 etc
-- expand ~s (special function on paths, check escaping)
-- matching by account section in manual
 - -q option to silence normal (info) output
 - sort out so normal (info) goes to stdout and all else to stderr

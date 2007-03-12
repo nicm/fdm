@@ -97,7 +97,7 @@ struct match_regexp_data {
 
 /* Match command data. */
 struct match_command_data {
-	struct replstr	 cmd;
+	struct replpath	 cmd;
 	uid_t		 uid;
 	int		 pipe;		/* pipe mail to command */
 

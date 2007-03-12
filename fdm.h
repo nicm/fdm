@@ -251,6 +251,11 @@ struct replstr {
 };
 ARRAY_DECL(replstrs, struct replstr);
 
+/* Similar to replstr but needs expand_path too. */
+struct replpath {
+	char		*str;
+};
+
 /* Server description. */
 struct server {
 	char		*host;
@@ -692,6 +697,7 @@ struct actions		*match_actions(char *);
 void			 free_action(struct action *);
 void			 free_rule(struct rule *);
 void			 free_account(struct account *); 
+char			*expand_path(char *);
 
 /* fdm.c */
 double			 get_time(void);
@@ -796,8 +802,12 @@ const char 		*find_tag(struct strb *, const char *);
 const char		*match_tag(struct strb *, const char *);
 void			 default_tags(struct strb **, char *, struct account *);
 void			 update_tags(struct strb **);
-char 			*replace(struct replstr *, struct strb *, struct mail *,
-			     int, regmatch_t [NPMATCH]);
+char 			*replace(char *, struct strb *, struct mail *, int,
+    			    regmatch_t [NPMATCH]);
+char 			*replacestr(struct replstr *, struct strb *,
+			    struct mail *, int, regmatch_t [NPMATCH]);
+char 			*replacepath(struct replpath *, struct strb *,
+    			    struct mail *, int, regmatch_t [NPMATCH]);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *, int);

@@ -71,7 +71,7 @@ struct deliver_smtp_data {
 
 /* Deliver mbox data. */
 struct deliver_mbox_data {
-	struct replstr	path;
+	struct replpath	path;
 	int		compress;
 };
 
@@ -93,22 +93,22 @@ struct deliver_remove_header_data {
 
 /* Deliver write data. */
 struct deliver_write_data {
-	struct replstr	path;
+	struct replpath	path;
 };
 
 /* Deliver maildir data. */
 struct deliver_maildir_data {
-	struct replstr	path;
+	struct replpath	path;
 };
 
 /* Deliver rewrite data. */
 struct deliver_rewrite_data {
-	struct replstr	cmd;
+	struct replpath	cmd;
 };
 
 /* Deliver pipe data. */
 struct deliver_pipe_data {
-	struct replstr	cmd;
+	struct replpath	cmd;
 };
 
 /* Deliver append-string data. */
