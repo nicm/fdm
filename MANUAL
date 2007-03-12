@@ -843,10 +843,10 @@ Examples include:
 
 8.5 Matching bracket expressions -----------------------------------------------
 
-The results of any bracket expressions within the last regexp are remembered,
-and may be made use of using the 'string' condition, or used to construct an
-action name, maildir or mbox path, etc. The bracket expressions may be
-substituted using the %1 to %9 tokens. For example,
+The results of any bracket expressions within the last regexp match are
+remembered, and may be made use of using the 'string' condition, or used to
+construct an action name, maildir or mbox path, etc. The bracket expressions
+may be substituted using the %1 to %9 tokens. For example,
 
 	match "^From:.*([a-z]*)@domain" in headers action "all" continue
 	match string "%1" to "bob" action "bobmail"
@@ -859,6 +859,9 @@ Or:
 This is particularly useful in combination with nested rules (see later):
 bracket expressions in regexp on the outer rule may be compared on inner
 rules.
+
+Note that %0 to %9 are used only for 'regexp' rules. Regexps are part of
+'command' rules use the 'command0' to 'command9' tags.
 
 8.6 Matching by age or size ----------------------------------------------------
 
@@ -901,9 +904,12 @@ normal, with the exception of %t.
 Any of the <return code> or <stdout regexp> or both may be specified. The
 <return code> is a simple number which is compared against the return code from
 the command, the <stdout regexp> is a regexp that is matched case insensitively
-against each line output by the command on stdout. Any output on stderr is
-logged by fdm, so 2>&1 must be included in the command in order to apply the
-regexp to it too.
+against each line output by the command on stdout. The result of any bracket
+expressions in the stdout regexp are saved as `command0` to `command9` tags on
+the mail.
+
+Any output on stderr is logged by fdm, so 2>&1 must be included in the command
+in order to apply the regexp to it too.
 
 Examples:
 
