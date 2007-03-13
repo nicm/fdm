@@ -1,3 +1,8 @@
+13 March 2007
+
+* Don't pass stdin to poll(3) instead of closed sockets. Fixes problems with
+  rewrite and empty mails on Linux. Reported & tested by Frank Terbeck.
+
 12 March 2007
 
 * The timeout setting is now used for commands too.
