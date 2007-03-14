@@ -129,7 +129,7 @@ fetch_imap_connect(struct account *a)
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (1);
+		return (FETCH_ERROR);
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
@@ -140,14 +140,14 @@ fetch_imap_connect(struct account *a)
 	data->src = data->server.host;
 
 	if (imap_login(a) != 0)
-		return (1);
+		return (FETCH_ERROR);
 
 	if (imap_select(a) != 0) {
 		imap_abort(a);
-		return (1);
+		return (FETCH_ERROR);
 	}
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -155,10 +155,10 @@ fetch_imap_disconnect(struct account *a)
 {
 	if (imap_close(a) != 0 || imap_logout(a) != 0) {
 		imap_abort(a);
-		return (1);
+		return (FETCH_ERROR);
 	}
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -172,9 +172,9 @@ fetch_imap_free(struct account *a)
 	}
 
 	if (imap_free(a) != 0)
-		return (1);
+		return (FETCH_ERROR);
 		
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 void

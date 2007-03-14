@@ -390,7 +390,7 @@ fetch_nntp_init(struct account *a)
 
 	data->group = 0;
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -409,7 +409,7 @@ fetch_nntp_free(struct account *a)
 	}
 	ARRAY_FREE(&data->groups);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -424,7 +424,7 @@ fetch_nntp_connect(struct account *a)
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (1);
+		return (FETCH_ERROR);
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
@@ -452,7 +452,7 @@ fetch_nntp_connect(struct account *a)
 		goto error;
 
 	xfree(lbuf);
-	return (0);
+	return (FETCH_SUCCESS);
 
 error:
 	io_writeline(data->io, "QUIT");
@@ -462,7 +462,7 @@ error:
 	io_free(data->io);
 
 	xfree(lbuf);
-	return (1);
+	return (FETCH_ERROR);
 }
 
 int
@@ -485,7 +485,7 @@ fetch_nntp_disconnect(struct account *a)
 	io_free(data->io);
 
 	xfree(lbuf);
-	return (0);
+	return (FETCH_SUCCESS);
 
 error:
 	io_writeline(data->io, "QUIT");
@@ -495,7 +495,7 @@ error:
 	io_free(data->io);
 
 	xfree(lbuf);
-	return (1);
+	return (FETCH_ERROR);
 }
 
 int
@@ -522,11 +522,11 @@ fetch_nntp_poll(struct account *a, u_int *n)
 	}
 
 	xfree(lbuf);
-	return (0);
+	return (FETCH_SUCCESS);
 
 error:
 	xfree(lbuf);
-	return (1);
+	return (FETCH_ERROR);
 }
 
 int

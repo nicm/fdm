@@ -19,10 +19,6 @@
 #ifndef FETCH_H
 #define FETCH_H
 
-/* Poll return codes. */
-#define POLL_SUCCESS FETCH_SUCCESS
-#define POLL_ERROR FETCH_ERROR
-
 /* Fetch return codes. */
 #define FETCH_SUCCESS 0
 #define FETCH_ERROR 1

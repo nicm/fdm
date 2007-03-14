@@ -120,7 +120,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	setproctitle("child: %s", a->name);
 #endif
 
-	if (a->fetch->init != NULL && a->fetch->init(a) != 0) {
+	if (a->fetch->init != NULL && a->fetch->init(a) != FETCH_SUCCESS) {
 		log_debug("%s: initialisation error. aborting", a->name);
 		goto out;
 	}
@@ -144,7 +144,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	tim = get_time();
 
 	/* connect */
-	if (a->fetch->connect != NULL && a->fetch->connect(a) != 0) {
+	if (a->fetch->connect != NULL && a->fetch->connect(a) != FETCH_SUCCESS) {
 		log_debug("%s: connection error. aborting", a->name);
 		goto out;
 	}
@@ -164,13 +164,13 @@ do_child(int fd, enum fdmop op, struct account *a)
 	}
 
 	/* disconnect */
-	if (a->fetch->disconnect != NULL && a->fetch->disconnect(a) != 0)
+	if (a->fetch->disconnect != NULL && a->fetch->disconnect(a) != FETCH_SUCCESS)
 		error = 1;
 
 	log_debug("%s: finished processing. exiting", a->name);
 
 out:
-	if (a->fetch->free != NULL && a->fetch->free(a) != 0)
+	if (a->fetch->free != NULL && a->fetch->free(a) != FETCH_SUCCESS)
 		error = 1;
 
 	memset(&msg, 0, sizeof msg);
@@ -202,7 +202,7 @@ poll_account(unused struct io *io, struct account *a)
 
 	log_debug("%s: polling", a->name);
 
-	if (a->fetch->poll(a, &n) == POLL_ERROR) {
+	if (a->fetch->poll(a, &n) == FETCH_ERROR) {
 		log_warnx("%s: polling error. aborted", a->name);
 		return (1);
 	}
@@ -282,7 +282,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 			if (n >= conf.purge_after) {
 				log_debug("%s: %u mails, purging", a->name, n);
 
-				if (a->fetch->purge(a) != 0) {
+				if (a->fetch->purge(a) != FETCH_SUCCESS) {
 					cause = "purging";
 					goto out;
 				}

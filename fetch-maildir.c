@@ -133,10 +133,10 @@ fetch_maildir_connect(struct account *a)
 	data->path = NULL;
 
 	if (fetch_maildir_makepaths(a) != 0)
-		return (1);
+		return (FETCH_ERROR);
 	data->index = 0;
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -156,7 +156,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 		log_debug("%s: trying path: %s", a->name, path);
 		if ((dirp = opendir(path)) == NULL) {
 			log_warn("%s: %s: opendir", a->name, path);
-			return (POLL_ERROR);
+			return (FETCH_ERROR);
 		}
 
 		while ((dp = readdir(dirp)) != NULL) {
@@ -164,12 +164,12 @@ fetch_maildir_poll(struct account *a, u_int *n)
 			    dp->d_name) != 0) {
 				log_warn("%s: %s: printpath", a->name, path);
 				closedir(dirp);
-				return (POLL_ERROR);
+				return (FETCH_ERROR);
 			}
 			if (stat(entry, &sb) != 0) {
 				log_warn("%s: %s: stat", a->name, entry);
 				closedir(dirp);
-				return (POLL_ERROR);
+				return (FETCH_ERROR);
 			}
 
 			if (!S_ISREG(sb.st_mode))
@@ -181,7 +181,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 		closedir(dirp);
 	}
 
-	return (POLL_SUCCESS);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -281,14 +281,14 @@ fetch_maildir_done(struct account *a, enum decision d)
 	struct fetch_maildir_data	*data = a->data;
 
 	if (d == DECISION_KEEP)
-		return (0);
+		return (FETCH_SUCCESS);
 
 	if (unlink(data->entry) != 0) {
 		log_warn("%s: %s: unlink", a->name, data->entry);
-		return (1);
+		return (FETCH_ERROR);
 	}
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -301,7 +301,7 @@ fetch_maildir_disconnect(struct account *a)
 	if (data->dirp != NULL)
 		closedir(data->dirp);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 void

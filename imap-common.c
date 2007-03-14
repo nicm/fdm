@@ -75,7 +75,7 @@ imap_init(struct account *a)
 
 	data->tag = 0;
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -87,7 +87,7 @@ imap_free(struct account *a)
 
 	xfree(data->lbuf);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -195,7 +195,7 @@ imap_poll(struct account *a, u_int *n)
 
 	*n = data->num;
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -352,13 +352,13 @@ imap_done(struct account *a, enum decision d)
 
 	if (data->putln(a, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
 	    data->cur) != 0)
-		return (1);
+		return (FETCH_ERROR);
 	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
-		return (1);
+		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
-		return (1);
+		return (FETCH_ERROR);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -368,14 +368,14 @@ imap_purge(struct account *a)
 	char			*line;
 
 	if (data->putln(a, "%u EXPUNGE", ++data->tag) != 0)
-		return (1);
+		return (FETCH_ERROR);
 	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
-		return (1);
+		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
-		return (1);
+		return (FETCH_ERROR);
 
 	if (imap_select(a) != 0)
-		return (1);
+		return (FETCH_ERROR);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }

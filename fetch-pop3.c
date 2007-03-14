@@ -101,7 +101,7 @@ fetch_pop3_free(struct account *a)
 		xfree(ARRAY_ITEM(&data->kept, i, char *));
 	ARRAY_FREE(&data->kept);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -111,7 +111,7 @@ fetch_pop3_init(struct account *a)
 
 	ARRAY_INIT(&data->kept);
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -126,7 +126,7 @@ fetch_pop3_connect(struct account *a)
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (1);
+		return (FETCH_ERROR);
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
@@ -156,7 +156,7 @@ fetch_pop3_connect(struct account *a)
 	data->cur = 0;
 
 	xfree(lbuf);
-	return (0);
+	return (FETCH_SUCCESS);
 
 error:
 	io_writeline(data->io, "QUIT");
@@ -166,7 +166,7 @@ error:
 	io_free(data->io);
 
 	xfree(lbuf);
-	return (1);
+	return (FETCH_ERROR);
 }
 
 int
@@ -187,7 +187,7 @@ fetch_pop3_disconnect(struct account *a)
 	io_free(data->io);
 
 	xfree(lbuf);
-	return (0);
+	return (FETCH_SUCCESS);
 
 error:
 	io_writeline(data->io, "QUIT");
@@ -197,7 +197,7 @@ error:
 	io_free(data->io);
 
 	xfree(lbuf);
-	return (1);
+	return (FETCH_ERROR);
 }
 
 int
@@ -207,7 +207,7 @@ fetch_pop3_poll(struct account *a, u_int *n)
 
 	*n = data->num;
 
-	return (0);
+	return (FETCH_SUCCESS);
 }
 
 int
@@ -360,7 +360,7 @@ int
 fetch_pop3_purge(struct account *a)
 {
 	if (fetch_pop3_disconnect(a) != 0)
-		return (1);
+		return (FETCH_ERROR);
 	return (fetch_pop3_connect(a));
 }
 
@@ -384,11 +384,11 @@ fetch_pop3_done(struct account *a, enum decision d)
 		goto error;
 
 	xfree(lbuf);
-	return (0);
+	return (FETCH_SUCCESS);
 
 error:
 	xfree(lbuf);
-	return (1);
+	return (FETCH_ERROR);
 }
 
 void
