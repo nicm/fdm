@@ -62,7 +62,6 @@ struct fetch fetch_nntp = {
 	fetch_nntp_fetch,
 	fetch_nntp_save,
 	NULL,
-	NULL,
 	fetch_nntp_disconnect,
 	fetch_nntp_free,
 	fetch_nntp_desc

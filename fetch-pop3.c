@@ -34,8 +34,7 @@ int	fetch_pop3_disconnect(struct account *);
 int	fetch_pop3_poll(struct account *, u_int *);
 int	fetch_pop3_fetch(struct account *, struct mail *);
 int	fetch_pop3_purge(struct account *);
-int	fetch_pop3_delete(struct account *);
-int	fetch_pop3_keep(struct account *);
+int	fetch_pop3_done(struct account *, enum decision);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
 char   *fetch_pop3_line(struct account *, char **, size_t *);
@@ -48,8 +47,7 @@ struct fetch fetch_pop3 = {
 	fetch_pop3_poll,
 	fetch_pop3_fetch,
 	fetch_pop3_purge,
-	fetch_pop3_delete,
-	fetch_pop3_keep,
+	fetch_pop3_done,
 	fetch_pop3_disconnect,
 	fetch_pop3_free,
 	fetch_pop3_desc
@@ -367,11 +365,16 @@ fetch_pop3_purge(struct account *a)
 }
 
 int
-fetch_pop3_delete(struct account *a)
+fetch_pop3_done(struct account *a, enum decision d)
 {
 	struct fetch_pop3_data	*data = a->data;
 	char			*lbuf;
 	size_t			 llen;
+
+	if (d == DECISION_KEEP) {
+		ARRAY_ADD(&data->kept, xstrdup(data->uid), char *);
+		return (FETCH_SUCCESS);
+	}
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
@@ -386,16 +389,6 @@ fetch_pop3_delete(struct account *a)
 error:
 	xfree(lbuf);
 	return (1);
-}
-
-int
-fetch_pop3_keep(struct account *a)
-{
-	struct fetch_pop3_data	*data = a->data;
-
-	ARRAY_ADD(&data->kept, xstrdup(data->uid), char *);
-
-	return (0);
 }
 
 void

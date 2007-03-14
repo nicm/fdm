@@ -35,6 +35,7 @@
 
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *, double);
+int	fetch_got(struct io *, struct account *, struct mail *, const char **);
 int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
 int	do_action(struct rule *, struct match_ctx *, struct action *);
@@ -95,7 +96,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 {
 	struct io	*io;
 	struct msg	 msg;
-	int		 error, res = 0;
+	int		 error = 1;
 	double		 tim;
 
 #ifdef DEBUG
@@ -119,15 +120,9 @@ do_child(int fd, enum fdmop op, struct account *a)
 	setproctitle("child: %s", a->name);
 #endif
 
-	if (a->fetch->init != NULL) {
-		log_debug("%s: initialising", a->name);
-		if (a->fetch->init(a) != 0) {
-			log_debug("%s: initialisation error. aborting",
-			    a->name);
-			res = 1;
-			goto out;
-		}
-		log_debug("%s: finished initialising", a->name);
+	if (a->fetch->init != NULL && a->fetch->init(a) != 0) {
+		log_debug("%s: initialisation error. aborting", a->name);
+		goto out;
 	}
 
 	switch (op) {
@@ -149,42 +144,34 @@ do_child(int fd, enum fdmop op, struct account *a)
 	tim = get_time();
 
 	/* connect */
-	if (a->fetch->connect != NULL) {
-		if (a->fetch->connect(a) != 0) {
-			log_debug("%s: connection error. aborting", a->name);
-			res = 1;
-			goto out;
-		}
+	if (a->fetch->connect != NULL && a->fetch->connect(a) != 0) {
+		log_debug("%s: connection error. aborting", a->name);
+		goto out;
 	}
 
 	/* process */
-	error = 0;
 	switch (op) {
 	case FDMOP_POLL:
-		error = poll_account(io, a);
+		if (poll_account(io, a) == 0)
+			error = 0;
 		break;
 	case FDMOP_FETCH:
-		error = fetch_account(io, a, tim);
+		if (fetch_account(io, a, tim) == 0)
+			error = 0;
 		break;
 	default:
 		fatalx("child: unexpected command");
 	}
-	if (error != 0)
-		res = 1;
 
 	/* disconnect */
-	if (a->fetch->disconnect != NULL) {
-		if (a->fetch->disconnect(a) != 0)
-			res = 1;
-	}
+	if (a->fetch->disconnect != NULL && a->fetch->disconnect(a) != 0)
+		error = 1;
 
 	log_debug("%s: finished processing. exiting", a->name);
 
 out:
-	if (a->fetch->free != NULL) {
-		if (a->fetch->free(a) != 0)
-			res = 1;
-	}
+	if (a->fetch->free != NULL && a->fetch->free(a) != 0)
+		error = 1;
 
 	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_EXIT;
@@ -205,7 +192,7 @@ out:
 	xmalloc_report(a->name);
 #endif
 
-	return (res);
+	return (error);
 }
 
 int
@@ -229,12 +216,9 @@ int
 fetch_account(struct io *io, struct account *a, double tim)
 {
 	struct mail	 m;
-	u_int	 	 l, n, dropped, kept;
+	u_int	 	 n, dropped, kept;
 	int		 error;
  	const char	*cause = NULL;
-	struct match_ctx mctx;
-	char		*hdr, rtm[64], *rnm;
-	size_t		 len;
 
 	log_debug("%s: fetching", a->name);
 
@@ -243,11 +227,6 @@ fetch_account(struct io *io, struct account *a, double tim)
 		memset(&m, 0, sizeof m);
 		m.body = -1;
 		m.decision = DECISION_DROP;
-
-		memset(&mctx, 0, sizeof mctx);
-		mctx.io = io;
-		mctx.account = a;
-		mctx.mail = &m;
 
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
@@ -272,103 +251,30 @@ fetch_account(struct io *io, struct account *a, double tim)
 			log_warnx("%s: got empty message. ignored", a->name);
 			continue;
 		}
-
-		log_debug("%s: got message: size %zu, body %zd", a->name,
-		    m.size, m.body);
-
-		hdr = find_header(&m, "message-id", &len, 1);
-		if (hdr == NULL || len == 0 || len > INT_MAX)
-			log_debug("%s: message-id not found", a->name);
-		else {
-			log_debug("%s: message-id is: %.*s", a->name, 
-			    (int) len, hdr);
-			add_tag(&m.tags, "message_id", "%.*s", (int) len, hdr);
-		}
-
-		/*
-		 * Insert received header.
-		 *
-		 * No header line must exceed 998 bytes. Limiting the user-
-		 * supplied stuff to 900 bytes gives plenty of space for
-		 * the other stuff, and if it gets truncated, who cares?
-		 */
-		if (!conf.no_received) {
-			error = 1;
-			if (rfc822_time(time(NULL), rtm, sizeof rtm) != NULL) {
-				rnm = conf.info.fqdn;
-				if (rnm == NULL)
-					rnm = conf.info.host;
-
-				error = insert_header(&m, "received",
-				    "Received: by %.450s (%s " BUILD ", "
-				    "account \"%.450s\");\n\t%s",
-				    rnm, __progname, a->name, rtm);
-			}
-			if (error != 0) {
-				log_debug("%s: failed to add received header",
-				    a->name);
-			}
-		}
-
-		/* fill wrapped line list */
-		l = fill_wrapped(&m);
-		log_debug2("%s: found %u wrapped lines", a->name, l);
-
-		/* handle rule evaluation and actions */
-		mctx.matched = mctx.stopped = 0;
-		if (do_rules(&mctx, &conf.rules, &cause) != 0)
+		
+		if (fetch_got(io, a, &m, &cause) != FETCH_SUCCESS)
 			goto out;
-		if (mctx.stopped)
-			goto done;
-
-		switch (conf.impl_act) {
-		case DECISION_NONE:
-			log_warnx("%s: reached end of ruleset. no "
-			    "unmatched-mail option; keeping mail",  a->name);
-			m.decision = DECISION_KEEP;
-			break;
-		case DECISION_KEEP:
-			log_debug("%s: reached end of ruleset. keeping mail",
-			    a->name);
-			m.decision = DECISION_KEEP;
-			break;
-		case DECISION_DROP:
-			log_debug("%s: reached end of ruleset. dropping mail",
-			    a->name);
-			m.decision = DECISION_DROP;
-			break;
-		}
 
 	done:
-		if (conf.keep_all || a->keep)
-			m.decision = DECISION_KEEP;
-
 		/* finished with the message */
-		log_debug2("%s: finishing with mail: decision=%d", a->name,
-		    m.decision);
 		switch (m.decision) {
 		case DECISION_DROP:
 			log_debug("%s: deleting message", a->name);
-			if (a->fetch->delete != NULL) {
-				if (a->fetch->delete(a) != 0) {
-					cause = "deleting";
-					goto out;
-				}
-			}
+			cause = "deleting";
 			dropped++;
 			break;
 		case DECISION_KEEP:
 			log_debug("%s: keeping message", a->name);
-			if (a->fetch->keep != NULL) {
-				if (a->fetch->keep(a) != 0) {
-					cause = "keeping";
-					goto out;
-				}
-			}
+			cause = "keeping";
 			kept++;
 			break;
 		default:
 			fatalx("invalid decision");
+		}
+		if (a->fetch->done != NULL) {
+			if (a->fetch->done(a, m.decision) != FETCH_SUCCESS)
+				goto out;
+			cause = NULL;
 		}
 
 		if (conf.purge_after > 0 && a->fetch->purge != NULL) {
@@ -404,6 +310,91 @@ out:
 	}
 
 	return (cause != NULL);
+}
+
+int
+fetch_got(struct io *io, struct account *a, struct mail *m, const char **cause)
+{
+	struct match_ctx mctx;
+	char		*hdr, rtm[64], *rnm;
+	size_t		 len;
+	int		 error;
+	u_int		 lines;
+	
+	memset(&mctx, 0, sizeof mctx);
+	mctx.io = io;
+	mctx.account = a;
+	mctx.mail = m;
+
+	log_debug("%s: got message: size %zu, body %zd", a->name,
+	    m->size, m->body);
+
+	hdr = find_header(m, "message-id", &len, 1);
+	if (hdr == NULL || len == 0 || len > INT_MAX)
+		log_debug("%s: message-id not found", a->name);
+	else {
+		log_debug("%s: message-id is: %.*s", a->name, (int) len, hdr);
+		add_tag(&m->tags, "message_id", "%.*s", (int) len, hdr);
+	}
+
+	/*
+	 * Insert received header.
+	 *
+	 * No header line must exceed 998 bytes. Limiting the user-supplied
+	 * stuff to 900 bytes gives plenty of space for the other stuff, and if
+	 * it gets truncated, who cares?
+	 */
+	if (!conf.no_received) {
+		error = 1;
+		if (rfc822_time(time(NULL), rtm, sizeof rtm) != NULL) {
+			rnm = conf.info.fqdn;
+			if (rnm == NULL)
+				rnm = conf.info.host;
+
+			error = insert_header(m, "received",
+			    "Received: by %.450s (%s " BUILD ", "
+			    "account \"%.450s\");\n\t%s",
+			    rnm, __progname, a->name, rtm);
+		}
+		if (error != 0) {
+			log_debug("%s: failed to add received header",
+			    a->name);
+		}
+	}
+
+	/* fill wrapped line list */
+	lines = fill_wrapped(m);
+	log_debug2("%s: found %u wrapped lines", a->name, lines);
+
+	/* handle rule evaluation and actions */
+	mctx.matched = mctx.stopped = 0;
+	if (do_rules(&mctx, &conf.rules, cause) != 0)
+		return (FETCH_ERROR);
+	if (mctx.stopped)
+		goto done;
+
+	switch (conf.impl_act) {
+	case DECISION_NONE:
+		log_warnx("%s: reached end of ruleset. no "
+		    "unmatched-mail option; keeping mail",  a->name);
+		m->decision = DECISION_KEEP;
+		break;
+	case DECISION_KEEP:
+		log_debug("%s: reached end of ruleset. keeping mail",
+		    a->name);
+		m->decision = DECISION_KEEP;
+		break;
+	case DECISION_DROP:
+		log_debug("%s: reached end of ruleset. dropping mail",
+		    a->name);
+		m->decision = DECISION_DROP;
+		break;
+	}
+
+done:
+	if (conf.keep_all || a->keep)
+		m->decision = DECISION_KEEP;
+	return (FETCH_SUCCESS);
 }
 
 int

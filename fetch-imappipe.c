@@ -39,8 +39,7 @@ struct fetch fetch_imappipe = {
 	imap_poll,	/* from imap-common.c */
 	imap_fetch,	/* from imap-common.c */
 	imap_purge,	/* from imap-common.c */
-	imap_delete,	/* from imap-common.c */
-	imap_keep,	/* from imap-common.c */
+	imap_done,	/* from imap-common.c */
 	fetch_imappipe_disconnect,
 	fetch_imappipe_free,
 	fetch_imappipe_desc,

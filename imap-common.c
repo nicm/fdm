@@ -340,20 +340,15 @@ restart:
 }
 
 int
-imap_keep(struct account *a)
-{
-	struct fetch_imap_data	*data = a->data;
-
-	ARRAY_ADD(&data->kept, data->uid, u_int);
-
-	return (0);
-}
-
-int
-imap_delete(struct account *a)
+imap_done(struct account *a, enum decision d)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
+
+	if (d == DECISION_KEEP) {
+		ARRAY_ADD(&data->kept, data->uid, u_int);
+		return (FETCH_SUCCESS);
+	}
 
 	if (data->putln(a, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
 	    data->cur) != 0)
