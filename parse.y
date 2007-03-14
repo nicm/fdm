@@ -1910,7 +1910,6 @@ expritem: not icase replstrv area
 /**       [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */
 	  {
 		  struct match_command_data	*data;
-		  int	 			 flags;
 		  char				*cause;
 
 		  if (*$3 == '\0' || ($3[0] == '|' && $3[1] == '\0'))
