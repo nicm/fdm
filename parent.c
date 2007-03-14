@@ -65,18 +65,12 @@ parent_get(struct mail *m, struct msg *msg, void *buf, struct deliver_ctx *dctx,
 		memset(dctx, 0, sizeof dctx);
 		dctx->account = msg->data.account;
 		dctx->mail = m;
-		dctx->decision = NULL;		/* only altered in child */
-		dctx->pm_valid = &msg->data.pm_valid;
-		memcpy(&dctx->pm, &msg->data.pm, sizeof dctx->pm);
 	}
 
 	if (mctx != NULL) { 
 		memset(mctx, 0, sizeof mctx);
 		mctx->account = msg->data.account;
 		mctx->mail = m;
-		mctx->decision = DECISION_NONE;	/* only altered in child */
-		mctx->pm_valid = msg->data.pm_valid;
-		memcpy(&mctx->pm, &msg->data.pm, sizeof mctx->pm);
 	}
 }
 
@@ -283,6 +277,7 @@ parent_action(struct action *t, struct deliver_ctx *dctx, uid_t uid)
 		if (geteuid() == 0 &&
 		    fchown(md->shm.fd, conf.child_uid, conf.child_gid) != 0)
 			fatal("fchown");
+		md->decision = m->decision;
 	}
 	
 	if (parent_child(a,
@@ -361,7 +356,7 @@ parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	char				*s, *cause, *lbuf, *out, *err, tag[24];
 	size_t				 llen;
 	struct cmd		 	*cmd = NULL;
-	regmatch_t			 pm[NPMATCH];
+	struct rmlist			 rml;
 	u_int				 i;
 
 	/* if this is the parent, do nothing */
@@ -369,7 +364,7 @@ parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		return (0);
 
 	/* sort out the command */
-	s = replacepath(&data->cmd, m->tags, m, mctx->pm_valid, mctx->pm);
+	s = replacepath(&data->cmd, m->tags, m, &m->rml);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;
@@ -407,20 +402,22 @@ parent_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		if (found) /* XXX stop early? */
 			continue;
 			
-		found = re_execute(&data->re, out, NPMATCH, pm, 0, &cause);
+		found = re_string(&data->re, out, &rml, &cause);
 		if (found == -1) {
 			log_warnx("%s: %s", a->name, cause);
 			goto error;
 		}
 		if (found != 1)
 			continue;
-		/* save the pmatch */
+		/* save the matches */
+		if (!rml.valid)
+			continue;
 		for (i = 0; i < NPMATCH; i++) {
-			if (pm[i].rm_so >= pm[i].rm_eo)
-				continue;
+			if (!rml.list[i].valid)
+				break;
 			xsnprintf(tag, sizeof tag, "command%u", i);
-			add_tag(&m->tags, tag, "%.*s", (int) (pm[i].rm_eo -
-			    pm[i].rm_so), out + pm[i].rm_so);
+			add_tag(&m->tags, tag, "%.*s", (int) (rml.list[i].eo -
+			    rml.list[i].so), out + rml.list[i].so);
 		}
 	} while (status >= 0);
 	status = -1 - status;

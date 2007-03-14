@@ -39,37 +39,30 @@ match_regexp_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail			*m = mctx->mail;
 	int				 res;
 	char			        *cause;
+	size_t				 so, eo;
 
-	if (data->area == AREA_BODY && m->body == -1)
-		return (MATCH_FALSE);
-
+	so = 0;
+	eo = m->size;
 	switch (data->area) {
 	case AREA_HEADERS:
-		mctx->pm[0].rm_so = 0;
-		if (m->body == -1)
-			mctx->pm[0].rm_eo = m->size;
-		else
-			mctx->pm[0].rm_eo = m->body;
+		if (m->body != -1)
+			eo = m->body;
 		break;
 	case AREA_BODY:
-		mctx->pm[0].rm_so = m->body;
-		mctx->pm[0].rm_eo = m->size;
+		if (m->body == -1)
+			return (MATCH_FALSE);
+		so = m->body;
 		break;
 	case AREA_ANY:
-		mctx->pm[0].rm_so = 0;
-		mctx->pm[0].rm_eo = m->size;
 		break;
 	}
 
-	res = re_execute(&data->re, m->data, NPMATCH, mctx->pm, REG_STARTEND,
-	    &cause);
+	res = re_block(&data->re, m->data + so, eo - so, &m->rml, &cause);
 	if (res == -1) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (MATCH_ERROR);
 	}
-
-	mctx->pm_valid = 1;
 	if (res == 0)
 		return (MATCH_FALSE);
 	return (MATCH_TRUE);

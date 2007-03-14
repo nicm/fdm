@@ -159,18 +159,18 @@ update_tags(struct strb **tags)
 
 char *
 replacestr(struct replstr *rs, struct strb *tags, struct mail *m,
-    int pm_valid, regmatch_t pm[NPMATCH])
+    struct rmlist *rml)
 {
-	return (replace(rs->str, tags, m, pm_valid, pm));
+	return (replace(rs->str, tags, m, rml));
 }
 
 char *
 replacepath(struct replpath *rp, struct strb *tags, struct mail *m,
-    int pm_valid, regmatch_t pm[NPMATCH])
+    struct rmlist *rml)
 {
 	char	*s, *ss;
 
-	s = replace(rp->str, tags, m, pm_valid, pm);
+	s = replace(rp->str, tags, m, rml);
 	ss = expand_path(s);
 	if (ss == NULL)
 		return (s);
@@ -179,8 +179,7 @@ replacepath(struct replpath *rp, struct strb *tags, struct mail *m,
 }
 
 char *
-replace(char *src, struct strb *tags, struct mail *m, int pm_valid,
-    regmatch_t pm[NPMATCH])
+replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 {
 	char		*ptr, *tend;
 	const char	*tptr, *alias;
@@ -237,14 +236,14 @@ replace(char *src, struct strb *tags, struct mail *m, int pm_valid,
 			break;
 		default:
 			if (ch >= '0' && ch <= '9') {
-				if (!pm_valid || m == NULL || pm == NULL)
+				if (rml == NULL || !rml->valid || m == NULL)
 					continue;
 				idx = ((u_char) ch) - '0';
-				if (pm[idx].rm_so >= pm[idx].rm_eo)
+				if (!rml->list[idx].valid)
 					continue;
 
-				tptr = m->base + pm[idx].rm_so;
-				tlen = pm[idx].rm_eo - pm[idx].rm_so;
+				tptr = m->base + rml->list[idx].so;
+				tlen = rml->list[idx].eo - rml->list[idx].so;
 				break;
 			}
 

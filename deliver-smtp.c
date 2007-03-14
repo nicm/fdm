@@ -87,8 +87,7 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	if (data->to.str == NULL)
 		to = xstrdup(from);
 	else {
-		to = replacestr(&data->to, m->tags, m, *dctx->pm_valid,
-		    dctx->pm);
+		to = replacestr(&data->to, m->tags, m, &m->rml);
 		if (to == NULL || *to == '\0') {
 			log_warnx("%s: empty to", a->name);
 			goto error;

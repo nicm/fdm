@@ -51,9 +51,6 @@ match_command_match(struct match_ctx *mctx, struct expritem *ei)
 	msg.data.cmddata = data;
 	msg.data.uid = data->uid;
 
-	msg.data.pm_valid = mctx->pm_valid;
-	memcpy(&msg.data.pm, mctx->pm, sizeof msg.data.pm);
-
 	mail_send(m, &msg);
 
 	if (privsep_send(io, &msg, m->tags, STRB_SIZE(m->tags)) != 0)

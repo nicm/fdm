@@ -30,13 +30,8 @@ struct match_ctx {
 	struct account	*account;
 	struct mail     *mail;
 
-	enum decision	 decision;
-
 	int		 matched;
 	int		 stopped;
-
-	int		 pm_valid;
-	regmatch_t	 pm[NPMATCH];
 };
 
 /* Match functions. */

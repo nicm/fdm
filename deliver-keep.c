@@ -35,7 +35,9 @@ struct deliver deliver_keep = {
 int
 deliver_keep_deliver(struct deliver_ctx *dctx, unused struct action *t)
 {
-	*dctx->decision = DECISION_KEEP;
+	struct mail	*m = dctx->mail;
+
+	m->decision = DECISION_KEEP;
 
 	return (DELIVER_SUCCESS);
 }

@@ -62,7 +62,7 @@ do_pipe(struct deliver_ctx *dctx, struct action *t, int pipef)
 	char				*lbuf;
 	size_t				 llen;
 
-	s = replacepath(&data->cmd, m->tags, m, *dctx->pm_valid, dctx->pm);
+	s = replacepath(&data->cmd, m->tags, m, &m->rml);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		if (s != NULL)

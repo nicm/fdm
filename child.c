@@ -242,13 +242,12 @@ fetch_account(struct io *io, struct account *a, double tim)
         for (;;) {
 		memset(&m, 0, sizeof m);
 		m.body = -1;
+		m.decision = DECISION_DROP;
 
 		memset(&mctx, 0, sizeof mctx);
 		mctx.io = io;
 		mctx.account = a;
 		mctx.mail = &m;
-		/* drop mail by default unless something else comes along */
-		mctx.decision = DECISION_DROP;
 
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
@@ -326,26 +325,28 @@ fetch_account(struct io *io, struct account *a, double tim)
 		case DECISION_NONE:
 			log_warnx("%s: reached end of ruleset. no "
 			    "unmatched-mail option; keeping mail",  a->name);
-			mctx.decision = DECISION_KEEP;
+			m.decision = DECISION_KEEP;
 			break;
 		case DECISION_KEEP:
 			log_debug("%s: reached end of ruleset. keeping mail",
 			    a->name);
-			mctx.decision = DECISION_KEEP;
+			m.decision = DECISION_KEEP;
 			break;
 		case DECISION_DROP:
 			log_debug("%s: reached end of ruleset. dropping mail",
 			    a->name);
-			mctx.decision = DECISION_DROP;
+			m.decision = DECISION_DROP;
 			break;
 		}
 
 	done:
 		if (conf.keep_all || a->keep)
-			mctx.decision = DECISION_KEEP;
+			m.decision = DECISION_KEEP;
 
 		/* finished with the message */
-		switch (mctx.decision) {
+		log_debug2("%s: finishing with mail: decision=%d", a->name,
+		    m.decision);
+		switch (m.decision) {
 		case DECISION_DROP:
 			log_debug("%s: deleting message", a->name);
 			if (a->fetch->delete != NULL) {
@@ -463,10 +464,8 @@ do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
 
 		/* tag mail if needed */
 		if (r->key.str != NULL) {
-			tkey = replacestr(&r->key, 
-			    m->tags, m, mctx->pm_valid, mctx->pm);
-			tvalue = replacestr(&r->value,
-			    m->tags, m, mctx->pm_valid, mctx->pm);
+			tkey = replacestr(&r->key, m->tags, m, &m->rml);
+			tvalue = replacestr(&r->value, m->tags, m, &m->rml);
 
 			if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
 				log_debug2("%s: tagging message: %s (%s)", 
@@ -562,7 +561,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
 		rs = &ARRAY_ITEM(r->actions, i, struct replstr);
-		s = replacestr(rs, m->tags, m, mctx->pm_valid, mctx->pm);
+		s = replacestr(rs, m->tags, m, &m->rml);
 
 		log_debug2("%s: looking for actions matching: %s", a->name, s);
 		ta = match_actions(s);
@@ -613,9 +612,6 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		memset(&dctx, 0, sizeof dctx);
 		dctx.account = a;
 		dctx.mail = m;
-		dctx.decision = &mctx->decision;
-		dctx.pm_valid = &mctx->pm_valid;
-		memcpy(&dctx.pm, mctx->pm, sizeof dctx.pm);
 
 		if (t->deliver->deliver(&dctx, t) != DELIVER_SUCCESS)
 			return (1);
@@ -658,9 +654,6 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		msg.data.action = t;
 		msg.data.uid = ARRAY_ITEM(users, i, uid_t);
 
-		msg.data.pm_valid = mctx->pm_valid;
-		memcpy(&msg.data.pm, mctx->pm, sizeof msg.data.pm);
-
 		mail_send(m, &msg);
 
 		if (privsep_send(mctx->io, &msg, m->tags, 
@@ -701,9 +694,6 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		/* and recreate the wrapped array */
 		l = fill_wrapped(m);
 		log_debug2("%s: found %u wrapped lines", a->name, l);
-
-		/* invalidate the pmatch data since stuff may have moved */
-		mctx->pm_valid = 0;
 	}
 
 	if (find)

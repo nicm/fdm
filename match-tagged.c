@@ -39,7 +39,7 @@ match_tagged_match(struct match_ctx *mctx, struct expritem *ei)
 	struct mail			*m = mctx->mail;
 	char				*tag;
 
-	tag = replacestr(&data->tag, m->tags, m, mctx->pm_valid, mctx->pm);
+	tag = replacestr(&data->tag, m->tags, m, &m->rml);
 	if (match_tag(m->tags, tag) != NULL) {
 		xfree(tag);
 		return (MATCH_TRUE);

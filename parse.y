@@ -741,7 +741,7 @@ replstrv: strv
 		  }
 
 		  rs.str = $1;
-		  $$ = replacestr(&rs, parse_tags, NULL, 0, NULL);
+		  $$ = replacestr(&rs, parse_tags, NULL, NULL);
 		  xfree($1);
 	  }
 
@@ -755,7 +755,7 @@ replpathv: strv
 		  }
 
 		  rp.str = $1;
-		  $$ = replacepath(&rp, parse_tags, NULL, 0, NULL);
+		  $$ = replacepath(&rp, parse_tags, NULL, NULL);
 		  xfree($1);
 	   }
 
@@ -1898,9 +1898,9 @@ expritem: not icase replstrv area
 
 		  data->area = $4;
 
-		  flags = REG_EXTENDED|REG_NEWLINE;
+		  flags = 0;
 		  if ($2)
-			  flags |= REG_ICASE;
+			  flags |= RE_ICASE;
 		  if (re_compile(&data->re, $3, flags, &cause) != 0)
 			  yyerror("%s", cause);
 		  xfree($3);
@@ -1932,8 +1932,7 @@ expritem: not icase replstrv area
 		  data->ret = $7;
 
 		  if ($9 != NULL) {
-			  flags = REG_EXTENDED|REG_NEWLINE;
-			  if (re_compile(&data->re, $9, flags, &cause) != 0)
+			  if (re_compile(&data->re, $9, 0, &cause) != 0)
 				  yyerror("%s", cause);
 			  xfree($9);
 		  }
@@ -1982,7 +1981,6 @@ expritem: not icase replstrv area
 /**       [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
 	  {
 		  struct match_string_data	*data;
-		  int	 			 flags;
 		  char				*cause;
 
 		  if (*$3 == '\0')
@@ -1998,8 +1996,7 @@ expritem: not icase replstrv area
 
 		  data->str.str = $3;
 
-		  flags = REG_EXTENDED|REG_NOSUB|REG_NEWLINE;
-		  if (re_compile(&data->re, $5, flags, &cause) != 0)
+		  if (re_compile(&data->re, $5, RE_NOSUB, &cause) != 0)
 			  yyerror("%s", cause);
 		  xfree($5);
 	  }

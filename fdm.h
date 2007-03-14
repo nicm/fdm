@@ -326,6 +326,30 @@ struct strb {
 #define STRB_ENTSIZE(sb) ((sb)->ent_max * (sizeof (struct strbent)))
 #define STRB_SIZE(sb) ((sizeof *(sb)) + (sb)->str_size + STRB_ENTSIZE((sb)))
 
+/* Regexp wrapper structs. */
+struct re {
+	char		*str;
+	regex_t		 re;
+	int		 flags;
+};
+
+struct rm {
+	int		 valid;
+
+	size_t		 so;
+	size_t		 eo;
+};
+
+struct rmlist {
+	int		 valid;
+	
+	struct rm	 list[NPMATCH];
+};
+
+/* Regexp flags. */
+#define RE_ICASE 0x1
+#define RE_NOSUB 0x2
+
 /* A single mail. */
 struct mail {
 	struct strb		*tags;
@@ -346,6 +370,9 @@ struct mail {
 	ARRAY_DECL(, size_t *)	 wrapped;	/* list of wrapped lines */
 
 	ssize_t		 	 body;		/* offset of body */
+
+	struct rmlist		 rml;		/* regexp matches */
+	enum decision		 decision;	/* final deliver decision */
 };
 
 /* An attachment. */
@@ -363,12 +390,6 @@ struct attach {
 	TAILQ_HEAD(, attach)	 children;
 
 	TAILQ_ENTRY(attach)	 entry;
-};
-
-/* Regexp wrapper struct. */
-struct re {
-	char		*str;
-	regex_t		 re;
 };
 
 /* A single child. */
@@ -622,9 +643,6 @@ struct msgdata {
 	int	 		 	 error;
 	struct mail		 	 mail;
 
-	int		 	 	 pm_valid;
-	regmatch_t	 		 pm[NPMATCH];
-
 	/* these only work so long as they aren't moved in either process */
 	struct account			*account;
 	struct action			*action;
@@ -711,8 +729,10 @@ void			 fill_fqdn(char *, char **, char **);
 
 /* re.c */
 int			 re_compile(struct re *, char *, int, char **);
-int			 re_execute(struct re *, char *, int, regmatch_t *,
-			     int, char **);
+int			 re_string(struct re *, char *, struct rmlist *,
+			     char **);
+int			 re_block(struct re *, void *, size_t, struct rmlist *,
+			     char **);
 int			 re_simple(struct re *, char *, char **);
 void			 re_free(struct re *);
 
@@ -804,12 +824,12 @@ const char 		*find_tag(struct strb *, const char *);
 const char		*match_tag(struct strb *, const char *);
 void			 default_tags(struct strb **, char *, struct account *);
 void			 update_tags(struct strb **);
-char 			*replace(char *, struct strb *, struct mail *, int,
-    			    regmatch_t [NPMATCH]);
+char 			*replace(char *, struct strb *, struct mail *, 
+			     struct rmlist *);
 char 			*replacestr(struct replstr *, struct strb *,
-			    struct mail *, int, regmatch_t [NPMATCH]);
+			     struct mail *, struct rmlist *);
 char 			*replacepath(struct replpath *, struct strb *,
-    			    struct mail *, int, regmatch_t [NPMATCH]);
+    			     struct mail *, struct rmlist *);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *, int);

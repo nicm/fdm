@@ -20,7 +20,6 @@
   to account line
 - handle multiple header instances when looking for users (other places?)
 - fnmatch in find_header (don't forget ':')
-- move pmatch etc into struct mail to avoid pointer nonsense?
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
 - deliver to IMAP folder

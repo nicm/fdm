@@ -40,14 +40,14 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	struct deliver_add_header_data	*data = t->data;
 	char				*hdr, *value;
 
-	hdr = replacestr(&data->hdr, m->tags, m, *dctx->pm_valid, dctx->pm);
+	hdr = replacestr(&data->hdr, m->tags, m, &m->rml);
 	if (hdr == NULL || *hdr == '\0') {
 		if (hdr != NULL)
 			xfree(hdr);
 		log_warnx("%s: empty header", a->name);
 		return (DELIVER_FAILURE);
 	}
-	value = replacestr(&data->value, m->tags, m, *dctx->pm_valid, dctx->pm);
+	value = replacestr(&data->value, m->tags, m, &m->rml);
 	if (value == NULL) {
 		log_warnx("%s: bad value for header %s", a->name, hdr);
 		xfree(hdr);
@@ -66,8 +66,8 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	ARRAY_FREE(&m->wrapped);
 	fill_wrapped(m);
 
-	/* invalidate the pmatch data since stuff may have moved */
-	*dctx->pm_valid = 0;
+	/* invalidate the match data since stuff may have moved */
+	m->rml.valid = 0;
 
 	xfree(hdr);	
 	xfree(value);

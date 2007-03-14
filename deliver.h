@@ -29,11 +29,6 @@ struct deliver_ctx {
 	struct mail	*mail;
 
 	struct mail	 wr_mail;
-
-	enum decision	*decision;
-
-	int		*pm_valid;
-	regmatch_t	 pm[NPMATCH];
 };
 
 /* Delivery types. */

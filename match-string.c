@@ -41,7 +41,7 @@ match_string_match(struct match_ctx *mctx, struct expritem *ei)
 	int				 res;
 	char				*s, *cause;
 
-	s = replacestr(&data->str, m->tags, m, mctx->pm_valid, mctx->pm);
+	s = replacestr(&data->str, m->tags, m, &m->rml);
 	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.str);
 
 	res = re_simple(&data->re, s, &cause);

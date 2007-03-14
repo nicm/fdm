@@ -42,7 +42,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	size_t				  	 len, off, wrap;
 	u_int					 i;
 
-	hdr = replacestr(&data->hdr, m->tags, m, *dctx->pm_valid, dctx->pm);
+	hdr = replacestr(&data->hdr, m->tags, m, &m->rml);
 	if (hdr == NULL || *hdr == '\0') {
 		if (hdr != NULL)
 			xfree(hdr);
@@ -83,8 +83,8 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 		}
 	}
 
-	/* invalidate the pmatch data since stuff may have moved */
-	*dctx->pm_valid = 0;
+	/* invalidate the match data since stuff may have moved */
+	m->rml.valid = 0;
 	
 	set_wrapped(m, '\n');
 	return (DELIVER_SUCCESS);

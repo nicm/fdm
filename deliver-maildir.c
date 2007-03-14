@@ -56,7 +56,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	size_t	 			 first, last;
 	gid_t				 gid;
 
-	path = replacepath(&data->path, m->tags, m, *dctx->pm_valid, dctx->pm);
+	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto out;
