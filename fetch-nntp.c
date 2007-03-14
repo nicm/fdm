@@ -29,10 +29,8 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_nntp_init(struct account *);
-int	fetch_nntp_free(struct account *);
-int	fetch_nntp_connect(struct account *);
-int	fetch_nntp_disconnect(struct account *);
+int	fetch_nntp_start(struct account *);
+int	fetch_nntp_finish(struct account *);
 int	fetch_nntp_poll(struct account *, u_int *);
 int	fetch_nntp_fetch(struct account *, struct mail *);
 int	fetch_nntp_delete(struct account *);
@@ -56,14 +54,12 @@ int	fetch_nntp_save(struct account *);
 
 struct fetch fetch_nntp = {
 	{ "nntp", NULL },
-	fetch_nntp_init,
-	fetch_nntp_connect,
+	fetch_nntp_start,
 	fetch_nntp_poll,
 	fetch_nntp_fetch,
 	fetch_nntp_save,
 	NULL,
-	fetch_nntp_disconnect,
-	fetch_nntp_free,
+	fetch_nntp_finish,
 	fetch_nntp_desc
 };
 
@@ -373,11 +369,13 @@ error:
 }
 
 int
-fetch_nntp_init(struct account *a)
+fetch_nntp_start(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	u_int			 i;
+	char			*lbuf, *line, *cause;
+	size_t			 llen;
 
 	ARRAY_INIT(&data->groups);
 	for (i = 0; i < ARRAY_LENGTH(data->names); i++) {
@@ -389,35 +387,6 @@ fetch_nntp_init(struct account *a)
 	}
 
 	data->group = 0;
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_nntp_free(struct account *a)
-{
-	struct fetch_nntp_data	*data = a->data;
-	struct fetch_nntp_group	*group;
-	u_int			 i;
-
-	for (i = 0; i < TOTAL_GROUPS(data); i++) {
-		group = GET_GROUP(data, i);
-		xfree(group->name);
-		if (group->id != NULL)
-			xfree(group->id);
-		xfree(group);
-	}
-	ARRAY_FREE(&data->groups);
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_nntp_connect(struct account *a)
-{
-	struct fetch_nntp_data	*data = a->data;
-	char			*lbuf, *line, *cause;
-	size_t			 llen;
 
 	data->io = connectproxy(&data->server,
 	    conf.proxy ,IO_CRLF, conf.timeout, &cause);
@@ -466,17 +435,31 @@ error:
 }
 
 int
-fetch_nntp_disconnect(struct account *a)
+fetch_nntp_finish(struct account *a)
 {
-	struct fetch_nntp_data	*data = a->data;
+	struct fetch_nntp_data	*data = a->data;	
+	struct fetch_nntp_group	*group;
+	u_int			 i;
 	char			*lbuf, *line;
 	size_t			 llen;
 
 	fetch_nntp_save(a);
 
+	for (i = 0; i < TOTAL_GROUPS(data); i++) {
+		group = GET_GROUP(data, i);
+		xfree(group->name);
+		if (group->id != NULL)
+			xfree(group->id);
+		xfree(group);
+	}
+	ARRAY_FREE(&data->groups);
+
+	if (data->io == NULL)
+		return (FETCH_SUCCESS);
+
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
-
+	
 	io_writeline(data->io, "QUIT");
 	if ((line = fetch_nntp_check(a, &lbuf, &llen, NULL, 1, 205)) == NULL)
 		goto error;

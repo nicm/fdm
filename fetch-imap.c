@@ -23,9 +23,8 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 	 fetch_imap_connect(struct account *);
-int	 	 fetch_imap_disconnect(struct account *);
-int	 	 fetch_imap_free(struct account *);
+int	 	 fetch_imap_start(struct account *);
+int	 	 fetch_imap_finish(struct account *);
 void		 fetch_imap_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imap_putln(struct account *, const char *, ...);
@@ -34,14 +33,12 @@ void		 fetch_imap_flush(struct account *);
 
 struct fetch fetch_imap = {
 	{ "imap", "imaps" },
-	imap_init,	/* from imap-common.c */
-	fetch_imap_connect,
+	fetch_imap_start,
 	imap_poll,	/* from imap-common.c */
 	imap_fetch,	/* from imap-common.c */
 	imap_purge,	/* from imap-common.c */
 	imap_done,	/* from imap-common.c */
-	fetch_imap_disconnect,
-	fetch_imap_free,
+	fetch_imap_finish,
 	fetch_imap_desc
 };
 
@@ -119,10 +116,13 @@ fetch_imap_flush(struct account *a)
 }
 
 int
-fetch_imap_connect(struct account *a)
+fetch_imap_start(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
+
+	if (imap_start(a) != FETCH_SUCCESS)
+		return (FETCH_ERROR);
 
 	data->io = connectproxy(&data->server, 
 	    conf.proxy, IO_CRLF, conf.timeout, &cause);
@@ -151,30 +151,23 @@ fetch_imap_connect(struct account *a)
 }
 
 int
-fetch_imap_disconnect(struct account *a)
-{
-	if (imap_close(a) != 0 || imap_logout(a) != 0) {
-		imap_abort(a);
-		return (FETCH_ERROR);
-	}
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_imap_free(struct account *a)
+fetch_imap_finish(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	if (data->io != NULL) { 
-		io_close(data->io);
-		io_free(data->io);
+	if (data->io != NULL) {
+		if (imap_close(a) != 0 || imap_logout(a) != 0) {
+			imap_abort(a);
+			return (FETCH_ERROR);
+		}
+
+		if (data->io != NULL) { 
+			io_close(data->io);
+			io_free(data->io);
+		}
 	}
 
-	if (imap_free(a) != 0)
-		return (FETCH_ERROR);
-		
-	return (FETCH_SUCCESS);
+	return (imap_finish(a));
 }
 
 void

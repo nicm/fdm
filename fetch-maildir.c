@@ -31,8 +31,8 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_maildir_connect(struct account *);
-int	 fetch_maildir_disconnect(struct account *);
+int	 fetch_maildir_start(struct account *);
+int	 fetch_maildir_finish(struct account *);
 int	 fetch_maildir_poll(struct account *, u_int *);
 int	 fetch_maildir_fetch(struct account *, struct mail *);
 int	 fetch_maildir_done(struct account *, enum decision);
@@ -43,14 +43,12 @@ void	 fetch_maildir_freepaths(struct account *);
 
 struct fetch fetch_maildir = {
 	{ NULL, NULL },
-	NULL,
-	fetch_maildir_connect,
+	fetch_maildir_start,
 	fetch_maildir_poll,
 	fetch_maildir_fetch,
 	NULL,
 	fetch_maildir_done,
-	fetch_maildir_disconnect,
-	NULL,
+	fetch_maildir_finish,
 	fetch_maildir_desc
 };
 
@@ -124,7 +122,7 @@ fetch_maildir_freepaths(struct account *a)
 }
 
 int
-fetch_maildir_connect(struct account *a)
+fetch_maildir_start(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 
@@ -135,6 +133,19 @@ fetch_maildir_connect(struct account *a)
 	if (fetch_maildir_makepaths(a) != 0)
 		return (FETCH_ERROR);
 	data->index = 0;
+
+	return (FETCH_SUCCESS);
+}
+
+int
+fetch_maildir_finish(struct account *a)
+{
+	struct fetch_maildir_data	*data = a->data;
+
+	fetch_maildir_freepaths(a);
+
+	if (data->dirp != NULL)
+		closedir(data->dirp);
 
 	return (FETCH_SUCCESS);
 }
@@ -287,19 +298,6 @@ fetch_maildir_done(struct account *a, enum decision d)
 		log_warn("%s: %s: unlink", a->name, data->entry);
 		return (FETCH_ERROR);
 	}
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_maildir_disconnect(struct account *a)
-{
-	struct fetch_maildir_data	*data = a->data;
-
-	fetch_maildir_freepaths(a);
-
-	if (data->dirp != NULL)
-		closedir(data->dirp);
 
 	return (FETCH_SUCCESS);
 }

@@ -64,7 +64,7 @@ imap_okay(struct account *a, char *line)
 }
 
 int
-imap_init(struct account *a)
+imap_start(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
@@ -79,7 +79,7 @@ imap_init(struct account *a)
 }
 
 int
-imap_free(struct account *a)
+imap_finish(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 

@@ -120,11 +120,6 @@ do_child(int fd, enum fdmop op, struct account *a)
 	setproctitle("child: %s", a->name);
 #endif
 
-	if (a->fetch->init != NULL && a->fetch->init(a) != FETCH_SUCCESS) {
-		log_debug("%s: initialisation error. aborting", a->name);
-		goto out;
-	}
-
 	switch (op) {
 	case FDMOP_POLL:
 		if (a->fetch->poll != NULL)
@@ -143,9 +138,9 @@ do_child(int fd, enum fdmop op, struct account *a)
 	log_debug("%s: processing", a->name);
 	tim = get_time();
 
-	/* connect */
-	if (a->fetch->connect != NULL && a->fetch->connect(a) != FETCH_SUCCESS) {
-		log_debug("%s: connection error. aborting", a->name);
+	/* start fetch */
+	if (a->fetch->start != NULL && a->fetch->start(a) != FETCH_SUCCESS) {
+		log_debug("%s: start error. aborting", a->name);
 		goto out;
 	}
 
@@ -163,14 +158,11 @@ do_child(int fd, enum fdmop op, struct account *a)
 		fatalx("child: unexpected command");
 	}
 
-	/* disconnect */
-	if (a->fetch->disconnect != NULL && a->fetch->disconnect(a) != FETCH_SUCCESS)
-		error = 1;
-
 	log_debug("%s: finished processing. exiting", a->name);
 
 out:
-	if (a->fetch->free != NULL && a->fetch->free(a) != FETCH_SUCCESS)
+	/* finish fetch */
+	if (a->fetch->finish != NULL && a->fetch->finish(a) != FETCH_SUCCESS)
 		error = 1;
 
 	memset(&msg, 0, sizeof msg);
@@ -271,11 +263,10 @@ fetch_account(struct io *io, struct account *a, double tim)
 		default:
 			fatalx("invalid decision");
 		}
-		if (a->fetch->done != NULL) {
-			if (a->fetch->done(a, m.decision) != FETCH_SUCCESS)
-				goto out;
-			cause = NULL;
-		}
+		if (a->fetch->done != NULL &&
+		    a->fetch->done(a, m.decision) != FETCH_SUCCESS)
+			goto out;
+		cause = NULL;
 
 		if (conf.purge_after > 0 && a->fetch->purge != NULL) {
 			n++;

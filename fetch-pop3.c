@@ -27,29 +27,28 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_pop3_init(struct account *);
-int	fetch_pop3_free(struct account *);
-int	fetch_pop3_connect(struct account *);
-int	fetch_pop3_disconnect(struct account *);
+int	fetch_pop3_start(struct account *);
+int	fetch_pop3_finish(struct account *);
 int	fetch_pop3_poll(struct account *, u_int *);
 int	fetch_pop3_fetch(struct account *, struct mail *);
 int	fetch_pop3_purge(struct account *);
 int	fetch_pop3_done(struct account *, enum decision);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
+int	fetch_pop3_connect(struct account *);
+int	fetch_pop3_disconnect(struct account *);
+
 char   *fetch_pop3_line(struct account *, char **, size_t *);
 char   *fetch_pop3_check(struct account *, char **, size_t *);
 
 struct fetch fetch_pop3 = {
 	{ "pop3", "pop3s" },
-	fetch_pop3_init,
-	fetch_pop3_connect,
+	fetch_pop3_start,
 	fetch_pop3_poll,
 	fetch_pop3_fetch,
 	fetch_pop3_purge,
 	fetch_pop3_done,
-	fetch_pop3_disconnect,
-	fetch_pop3_free,
+	fetch_pop3_finish,
 	fetch_pop3_desc
 };
 
@@ -89,10 +88,23 @@ fetch_pop3_check(struct account *a, char **lbuf, size_t *llen)
 }
 
 int
-fetch_pop3_free(struct account *a)
+fetch_pop3_start(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	ARRAY_INIT(&data->kept);
+
+	return (fetch_pop3_connect(a));
+}
+
+int
+fetch_pop3_finish(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 	u_int			 i;
+
+	if (data->io != NULL)
+		fetch_pop3_disconnect(a);
 
 	if (data->uid != NULL)
 		xfree(data->uid);
@@ -100,16 +112,6 @@ fetch_pop3_free(struct account *a)
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++)
 		xfree(ARRAY_ITEM(&data->kept, i, char *));
 	ARRAY_FREE(&data->kept);
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_pop3_init(struct account *a)
-{
-	struct fetch_pop3_data	*data = a->data;
-
-	ARRAY_INIT(&data->kept);
 
 	return (FETCH_SUCCESS);
 }
