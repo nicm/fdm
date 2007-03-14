@@ -34,7 +34,7 @@
 #include "match.h"
 
 int	poll_account(struct io *, struct account *);
-int	fetch_account(struct io *, struct account *);
+int	fetch_account(struct io *, struct account *, double);
 int	fetch_got(struct io *, struct account *, struct mail *, const char **);
 int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
@@ -97,6 +97,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	struct io	*io;
 	struct msg	 msg;
 	int		 error = 1;
+	double		 tim;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -125,6 +126,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 		log_info("%s: fetching not supported", a->name);
 		goto out;
 	}
+	tim = get_time();
 
 	/* start fetch */
 	if (a->fetch->start != NULL && a->fetch->start(a) != FETCH_SUCCESS) {
@@ -136,12 +138,10 @@ do_child(int fd, enum fdmop op, struct account *a)
 	log_debug("%s: started processing", a->name);
 	switch (op) {
 	case FDMOP_POLL:
-		if (poll_account(io, a) == 0)
-			error = 0;
+		error = poll_account(io, a);
 		break;
 	case FDMOP_FETCH:
-		if (fetch_account(io, a) == 0)
-			error = 0;
+		error = fetch_account(io, a, tim);
 		break;
 	default:
 		fatalx("child: unexpected command");
@@ -193,16 +193,14 @@ poll_account(unused struct io *io, struct account *a)
 }
 
 int
-fetch_account(struct io *io, struct account *a)
+fetch_account(struct io *io, struct account *a, double tim)
 {
 	struct mail	 m;
 	u_int	 	 n, dropped, kept;
 	int		 error;
  	const char	*cause = NULL;
-	double		 tim;
 
 	log_debug("%s: fetching", a->name);
-	tim = get_time();
 
 	n = dropped = kept = 0;
         for (;;) {
