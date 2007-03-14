@@ -243,10 +243,8 @@ restart:
 	} while (!S_ISREG(sb.st_mode));
 
 	log_debug2("%s: reading mail from: %s", a->name, data->entry);
-	if (sb.st_size <= 0) {
-		log_warnx("%s: %s: empty file", a->name, data->entry);
-		return (FETCH_ERROR);
-	}
+	if (sb.st_size <= 0)
+		return (FETCH_EMPTY);
 	if ((uintmax_t) sb.st_size > SIZE_MAX)
 		return (FETCH_OVERSIZE);
 	if ((uintmax_t) sb.st_size > conf.max_size)

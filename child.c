@@ -215,28 +215,39 @@ fetch_account(struct io *io, struct account *a, double tim)
 			cause = "fetching";
 			goto out;
 		case FETCH_OVERSIZE:
-			log_warnx("%s: message too big: %zu bytes", a->name,
-			    m.size);
-			if (conf.del_big)
-				goto done;
-			cause = "fetching";
-			goto out;
+		case FETCH_EMPTY:
+			goto done;
 		case FETCH_COMPLETE:
 			goto out;
 		}
 
 		trim_from(&m);
 		if (m.size == 0) {
-			mail_destroy(&m);
-			log_warnx("%s: got empty message. ignored", a->name);
-			continue;
+			error = FETCH_EMPTY;
+			goto done;
 		}
 
 		/* handle match/delivery */
 		if (fetch_got(io, a, &m, &cause) != FETCH_SUCCESS)
 			goto out;
+		error = FETCH_SUCCESS;
 
 	done:
+		/* handle any errors that skipped to this point */ 
+		switch (error) {
+		case FETCH_EMPTY:
+			log_warnx("%s: empty message", a->name);
+			cause = "fetching";
+			goto out;
+		case FETCH_OVERSIZE:
+			log_warnx("%s: message too big: %zu bytes (limit %zu)",
+			    a->name, m.size, conf.max_size);
+			if (conf.del_big)
+				break;
+			cause = "fetching";
+			goto out;
+		}
+		
 		/* finished with the message */
 		if (a->fetch->done != NULL) {
 			switch (m.decision) {

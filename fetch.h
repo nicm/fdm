@@ -23,7 +23,8 @@
 #define FETCH_SUCCESS 0
 #define FETCH_ERROR 1
 #define FETCH_OVERSIZE 2
-#define FETCH_COMPLETE 3
+#define FETCH_EMPTY 3
+#define FETCH_COMPLETE 4
 
 /* Fetch functions. */
 struct fetch {

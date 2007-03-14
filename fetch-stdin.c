@@ -162,11 +162,10 @@ fetch_stdin_fetch(struct account *a, struct mail *m)
 			return (FETCH_OVERSIZE);
 		}
 	}
-
 	if (m->size == 0) {
-		log_warnx("%s: zero-length message", a->name);
+		data->complete = 1;
 		xfree(lbuf);
-		return (FETCH_ERROR);
+		return (FETCH_EMPTY);
 	}
 
 	add_tag(&m->tags, "lines", "%u", lines);

@@ -238,8 +238,9 @@ restart:
 		goto error;
 	}
 	if (size == 0) {
-		log_warnx("%s: zero-length message", a->name);
-		goto error;
+		m->size = 0;
+		xfree(lbuf);
+		return (FETCH_EMPTY);
 	}
 	if (size > conf.max_size) {
 		m->size = size;

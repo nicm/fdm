@@ -34,4 +34,5 @@
 -- struct io list allow fetch to register struct ios and handlers, keep a 
    queue of fetched mail and allow matching other mails between polls (will
    need, eg io_poll1 which returns immediately? or perhaps IO_IMMEDIATE flag
-   sets timeout to 0)
+   sets timeout to 0). match and delivery will also need to be reentrant. 
+   pthreads? or yield after every rule?
