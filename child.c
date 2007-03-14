@@ -34,7 +34,7 @@
 #include "match.h"
 
 int	poll_account(struct io *, struct account *);
-int	fetch_account(struct io *, struct account *, double);
+int	fetch_account(struct io *, struct account *);
 int	fetch_got(struct io *, struct account *, struct mail *, const char **);
 int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
@@ -97,7 +97,6 @@ do_child(int fd, enum fdmop op, struct account *a)
 	struct io	*io;
 	struct msg	 msg;
 	int		 error = 1;
-	double		 tim;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -108,8 +107,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	log_debug("%s: started, pid %ld", a->name, (long) getpid());
 
 	if (geteuid() != 0) {
-		log_debug("%s: not root user. not dropping privileges",
-		    a->name);
+		log_debug("%s: not root. not dropping privileges", a->name);
 	} else {
 		log_debug("%s: changing to user %lu", a->name,
 		    (u_long) conf.child_uid);
@@ -120,23 +118,13 @@ do_child(int fd, enum fdmop op, struct account *a)
 	setproctitle("child: %s", a->name);
 #endif
 
-	switch (op) {
-	case FDMOP_POLL:
-		if (a->fetch->poll != NULL)
-			break;
+	if (op == FDMOP_POLL && a->fetch->poll == NULL) {
 		log_info("%s: polling not supported", a->name);
 		goto out;
-	case FDMOP_FETCH:
-		if (a->fetch->fetch != NULL)
-			break;
+	} else if (op == FDMOP_FETCH && a->fetch->fetch == NULL) {
 		log_info("%s: fetching not supported", a->name);
 		goto out;
-	default:
-		fatalx("child: unexpected command");
 	}
-
-	log_debug("%s: processing", a->name);
-	tim = get_time();
 
 	/* start fetch */
 	if (a->fetch->start != NULL && a->fetch->start(a) != FETCH_SUCCESS) {
@@ -144,20 +132,20 @@ do_child(int fd, enum fdmop op, struct account *a)
 		goto out;
 	}
 
-	/* process */
+	/* process fetch */
+	log_debug("%s: started processing", a->name);
 	switch (op) {
 	case FDMOP_POLL:
 		if (poll_account(io, a) == 0)
 			error = 0;
 		break;
 	case FDMOP_FETCH:
-		if (fetch_account(io, a, tim) == 0)
+		if (fetch_account(io, a) == 0)
 			error = 0;
 		break;
 	default:
 		fatalx("child: unexpected command");
 	}
-
 	log_debug("%s: finished processing. exiting", a->name);
 
 out:
@@ -205,14 +193,16 @@ poll_account(unused struct io *io, struct account *a)
 }
 
 int
-fetch_account(struct io *io, struct account *a, double tim)
+fetch_account(struct io *io, struct account *a)
 {
 	struct mail	 m;
 	u_int	 	 n, dropped, kept;
 	int		 error;
  	const char	*cause = NULL;
+	double		 tim;
 
 	log_debug("%s: fetching", a->name);
+	tim = get_time();
 
 	n = dropped = kept = 0;
         for (;;) {
@@ -220,6 +210,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 		m.body = -1;
 		m.decision = DECISION_DROP;
 
+		/* fetch a message */
 		error = a->fetch->fetch(a, &m);
 		switch (error) {
 		case FETCH_ERROR:
@@ -228,11 +219,10 @@ fetch_account(struct io *io, struct account *a, double tim)
 		case FETCH_OVERSIZE:
 			log_warnx("%s: message too big: %zu bytes", a->name,
 			    m.size);
-			if (!conf.del_big) {
-				cause = "fetching";
-				goto out;
-			}
-			goto done;
+			if (conf.del_big)
+				goto done;
+			cause = "fetching";
+			goto out;
 		case FETCH_COMPLETE:
 			goto out;
 		}
@@ -243,41 +233,41 @@ fetch_account(struct io *io, struct account *a, double tim)
 			log_warnx("%s: got empty message. ignored", a->name);
 			continue;
 		}
-		
+
+		/* handle match/delivery */
 		if (fetch_got(io, a, &m, &cause) != FETCH_SUCCESS)
 			goto out;
 
 	done:
 		/* finished with the message */
-		switch (m.decision) {
-		case DECISION_DROP:
-			log_debug("%s: deleting message", a->name);
-			cause = "deleting";
-			dropped++;
-			break;
-		case DECISION_KEEP:
-			log_debug("%s: keeping message", a->name);
-			cause = "keeping";
-			kept++;
-			break;
-		default:
-			fatalx("invalid decision");
+		if (a->fetch->done != NULL) {
+			switch (m.decision) {
+			case DECISION_DROP:
+				log_debug("%s: deleting message", a->name);
+				cause = "deleting";
+				dropped++;
+				break;
+			case DECISION_KEEP:
+				log_debug("%s: keeping message", a->name);
+				cause = "keeping";
+				kept++;
+				break;
+			default:
+				fatalx("invalid decision");
+			}
+			if (a->fetch->done(a, m.decision) != FETCH_SUCCESS)
+				goto out;
+			cause = NULL;
 		}
-		if (a->fetch->done != NULL &&
-		    a->fetch->done(a, m.decision) != FETCH_SUCCESS)
-			goto out;
-		cause = NULL;
 
 		if (conf.purge_after > 0 && a->fetch->purge != NULL) {
 			n++;
 			if (n >= conf.purge_after) {
 				log_debug("%s: %u mails, purging", a->name, n);
-
 				if (a->fetch->purge(a) != FETCH_SUCCESS) {
 					cause = "purging";
 					goto out;
 				}
-
 				n = 0;
 			}
 		}
@@ -364,6 +354,7 @@ fetch_got(struct io *io, struct account *a, struct mail *m, const char **cause)
 	if (mctx.stopped)
 		goto done;
 
+	/* reached end of ruleset. find implicit decision */
 	switch (conf.impl_act) {
 	case DECISION_NONE:
 		log_warnx("%s: reached end of ruleset. no "
