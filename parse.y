@@ -920,7 +920,7 @@ set: TOKSET TOKMAXSIZE size
      {
 	     if ($3 > INT_MAX / 1000)
 		     yyerror("timeout too long: %lld", $3);
-	     conf.timeout = $3;
+	     conf.timeout = $3 * 1000;
      }
    | TOKSET domains
 /**  [$2: domains (struct strings *)] */

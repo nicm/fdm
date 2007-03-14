@@ -65,7 +65,7 @@ fetch_stdin_connect(struct account *a)
 		return (1);
 	}
 
-	data->io = io_create(STDIN_FILENO, NULL, IO_LF, conf.timeout * 1000);
+	data->io = io_create(STDIN_FILENO, NULL, IO_LF, conf.timeout);
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 

@@ -540,7 +540,7 @@ main(int argc, char **argv)
 	}
 	if (sizeof tmp > off) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
-		    "timeout=%d, ", conf.timeout);
+		    "timeout=%d, ", conf.timeout / 1000);
 	}
 	if (sizeof tmp > off) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,

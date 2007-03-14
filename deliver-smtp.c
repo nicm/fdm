@@ -73,8 +73,8 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
 	enum deliver_smtp_state		 state;
 	size_t		 		 len, llen;
 
-	io = connectproxy(&data->server, conf.proxy, IO_CRLF,
-	    conf.timeout * 1000, &cause);
+	io = connectproxy(&data->server,
+	    conf.proxy, IO_CRLF, conf.timeout, &cause);
 	if (io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);

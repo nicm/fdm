@@ -125,8 +125,8 @@ fetch_imap_connect(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
 
-	data->io = connectproxy(&data->server, conf.proxy, IO_CRLF,
-	    conf.timeout * 1000, &cause);
+	data->io = connectproxy(&data->server, 
+	    conf.proxy, IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
