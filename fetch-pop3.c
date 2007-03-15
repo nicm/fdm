@@ -183,7 +183,7 @@ fetch_pop3_connect(struct account *a)
  		log_warnx("%s: invalid response: %s", a->name, line);
 		return (FETCH_ERROR);
 	}
-	log_debug("%s: %u messages found", a->name, data->num);
+	log_debug2("%s: %u messages found", a->name, data->num);
 
 	data->cur = 0;
 
