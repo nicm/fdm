@@ -315,7 +315,6 @@ restart:
 		aux = xmalloc(sizeof *aux);
 		aux->idx = data->cur;
 		aux->uid = data->uid;
-		data->uid = NULL;
 		m->auxdata = aux;
 		m->auxfree = imap_free;
 
