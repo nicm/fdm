@@ -62,7 +62,7 @@ struct {
 	struct xmalloc_call	 calls[XMALLOC_SLOTS];
 } xmalloc_ctx;
 
-#define XMALLOC_PRINT log_debug2
+#define XMALLOC_PRINT log_debug3
 
 #define XMALLOC_PEEK 8
 #define XMALLOC_LINES 32
