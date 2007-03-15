@@ -53,6 +53,7 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 		xfree(hdr);
 		return (DELIVER_FAILURE);
 	}
+	log_debug2("%s: adding header: %s", a->name, hdr);
 	
 	if (insert_header(m, NULL, "%s: %s", hdr, value) != 0) {
 		log_warnx("%s: failed to add header %s (%s)", a->name,

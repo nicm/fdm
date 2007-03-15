@@ -176,7 +176,7 @@ parent_child(struct account *a, struct mail *m, const char *name, uid_t uid,
 			child_exit(1);
 		}
 	} else {
-		log_debug("%s: not root. using current user", a->name);
+		log_debug2("%s: not root. using current user", a->name);
 		uid = geteuid();
 	}
 #ifndef NO_SETPROCTITLE

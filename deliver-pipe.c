@@ -71,11 +71,10 @@ do_pipe(struct deliver_ctx *dctx, struct action *t, int pipef)
         }
 
 	if (pipef)
-		log_debug("%s: piping to \"%s\"", a->name, s);
+		log_debug2("%s: piping to \"%s\"", a->name, s);
 	else
-		log_debug("%s: executing \"%s\"", a->name, s);
+		log_debug2("%s: executing \"%s\"", a->name, s);
 
-	log_debug2("%s: %s: starting", a->name, s);
 	if (pipef) {
 		cmd = cmd_start(s, CMD_IN|CMD_ONCE, conf.timeout, m->data,
 		    m->size, &cause);
@@ -86,7 +85,7 @@ do_pipe(struct deliver_ctx *dctx, struct action *t, int pipef)
 		xfree(cause);
 		goto error;
 	}
-	log_debug2("%s: %s: started", a->name, s);
+	log_debug3("%s: %s: started", a->name, s);
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);

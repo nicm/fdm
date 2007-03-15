@@ -69,17 +69,17 @@ attach_log(struct attach *atr, const char *fmt, ...)
 	while (atr != NULL) {
 		if (TAILQ_EMPTY(&atr->children)) {
 			if (atr->name == NULL) {
-				log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
-				    "body %zu", prefix, n + 1, " ", atr->idx,
+				log_debug3("%s:%*s%u, %s: offset %zu, size %zu,"
+				    " body %zu", prefix, n + 1, " ", atr->idx,
 				    atr->type, atr->data, atr->size, atr->body);
 			} else {
-				log_debug("%s:%*s%u, %s: offset %zu, size %zu, "
-				    "body %zu: %s", prefix, n + 1, " ",
+				log_debug3("%s:%*s%u, %s: offset %zu, size %zu,"
+				    " body %zu: %s", prefix, n + 1, " ",
 				    atr->idx, atr->type, atr->data, atr->size,
 				    atr->body, atr->name);
 			}
 		} else {
-			log_debug("%s:%*s%u, %s", prefix, n + 1, " ", atr->idx,
+			log_debug2("%s:%*s%u, %s", prefix, n + 1, " ", atr->idx,
 			    atr->type);
 		}
 

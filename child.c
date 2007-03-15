@@ -113,12 +113,12 @@ do_child(int fd, enum fdmop op, struct account *a)
 #endif
 
 	io = io_create(fd, NULL, IO_LF, INFTIM);
-	log_debug("%s: started, pid %ld", a->name, (long) getpid());
+	log_debug2("%s: started, pid %ld", a->name, (long) getpid());
 
 	if (geteuid() != 0) {
-		log_debug("%s: not root. not dropping privileges", a->name);
+		log_debug2("%s: not root. not dropping privileges", a->name);
 	} else {
-		log_debug("%s: changing to user %lu", a->name,
+		log_debug2("%s: changing to user %lu", a->name,
 		    (u_long) conf.child_uid);
 		if (dropto(conf.child_uid) != 0)
 			fatal("dropto");
@@ -138,12 +138,12 @@ do_child(int fd, enum fdmop op, struct account *a)
 
 	/* start fetch */
 	if (a->fetch->start != NULL && a->fetch->start(a) != FETCH_SUCCESS) {
-		log_debug("%s: start error. aborting", a->name);
+		log_warnx("%s: start error. aborting", a->name);
 		goto out;
 	}
 
 	/* process fetch */
-	log_debug("%s: started processing", a->name);
+	log_debug2("%s: started processing", a->name);
 	switch (op) {
 	case FDMOP_POLL:
 		error = poll_account(io, a);
@@ -154,7 +154,7 @@ do_child(int fd, enum fdmop op, struct account *a)
 	default:
 		fatalx("child: unexpected command");
 	}
-	log_debug("%s: finished processing. exiting", a->name);
+	log_debug2("%s: finished processing. exiting", a->name);
 
 out:
 	/* finish fetch */
@@ -188,7 +188,7 @@ poll_account(unused struct io *io, struct account *a)
 {
 	u_int	n;
 
-	log_debug("%s: polling", a->name);
+	log_debug2("%s: polling", a->name);
 
 	if (a->fetch->poll(a, &n) == FETCH_ERROR) {
 		log_warnx("%s: polling error. aborted", a->name);
@@ -234,7 +234,7 @@ run_done(struct match_queue *dq, int *dropped, int *kept, const char **cause)
 		default:
 			fatalx("invalid decision");
 		}
-		log_debug("%s: %s message", a->name, type);
+		log_debug2("%s: %s message", a->name, type);
 
 		if (a->fetch->done(a, m) != FETCH_SUCCESS) {
 			*cause = type;
@@ -322,7 +322,7 @@ fetch_account(struct io *io, struct account *a, double tim)
 	struct match_queue	 doneq;
 	struct match_ctx	*mctx;
 
-	log_debug("%s: fetching", a->name);
+	log_debug2("%s: fetching", a->name);
 
 	TAILQ_INIT(&activeq);
 	TAILQ_INIT(&doneq);
@@ -470,9 +470,9 @@ fetch_transform(struct account *a, struct mail *m)
 
 	hdr = find_header(m, "message-id", &len, 1);
 	if (hdr == NULL || len == 0 || len > INT_MAX)
-		log_debug("%s: message-id not found", a->name);
+		log_debug2("%s: message-id not found", a->name);
 	else {
-		log_debug("%s: message-id is: %.*s", a->name, (int) len, hdr);
+		log_debug2("%s: message-id is: %.*s", a->name, (int) len, hdr);
 		add_tag(&m->tags, "message_id", "%.*s", (int) len, hdr);
 	}
 
@@ -495,10 +495,8 @@ fetch_transform(struct account *a, struct mail *m)
 			    "account \"%.450s\");\n\t%s",
 			    rnm, __progname, a->name, rtm);
 		}
-		if (error != 0) {
-			log_debug("%s: failed to add received header",
-			    a->name);
-		}
+		if (error != 0)
+			log_debug3("%s: couldn't add received header", a->name);
 	}
 
 	/* fill wrapped line list */
@@ -527,12 +525,12 @@ fetch_rule(struct match_ctx *mctx, const char **cause)
 			m->decision = DECISION_KEEP;
 			break;
 		case DECISION_KEEP:
-			log_debug("%s: reached end of ruleset. keeping mail",
+			log_debug2("%s: reached end of ruleset. keeping mail",
 			    a->name);
 			m->decision = DECISION_KEEP;
 			break;
 		case DECISION_DROP:
-			log_debug("%s: reached end of ruleset. dropping mail",
+			log_debug2("%s: reached end of ruleset. dropping mail",
 			    a->name);
 			m->decision = DECISION_DROP;
 			break;
@@ -584,9 +582,9 @@ fetch_rule(struct match_ctx *mctx, const char **cause)
 		
 	/* report rule number */
 	if (TAILQ_EMPTY(&r->rules))
-		log_debug("%s: matched with rule %u", a->name, r->idx);
+		log_debug2("%s: matched to rule %u", a->name, r->idx);
 	else
-		log_debug("%s: matched with rule %u (nested)", a->name, r->idx);
+		log_debug2("%s: matched to rule %u (nested)", a->name, r->idx);
 	
 	/* tag mail if needed */
 	if (r->key.str != NULL) {
@@ -807,7 +805,7 @@ do_action(struct rule *r, struct match_ctx *mctx, struct action *t)
 		}
 
 		mail_receive(m, &msg);
-		log_debug("%s: received modified mail: size %zu, body %zd",
+		log_debug2("%s: received modified mail: size %zu, body %zd",
 		    a->name, m->size, m->body);
 
 		/* trim from line */

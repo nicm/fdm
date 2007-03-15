@@ -165,36 +165,29 @@ fetch_pop3_connect(struct account *a)
 		data->io->dup_fd = STDOUT_FILENO;
 
 	if (fetch_pop3_check(a) == NULL)
-		goto error;
+		return (FETCH_ERROR);
 
 	/* log the user in */
 	io_writeline(data->io, "USER %s", data->user);
 	if (fetch_pop3_check(a) == NULL)
-		goto error;
+		return (FETCH_ERROR);
 	io_writeline(data->io, "PASS %s", data->pass);
 	if (fetch_pop3_check(a) == NULL)
-		goto error;
+		return (FETCH_ERROR);
 
 	/* find the number of messages */
 	io_writeline(data->io, "STAT");
 	if ((line = fetch_pop3_check(a)) == NULL)
-		goto error;
+		return (FETCH_ERROR);
 	if (sscanf(line, "+OK %u %*u", &data->num) != 1) {
  		log_warnx("%s: invalid response: %s", a->name, line);
-		goto error;
+		return (FETCH_ERROR);
 	}
+	log_debug("%s: %u messages found", a->name, data->num);
+
 	data->cur = 0;
 
 	return (FETCH_SUCCESS);
-
-error:
-	io_writeline(data->io, "QUIT");
-	io_flush(data->io, NULL);
-
-	io_close(data->io);
-	io_free(data->io);
-
-	return (FETCH_ERROR);
 }
 
 int

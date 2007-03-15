@@ -206,7 +206,7 @@ fetch_nntp_group(struct account *a, char **lbuf, size_t *llen)
 		xfree(id);
 		goto invalid;
 	}
-	log_debug("%s: last message found: %u %s", a->name, group->last, id);
+	log_debug2("%s: last message found: %u %s", a->name, group->last, id);
 	xfree(id);
 
 	return (0);
@@ -295,7 +295,7 @@ fetch_nntp_load(struct account *a)
 			group->ignore = 1;
 			group->name = xstrdup(name);
 		}
-		log_debug("%s: found group in cache: %s", a->name, name);
+		log_debug2("%s: found group in cache: %s", a->name, name);
 
 		group->last = last;
 		group->id = id;
@@ -410,7 +410,7 @@ fetch_nntp_start(struct account *a)
 		do {
 			data->group++;
 			if (data->group == TOTAL_GROUPS(data)) {
-				log_debug("%s: no groups found", a->name);
+				log_debug2("%s: no groups found", a->name);
 				goto error;
 			}
 		} while (CURRENT_GROUP(data)->ignore);

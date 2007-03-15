@@ -427,14 +427,14 @@ main(int argc, char **argv)
 
 	/* and the OS version */
 	if (uname(&un) == 0) {
-		log_debug("running on: %s %s %s %s", un.sysname, un.release,
+		log_debug2("running on: %s %s %s %s", un.sysname, un.release,
 		    un.version, un.machine);
 	} else
-		log_debug("uname: %s", strerror(errno));
+		log_debug2("uname: %s", strerror(errno));
 
 	/* save the home dir and misc user info and set the umask */
 	fill_info(getenv("HOME"));
-	log_debug("user is: %s, home is: %s", conf.info.user, conf.info.home);
+	log_debug2("user is: %s, home is: %s", conf.info.user, conf.info.home);
 
 	/* find the config file */
 	if (conf.conf_file == NULL) {
@@ -445,7 +445,7 @@ main(int argc, char **argv)
 			conf.conf_file = xstrdup(SYSCONFFILE);
 		}
 	}
-	log_debug("loading configuration from %s", conf.conf_file);
+	log_debug2("loading configuration from %s", conf.conf_file);
 	if (stat(conf.conf_file, &sb) == -1) {
                 log_warn("%s", conf.conf_file);
 		exit(1);
@@ -456,7 +456,7 @@ main(int argc, char **argv)
                 log_warn("%s", conf.conf_file);
 		exit(1);
 	}
-	log_debug("configuration loaded");
+	log_debug2("configuration loaded");
 
 	/* set the umask */
 	umask(conf.file_umask);
@@ -474,7 +474,7 @@ main(int argc, char **argv)
 			proxy = "SOCKS5";
 			break;
 		}
-		log_debug("using proxy: %s on %s:%s", proxy,
+		log_debug2("using proxy: %s on %s:%s", proxy,
 		    conf.proxy->server.host, conf.proxy->server.port);
 	}
 
@@ -490,7 +490,7 @@ main(int argc, char **argv)
 		if (conf.lock_types & LOCK_DOTLOCK)
 			strlcat(tmp, "dotlock ", sizeof tmp);
 	}
-	log_debug("locking using: %s", tmp);
+	log_debug2("locking using: %s", tmp);
 
 	/* initialise and print headers and domains */
 	if (conf.headers == NULL) {
@@ -500,7 +500,7 @@ main(int argc, char **argv)
 		ARRAY_ADD(conf.headers, xstrdup("cc"), char *);
 	}
 	strs = fmt_strings(NULL, conf.headers);
-	log_debug("headers are: %s", strs);
+	log_debug2("headers are: %s", strs);
 	xfree(strs);
 	if (conf.domains == NULL) {
 		conf.domains = xmalloc(sizeof *conf.headers);
@@ -516,7 +516,7 @@ main(int argc, char **argv)
 		}
 	}
 	strs = fmt_strings(NULL, conf.domains);
-	log_debug("domains are: %s", strs);
+	log_debug2("domains are: %s", strs);
 	xfree(strs);
 
 	/* print the other settings */
@@ -570,7 +570,7 @@ main(int argc, char **argv)
 	}
 	if (off >= 2) {
 		tmp[off - 2] = '\0';
-		log_debug("options are: %s", tmp);
+		log_debug2("options are: %s", tmp);
 	}
 
 	/* save and print tmp dir */
@@ -589,7 +589,7 @@ main(int argc, char **argv)
 			break;
 		*ptr = '\0';
 	}
-	log_debug("using tmp directory: %s", conf.tmp_dir);
+	log_debug2("using tmp directory: %s", conf.tmp_dir);
 
 	/* if -n, bail now, otherwise check there is something to work with */
 	if (conf.check_only)
@@ -701,7 +701,7 @@ main(int argc, char **argv)
 			child_exit(res);
 		}
 
-		log_debug("parent: child %ld (%s) started", (long) pid,
+		log_debug2("parent: child %ld (%s) started", (long) pid, 
 		    a->name);
 
 		child = xcalloc(1, sizeof *child);
@@ -721,7 +721,7 @@ main(int argc, char **argv)
 #ifndef NO_SETPROCTITLE
 	setproctitle("parent");
 #endif
-	log_debug("parent: started, pid is %ld", (long) getpid());
+	log_debug2("parent: started, pid is %ld", (long) getpid());
 	tim = get_time();
 
 	res = 0;
@@ -770,18 +770,18 @@ main(int argc, char **argv)
 				fatal("waitpid");
 			if (WIFSIGNALED(status)) {
 				res = 1;
-				log_debug("parent: child %ld (%s) done, got"
+				log_debug2("parent: child %ld (%s) done, got"
 				    "signal %d", (long) child->pid,
 				    child->account->name, WTERMSIG(status));
 			} else if (!WIFEXITED(status)) {
 				res = 1;
-				log_debug("parent: child %ld (%s) done, didn't"
+				log_debug2("parent: child %ld (%s) done, didn't"
 				    "exit normally", (long) child->pid,
 				    child->account->name);
 			} else {
 				if (WEXITSTATUS(status) != 0)
 					res = 1;
-				log_debug("parent: child %ld (%s) done, "
+				log_debug2("parent: child %ld (%s) done, "
 				    "returned %d", (long) child->pid,
 				    child->account->name, WEXITSTATUS(status));
 			}
@@ -832,7 +832,7 @@ main(int argc, char **argv)
 	}
 
 	tim = get_time() - tim;
- 	log_debug("parent: finished, total time %.3f seconds", tim);
+ 	log_debug2("parent: finished, total time %.3f seconds", tim);
 
 out:
 	if (!conf.allow_many && *conf.lock_file != '\0')

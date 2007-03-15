@@ -68,9 +68,9 @@ do_write(struct deliver_ctx *dctx, struct action *t, int appendf)
         }
 
 	if (appendf)
-		log_debug("%s: appending to %s", a->name, path);
+		log_debug2("%s: appending to %s", a->name, path);
 	else
-		log_debug("%s: writing to %s", a->name, path);
+		log_debug2("%s: writing to %s", a->name, path);
         f = fopen(path, appendf ? "a" : "w");
         if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, path);

@@ -166,7 +166,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
 		path = ARRAY_ITEM(data->paths, i, char *);
 
-		log_debug("%s: trying path: %s", a->name, path);
+		log_debug2("%s: trying path: %s", a->name, path);
 		if ((dirp = opendir(path)) == NULL) {
 			log_warn("%s: %s: opendir", a->name, path);
 			return (FETCH_ERROR);

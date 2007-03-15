@@ -1,5 +1,6 @@
 15 March 2007
 
+* Seriously reduce -v output in favour of -vv and -vvv.
 * Save mail in a queue as it is fetched and perform matching/delivery on it
   while waiting for the server to send the next mail. This can give a 20-50%
   speed increase with some rulesets, particularly with slow POP3 servers.

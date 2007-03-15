@@ -49,6 +49,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 		log_warnx("%s: empty header", a->name);
 		return (DELIVER_FAILURE);
 	}
+	log_debug2("%s: removing header: %s", a->name, hdr);
 
 	/* XXX necessary? */
 	ARRAY_FREE(&m->wrapped);
@@ -57,7 +58,8 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	set_wrapped(m, ' ');
 
 	while ((ptr = find_header(m, hdr, &len, 0)) != NULL) {
-		log_debug("found header to remove: %.*s", (int) len, ptr);
+		log_debug3("%s: found header to remove: %.*s", a->name,
+		    (int) len, ptr);
 		
 		/* include the \n */
 		len++;
