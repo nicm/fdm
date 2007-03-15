@@ -100,7 +100,7 @@ accounts and delivering to one maildir may look similar to:
 	# ("pop3", "pop3s", "imap" or "imaps" in the services(5) db) is used.
 	account "pop3" pop3 server "my.pop3.server"
 		user "my-username" pass "my-password-with-a-\\-in-it"
-	account "pop3s" pop3 server "pop.googlemail.com" port 995
+	account "pop3s" pop3s server "pop.googlemail.com" port 995
 		user "my-account@gmail.com" pass "my-password"
 	# If the 'folder "my-folder"' argument is omitted, fdm will fetch mail
 	# from the inbox.
