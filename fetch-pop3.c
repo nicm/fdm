@@ -316,6 +316,7 @@ restart:
 				break;
 			}
 		}
+		data->state = POP3_RETR;
 		break;
 	case POP3_RETR:
 		io_writeline(data->io, "RETR %u", data->cur);
