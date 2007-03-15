@@ -32,7 +32,13 @@ struct match_ctx {
 
 	int		 matched;
 	int		 stopped;
+
+	struct rule	*rule;
+	ARRAY_DECL(, struct rule *) stack;
+	
+	TAILQ_ENTRY(match_ctx) entry;
 };
+TAILQ_HEAD(match_queue, match_ctx);
 
 /* Match functions. */
 struct match {

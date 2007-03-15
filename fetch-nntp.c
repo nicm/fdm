@@ -377,6 +377,8 @@ fetch_nntp_start(struct account *a)
 	char			*lbuf, *line, *cause;
 	size_t			 llen;
 
+	fatalx("nntp is currently broken");
+
 	ARRAY_INIT(&data->groups);
 	for (i = 0; i < ARRAY_LENGTH(data->names); i++) {
 		group = xmalloc(sizeof *group);

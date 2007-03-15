@@ -28,7 +28,7 @@ int	 	 fetch_imap_finish(struct account *);
 void		 fetch_imap_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imap_putln(struct account *, const char *, ...);
-char	        *fetch_imap_getln(struct account *, int);
+int		 fetch_imap_getln(struct account *, int, char **, int);
 void		 fetch_imap_flush(struct account *);
 
 struct fetch fetch_imap = {
@@ -56,29 +56,37 @@ fetch_imap_putln(struct account *a, const char *fmt, ...)
 	return (0);
 }
 
-char *
-fetch_imap_getln(struct account *a, int type)
+int
+fetch_imap_getln(struct account *a, int type, char **line, int flags)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
 	size_t			*llen = &data->llen;
-	char			*line, *cause;
+	char			*cause;
 	int			 tag;
 
+	if (flags & FETCH_NOWAIT)
+		data->io->flags |= IO_NOWAIT;
+	else
+		data->io->flags &= ~IO_NOWAIT;
+
+
 restart:
-	switch (io_pollline2(data->io, &line, lbuf, llen, &cause)) {
+	switch (io_pollline2(data->io, line, lbuf, llen, &cause)) {
 	case 0:
 		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (NULL);
+		return (-1);
 	case -1:
+		if (errno == EAGAIN)
+			return (1);
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (NULL);
+		return (-1);
 	}
 
 	if (type == IMAP_RAW)
-		return (line);
-	tag = imap_tag(line);
+		return (0);
+	tag = imap_tag(*line);
 	switch (type) {
 	case IMAP_TAGGED:
 		if (tag == IMAP_TAG_NONE)
@@ -100,11 +108,11 @@ restart:
 		break;
 	}
 
-	return (line);
+	return (0);
 
 invalid:
-	log_warnx("%s: unexpected data: %s", a->name, line);
-	return (NULL);
+	log_warnx("%s: unexpected data: %s", a->name, *line);
+	return (-1);
 }
 
 void

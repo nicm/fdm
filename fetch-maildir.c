@@ -126,6 +126,8 @@ fetch_maildir_start(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 
+	fatalx("maildir is currently broken");
+
 	data->dirp = NULL;
 
 	data->path = NULL;

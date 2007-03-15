@@ -373,6 +373,9 @@ struct mail {
 
 	struct rmlist		 rml;		/* regexp matches */
 	enum decision		 decision;	/* final deliver decision */
+
+	void			 (*auxfree)(void *);
+	void			*auxdata;
 };
 
 /* An attachment. */
@@ -595,6 +598,7 @@ struct io {
 #define IO_NEEDFILL 0x4
 #define IO_NEEDPUSH 0x8
 #define IO_FIXED 0x10			/* fixed write buffer */
+#define IO_NOWAIT 0x20			/* don't block on poll */
 
 	char		*rbase;		/* buffer start */
 	size_t		 rspace;	/* total size of buffer */

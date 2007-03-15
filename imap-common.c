@@ -25,6 +25,14 @@
 
 int	imap_okay(struct account *, char *);
 
+void	imap_free(void *);
+
+void
+imap_free(void *ptr)
+{
+	xfree(ptr);
+}
+
 int
 imap_tag(char *line)
 {
@@ -96,7 +104,7 @@ imap_login(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if ((line = data->getln(a, IMAP_UNTAGGED)) == NULL)
+	if (data->getln(a, IMAP_UNTAGGED, &line, 0) != 0)
 		return (1);
 	if (strncmp(line, "* PREAUTH", 9) == 0)
 		return (0);
@@ -110,15 +118,15 @@ imap_login(struct account *a)
 	if (data->putln(a, "%u LOGIN {%zu}", ++data->tag,
 	    strlen(data->user)) != 0)
 		return (1);
-	if ((line = data->getln(a, IMAP_CONTINUE)) == NULL)
+	if (data->getln(a, IMAP_CONTINUE, &line, 0) != 0)
 		return (1);
 	if (data->putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
 		return (1);
-	if ((line = data->getln(a, IMAP_CONTINUE)) == NULL)
+	if (data->getln(a, IMAP_CONTINUE, &line, 0) != 0)
 		return (1);
 	if (data->putln(a, "%s", data->pass) != 0)
 		return (1);
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -135,10 +143,10 @@ imap_select(struct account *a)
 	if (data->putln(a, "%u SELECT %s", ++data->tag, data->folder) != 0)
 		return (1);
 	do {
-		if ((line = data->getln(a, IMAP_UNTAGGED)) == NULL)
+		if (data->getln(a, IMAP_UNTAGGED, &line, 0) != 0)
 			return (1);
 	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -155,7 +163,7 @@ imap_close(struct account *a)
 
 	if (data->putln(a, "%u CLOSE", ++data->tag) != 0)
 		return (1);
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -171,7 +179,7 @@ imap_logout(struct account *a)
 
 	if (data->putln(a, "%u LOGOUT", ++data->tag) != 0)
 		return (1);
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -199,159 +207,206 @@ imap_poll(struct account *a, u_int *n)
 }
 
 int
-imap_fetch(struct account *a, struct mail *m)
+imap_fetch(struct account *a, struct mail *m, int flags)
 {
 	struct fetch_imap_data	*data = a->data;
+	struct fetch_imap_mail	*aux = m->auxdata;
 	char			*line, *ptr;
-	u_int	 		 n, i, lines;
-	size_t	 		 size, off, len;
-	int	 		 flushing, bodylines;
-
-	data->cur++;
-	if (data->cur > data->num)
-		return (FETCH_COMPLETE);
+	u_int	 		 n, i;
+	int			 error, type;
+	size_t			 len;
 
 restart:
-	/* find and save the uid */
-	if (data->putln(a, "%u FETCH %u UID", ++data->tag, data->cur) != 0)
-		return (FETCH_ERROR);
-	if ((line = data->getln(a, IMAP_UNTAGGED)) == NULL)
-		return (FETCH_ERROR);
-	if (sscanf(line, "* %u FETCH (UID %u)", &n, &data->uid) != 2) {
- 		log_warnx("%s: invalid response: %s", a->name, line);
-		return (FETCH_ERROR);
+	type = -1;
+	switch (data->state) {
+	case IMAP_UIDDONE1:
+	case IMAP_FETCHDONE:
+		type = IMAP_UNTAGGED;
+		break;
+	case IMAP_UIDDONE2:
+	case IMAP_LINEDONE2:
+		type = IMAP_TAGGED;
+		break;
+	case IMAP_LINE:
+	case IMAP_LINEDONE1:
+		type = IMAP_RAW;
+		break;
+	default:
+		break;
 	}
-	if (n != data->cur) {
- 		log_warnx("%s: message index incorrect: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
-		return (FETCH_ERROR);
-	if (!imap_okay(a, line))
-		return (FETCH_ERROR);
-
-	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
-		if (ARRAY_ITEM(&data->kept, i, u_int) == data->uid) {
-			/* seen this message before and kept it, so skip it */
-			data->cur++;
-			if (data->cur > data->num)
-				return (FETCH_COMPLETE);
-			goto restart;
+	if (type != -1) {
+		error = data->getln(a, type, &line, flags);
+		switch (error) {
+		case -1:
+			return (FETCH_ERROR);
+		case 1:
+			return (FETCH_AGAIN);
 		}
 	}
 
-	/* fetch the mail */
-	if (data->putln(a, "%u FETCH %u BODY[]", ++data->tag, data->cur) != 0)
-		return (FETCH_ERROR);
-	if ((line = data->getln(a, IMAP_UNTAGGED)) == NULL)
-		return (FETCH_ERROR);
+	switch (data->state) {
+	case IMAP_UID:
+		data->cur++;
+		if (data->cur > data->num)
+			return (FETCH_COMPLETE);
 
-	if (sscanf(line, "* %u FETCH (", &n) != 1) {
- 		log_warnx("%s: invalid response: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-	if ((ptr = strstr(line, "BODY[] {")) == NULL) {
- 		log_warnx("%s: invalid response: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-
-	if (sscanf(ptr, "BODY[] {%zu}", &size) != 1) {
- 		log_warnx("%s: invalid response: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-	if (n != data->cur) {
- 		log_warnx("%s: message index incorrect: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-	if (size == 0)
-		return (FETCH_EMPTY);
-
-	mail_open(m, IO_ROUND(size));
-	default_tags(&m->tags, data->server.host, a);
-	if (data->server.host != NULL) {
-		add_tag(&m->tags, "server", "%s", data->server.host);
-		add_tag(&m->tags, "port", "%s", data->server.port);
-	}
-	add_tag(&m->tags, "server_uid", "%u", data->uid);
-	add_tag(&m->tags, "folder", "%s", data->folder);
-
-	flushing = 0;
-	if (size > conf.max_size)
-		flushing = 1;
-	off = lines = 0;
-	bodylines = -1;
-	for (;;) {
-		if ((line = data->getln(a, IMAP_RAW)) == NULL)
+		/* find and save the uid */
+		if (data->putln(a, 
+		    "%u FETCH %u UID", ++data->tag, data->cur) != 0)
+			return (FETCH_ERROR);
+		data->state = IMAP_UIDDONE1;
+		break;
+	case IMAP_UIDDONE1:
+		if (sscanf(line, "* %u FETCH (UID %u)", &n, &data->uid) != 2) {
+			log_warnx("%s: invalid response: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		if (n != data->cur) {
+			log_warnx("%s: bad message index: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		data->state = IMAP_UIDDONE2;
+		break;
+	case IMAP_UIDDONE2:
+		if (!imap_okay(a, line))
 			return (FETCH_ERROR);
 
+		for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
+			if (ARRAY_ITEM(&data->kept, i, u_int) == data->uid) {
+				/* had this message before and kept, so skip */
+				data->state = IMAP_UID;
+				break;
+			}
+		}
+		data->state = IMAP_FETCH;
+		break;
+	case IMAP_FETCH:
+		if (data->putln(a, 
+		    "%u FETCH %u BODY[]", ++data->tag, data->cur) != 0)
+			return (FETCH_ERROR);
+		data->state = IMAP_FETCHDONE;
+		break;
+	case IMAP_FETCHDONE:
+		if (sscanf(line, "* %u FETCH (", &n) != 1) {
+			log_warnx("%s: invalid response: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		if ((ptr = strstr(line, "BODY[] {")) == NULL) {
+			log_warnx("%s: invalid response: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+
+		if (sscanf(ptr, "BODY[] {%zu}", &data->size) != 1) {
+			log_warnx("%s: invalid response: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		if (n != data->cur) {
+			log_warnx("%s: bad message index: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		if (data->size == 0)
+			return (FETCH_EMPTY);
+
+		mail_open(m, IO_ROUND(data->size));
+		m->size = 0;
+
+		aux = xmalloc(sizeof *aux);
+		aux->idx = data->cur;
+		aux->uid = data->uid;
+		data->uid = NULL;
+		m->auxdata = aux;
+		m->auxfree = imap_free;
+
+		default_tags(&m->tags, data->server.host, a);
+		if (data->server.host != NULL) {
+			add_tag(&m->tags, "server", "%s", data->server.host);
+			add_tag(&m->tags, "port", "%s", data->server.port);
+		}
+		add_tag(&m->tags, "server_uid", "%u", data->uid);
+		add_tag(&m->tags, "folder", "%s", data->folder);
+
+		data->flushing = data->size > conf.max_size;
+		data->lines = 0;
+		data->bodylines = -1;
+		
+		data->state = IMAP_LINE;
+		break;
+	case IMAP_LINE:
 		len = strlen(line);
 		if (len == 0 && m->body == -1) {
-			m->body = off + 1;
-			bodylines = 0;
+			m->body = m->size + 1;
+			data->bodylines = 0;
 		}
 
-		if (!flushing) {
-			resize_mail(m, off + len + 1);
+		if (!data->flushing) {
+			resize_mail(m, m->size + len + 1);
 
 			if (len > 0)
-				memcpy(m->data + off, line, len);
-			m->data[off + len] = '\n';
+				memcpy(m->data + m->size, line, len);
+			m->data[m->size + len] = '\n';
 		}
 
-		lines++;
-		if (bodylines != -1)
-			bodylines++;
-		off += len + 1;
-		if (off + lines >= size)
-			break;
+		data->lines++;
+		if (data->bodylines != -1)
+			data->bodylines++;
+		m->size += len + 1;
+		if (m->size + data->lines >= data->size)
+			data->state = IMAP_LINEDONE1;
+		break;
+	case IMAP_LINEDONE1:
+		if (strcmp(line, ")") != 0) {
+			log_warnx("%s: invalid response: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		data->state = IMAP_LINEDONE2;
+		break;
+	case IMAP_LINEDONE2:
+		if (!imap_okay(a, line))
+			return (FETCH_ERROR);
+		goto complete;
+	}
+	
+	goto restart;
+
+complete:
+	data->state = IMAP_UID;
+
+	if (m->size + data->lines != data->size) {
+		log_warnx("%s: received too much data", a->name);
+		return (FETCH_ERROR);
 	}
 
-	if ((line = data->getln(a, IMAP_RAW)) == NULL)
-		return (FETCH_ERROR);
-	if (strcmp(line, ")") != 0) {
- 		log_warnx("%s: invalid response: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
-		return (FETCH_ERROR);
-	if (!imap_okay(a, line))
-		return (FETCH_ERROR);
-	if (off + lines != size) {
- 		log_warnx("%s: received too much data", a->name);
-		return (FETCH_ERROR);
-	}
-	m->size = off;
-
-	add_tag(&m->tags, "lines", "%u", lines);
-	if (bodylines == -1) {
+	add_tag(&m->tags, "lines", "%u", data->lines);
+	if (data->bodylines == -1) {
 		add_tag(&m->tags, "body_lines", "0");
-		add_tag(&m->tags, "header_lines", "%u", lines - 1);
+		add_tag(&m->tags, "header_lines", "%u",  data->lines - 1);
 	} else {
-		add_tag(&m->tags, "body_lines", "%d", bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", lines - bodylines);
+		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
+		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		    data->bodylines);
 	}
-
-	if (flushing)
+	
+	if (data->flushing)
 		return (FETCH_OVERSIZE);
 	return (FETCH_SUCCESS);
 }
 
 int
-imap_done(struct account *a, enum decision d)
+imap_done(struct account *a, struct mail *m)
 {
 	struct fetch_imap_data	*data = a->data;
+	struct fetch_imap_mail	*aux = m->auxdata;
 	char			*line;
 
-	if (d == DECISION_KEEP) {
-		ARRAY_ADD(&data->kept, data->uid, u_int);
+	if (m->decision == DECISION_KEEP) {
+		ARRAY_ADD(&data->kept, aux->uid, u_int);
 		return (FETCH_SUCCESS);
 	}
 
-	if (data->putln(a, "%u STORE %u +FLAGS \\Deleted", ++data->tag,
-	    data->cur) != 0)
+	if (data->putln(a,
+	    "%u STORE %u +FLAGS \\Deleted", ++data->tag, aux->idx) != 0)
 		return (FETCH_ERROR);
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
 		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);
@@ -367,7 +422,7 @@ imap_purge(struct account *a)
 
 	if (data->putln(a, "%u EXPUNGE", ++data->tag) != 0)
 		return (FETCH_ERROR);
-	if ((line = data->getln(a, IMAP_TAGGED)) == NULL)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
 		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);

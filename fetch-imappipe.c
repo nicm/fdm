@@ -28,7 +28,7 @@ int	 	 fetch_imappipe_finish(struct account *);
 void		 fetch_imappipe_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imappipe_putln(struct account *, const char *, ...);
-char	        *fetch_imappipe_getln(struct account *, int);
+int		 fetch_imappipe_getln(struct account *, int, char **, int);
 void		 fetch_imappipe_flush(struct account *);
 
 struct fetch fetch_imappipe = {
@@ -56,14 +56,19 @@ fetch_imappipe_putln(struct account *a, const char *fmt, ...)
 	return (0);
 }
 
-char *
-fetch_imappipe_getln(struct account *a, int type)
+int
+fetch_imappipe_getln(struct account *a, int type, char **line, int flags)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
 	size_t			*llen = &data->llen;
 	char			*out, *err, *cause;
 	int			 tag;
+
+	if (flags & FETCH_NOWAIT)
+		data->cmd->timeout = 0;
+	else
+		data->cmd->timeout = conf.timeout;
 
 restart:
 	switch (cmd_poll(data->cmd, &out, &err, lbuf, llen, &cause)) {
@@ -72,19 +77,23 @@ restart:
 	case 1:
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (NULL);
+		return (-1);
 	default:
 		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (NULL);
+		return (-1);
 	}
 
 	if (err != NULL)
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
-	if (out == NULL)
+	if (out == NULL) {
+		if (flags & FETCH_NOWAIT)
+			return (1);
 		goto restart;
+	}
+	*line = out;
 
 	if (type == IMAP_RAW)
-		return (out);
+		return (0);
 	tag = imap_tag(out);
 	switch (type) {
 	case IMAP_TAGGED:
@@ -107,11 +116,11 @@ restart:
 		break;
 	}
 
-	return (out);
+	return (0);
 
 invalid:
 	log_warnx("%s: unexpected data: %s", a->name, out);
-	return (NULL);
+	return (-1);
 }
 
 void

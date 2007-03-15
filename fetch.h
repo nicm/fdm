@@ -25,6 +25,10 @@
 #define FETCH_OVERSIZE 2
 #define FETCH_EMPTY 3
 #define FETCH_COMPLETE 4
+#define FETCH_AGAIN 5
+
+/* Fetch flags. */
+#define FETCH_NOWAIT 0x1
 
 /* Fetch functions. */
 struct fetch {
@@ -34,9 +38,9 @@ struct fetch {
 
 	int		 (*start)(struct account *);
 	int 		 (*poll)(struct account *, u_int *);
-	int	 	 (*fetch)(struct account *, struct mail *);
+	int	 	 (*fetch)(struct account *, struct mail *, int);
 	int		 (*purge)(struct account *);
-	int		 (*done)(struct account *, enum decision);
+	int		 (*done)(struct account *, struct mail *);
 	int		 (*finish)(struct account *);
 	void		 (*desc)(struct account *, char *, size_t);
 };
@@ -71,7 +75,7 @@ struct fetch_nntp_data {
 	struct server	 server;
 	struct strings	*names;
 
-	u_int			 group;
+	u_int		 group;
 	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
 	struct io	*io;
@@ -80,6 +84,11 @@ struct fetch_nntp_data {
 /* Fetch stdin data. */
 struct fetch_stdin_data {
 	int		 complete;
+	int		 bodylines;
+	u_int		 lines;
+
+	size_t		 llen;
+	char		*lbuf;
 
 	struct io	*io;
 };
@@ -97,7 +106,29 @@ struct fetch_pop3_data {
 	char		*uid;
 	struct strings	 kept;
 
+	enum {
+		POP3_LIST,
+		POP3_LISTDONE,
+		POP3_UIDL,
+		POP3_UIDLDONE,
+		POP3_RETR,
+		POP3_RETRDONE,
+		POP3_LINE
+	} state;
+	int		 flushing;
+	int		 bodylines;
+	u_int		 lines;
+	size_t		 size;
+
+	size_t		 llen;
+	char		*lbuf;
+
 	struct io	*io;
+};
+
+struct fetch_pop3_mail {
+	char		*uid;
+	u_int		 idx;
 };
 
 /* IMAP tag types. */
@@ -130,14 +161,34 @@ struct fetch_imap_data {
 	u_int	 	 uid;
 	ARRAY_DECL(, u_int) kept;
 
+	enum {
+		IMAP_UID,
+		IMAP_UIDDONE1,
+		IMAP_UIDDONE2,
+		IMAP_FETCH,
+		IMAP_FETCHDONE,
+		IMAP_LINE,
+		IMAP_LINEDONE1,
+		IMAP_LINEDONE2,
+	} state;
+	int		 flushing;
+	int		 bodylines;
+	u_int		 lines;
+	size_t		 size;
+
 	char		*src;
 
 	size_t		 llen;
 	char		*lbuf;
 
-	char		*(*getln)(struct account *a, int);
+	int		 (*getln)(struct account *a, int, char **, int);
 	int		 (*putln)(struct account *a, const char *, ...);
 	void		 (*flush)(struct account *a);
+};
+
+struct fetch_imap_mail {
+	u_int		 uid;
+	u_int		 idx;
 };
 
 /* fetch-maildir.c */
@@ -169,8 +220,8 @@ int			 imap_logout(struct account *);
 void			 imap_abort(struct account *);
 int			 imap_uid(struct account *);
 int			 imap_poll(struct account *, u_int *);
-int			 imap_fetch(struct account *, struct mail *);
+int			 imap_fetch(struct account *, struct mail *, int);
 int			 imap_purge(struct account *);
-int			 imap_done(struct account *, enum decision);
+int			 imap_done(struct account *, struct mail *);
 
 #endif

@@ -207,6 +207,8 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		ios[2] = cmd->io_err;
 		switch (io_polln(ios, 3, &io, cmd->timeout, cause)) {
 		case -1:
+			if (errno == EAGAIN)
+				return (0);
 			return (1);
 		case 0:
 			/* if the closed io is empty, free it */

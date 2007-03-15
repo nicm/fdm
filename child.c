@@ -35,7 +35,15 @@
 
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *, double);
-int	fetch_got(struct io *, struct account *, struct mail *, const char **);
+int	fetch_transform(struct account *, struct mail *);
+
+int	run_done(struct match_queue *, int *, int *, const char **);
+void	flush_done(struct match_queue *);
+int	run_active(struct match_queue *, struct match_queue *, const char **);
+void	flush_active(struct match_queue *);
+
+int	fetch_rule(struct match_ctx *, const char **);
+
 int	do_expr(struct rule *, struct match_ctx *);
 int	do_deliver(struct rule *, struct match_ctx *);
 int	do_action(struct rule *, struct match_ctx *, struct action *);
@@ -193,47 +201,166 @@ poll_account(unused struct io *io, struct account *a)
 }
 
 int
+run_done(struct match_queue *dq, int *dropped, int *kept, const char **cause)
+{
+	struct match_ctx	*mctx;
+	struct account		*a;
+	struct mail		*m;
+	int			 error = 0;
+	const char		*type;
+
+	if (TAILQ_EMPTY(dq))
+		return (0);
+
+	mctx = TAILQ_FIRST(dq);
+	a = mctx->account;
+	m = mctx->mail;
+	log_debug3("%s: running done queue", a->name);
+
+	TAILQ_REMOVE(dq, mctx, entry);
+	ARRAY_FREE(&mctx->stack);
+	xfree(mctx);
+
+	if (mctx->account->fetch->done != NULL) {
+		switch (mctx->mail->decision) {
+		case DECISION_DROP:
+			type = "deleting";
+			(*dropped)++;
+			break;
+		case DECISION_KEEP:
+			type = "keeping";
+			(*kept)++;
+			break;
+		default:
+			fatalx("invalid decision");
+		}
+		log_debug("%s: %s message", a->name, type);
+
+		if (a->fetch->done(a, m) != FETCH_SUCCESS) {
+			*cause = type;
+			error = 1;
+		}
+	}
+
+	mail_destroy(m);
+	xfree(m);
+
+	return (error);
+}
+
+void
+flush_done(struct match_queue *dq)
+{
+	struct match_ctx	*mctx;
+	struct mail		*m;
+
+	while (!TAILQ_EMPTY(dq)) {
+		mctx = TAILQ_FIRST(dq);
+		m = mctx->mail;
+
+		TAILQ_REMOVE(dq, mctx, entry);
+		ARRAY_FREE(&mctx->stack);
+		xfree(mctx);
+
+		mail_destroy(m);
+		xfree(m);
+	}
+}
+
+int
+run_active(struct match_queue *aq, struct match_queue *dq, const char **cause)
+{
+	struct match_ctx	*mctx;
+	struct account		*a;
+
+	if (TAILQ_EMPTY(aq))
+		return (0);
+
+	mctx = TAILQ_FIRST(aq);
+	a = mctx->account;
+	log_debug3("%s: running active queue", a->name);
+
+	switch (fetch_rule(mctx, cause)) {
+	case FETCH_ERROR:
+		return (1);
+	case FETCH_COMPLETE:
+		TAILQ_REMOVE(aq, mctx, entry);
+		TAILQ_INSERT_TAIL(dq, mctx, entry);
+		break;
+	}
+
+	return (0);
+}
+
+void
+flush_active(struct match_queue *aq)
+{
+	struct match_ctx	*mctx;
+	struct mail		*m;
+	
+	while (!TAILQ_EMPTY(aq)) {
+		mctx = TAILQ_FIRST(aq);
+		m = mctx->mail;
+
+		TAILQ_REMOVE(aq, mctx, entry);
+		ARRAY_FREE(&mctx->stack);
+		xfree(mctx);
+
+		mail_destroy(m);
+		xfree(m);
+	}
+}
+
+int
 fetch_account(struct io *io, struct account *a, double tim)
 {
-	struct mail	 m;
-	u_int	 	 n, dropped, kept;
-	int		 error;
- 	const char	*cause = NULL;
+	struct mail	 	*m;
+	u_int	 	 	 n, dropped, kept;
+	int		 	 error;
+ 	const char		*cause = NULL;
+	struct match_queue	 activeq;
+	struct match_queue	 doneq;
+	struct match_ctx	*mctx;
 
 	log_debug("%s: fetching", a->name);
 
+	TAILQ_INIT(&activeq);
+	TAILQ_INIT(&doneq);
+
 	n = dropped = kept = 0;
         for (;;) {
-		memset(&m, 0, sizeof m);
-		m.body = -1;
-		m.decision = DECISION_DROP;
+		m = xcalloc(1, sizeof *m);
+		m->body = -1;
+		m->decision = DECISION_DROP;
 
 		/* fetch a message */
-		error = a->fetch->fetch(a, &m);
-		switch (error) {
-		case FETCH_ERROR:
-			cause = "fetching";
-			goto out;
-		case FETCH_OVERSIZE:
-		case FETCH_EMPTY:
-			goto done;
-		case FETCH_COMPLETE:
-			goto out;
+		error = FETCH_AGAIN;
+		while (error == FETCH_AGAIN) {
+			if (TAILQ_EMPTY(&activeq)) {
+				log_debug3("%s: queue empty", a->name);
+				error = a->fetch->fetch(a, m, 0);
+			} else {
+				log_debug("%s: queue non-empty", a->name);
+				error = a->fetch->fetch(a, m, FETCH_NOWAIT);
+			}
+			switch (error) {
+			case FETCH_ERROR:
+				cause = "fetching";
+				goto out;
+			case FETCH_COMPLETE:
+				goto out;
+			}
+			
+			if (run_active(&activeq, &doneq, &cause) != 0)
+				goto out;
 		}
 
-		trim_from(&m);
-		if (m.size == 0) {
-			error = FETCH_EMPTY;
-			goto done;
+		if (error != FETCH_OVERSIZE && error != FETCH_EMPTY) {
+			trim_from(m);
+			if (m->size == 0)
+				error = FETCH_EMPTY;
 		}
 
-		/* handle match/delivery */
-		if (fetch_got(io, a, &m, &cause) != FETCH_SUCCESS)
-			goto out;
-		error = FETCH_SUCCESS;
-
-	done:
-		/* handle any errors that skipped to this point */ 
 		switch (error) {
 		case FETCH_EMPTY:
 			log_warnx("%s: empty message", a->name);
@@ -241,38 +368,54 @@ fetch_account(struct io *io, struct account *a, double tim)
 			goto out;
 		case FETCH_OVERSIZE:
 			log_warnx("%s: message too big: %zu bytes (limit %zu)",
-			    a->name, m.size, conf.max_size);
+			    a->name, m->size, conf.max_size);
 			if (conf.del_big)
 				break;
 			cause = "fetching";
 			goto out;
 		}
-		
-		/* finished with the message */
-		if (a->fetch->done != NULL) {
-			switch (m.decision) {
-			case DECISION_DROP:
-				log_debug("%s: deleting message", a->name);
-				cause = "deleting";
-				dropped++;
-				break;
-			case DECISION_KEEP:
-				log_debug("%s: keeping message", a->name);
-				cause = "keeping";
-				kept++;
-				break;
-			default:
-				fatalx("invalid decision");
-			}
-			if (a->fetch->done(a, m.decision) != FETCH_SUCCESS)
-				goto out;
-			cause = NULL;
-		}
+
+		log_debug("%s: got message: size %zu, body %zd", a->name,
+		    m->size, m->body);
+		fetch_transform(a, m);
+
+		/* construct mctx */
+		mctx = xcalloc(1, sizeof *mctx);
+		mctx->io = io;
+		mctx->account = a;
+		mctx->mail = m;
+		ARRAY_INIT(&mctx->stack);
+		mctx->rule = TAILQ_FIRST(&conf.rules);
+		mctx->matched = mctx->stopped = 0;
+		m = NULL; /* clear m to avoid double-free if out later */
+
+		/* and queue it */
+		TAILQ_INSERT_TAIL(&activeq, mctx, entry);
+
+		/* finish up a done mail */
+		if (run_done(&doneq, &dropped, &kept, &cause) != 0)
+			goto out;
 
 		if (conf.purge_after > 0 && a->fetch->purge != NULL) {
 			n++;
 			if (n >= conf.purge_after) {
 				log_debug("%s: %u mails, purging", a->name, n);
+
+				/*
+				 * Must empty queues before purge to make sure
+				 * eg POP3 indexing doesn't get ballsed up.
+				 */
+				while (!TAILQ_EMPTY(&activeq)) {
+					if (run_active(&activeq, &doneq,
+					    &cause) != 0)
+						break;
+				}
+				while (!TAILQ_EMPTY(&doneq)) {
+					if (run_done(&doneq, &dropped, &kept,
+					    &cause) != 0)
+						break;
+				}
+				
 				if (a->fetch->purge(a) != FETCH_SUCCESS) {
 					cause = "purging";
 					goto out;
@@ -280,15 +423,30 @@ fetch_account(struct io *io, struct account *a, double tim)
 				n = 0;
 			}
 		}
-
- 		mail_destroy(&m);
 	}
 
 out:
-	mail_destroy(&m);
+	if (m != NULL) {
+		mail_destroy(m);
+		xfree(m);
+	}
+	if (cause == NULL) {
+		while (!TAILQ_EMPTY(&activeq)) {
+			if (run_active(&activeq, &doneq, &cause) != 0)
+				break;
+		}
+		while (!TAILQ_EMPTY(&doneq)) {
+			if (run_done(&doneq, &dropped, &kept, &cause) != 0)
+				break;
+		}
+	}
+	if (cause != NULL) {
+		flush_active(&activeq);
+		flush_done(&doneq);
+	}
 	if (cause != NULL)
 		log_warnx("%s: %s error. aborted", a->name, cause);
-
+	
 	tim = get_time() - tim;
 	n = dropped + kept;
 	if (n > 0) {
@@ -303,21 +461,12 @@ out:
 }
 
 int
-fetch_got(struct io *io, struct account *a, struct mail *m, const char **cause)
+fetch_transform(struct account *a, struct mail *m)
 {
-	struct match_ctx mctx;
-	char		*hdr, rtm[64], *rnm;
-	size_t		 len;
-	int		 error;
-	u_int		 lines;
-	
-	memset(&mctx, 0, sizeof mctx);
-	mctx.io = io;
-	mctx.account = a;
-	mctx.mail = m;
-
-	log_debug("%s: got message: size %zu, body %zd", a->name,
-	    m->size, m->body);
+	char	*hdr, rtm[64], *rnm;
+	u_int	 lines;
+	size_t	 len;
+	int	 error;
 
 	hdr = find_header(m, "message-id", &len, 1);
 	if (hdr == NULL || len == 0 || len > INT_MAX)
@@ -356,142 +505,133 @@ fetch_got(struct io *io, struct account *a, struct mail *m, const char **cause)
 	lines = fill_wrapped(m);
 	log_debug2("%s: found %u wrapped lines", a->name, lines);
 
-	/* handle rule evaluation and actions */
-	mctx.matched = mctx.stopped = 0;
-	if (do_rules(&mctx, &conf.rules, cause) != 0)
-		return (FETCH_ERROR);
-	if (mctx.stopped)
-		goto done;
-
-	/* reached end of ruleset. find implicit decision */
-	switch (conf.impl_act) {
-	case DECISION_NONE:
-		log_warnx("%s: reached end of ruleset. no "
-		    "unmatched-mail option; keeping mail",  a->name);
-		m->decision = DECISION_KEEP;
-		break;
-	case DECISION_KEEP:
-		log_debug("%s: reached end of ruleset. keeping mail",
-		    a->name);
-		m->decision = DECISION_KEEP;
-		break;
-	case DECISION_DROP:
-		log_debug("%s: reached end of ruleset. dropping mail",
-		    a->name);
-		m->decision = DECISION_DROP;
-		break;
-	}
-
-done:
-	if (conf.keep_all || a->keep)
-		m->decision = DECISION_KEEP;
 	return (FETCH_SUCCESS);
 }
 
 int
-do_rules(struct match_ctx *mctx, struct rules *rules, const char **cause)
+fetch_rule(struct match_ctx *mctx, const char **cause)
 {
-	struct rule		*r;
+	struct account		*a = mctx->account;
 	struct strings		*aa;
+	struct mail		*m = mctx->mail;
+	struct rule		*r = mctx->rule;
 	u_int		 	 i;
 	int		 	 error;
-	char			*name, *tkey, *tvalue;
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
+	char			*tkey, *tvalue;
 
-	TAILQ_FOREACH(r, rules, entry) {
-		/* check if the rule is for the current account */
-		aa = r->accounts;
-		if (!ARRAY_EMPTY(aa)) {
-			for (i = 0; i < ARRAY_LENGTH(aa); i++) {
-				name = ARRAY_ITEM(aa, i, char *);
-				if (name_match(name, a->name))
-					break;
-			}
-			if (i == ARRAY_LENGTH(aa))
-				continue;
-		}
-
-		/* match all the regexps */
-		switch (r->type) {
-		case RULE_EXPRESSION:
-			/* combine wrapped lines */
-			set_wrapped(m, ' ');
-
-			/* perform the expression */
-			if ((error = do_expr(r, mctx)) == -1) {
-				*cause = "matching";
-				return (1);
-			}
-
-			/* continue if no match */
-			if (!error)
-				continue;
+	if (r == NULL) {
+		switch (conf.impl_act) {
+		case DECISION_NONE:
+			log_warnx("%s: reached end of ruleset. no "
+			    "unmatched-mail option; keeping mail",  a->name);
+			m->decision = DECISION_KEEP;
 			break;
-		case RULE_ALL:
+		case DECISION_KEEP:
+			log_debug("%s: reached end of ruleset. keeping mail",
+			    a->name);
+			m->decision = DECISION_KEEP;
+			break;
+		case DECISION_DROP:
+			log_debug("%s: reached end of ruleset. dropping mail",
+			    a->name);
+			m->decision = DECISION_DROP;
 			break;
 		}
-
-		/* reset wrapped lines */
-		set_wrapped(m, '\n');
-
-		/* report rule number */
-		if (TAILQ_EMPTY(&r->rules)) {
-			log_debug("%s: matched message with rule %u", a->name,
-			    r->idx);
-		} else {
-			log_debug("%s: matched message with rule %u (nested)",
-			    a->name, r->idx);
-		}
-
-		/* tag mail if needed */
-		if (r->key.str != NULL) {
-			tkey = replacestr(&r->key, m->tags, m, &m->rml);
-			tvalue = replacestr(&r->value, m->tags, m, &m->rml);
-
-			if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
-				log_debug2("%s: tagging message: %s (%s)", 
-				    a->name, tkey, tvalue);
-				add_tag(&m->tags, tkey, "%s", tvalue);
-			}
-
-			if (tkey != NULL)
-				xfree(tkey);
-			if (tvalue != NULL)
-				xfree(tvalue);
-		}
-
-		/* handle delivery */
-		if (r->actions != NULL) {
-			log_debug2("%s: delivering message", a->name);
-			mctx->matched = 1;
-			if (do_deliver(r, mctx) != 0) {
-				*cause = "delivery";
-				return (1);
-			}
-		}
-
-		/* deal with nested rules */
-		if (!TAILQ_EMPTY(&r->rules)) {
-			log_debug2("%s: entering nested rules", a->name);
-			if (do_rules(mctx, &r->rules, cause) != 0)
-				return (1);
-			log_debug2("%s: exiting nested rules%s", a->name,
-			    mctx->stopped ? ", and stopping" : "");
-			/* if it didn't drop off the end of the nested rules,
-			   stop now */
-			if (mctx->stopped)
-				return (0);
-		}
-
-		/* if this rule is marked as stop, stop checking now */
-		if (r->stop) {
-			mctx->stopped = 1;
-			return (0);
-		}
+		goto done;
 	}
 
-	return (0);
+	mctx->rule = TAILQ_NEXT(mctx->rule, entry);
+	while (mctx->rule == NULL) {
+		if (ARRAY_EMPTY(&mctx->stack))
+			break;
+		mctx->rule = ARRAY_LAST(&mctx->stack, struct rule *);
+		mctx->rule = TAILQ_NEXT(mctx->rule, entry);
+		ARRAY_TRUNC(&mctx->stack, 1, struct rule *);
+	}
+
+	aa = r->accounts;
+	if (!ARRAY_EMPTY(aa)) {
+		for (i = 0; i < ARRAY_LENGTH(aa); i++) {
+			if (name_match(ARRAY_ITEM(aa, i, char *), a->name))
+				break;
+		}
+		if (i == ARRAY_LENGTH(aa))
+			return (FETCH_SUCCESS);
+	}
+
+	/* match all the regexps */
+	switch (r->type) {
+	case RULE_EXPRESSION:
+		/* combine wrapped lines */
+		set_wrapped(m, ' ');
+		
+		/* perform the expression */
+		if ((error = do_expr(r, mctx)) == -1) {
+			*cause = "matching";
+			return (FETCH_ERROR);
+		}
+		
+		/* continue if no match */
+		if (!error)
+			return (FETCH_SUCCESS);
+		break;
+	case RULE_ALL:
+		break;
+	}
+
+	/* reset wrapped lines */
+	set_wrapped(m, '\n');
+		
+	/* report rule number */
+	if (TAILQ_EMPTY(&r->rules))
+		log_debug("%s: matched with rule %u", a->name, r->idx);
+	else
+		log_debug("%s: matched with rule %u (nested)", a->name, r->idx);
+	
+	/* tag mail if needed */
+	if (r->key.str != NULL) {
+		tkey = replacestr(&r->key, m->tags, m, &m->rml);
+		tvalue = replacestr(&r->value, m->tags, m, &m->rml);
+		
+		if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
+			log_debug2("%s: tagging message: %s (%s)", 
+			    a->name, tkey, tvalue);
+			add_tag(&m->tags, tkey, "%s", tvalue);
+		}
+		
+		if (tkey != NULL)
+			xfree(tkey);
+		if (tvalue != NULL)
+			xfree(tvalue);
+	}
+
+	/* handle delivery */
+	if (r->actions != NULL) {
+		log_debug2("%s: delivering message", a->name);
+		mctx->matched = 1;
+		if (do_deliver(r, mctx) != 0) {
+			*cause = "delivery";
+			return (FETCH_ERROR);
+		}
+	}
+	
+	/* deal with nested rules */
+	if (!TAILQ_EMPTY(&r->rules)) {
+		log_debug2("%s: entering nested rules", a->name);
+		ARRAY_ADD(&mctx->stack, r, struct rule *);
+		mctx->rule = TAILQ_FIRST(&r->rules);
+		return (FETCH_SUCCESS);
+	}
+
+	/* if this rule is marked as stop, stop checking now */
+	if (r->stop)
+		goto done;
+	return (FETCH_SUCCESS);
+	
+done:
+	if (conf.keep_all || a->keep)
+		m->decision = DECISION_KEEP;
+	return (FETCH_COMPLETE);
 }
 
 int

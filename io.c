@@ -164,6 +164,10 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 	/* do the poll */
 	error = poll(pfds, j, timeout);
 	if (error == 0 || error == -1) {
+		if (error == 0 && timeout == 0) {
+			errno = EAGAIN;
+			return (-1);
+		}
 		if (error == 0)
 			errno = ETIMEDOUT;
 		*rio = NULL;
@@ -250,8 +254,12 @@ int
 io_poll(struct io *io, char **cause)
 {
 	struct io	*rio;
+	int		 timeout;
 
-	return (io_polln(&io, 1, &rio, io->timeout, cause));
+	timeout = io->timeout;
+	if (io->flags & IO_NOWAIT)
+		timeout = 0;
+	return (io_polln(&io, 1, &rio, timeout, cause));
 }
 
 /* Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,

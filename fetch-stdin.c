@@ -30,8 +30,8 @@
 
 int	 fetch_stdin_start(struct account *);
 int	 fetch_stdin_finish(struct account *);
-int	 fetch_stdin_fetch(struct account *, struct mail *);
-int	 fetch_stdin_done(struct account *, enum decision);
+int	 fetch_stdin_fetch(struct account *, struct mail *, int);
+int	 fetch_stdin_done(struct account *, struct mail *);
 void	 fetch_stdin_desc(struct account *, char *, size_t);
 
 struct fetch fetch_stdin = {
@@ -49,6 +49,9 @@ int
 fetch_stdin_start(struct account *a)
 {
 	struct fetch_stdin_data	*data = a->data;
+
+	data->llen = IO_LINESIZE;
+	data->lbuf = xmalloc(data->llen);
 
 	if (isatty(STDIN_FILENO)) {
 		log_warnx("%s: stdin is a tty. ignoring", a->name);
@@ -68,6 +71,9 @@ fetch_stdin_start(struct account *a)
 
 	data->complete = 0;
 
+	data->lines = 0;
+	data->bodylines = -1;
+
 	return (FETCH_SUCCESS);
 }
 
@@ -81,37 +87,34 @@ fetch_stdin_finish(struct account *a)
 
 	close(STDIN_FILENO);
 
+	xfree(data->lbuf);
+
 	return (FETCH_SUCCESS);
 }
 
 int
-fetch_stdin_done(struct account *a, enum decision d)
+fetch_stdin_done(struct account *a, struct mail *m)
 {
 	struct fetch_stdin_data	*data = a->data;
-	char		        *line, *lbuf;
-	size_t			 llen;
+	char		        *line;
 
-	if (d == DECISION_KEEP)
+	if (m->decision == DECISION_KEEP)
 		return (FETCH_SUCCESS);
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-
-	while (io_pollline2(data->io, &line, &lbuf, &llen, NULL) == 1)
+	while (io_pollline2(data->io,
+	    &line, &data->lbuf, &data->llen, NULL) == 1)
 		;
 
-	xfree(lbuf);
 	return (FETCH_SUCCESS);
 }
 
 int
-fetch_stdin_fetch(struct account *a, struct mail *m)
+fetch_stdin_fetch(struct account *a, struct mail *m, int flags)
 {
 	struct fetch_stdin_data	*data = a->data;
-	u_int			 lines;
-	int		 	 error, bodylines;
-	char			*line, *cause, *lbuf;
-	size_t			 len, llen;
+	int		 	 error;
+	char			*line, *cause;
+	size_t			 len;
 
 	if (data->complete)
 		return (FETCH_COMPLETE);
@@ -121,36 +124,37 @@ fetch_stdin_fetch(struct account *a, struct mail *m)
 		m->size = 0;
 	}
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
+	if (flags & FETCH_NOWAIT)
+		data->io->flags |= IO_NOWAIT;
+	else
+		data->io->flags &= ~IO_NOWAIT;
 
-	lines = 0;
-	bodylines = -1;
-	for (;;) {
-		error = io_pollline2(data->io, &line, &lbuf, &llen, &cause);
-		if (error != 1) {
-			/* normal close (error == 0) is fine */
-			if (error == 0)
-				break;
-			log_warnx("%s: %s", a->name, cause);
-			xfree(cause);
-			xfree(lbuf);
-			return (FETCH_ERROR);
-		}
+restart:
+	error = io_pollline2(data->io, &line, &data->lbuf, &data->llen, &cause);
+	switch (error) {
+	case 0:
+		/* normal close (error == 0) is fine */
+		goto complete;
+	case -1:
+		if (errno == EAGAIN)
+			return (FETCH_AGAIN);
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (FETCH_ERROR);
+	}
 
-		len = strlen(line);
-		if (len == 0 && m->body == -1) {
-			m->body = m->size + 1;
-			bodylines = 0;
-		}
-		lines++;
-		if (bodylines != -1)
-			bodylines++;
+	len = strlen(line);
+	if (len == 0 && m->body == -1) {
+		m->body = m->size + 1;
+		data->bodylines = 0;
+	}
+	data->lines++;
+	if (data->bodylines != -1)
+		data->bodylines++;
 
+	if (len > 0) {
 		resize_mail(m, m->size + len + 1);
-
-		if (len > 0)
-			memcpy(m->data + m->size, line, len);
+		memcpy(m->data + m->size, line, len);
 
 		/* append an LF */
 		m->data[m->size + len] = '\n';
@@ -158,27 +162,28 @@ fetch_stdin_fetch(struct account *a, struct mail *m)
 
 		if (m->size > conf.max_size) {
 			data->complete = 1;
-			xfree(lbuf);
 			return (FETCH_OVERSIZE);
 		}
 	}
-	if (m->size == 0) {
-		data->complete = 1;
-		xfree(lbuf);
-		return (FETCH_EMPTY);
-	}
 
-	add_tag(&m->tags, "lines", "%u", lines);
-	if (bodylines == -1) {
-		add_tag(&m->tags, "body_lines", "0");
-		add_tag(&m->tags, "header_lines", "%u", lines - 1);
-	} else {
-		add_tag(&m->tags, "body_lines", "%d", bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", lines - bodylines);
-	}
+	goto restart;
 
+complete:
  	data->complete = 1;
-	xfree(lbuf);
+
+	if (m->size == 0)
+		return (FETCH_EMPTY);
+
+	add_tag(&m->tags, "lines", "%u", data->lines);
+	if (data->bodylines == -1) {
+		add_tag(&m->tags, "body_lines", "0");
+		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
+	} else {
+		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
+		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		    data->bodylines);
+	}
+
 	return (FETCH_SUCCESS);
 }
 
