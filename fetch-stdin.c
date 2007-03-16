@@ -28,9 +28,9 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_stdin_start(struct account *);
+int	 fetch_stdin_start(struct account *, struct ios *);
 int	 fetch_stdin_finish(struct account *);
-int	 fetch_stdin_fetch(struct account *, struct mail *, int);
+int	 fetch_stdin_fetch(struct account *, struct mail *);
 int	 fetch_stdin_done(struct account *, struct mail *);
 void	 fetch_stdin_desc(struct account *, char *, size_t);
 
@@ -46,7 +46,7 @@ struct fetch fetch_stdin = {
 };
 
 int
-fetch_stdin_start(struct account *a)
+fetch_stdin_start(struct account *a, struct ios *ios)
 {
 	struct fetch_stdin_data	*data = a->data;
 
@@ -68,6 +68,7 @@ fetch_stdin_start(struct account *a)
 	data->io = io_create(STDIN_FILENO, NULL, IO_LF, conf.timeout);
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
+	ARRAY_ADD(ios, data->io, struct io *);
 
 	data->complete = 0;
 
@@ -109,7 +110,7 @@ fetch_stdin_done(struct account *a, struct mail *m)
 }
 
 int
-fetch_stdin_fetch(struct account *a, struct mail *m, int flags)
+fetch_stdin_fetch(struct account *a, struct mail *m)
 {
 	struct fetch_stdin_data	*data = a->data;
 	int		 	 error;
@@ -124,12 +125,12 @@ fetch_stdin_fetch(struct account *a, struct mail *m, int flags)
 		m->size = 0;
 	}
 
-	if (flags & FETCH_NOWAIT)
-		data->io->flags |= IO_NOWAIT;
-	else
-		data->io->flags &= ~IO_NOWAIT;
-
 restart:
+	/*
+	 * There can only ever be one mail on stdin, so the normal reentrancy
+	 * becomes irrelevent. Which is good since we need to detect when the 
+	 * fd is closed.
+	 */
 	error = io_pollline2(data->io, &line, &data->lbuf, &data->llen, &cause);
 	switch (error) {
 	case 0:
@@ -142,7 +143,7 @@ restart:
 		xfree(cause);
 		return (FETCH_ERROR);
 	}
-
+	
 	len = strlen(line);
 	if (len == 0 && m->body == -1) {
 		m->body = m->size + 1;

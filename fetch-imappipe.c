@@ -28,7 +28,7 @@ int	 	 fetch_imappipe_finish(struct account *);
 void		 fetch_imappipe_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imappipe_putln(struct account *, const char *, ...);
-int		 fetch_imappipe_getln(struct account *, int, char **, int);
+int		 fetch_imappipe_getln(struct account *, int, char **);
 void		 fetch_imappipe_flush(struct account *);
 
 struct fetch fetch_imappipe = {
@@ -57,18 +57,13 @@ fetch_imappipe_putln(struct account *a, const char *fmt, ...)
 }
 
 int
-fetch_imappipe_getln(struct account *a, int type, char **line, int flags)
+fetch_imappipe_getln(struct account *a, int type, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
 	size_t			*llen = &data->llen;
 	char			*out, *err, *cause;
 	int			 tag;
-
-	if (flags & FETCH_NOWAIT)
-		data->cmd->timeout = 0;
-	else
-		data->cmd->timeout = conf.timeout;
 
 restart:
 	switch (cmd_poll(data->cmd, &out, &err, lbuf, llen, &cause)) {
@@ -85,11 +80,8 @@ restart:
 
 	if (err != NULL)
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
-	if (out == NULL) {
-		if (flags & FETCH_NOWAIT)
-			return (1);
+	if (out == NULL)
 		goto restart;
-	}
 	*line = out;
 
 	if (type == IMAP_RAW)

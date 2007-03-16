@@ -699,11 +699,19 @@ io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
 int
 io_flush(struct io *io, char **cause)
 {
+	int	flags;
+
+	flags = io->flags;
+	io->flags &= ~IO_NOWAIT;
+
 	while (io->wsize > 0) {
-		if (io_poll(io, cause) != 1)
+		if (io_poll(io, cause) != 1) {
+			io->flags = flags;
 			return (-1);
+		}
 	}
 
+	io->flags = flags;
 	return (0);
 }
 
@@ -711,10 +719,18 @@ io_flush(struct io *io, char **cause)
 int
 io_wait(struct io *io, size_t len, char **cause)
 {
-	while (io->rsize < len) {
-		if (io_poll(io, cause) != 1)
-			return (-1);
-	}
+	int	flags;
 
+	flags = io->flags;
+	io->flags &= ~IO_NOWAIT;
+
+	while (io->rsize < len) {
+		if (io_poll(io, cause) != 1) {
+			io->flags = flags;
+			return (-1);
+		}
+	}
+	
+	io->flags = flags;
 	return (0);
 }

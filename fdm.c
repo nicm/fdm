@@ -264,7 +264,7 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-        int		 opt, fds[2], lockfd, status, res;
+        int		 opt, lockfd, status, res;
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*errstr, *proxy = NULL, *s;
@@ -276,14 +276,17 @@ main(int argc, char **argv)
 	time_t		 tt;
 	struct account	*a;
 	pid_t		 pid;
-	struct children	 children;
+	struct children	 children, dead_children;
 	struct child	*child;
+	void		*buf;
+	size_t		 len;
 	struct io      **ios, *io;
 	double		 tim;
 	struct sigaction act;
 	struct msg	 msg;
 	size_t		 off;
 	struct macro	*macro;
+	struct child_fetch_data *cfd;
 #ifdef DEBUG
 	struct rule	*r;
 	struct action	*t;
@@ -669,47 +672,22 @@ main(int argc, char **argv)
 
 	/* start the children and build the array */
 	ARRAY_INIT(&children);
+	ARRAY_INIT(&dead_children);
+
 	child = NULL;
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
 		if (!use_account(a, NULL))
 			continue;
 
-		if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
-			fatal("socketpair");
-		if ((pid = child_fork()) == 0) {
-			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-				child = ARRAY_ITEM(&children, i,struct child *);
-				io_close(child->io);
-				io_free(child->io);
-				xfree(child);
-			}
-			close(fds[0]);
+		cfd = xmalloc(sizeof *cfd);
+		cfd->account = a;
+		cfd->op = op;
+		cfd->children = &children;
+		child = child_start(&children, conf.child_uid, child_fetch,
+		    parent_fetch, cfd);
 
-			res = do_child(fds[1], op, a);
-#ifdef PROFILE
-			/*
-			 * We want to use _exit rather than exit in the child
-			 * process, and it doesn't run atexit handlers, so run
-			 * _mcleanup manually to force the profiler to dump its
-			 * statistics.
-			 *
-			 * This is icky but it works, and is only for profiling.
-			 */
-			extern void _mcleanup(void);
-			_mcleanup();
-#endif
-			child_exit(res);
-		}
-
-		log_debug2("parent: child %ld (%s) started", (long) pid, 
+		log_debug2("parent: child %ld (%s) started", (long) child->pid,
 		    a->name);
-
-		child = xcalloc(1, sizeof *child);
-		ARRAY_ADD(&children, child, struct child *);
-		close(fds[1]);
-		child->io = io_create(fds[0], NULL, IO_CRLF, INFTIM);
-		child->pid = pid;
-		child->account = a;
 	}
 
 	if (ARRAY_EMPTY(&children)) {
@@ -725,12 +703,13 @@ main(int argc, char **argv)
 	tim = get_time();
 
 	res = 0;
-	ios = xcalloc(ARRAY_LENGTH(&children), sizeof (struct io *));
+	ios = NULL;
 	while (!ARRAY_EMPTY(&children)) {
 		if (sigint || sigterm)
 			break;
 
 		/* fill the io list */
+		ios = xrealloc(ios, ARRAY_LENGTH(&children), sizeof **ios);
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i, struct child *);
 			ios[i] = child->io;
@@ -756,7 +735,9 @@ main(int argc, char **argv)
 				break;
 
 			/* and handle them if necessary */
-			if (do_parent(child) == 0)
+			if (privsep_recv(child->io, &msg, &buf, &len) != 0)
+				fatalx("parent: privsep_recv error");
+			if (child->msg(child, &msg, buf, len) == 0)
 				continue;
 
 			/* child has said it is ready to exit, tell it to */
@@ -770,30 +751,36 @@ main(int argc, char **argv)
 				fatal("waitpid");
 			if (WIFSIGNALED(status)) {
 				res = 1;
-				log_debug2("parent: child %ld (%s) done, got"
-				    "signal %d", (long) child->pid,
-				    child->account->name, WTERMSIG(status));
+				log_debug2("parent: child %ld got signal %d",
+				    (long) child->pid, WTERMSIG(status));
 			} else if (!WIFEXITED(status)) {
 				res = 1;
-				log_debug2("parent: child %ld (%s) done, didn't"
-				    "exit normally", (long) child->pid,
-				    child->account->name);
+				log_debug2("parent: child %ld didn't exit"
+				    "normally", (long) child->pid);
 			} else {
 				if (WEXITSTATUS(status) != 0)
 					res = 1;
-				log_debug2("parent: child %ld (%s) done, "
-				    "returned %d", (long) child->pid,
-				    child->account->name, WEXITSTATUS(status));
+				log_debug2("parent: child %ld returned %d",
+				    (long) child->pid, WEXITSTATUS(status));
 			}
 
-			ARRAY_REMOVE(&children, i, struct child *);
-
 			io_close(child->io);
-			io_free(child->io);
-			xfree(child);
+
+			ARRAY_REMOVE(&children, i, struct child *);
+			ARRAY_ADD(&dead_children, child, struct child *);
 		}
 	}
 	xfree(ios);
+
+	/* free the dead children */
+	for (i = 0; i < ARRAY_LENGTH(&dead_children); i++) {
+		child = ARRAY_ITEM(&dead_children, i, struct child *);
+		io_free(child->io);
+		if (child->data != NULL)
+			xfree(child->data);
+		xfree(child);
+	}
+	ARRAY_FREE(&dead_children);
 
 	if (sigint || sigterm) {
 		act.sa_handler = SIG_IGN;

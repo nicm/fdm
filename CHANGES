@@ -1,3 +1,13 @@
+16 March 2007
+
+* Change so that the child uses poll(2) on all the fds rather than letting
+  the fetch-* stuff poll and periodically checking the parent fd.
+* Make delivery children be handled in the main loop (fdm.c) along with
+  the fetch children. This means that different accounts will not block each
+  other when delivering. I tried allowing multiple simultaneous deliveries
+  for each account but it doesn't work very well, particularly regarding
+  errors.
+
 15 March 2007
 
 * Seriously reduce -v output in favour of -vv and -vvv.

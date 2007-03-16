@@ -37,8 +37,6 @@ void	mail_free(struct mail *);
 void
 mail_open(struct mail *m, size_t size)
 {
-	memset(m, 0, sizeof m);
-
 	m->size = size;
 	m->space = m->size;
 	m->body = -1;
@@ -69,6 +67,9 @@ void
 mail_receive(struct mail *m, struct msg *msg)
 {
 	struct mail	*mm = &msg->data.mail;
+
+	mm->done = m->done;
+	mm->idx = m->idx;
 
 	mm->tags = m->tags;
 	m->tags = NULL;

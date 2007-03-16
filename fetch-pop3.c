@@ -27,20 +27,20 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_pop3_start(struct account *);
+int	fetch_pop3_start(struct account *, struct ios *);
 int	fetch_pop3_finish(struct account *);
 int	fetch_pop3_poll(struct account *, u_int *);
-int	fetch_pop3_fetch(struct account *, struct mail *, int);
-int	fetch_pop3_purge(struct account *);
+int	fetch_pop3_fetch(struct account *, struct mail *);
+int	fetch_pop3_purge(struct account *, struct ios *);
 int	fetch_pop3_done(struct account *, struct mail *);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
 void	fetch_pop3_free(void *);
 
-int	fetch_pop3_connect(struct account *);
+int	fetch_pop3_connect(struct account *, struct ios *);
 int	fetch_pop3_disconnect(struct account *);
 
-int	fetch_pop3_line(struct account *, char **, int);
+int	fetch_pop3_line(struct account *, char **);
 int	fetch_pop3_okay(char *);
 char   *fetch_pop3_check(struct account *);
 
@@ -65,26 +65,22 @@ fetch_pop3_free(void *ptr)
 }
 
 int
-fetch_pop3_line(struct account *a, char **line, int flags)
+fetch_pop3_line(struct account *a, char **line)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct io		*io = data->io;
 	char			*cause;
 
-	if (flags & FETCH_NOWAIT)
-		io->flags |= IO_NOWAIT;
-	else
-		io->flags &= ~IO_NOWAIT;
 	switch (io_pollline2(io, line, &data->lbuf, &data->llen, &cause)) {
 	case 0:
 		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (-1);
+		return (1);
 	case -1:
 		if (errno == EAGAIN)
 			return (1);
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (-1);
+		return (1);
 	}
 
 	return (0);
@@ -103,7 +99,7 @@ fetch_pop3_check(struct account *a)
 {
 	char			*line;
 
-	if (fetch_pop3_line(a, &line, 0) != 0)
+	if (fetch_pop3_line(a, &line) != 0)
 		return (NULL);
 
 	if (!fetch_pop3_okay(line)) {
@@ -115,7 +111,7 @@ fetch_pop3_check(struct account *a)
 }
 
 int
-fetch_pop3_start(struct account *a)
+fetch_pop3_start(struct account *a, struct ios *ios)
 {
 	struct fetch_pop3_data	*data = a->data;
 
@@ -124,7 +120,9 @@ fetch_pop3_start(struct account *a)
 	data->llen = IO_LINESIZE;
 	data->lbuf = xmalloc(data->llen);
 
-	return (fetch_pop3_connect(a));
+	data->state = POP3_START;
+
+	return (fetch_pop3_connect(a, ios));
 }
 
 int
@@ -149,7 +147,7 @@ fetch_pop3_finish(struct account *a)
 }
 
 int
-fetch_pop3_connect(struct account *a)
+fetch_pop3_connect(struct account *a, struct ios *ios)
 {
 	struct fetch_pop3_data	*data = a->data;
 	char			*line, *cause;
@@ -163,6 +161,7 @@ fetch_pop3_connect(struct account *a)
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
+	ARRAY_ADD(ios, data->io, struct io *);
 
 	if (fetch_pop3_check(a) == NULL)
 		return (FETCH_ERROR);
@@ -225,41 +224,31 @@ fetch_pop3_poll(struct account *a, u_int *n)
 }
 
 int
-fetch_pop3_fetch(struct account *a, struct mail *m, int flags)
+fetch_pop3_fetch(struct account *a, struct mail *m)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct fetch_pop3_mail	*aux;
 	char			*line, *uid;
 	size_t			 len;
 	u_int			 n, i;
-	int			 error;
 
 restart:
-	switch (data->state) {
-	case POP3_LISTDONE:
-	case POP3_UIDLDONE:
-	case POP3_RETRDONE:
-	case POP3_LINE:
-		error = fetch_pop3_line(a, &line, flags);
-		switch (error) {
-		case -1:
-			return (FETCH_ERROR);
-		case 1:
+	line = NULL;
+	if (data->state != POP3_START) {
+		line = io_readline2(data->io, &data->lbuf, &data->llen);
+		if (line == NULL)
 			return (FETCH_AGAIN);
-		}
-	default:
-		break;
 	}
 
 	switch (data->state) {
-	case POP3_LIST:
+	case POP3_START:
 		data->cur++;
 		if (data->cur > data->num)
 			return (FETCH_COMPLETE);
 		io_writeline(data->io, "LIST %u", data->cur);
-		data->state = POP3_LISTDONE;
+		data->state = POP3_LIST;
 		break;
-	case POP3_LISTDONE:
+	case POP3_LIST:
 		if (!fetch_pop3_okay(line))
 			goto bad;
 		if (sscanf(line, "+OK %*u %zu", &data->size) != 1) {
@@ -272,13 +261,10 @@ restart:
 			m->size = data->size;
 			return (FETCH_OVERSIZE);
 		}
+		io_writeline(data->io, "UIDL %u", data->cur);
 		data->state = POP3_UIDL;
 		break;
 	case POP3_UIDL:
-		io_writeline(data->io, "UIDL %u", data->cur);
-		data->state = POP3_UIDLDONE;
-		break;
-	case POP3_UIDLDONE:
 		if (!fetch_pop3_okay(line))
 			goto bad;
 		if (sscanf(line, "+OK %u ", &n) != 1)
@@ -309,13 +295,10 @@ restart:
 				break;
 			}
 		}
+		io_writeline(data->io, "RETR %u", data->cur);
 		data->state = POP3_RETR;
 		break;
 	case POP3_RETR:
-		io_writeline(data->io, "RETR %u", data->cur);
-		data->state = POP3_RETRDONE;
-		break;
-	case POP3_RETRDONE:
 		if (!fetch_pop3_okay(line))
 			goto bad;
 		mail_open(m, IO_ROUND(data->size));
@@ -371,7 +354,7 @@ restart:
 	goto restart;
 
 complete:
-	data->state = POP3_LIST;
+	data->state = POP3_START;
 
 	add_tag(&m->tags, "lines", "%u", data->lines);
 	if (data->bodylines == -1) {
@@ -391,6 +374,7 @@ complete:
 
 	if (data->flushing)
 		return (FETCH_OVERSIZE);
+
 	return (FETCH_SUCCESS);
 
 bad:
@@ -399,11 +383,11 @@ bad:
 }
 
 int
-fetch_pop3_purge(struct account *a)
+fetch_pop3_purge(struct account *a, struct ios *ios)
 {
 	if (fetch_pop3_disconnect(a) != 0)
 		return (FETCH_ERROR);
-	return (fetch_pop3_connect(a));
+	return (fetch_pop3_connect(a, ios));
 }
 
 int

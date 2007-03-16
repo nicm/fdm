@@ -23,18 +23,20 @@
 int
 privsep_send(struct io *io, struct msg *msg, void *buf, size_t len)
 {
+	char *cause;
+	
 	if (buf != NULL && len > 0)
 		msg->size = len;
 	else
 		msg->size = 0;
 
 	io_write(io, msg, sizeof *msg);
-	if (io_flush(io, NULL) != 0)
+	if (io_flush(io, &cause) != 0)
 		return (1);
 
 	if (buf != NULL && len > 0) {
 		io_write(io, buf, len);
-		if (io_flush(io, NULL) != 0)
+		if (io_flush(io, &cause) != 0)
 			return (1);
 	}
 

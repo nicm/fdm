@@ -45,7 +45,8 @@
 #define MAXMAILSIZE	INT_MAX
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define DEFTIMEOUT	(900 * 1000)
-#define LOCKSLEEPTIME	2
+#define LOCKSLEEPTIME	10000
+#define LOCKRETRIES	1000 
 #define MAXNAMESIZE	64
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
@@ -352,6 +353,8 @@ struct rmlist {
 
 /* A single mail. */
 struct mail {
+	u_int			 idx;
+
 	struct strb		*tags;
 
 	struct shm		 shm;
@@ -371,7 +374,10 @@ struct mail {
 
 	ssize_t		 	 body;		/* offset of body */
 
+	/* XXX move below into special struct and just cp it in mail_*? */
 	struct rmlist		 rml;		/* regexp matches */
+
+	int			 done;		/* mail is finished with */
 	enum decision		 decision;	/* final deliver decision */
 
 	void			 (*auxfree)(void *);
@@ -395,18 +401,73 @@ struct attach {
 	TAILQ_ENTRY(attach)	 entry;
 };
 
+/* Privsep message types. */
+enum msgtype {
+	MSG_ACTION,
+	MSG_EXIT,
+	MSG_DONE,
+	MSG_COMMAND
+};
+
+/* Privsep message data. */
+struct msgdata {
+	int	 		 	 error;
+	struct mail		 	 mail;
+
+	/* these only work so long as they aren't moved in either process */
+	struct account			*account;
+	struct action			*action;
+	struct match_command_data	*cmddata;
+
+	uid_t			 	 uid;
+};
+
+/* Privsep message. */
+struct msg {
+	enum msgtype	 type;
+	size_t		 size;
+
+	struct msgdata	 data;
+};
+
 /* A single child. */
 struct child {
 	pid_t		 pid;
 	struct io	*io;
-	struct account	*account;
+
+	void		*data;
+	int		 (*msg)(struct child *, struct msg *, void *, size_t);
 };
 
 /* List of children. */
 ARRAY_DECL(children, struct child *);
 
+/* Fetch child data. */
+struct child_fetch_data {
+	struct account	*account;
+	enum fdmop	 op;
+	struct children	*children;
+};
+
+/* Deliver child data. */
+struct child_deliver_data {
+	void			 (*hook)(int, struct account *, struct msg *, 
+				      struct child_deliver_data *, int *);
+	struct child 		*child; /* the source of the request */
+	u_int			 msgid;
+	const char		*name;
+	struct account		*account;
+	struct action		*action;
+	struct deliver_ctx	*dctx;
+	struct mail		*mail;
+	struct match_ctx	*mctx;
+	struct match_command_data *cmddata;
+};
+
 /* Account entry. */
 struct account {
+	u_int			 idx;
+
 	char			 name[MAXNAMESIZE];
 
 	struct strings		*users;
@@ -616,6 +677,7 @@ struct io {
 	int		 timeout;
 	const char	*eol;
 };
+ARRAY_DECL(ios, struct io *);
 
 /* Command flags. */
 #define CMD_IN  0x1
@@ -632,37 +694,6 @@ struct cmd {
 	struct io	*io_in;
 	struct io	*io_out;
 	struct io	*io_err;
-};
-
-/* Privsep message types. */
-enum msgtype {
-	MSG_ACTION,
-	MSG_EXIT,
-	MSG_DONE,
-	MSG_COMMAND
-};
-
-/* Privsep message data. */
-struct msgdata {
-	int	 		 	 error;
-	struct mail		 	 mail;
-
-	/* these only work so long as they aren't moved in either process */
-	struct account			*account;
-	struct action			*action;
-	struct match_command_data	*cmddata;
-
-	uid_t			 	 uid;
-};
-
-/* Privsep message. */
-struct msg {
-	u_int		 n;
-
-	enum msgtype	 type;
-	size_t		 size;
-
-	struct msgdata	 data;
 };
 
 /* Comparison operators. */
@@ -763,10 +794,28 @@ void			 cmd_free(struct cmd *);
 /* child.c */
 int			 child_fork(void);
 __dead void		 child_exit(int);
-int			 do_child(int, enum fdmop, struct account *);
+struct child 		*child_start(struct children *, uid_t, 
+    			     int (*)(struct child *, struct io *), 
+			     int (*)(struct child *, struct msg *, void *,
+			     size_t), void *);
 
-/* parent.c */
-int			 do_parent(struct child *);
+/* child-fetch.c */
+int			 child_fetch(struct child *, struct io *);
+
+/* child-deliver.c */
+int			 child_deliver(struct child *, struct io *);
+void			 child_deliver_action_hook(int, struct account *,
+			     struct msg *, struct child_deliver_data *, int *);
+void			 child_deliver_cmd_hook(int, struct account *,
+			     struct msg *, struct child_deliver_data *, int *);
+
+/* parent-fetch.c */
+int			 parent_fetch(struct child *, struct msg *, void *,
+			     size_t);
+
+/* parent-deliver.c */
+int			 parent_deliver(struct child *, struct msg *, void *,
+			     size_t);
 
 /* connect.c */
 struct proxy 		*getproxy(const char *);

@@ -23,7 +23,7 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 	 fetch_imap_start(struct account *);
+int	 	 fetch_imap_start(struct account *, struct ios *);
 int	 	 fetch_imap_finish(struct account *);
 void		 fetch_imap_desc(struct account *, char *, size_t);
 
@@ -57,7 +57,7 @@ fetch_imap_putln(struct account *a, const char *fmt, ...)
 }
 
 int
-fetch_imap_getln(struct account *a, int type, char **line, int flags)
+fetch_imap_getln(struct account *a, int type, char **line, int flag)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
@@ -65,23 +65,21 @@ fetch_imap_getln(struct account *a, int type, char **line, int flags)
 	char			*cause;
 	int			 tag;
 
-	if (flags & FETCH_NOWAIT)
-		data->io->flags |= IO_NOWAIT;
-	else
-		data->io->flags &= ~IO_NOWAIT;
-
-
 restart:
-	switch (io_pollline2(data->io, line, lbuf, llen, &cause)) {
-	case 0:
-		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (-1);
-	case -1:
-		if (errno == EAGAIN)
+	if (flag) {
+		*line = io_readline2(data->io, &data->lbuf, &data->llen);
+		if (*line == NULL)
 			return (1);
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (-1);
+	} else {
+		switch (io_pollline2(data->io, line, lbuf, llen, &cause)) {
+		case 0:
+			log_warnx("%s: connection unexpectedly closed",a->name);
+			return (-1);
+		case -1:
+			log_warnx("%s: %s", a->name, cause);
+			xfree(cause);
+			return (-1);
+		}
 	}
 
 	if (type == IMAP_RAW)
@@ -124,7 +122,7 @@ fetch_imap_flush(struct account *a)
 }
 
 int
-fetch_imap_start(struct account *a)
+fetch_imap_start(struct account *a, struct ios *ios)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
@@ -141,6 +139,7 @@ fetch_imap_start(struct account *a)
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
+	ARRAY_ADD(ios, data->io, struct io *);
 
 	data->getln = fetch_imap_getln;
 	data->putln = fetch_imap_putln;

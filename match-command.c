@@ -46,6 +46,7 @@ match_command_match(struct match_ctx *mctx, struct expritem *ei)
 	 * We are called as the child so to change uid this needs to be done
 	 * largely in the parent.
 	 */
+	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_COMMAND;
 	msg.data.account = a;
 	msg.data.cmddata = data;

@@ -30,8 +30,8 @@
 - look at .netrc
 -- move lbuf stuff into fetch_*_data
 -- split fetch into next and get(line) and alloc mail outside
--- introduce eg fetch_pop3_state structs and make fetch reentrant
--- rework IO_NOWAIT and FETCH_NOWAIT
+-- rework IO_NOWAIT
 -- tidy child.c
 -- audit for uses of special "off" variables where m->size would do
 - is there any reason struct mail shouldn't point to a struct account?
+- coalesce multiple IMAP deletions into a single call

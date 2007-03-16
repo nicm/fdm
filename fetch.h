@@ -27,19 +27,16 @@
 #define FETCH_COMPLETE 4
 #define FETCH_AGAIN 5
 
-/* Fetch flags. */
-#define FETCH_NOWAIT 0x1
-
 /* Fetch functions. */
 struct fetch {
 #define FETCHPORT_NORMAL 0
 #define FETCHPORT_SSL 1
 	const char	*ports[2];	/* normal port, ssl port */
 
-	int		 (*start)(struct account *);
+	int		 (*start)(struct account *, struct ios *);
 	int 		 (*poll)(struct account *, u_int *);
-	int	 	 (*fetch)(struct account *, struct mail *, int);
-	int		 (*purge)(struct account *);
+	int	 	 (*fetch)(struct account *, struct mail *);
+	int		 (*purge)(struct account *, struct ios *);
 	int		 (*done)(struct account *, struct mail *);
 	int		 (*finish)(struct account *);
 	void		 (*desc)(struct account *, char *, size_t);
@@ -107,12 +104,10 @@ struct fetch_pop3_data {
 	struct strings	 kept;
 
 	enum {
+		POP3_START,
 		POP3_LIST,
-		POP3_LISTDONE,
 		POP3_UIDL,
-		POP3_UIDLDONE,
 		POP3_RETR,
-		POP3_RETRDONE,
 		POP3_LINE
 	} state;
 	int		 flushing;
@@ -162,14 +157,13 @@ struct fetch_imap_data {
 	ARRAY_DECL(, u_int) kept;
 
 	enum {
-		IMAP_UID,
-		IMAP_UIDDONE1,
-		IMAP_UIDDONE2,
+		IMAP_START,
+		IMAP_UID1,
+		IMAP_UID2,
 		IMAP_FETCH,
-		IMAP_FETCHDONE,
 		IMAP_LINE,
-		IMAP_LINEDONE1,
-		IMAP_LINEDONE2,
+		IMAP_END1,
+		IMAP_END2
 	} state;
 	int		 flushing;
 	int		 bodylines;
@@ -220,8 +214,8 @@ int			 imap_logout(struct account *);
 void			 imap_abort(struct account *);
 int			 imap_uid(struct account *);
 int			 imap_poll(struct account *, u_int *);
-int			 imap_fetch(struct account *, struct mail *, int);
-int			 imap_purge(struct account *);
+int			 imap_fetch(struct account *, struct mail *);
+int			 imap_purge(struct account *, struct ios *);
 int			 imap_done(struct account *, struct mail *);
 
 #endif

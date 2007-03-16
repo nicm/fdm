@@ -75,6 +75,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	int	 			 exists, fd = -1, fd2;
 	int				 res = DELIVER_FAILURE;
 	gzFile				 gzf = NULL;
+	u_int				 n;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
@@ -106,14 +107,20 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 		goto out;
 	}
 
+	n = 0;
 	do {
 		fd = openlock(path, conf.lock_types, O_CREAT|O_WRONLY|O_APPEND,
 		    FILEMODE);
 		if (fd < 0) {
 			if (errno == EAGAIN) {
-				log_warnx("%s: %s: couldn't obtain lock. "
-				    "sleeping", a->name, path);
-				sleep(LOCKSLEEPTIME);
+				usleep(LOCKSLEEPTIME);
+				n++;
+				if (n >= LOCKRETRIES) {
+					log_warnx("%s: %s: couldn't obtain lock"
+					    " in %.2f seconds", a->name, path, 
+					    (LOCKSLEEPTIME * n) / 1000000.0);
+					goto out;
+				}
 			} else {
 				log_warn("%s: %s: open", a->name, path);
 				goto out;
