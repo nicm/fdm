@@ -428,6 +428,7 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 
 	n = dropped = kept = 0;
 	m = NULL;
+	blocked = 0; 
 	for (;;) {
 		m = xcalloc(1, sizeof *m);
 		m->body = -1;
