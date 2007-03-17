@@ -392,6 +392,9 @@ fetch_nntp_start(struct account *a)
 	data->group = 0;
 	data->state = NNTP_START;
 
+	if (fetch_nntp_load(a) != 0)
+		return (FETCH_ERROR);
+
 	data->io = connectproxy(&data->server,
 	    conf.proxy ,IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
@@ -402,8 +405,6 @@ fetch_nntp_start(struct account *a)
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
-	if (fetch_nntp_load(a) != 0)
-		return (FETCH_ERROR);
 	data->group = 0;
 	if (CURRENT_GROUP(data)->ignore) {
 		do {
