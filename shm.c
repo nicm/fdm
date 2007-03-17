@@ -129,6 +129,9 @@ shm_free(struct shm *shm)
 	log_debug("shm_free: %s", shm->name);
 #endif
 
+	if (shm->fd == -1)
+		return;
+
 	if (munmap(shm->data, shm->size) != 0)
 		fatal("munmap");
 
