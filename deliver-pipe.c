@@ -31,6 +31,7 @@ int	 deliver_pipe_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_pipe_desc(struct action *, char *, size_t);
 
 struct deliver deliver_pipe = { 
+	"pipe",
 	DELIVER_ASUSER,
 	deliver_pipe_deliver,
 	deliver_pipe_desc

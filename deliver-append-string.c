@@ -28,6 +28,7 @@ int	 deliver_append_string_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_append_string_desc(struct action *, char *, size_t);
 
 struct deliver deliver_append_string = {
+	"append-string",
 	DELIVER_INCHILD,
 	deliver_append_string_deliver,
 	deliver_append_string_desc

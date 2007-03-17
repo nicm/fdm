@@ -27,6 +27,7 @@ int	match_command_match(struct match_ctx *, struct expritem *);
 void	match_command_desc(struct expritem *, char *, size_t);
 
 struct match match_command = {
+	"command",
 	match_command_match,
 	match_command_desc
 };

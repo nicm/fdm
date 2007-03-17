@@ -31,6 +31,7 @@ int	 deliver_exec_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_exec_desc(struct action *, char *, size_t);
 
 struct deliver deliver_exec = {
+	"exec",
 	DELIVER_ASUSER,
 	deliver_exec_deliver,
 	deliver_exec_desc

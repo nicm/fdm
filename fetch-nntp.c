@@ -53,6 +53,7 @@ int	fetch_nntp_save(struct account *);
 #define ADD_GROUP(d, g) ARRAY_ADD(&d->groups, g, struct fetch_nntp_group *)
 
 struct fetch fetch_nntp = {
+	"nntp",
 	{ "nntp", NULL },
 	fetch_nntp_start,
 	fetch_nntp_poll,

@@ -355,6 +355,7 @@ struct rmlist {
 
 /* A single mail. */
 struct mail {
+	double			 tim;
 	u_int			 idx;
 
 	struct strb		*tags;

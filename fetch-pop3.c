@@ -45,6 +45,7 @@ int	fetch_pop3_okay(char *);
 char   *fetch_pop3_check(struct account *);
 
 struct fetch fetch_pop3 = {
+	"pop3",
 	{ "pop3", "pop3s" },
 	fetch_pop3_start,
 	fetch_pop3_poll,

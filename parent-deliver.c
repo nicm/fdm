@@ -36,7 +36,7 @@ parent_deliver(struct child *child, struct msg *msg, void *buf, size_t len)
 	struct account			*a = data->account;
 	struct mail			*m = data->mail;
 
-	log_debug2("parent_deliver: got message type %d from child %ld",
+	log_debug3("parent_deliver: got message type %d from child %ld",
 	    msg->type, (long) child->pid);
 
 	switch (msg->type) {

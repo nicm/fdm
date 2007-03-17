@@ -33,6 +33,7 @@ int	 deliver_rewrite_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_rewrite_desc(struct action *, char *, size_t);
 
 struct deliver deliver_rewrite = {
+	"rewrite",
 	DELIVER_WRBACK,
 	deliver_rewrite_deliver,
 	deliver_rewrite_desc

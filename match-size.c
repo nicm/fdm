@@ -27,6 +27,7 @@ int	match_size_match(struct match_ctx *, struct expritem *);
 void	match_size_desc(struct expritem *, char *, size_t);
 
 struct match match_size = {
+	"size",
 	match_size_match,
 	match_size_desc
 };

@@ -43,7 +43,7 @@ parent_fetch(struct child *child, struct msg *msg, void *buf, size_t len)
 	struct match_ctx	*mctx;
 	struct mail		*m;
 
-	log_debug2("parent_fetch: got message type %d from child %ld",
+	log_debug3("parent_fetch: got message type %d from child %ld",
 	    msg->type, (long) child->pid);
 
 	switch (msg->type) {
@@ -95,7 +95,7 @@ parent_fetch_action(struct child *child, struct children *children,
 	memset(md, 0, sizeof *md);
 	/*
 	 * If writing back, open a new mail now and set its ownership so it
-	 *  can be accessed by the child.
+	 * can be accessed by the child.
 	 */
 	if (t->deliver->type == DELIVER_WRBACK) {
 		mail_open(md, IO_BLOCKSIZE);
@@ -134,5 +134,5 @@ parent_fetch_cmd(struct child *child, struct children *children,
 	data->mail = m;
 	data->name = "command";
 	child = child_start(children, uid, child_deliver, parent_deliver, data);
-	log_debug2("parent: command child %ld started", (long) child->pid);
+	log_debug3("parent: command child %ld started", (long) child->pid);
 }

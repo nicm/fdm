@@ -27,6 +27,7 @@ int	 deliver_keep_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_keep_desc(struct action *, char *, size_t);
 
 struct deliver deliver_keep = {
+	"keep",
 	DELIVER_INCHILD, 
 	deliver_keep_deliver,
 	deliver_keep_desc

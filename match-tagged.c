@@ -28,6 +28,7 @@ int	match_tagged_match(struct match_ctx *, struct expritem *);
 void	match_tagged_desc(struct expritem *, char *, size_t);
 
 struct match match_tagged = {
+	"tagged",
 	match_tagged_match,
 	match_tagged_desc
 };

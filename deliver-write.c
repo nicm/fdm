@@ -31,6 +31,7 @@ int	 deliver_write_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_write_desc(struct action *, char *, size_t);
 
 struct deliver deliver_write = {
+	"write",
 	DELIVER_ASUSER,
 	deliver_write_deliver,
 	deliver_write_desc

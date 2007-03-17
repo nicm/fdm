@@ -192,8 +192,8 @@ run_match(struct account *a, const char **cause)
 		TAILQ_INSERT_TAIL(&doneq, mctx, entry);
 
 		/*
-		 * XXX Destroy mail data now it is finished, just keep the
-		 * struct mail.
+		 * Destroy mail data now it is finished, just keep the mail
+		 * structure.
 		 */
 		shm_destroy(&mctx->mail->shm);
 		break;
@@ -220,7 +220,7 @@ run_deliver(struct account *a, struct io *io, int *blocked, const char **cause)
 		/* delivery done. return to match queue */
 		log_debug3("%s: returning to match queue", a->name);
 		TAILQ_REMOVE(&deliverq, mctx, entry);
-		TAILQ_INSERT_TAIL(&matchq, mctx, entry);
+		TAILQ_INSERT_HEAD(&matchq, mctx, entry);
 		return (0);
 	}
 
@@ -259,8 +259,9 @@ run_deliver(struct account *a, struct io *io, int *blocked, const char **cause)
 
 remove:
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
-	log_debug("%s: message %u delivered (rule %u) after %.3f seconds", 
-	    a->name, mctx->mail->idx, dctx->rule->idx, get_time() - dctx->tim);
+	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds", 
+	    a->name, mctx->mail->idx, dctx->rule->idx, 
+	    dctx->action->deliver->name,  get_time() - dctx->tim);
 	xfree(dctx);
 	return (0);
 }
@@ -382,10 +383,6 @@ fetch_flush(struct account *a, struct io *pio, int *blocked, int *dropped,
 			return (1);
 		if (run_deliver(a, pio, blocked, cause) != 0)
 			return (1);
-		
-		log_debug3("%s: queue lengths: match %u, deliver %u, done %u; "
-		    "blocked=%d", a->name, queue_length(&matchq),
-		    queue_length(&deliverq), queue_length(&doneq), *blocked);
 
 		if (!TAILQ_EMPTY(&deliverq) && *blocked) {
 			pio->flags &= ~IO_NOWAIT;
@@ -437,22 +434,21 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 		m->decision = DECISION_DROP;
 		m->done = 0;
 		m->idx = ++a->idx;
+		m->tim = get_time();
 
 		/* fetch a message */
 		error = FETCH_AGAIN;
 		rio = NULL;
 		holding = 0;
 		while (error == FETCH_AGAIN) {
-			log_debug3("%s: queue lengths: match %u, deliver %u, "
-			    "done %u; blocked=%d; holding=%d", a->name,
-			    queue_length(&matchq), queue_length(&deliverq),
-			    queue_length(&doneq), blocked, holding);
-			
 			total = queue_length(&matchq) + queue_length(&deliverq);
 			if (total >= MAXMAILQUEUED)
 				holding = 1;
 			if (total < MINMAILQUEUED)
 				holding = 0;
+
+			log_debug3("%s: queue %u; blocked=%d; holding=%d",
+			    a->name, total, blocked, holding);
 
 			if (!holding) {
 				if (rio != pio) {
@@ -480,6 +476,9 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 				goto out;
 		}
 
+		log_debug("%s: message %u fetched after %.3f seconds", a->name,
+		    m->idx, get_time() - m->tim);
+		
 		if (error != FETCH_OVERSIZE && error != FETCH_EMPTY) {
 			trim_from(m);
 			if (m->size == 0)
@@ -615,9 +614,8 @@ fetch_transform(struct account *a, struct mail *m)
 			if (rnm == NULL)
 				rnm = conf.info.host;
 
-			error = insert_header(m, "received",
-			    "Received: by %.450s (%s " BUILD ", "
-			    "account \"%.450s\");\n\t%s",
+			error = insert_header(m, "received", "Received: by "
+			    "%.450s (%s " BUILD ", account \"%.450s\");\n\t%s",
 			    rnm, __progname, a->name, rtm);
 		}
 		if (error != 0)

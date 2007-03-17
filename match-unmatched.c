@@ -27,6 +27,7 @@ int	match_unmatched_match(struct match_ctx *, struct expritem *);
 void	match_unmatched_desc(struct expritem *, char *, size_t);
 
 struct match match_unmatched = { 
+	"unmatched",
 	match_unmatched_match,
 	match_unmatched_desc
 };

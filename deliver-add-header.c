@@ -27,6 +27,7 @@ int	 deliver_add_header_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_add_header_desc(struct action *, char *, size_t);
 
 struct deliver deliver_add_header = {
+	"add-header",
 	DELIVER_INCHILD,
 	deliver_add_header_deliver,
 	deliver_add_header_desc

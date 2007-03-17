@@ -34,6 +34,7 @@ int	 deliver_maildir_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_maildir_desc(struct action *, char *, size_t);
 
 struct deliver deliver_maildir = {
+	"maildir",
 	DELIVER_ASUSER, 
 	deliver_maildir_deliver,
 	deliver_maildir_desc

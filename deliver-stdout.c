@@ -28,6 +28,7 @@ int	 deliver_stdout_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_stdout_desc(struct action *, char *, size_t);
 
 struct deliver deliver_stdout = {
+	"stdout",
 	DELIVER_INCHILD, 
 	deliver_stdout_deliver,
 	deliver_stdout_desc

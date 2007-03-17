@@ -29,6 +29,8 @@
 
 /* Fetch functions. */
 struct fetch {
+	const char	*name;
+
 #define FETCHPORT_NORMAL 0
 #define FETCHPORT_SSL 1
 	const char	*ports[2];	/* normal port, ssl port */

@@ -39,6 +39,7 @@ void	 deliver_mbox_desc(struct action *, char *, size_t);
 int	 deliver_mbox_write(int, gzFile, const void *, size_t);
 
 struct deliver deliver_mbox = {
+	"mbox",
 	DELIVER_ASUSER,
 	deliver_mbox_deliver,
 	deliver_mbox_desc

@@ -49,6 +49,8 @@ TAILQ_HEAD(match_queue, match_ctx);
 
 /* Match functions. */
 struct match {
+	const char	*name;
+
 	int		 (*match)(struct match_ctx *, struct expritem *);
 	void 		 (*desc)(struct expritem *, char *, size_t);
 };

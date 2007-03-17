@@ -31,6 +31,7 @@ int	 deliver_append_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_append_desc(struct action *, char *, size_t);
 
 struct deliver deliver_append = {
+	"append",
 	DELIVER_ASUSER,
 	deliver_append_deliver,
 	deliver_append_desc

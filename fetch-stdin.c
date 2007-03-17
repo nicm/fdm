@@ -35,6 +35,7 @@ int	 fetch_stdin_done(struct account *, struct mail *);
 void	 fetch_stdin_desc(struct account *, char *, size_t);
 
 struct fetch fetch_stdin = {
+	"stdin",
 	{ NULL, NULL },
 	fetch_stdin_start,
 	NULL,

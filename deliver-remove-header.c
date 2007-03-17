@@ -27,6 +27,7 @@ int	 deliver_remove_header_deliver(struct deliver_ctx *, struct action *);
 void	 deliver_remove_header_desc(struct action *, char *, size_t);
 
 struct deliver deliver_remove_header = {
+	"remove-header",
 	DELIVER_INCHILD,
 	deliver_remove_header_deliver,
 	deliver_remove_header_desc
