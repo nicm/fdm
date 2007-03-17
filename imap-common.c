@@ -110,8 +110,7 @@ imap_login(struct account *a)
 		return (0);
 
 	if (data->user == NULL || data->pass == NULL) {
-		log_warnx("%s: not PREAUTH and no user/pass specified",
-		    a->name);
+		log_warnx("%s: not PREAUTH and no user/pass supplied", a->name);
 		return (1);
 	}
 
@@ -146,7 +145,7 @@ imap_select(struct account *a)
 		if (data->getln(a, IMAP_UNTAGGED, &line, 1) != 0)
 			return (1);
 	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 1)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
