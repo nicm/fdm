@@ -86,6 +86,10 @@ child_fetch(struct child *child, struct io *io)
 	setproctitle("child: %s", a->name);
 #endif
 
+	fill_info(NULL);
+	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
+	    conf.info.home);
+
 	if (op == FDMOP_POLL && a->fetch->poll == NULL) {
 		log_info("%s: polling not supported", a->name);
 		goto out;

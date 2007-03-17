@@ -133,6 +133,11 @@ fetch_stdin_fetch(struct account *a, struct mail *m)
 	if (m->data == NULL) {
 		mail_open(m, IO_BLOCKSIZE);
 		m->size = 0;
+
+		m->auxdata = NULL;
+		m->auxfree = NULL;
+
+		default_tags(&m->tags, NULL, a);
 	}
 
 restart:
