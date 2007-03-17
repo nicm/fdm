@@ -859,9 +859,9 @@ struct strings *
 get_users(struct match_ctx *mctx, struct rule *r, struct action *t,
     int *should_free)
 {
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct strings		*users;
+	struct account	*a = mctx->account;
+	struct mail	*m = mctx->mail;
+	struct strings	*users;
 
 	*should_free = 0;
 	users = NULL;
@@ -920,9 +920,9 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 		return (0);
 	}
 
+#ifndef ALWAYSPARENT
 	/* if the current user is the same as the deliver user, don't bother
 	   passing up either */
-#ifndef ALWAYSPARENT
 	if (t->deliver->type == DELIVER_ASUSER && dctx->uid == geteuid()) {
 		dctx->blocked = 0;
 		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
@@ -942,6 +942,7 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 
 		memcpy(&msg.data.mail, md, sizeof msg.data.mail);
 		cleanup_deregister(md->shm.name);
+		strb_destroy(&md->tags);
 
 		mail_receive(m, &msg);
 		log_debug2("%s: received modified mail: size %zu, body %zd",

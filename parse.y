@@ -1042,7 +1042,8 @@ defmacro: STRMACRO '=' STRING
 			  macro->fixed = 0;
 			  strlcpy(macro->name, $1, sizeof macro->name);
 			  TAILQ_INSERT_HEAD(&macros, macro, entry);
-		  }
+		  } else
+			  xfree(macro->value.str);
 		  if (!macro->fixed) {
 			  macro->type = MACRO_STRING;
 			  macro->value.str = $3;
