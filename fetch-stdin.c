@@ -168,20 +168,19 @@ restart:
 	if (data->bodylines != -1)
 		data->bodylines++;
 
-	if (len > 0) {
-		resize_mail(m, m->size + len + 1);
+	resize_mail(m, m->size + len + 1);
+	if (len > 0)
 		memcpy(m->data + m->size, line, len);
 
-		/* append an LF */
-		m->data[m->size + len] = '\n';
-		m->size += len + 1;
-
-		if (m->size > conf.max_size) {
-			data->complete = 1;
-			return (FETCH_OVERSIZE);
-		}
+	/* append an LF */
+	m->data[m->size + len] = '\n';
+	m->size += len + 1;
+	
+	if (m->size > conf.max_size) {
+		data->complete = 1;
+		return (FETCH_OVERSIZE);
 	}
-
+	
 	goto restart;
 
 complete:
