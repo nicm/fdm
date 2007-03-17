@@ -283,8 +283,8 @@ run_done(struct account *a, int *dropped, int *kept, const char **cause)
 	    get_time() - mctx->tim);
 	xfree(mctx);
 
-	if (mctx->account->fetch->done != NULL) {
-		switch (mctx->mail->decision) {
+	if (a->fetch->done != NULL) {
+		switch (m->decision) {
 		case DECISION_DROP:
 			type = "deleting";
 			(*dropped)++;

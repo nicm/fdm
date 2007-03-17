@@ -30,11 +30,10 @@
 #include "fetch.h"
 
 int	fetch_nntp_start(struct account *);
+void	fetch_nntp_fill(struct account *, struct io **, u_int *);
 int	fetch_nntp_finish(struct account *);
 int	fetch_nntp_poll(struct account *, u_int *);
 int	fetch_nntp_fetch(struct account *, struct mail *);
-int	fetch_nntp_delete(struct account *);
-int	fetch_nntp_keep(struct account *);
 void	fetch_nntp_desc(struct account *, char *, size_t);
 
 int	fetch_nntp_code(char *);
@@ -56,7 +55,7 @@ struct fetch fetch_nntp = {
 	"nntp",
 	{ "nntp", NULL },
 	fetch_nntp_start,
-	NULL, /* fetch_nntp_fill */
+	fetch_nntp_fill,
 	fetch_nntp_poll,
 	fetch_nntp_fetch,
 	fetch_nntp_save,
@@ -436,6 +435,14 @@ error:
 
 	xfree(lbuf);
 	return (FETCH_ERROR);
+}
+
+void
+fetch_nntp_fill(struct account *a, struct io **iop, u_int *n)
+{
+	struct fetch_nntp_data	*data = a->data;
+
+	iop[(*n)++] = data->io;
 }
 
 int
