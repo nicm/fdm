@@ -225,7 +225,7 @@ restart:
 		strlcpy(data->maildir,
 		    xbasename(xdirname(data->path)), sizeof data->maildir);
 
-		log_debug("%s: trying path: %s", a->name, data->path);
+		log_debug2("%s: trying path: %s", a->name, data->path);
 		if ((data->dirp = opendir(data->path)) == NULL) {
 			log_warn("%s: %s: opendir", a->name, data->path);
 			return (FETCH_ERROR);

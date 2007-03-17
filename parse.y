@@ -478,8 +478,11 @@ free_account(struct account *a)
 			freeaddrinfo(data->server.ai);
 	} else if (a->fetch == &fetch_imappipe) {
 		struct fetch_imap_data		*data = a->data;
-		xfree(data->user);
-		xfree(data->pass);
+		if (data->user != NULL)
+			xfree(data->user);
+		if (data->pass != NULL)
+			xfree(data->pass);
+		xfree(data->folder);
 		xfree(data->pipecmd);
 	} else if (a->fetch == &fetch_maildir) {
 		struct fetch_maildir_data	*data = a->data;
