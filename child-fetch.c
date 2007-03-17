@@ -182,14 +182,20 @@ run_match(struct account *a, const char **cause)
 	case FETCH_AGAIN:
 		/* delivering mail, queue for delivery */
 		log_debug3("%s: adding to deliver queue", a->name);
-		TAILQ_REMOVE(&matchq, mctx, match_entry);
-		TAILQ_INSERT_TAIL(&deliverq, mctx, deliver_entry);
+		TAILQ_REMOVE(&matchq, mctx, entry);
+		TAILQ_INSERT_TAIL(&deliverq, mctx, entry);
 		break;
 	case FETCH_COMPLETE:
 		/* finished with mail, queue on done queue */
 		log_debug3("%s: adding to done queue", a->name);
-		TAILQ_REMOVE(&matchq, mctx, match_entry);
-		TAILQ_INSERT_TAIL(&doneq, mctx, done_entry);
+		TAILQ_REMOVE(&matchq, mctx, entry);
+		TAILQ_INSERT_TAIL(&doneq, mctx, entry);
+
+		/*
+		 * XXX Destroy mail data now it is finished, just keep the
+		 * struct mail.
+		 */
+		shm_destroy(&mctx->mail->shm);
 		break;
 	}
 
@@ -213,8 +219,8 @@ run_deliver(struct account *a, struct io *io, int *blocked, const char **cause)
 	if (TAILQ_EMPTY(&mctx->dqueue)) {
 		/* delivery done. return to match queue */
 		log_debug3("%s: returning to match queue", a->name);
-		TAILQ_REMOVE(&deliverq, mctx, deliver_entry);
-		TAILQ_INSERT_TAIL(&matchq, mctx, match_entry);
+		TAILQ_REMOVE(&deliverq, mctx, entry);
+		TAILQ_INSERT_TAIL(&matchq, mctx, entry);
 		return (0);
 	}
 
@@ -253,6 +259,8 @@ run_deliver(struct account *a, struct io *io, int *blocked, const char **cause)
 
 remove:
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
+	log_debug("%s: message %u delivered (rule %u) after %.3f seconds", 
+	    a->name, mctx->mail->idx, dctx->rule->idx, get_time() - dctx->tim);
 	xfree(dctx);
 	return (0);
 }
@@ -272,8 +280,10 @@ run_done(struct account *a, int *dropped, int *kept, const char **cause)
 	m = mctx->mail;
 	log_debug3("%s: running done queue", a->name);
 
-	TAILQ_REMOVE(&doneq, mctx, done_entry);
+	TAILQ_REMOVE(&doneq, mctx, entry);
 	ARRAY_FREE(&mctx->stack);
+	log_debug("%s: message %u done after %.3f seconds", a->name, m->idx,
+	    get_time() - mctx->tim);
 	xfree(mctx);
 
 	if (mctx->account->fetch->done != NULL) {
@@ -313,7 +323,7 @@ flush_queue(struct match_queue *mq)
 		mctx = TAILQ_FIRST(mq);
 		m = mctx->mail;
 
-		TAILQ_REMOVE(mq, mctx, done_entry);
+		TAILQ_REMOVE(mq, mctx, entry);
 		ARRAY_FREE(&mctx->stack);
 		xfree(mctx);
 
@@ -407,8 +417,8 @@ int
 fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 {
 	struct mail	 	*m;
-	u_int	 	 	 n, dropped, kept;
-	int		 	 error, blocked;
+	u_int	 	 	 n, dropped, kept, total;
+	int		 	 error, blocked, holding;
  	const char		*cause = NULL;
 	struct match_ctx	*mctx;
 	struct io		*rio;
@@ -431,29 +441,39 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 		/* fetch a message */
 		error = FETCH_AGAIN;
 		rio = NULL;
+		holding = 0;
 		while (error == FETCH_AGAIN) {
 			log_debug3("%s: queue lengths: match %u, deliver %u, "
-			    "done %u; blocked=%d", a->name,
+			    "done %u; blocked=%d; holding=%d", a->name,
 			    queue_length(&matchq), queue_length(&deliverq),
-			    queue_length(&doneq), blocked);
+			    queue_length(&doneq), blocked, holding);
+			
+			total = queue_length(&matchq) + queue_length(&deliverq);
+			if (total >= MAXMAILQUEUED)
+				holding = 1;
+			if (total < MINMAILQUEUED)
+				holding = 0;
 
-			if (rio != pio) {
-				error = a->fetch->fetch(a, m);
-				switch (error) {
-				case FETCH_ERROR:
-					if (rio == pio)
+			if (!holding) {
+				if (rio != pio) {
+					error = a->fetch->fetch(a, m);
+					switch (error) {
+					case FETCH_ERROR:
+						if (rio != pio) {
+							cause = "fetching";
+							goto out;
+						}
 						fatalx("child: lost parent");
-					cause = "fetching";
-					goto out;
-				case FETCH_COMPLETE:
-					goto out;
+					case FETCH_COMPLETE:
+						goto out;
+					}
 				}
 			}
 			if (error == FETCH_AGAIN) {
 				if (fetch_poll(a, blocked, ios, &rio) != 0)
 					goto out;
 			}
-				
+
 			if (run_match(a, &cause) != 0)
 				goto out;
 			if (run_deliver(a, pio, &blocked, &cause) != 0)
@@ -486,6 +506,7 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 
 		/* construct mctx */
 		mctx = xcalloc(1, sizeof *mctx);
+		mctx->tim = get_time();
 		mctx->io = pio;
 		mctx->account = a;
 		mctx->mail = m;
@@ -497,11 +518,17 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 
 		/* and queue it */
 		log_debug3("%s: adding to match queue", a->name);
-		TAILQ_INSERT_TAIL(&matchq, mctx, match_entry);
+		TAILQ_INSERT_TAIL(&matchq, mctx, entry);
 
 		/* finish up a done mail */
 		if (run_done(a, &dropped, &kept, &cause) != 0)
 			goto out;
+		if (queue_length(&doneq) > MAXMAILQUEUED) {
+			while (queue_length(&doneq) > MINMAILQUEUED) {
+				if (run_done(a, &dropped, &kept, &cause) != 0)
+					goto out;
+			}
+		}
 
 		if (conf.purge_after == 0 || a->fetch->purge == NULL)
 			continue;
@@ -873,6 +900,7 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 	struct mail	*m = dctx->mail;
 	struct msg	 msg;
 
+	dctx->tim = get_time();
  	if (t->deliver->deliver == NULL)
 		return (0);
 

@@ -28,6 +28,8 @@
 
 /* Match context. */
 struct match_ctx {
+	double				 tim;
+
 	struct io			*io;
 	struct account			*account;
 	struct mail  	 	  	*mail;
@@ -41,10 +43,8 @@ struct match_ctx {
 	struct deliver_queue 	 	 dqueue;
 
 	TAILQ_ENTRY(match_ctx)		 entry;
-#define match_entry entry
-#define deliver_entry entry
-#define done_entry entry
 };
+/* XXX should this be an array since we need to know the length? */
 TAILQ_HEAD(match_queue, match_ctx);
 
 /* Match functions. */

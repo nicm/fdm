@@ -25,6 +25,8 @@
 
 /* Deliver context. */
 struct deliver_ctx {
+	double		 tim;
+
 	struct action	*action;
 	struct rule	*rule;
 

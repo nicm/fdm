@@ -43,6 +43,8 @@
 #define LOCKFILE	".fdm.lock"
 #define SYSLOCKFILE	"/var/run/fdm.lock"
 #define MAXMAILSIZE	INT_MAX
+#define MAXMAILQUEUED	5
+#define MINMAILQUEUED	3
 #define DEFMAILSIZE	(1 * 1024 * 1024 * 1024)	/* 1 GB */
 #define DEFTIMEOUT	(900 * 1000)
 #define LOCKSLEEPTIME	10000
