@@ -359,7 +359,7 @@ fetch_poll(struct account *a, int blocked, struct io *pio, struct io **rio)
 
 	if (a->fetch->fill != NULL)
 		a->fetch->fill(a, iop, &n);
-	if (n== 1 && !blocked)
+	if (n == 1 && !blocked)
 		return (0); 
 	
 	timeout = 0;
