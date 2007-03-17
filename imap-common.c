@@ -146,7 +146,7 @@ imap_select(struct account *a)
 		if (data->getln(a, IMAP_UNTAGGED, &line, 1) != 0)
 			return (1);
 	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 1)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 1)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
