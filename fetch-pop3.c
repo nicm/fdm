@@ -27,17 +27,18 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_pop3_start(struct account *, struct ios *);
+int	fetch_pop3_start(struct account *);
+void	fetch_pop3_fill(struct account *, struct io **, u_int *);
 int	fetch_pop3_finish(struct account *);
 int	fetch_pop3_poll(struct account *, u_int *);
 int	fetch_pop3_fetch(struct account *, struct mail *);
-int	fetch_pop3_purge(struct account *, struct ios *);
+int	fetch_pop3_purge(struct account *);
 int	fetch_pop3_done(struct account *, struct mail *);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
 void	fetch_pop3_free(void *);
 
-int	fetch_pop3_connect(struct account *, struct ios *);
+int	fetch_pop3_connect(struct account *);
 int	fetch_pop3_disconnect(struct account *);
 
 int	fetch_pop3_line(struct account *, char **);
@@ -48,6 +49,7 @@ struct fetch fetch_pop3 = {
 	"pop3",
 	{ "pop3", "pop3s" },
 	fetch_pop3_start,
+	fetch_pop3_fill,
 	fetch_pop3_poll,
 	fetch_pop3_fetch,
 	fetch_pop3_purge,
@@ -112,7 +114,7 @@ fetch_pop3_check(struct account *a)
 }
 
 int
-fetch_pop3_start(struct account *a, struct ios *ios)
+fetch_pop3_start(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 
@@ -123,7 +125,15 @@ fetch_pop3_start(struct account *a, struct ios *ios)
 
 	data->state = POP3_START;
 
-	return (fetch_pop3_connect(a, ios));
+	return (fetch_pop3_connect(a));
+}
+
+void
+fetch_pop3_fill(struct account *a, struct io **iop, u_int *n)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	iop[(*n)++] = data->io;
 }
 
 int
@@ -148,7 +158,7 @@ fetch_pop3_finish(struct account *a)
 }
 
 int
-fetch_pop3_connect(struct account *a, struct ios *ios)
+fetch_pop3_connect(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 	char			*line, *cause;
@@ -162,7 +172,6 @@ fetch_pop3_connect(struct account *a, struct ios *ios)
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
-	ARRAY_ADD(ios, data->io, struct io *);
 
 	if (fetch_pop3_check(a) == NULL)
 		return (FETCH_ERROR);
@@ -384,11 +393,11 @@ bad:
 }
 
 int
-fetch_pop3_purge(struct account *a, struct ios *ios)
+fetch_pop3_purge(struct account *a)
 {
 	if (fetch_pop3_disconnect(a) != 0)
 		return (FETCH_ERROR);
-	return (fetch_pop3_connect(a, ios));
+	return (fetch_pop3_connect(a));
 }
 
 int

@@ -24,17 +24,19 @@
 #include "fetch.h"
 
 int	 	 fetch_imappipe_start(struct account *);
+void	 	 fetch_imappipe_fill(struct account *, struct io **, u_int *n);
 int	 	 fetch_imappipe_finish(struct account *);
 void		 fetch_imappipe_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imappipe_putln(struct account *, const char *, ...);
-int		 fetch_imappipe_getln(struct account *, int, char **);
+int		 fetch_imappipe_getln(struct account *, int, char **, int);
 void		 fetch_imappipe_flush(struct account *);
 
 struct fetch fetch_imappipe = {
 	"imappipe",
 	{ NULL, NULL },
 	fetch_imappipe_start,
+	fetch_imappipe_fill,
 	imap_poll,	/* from imap-common.c */
 	imap_fetch,	/* from imap-common.c */
 	imap_purge,	/* from imap-common.c */
@@ -58,13 +60,17 @@ fetch_imappipe_putln(struct account *a, const char *fmt, ...)
 }
 
 int
-fetch_imappipe_getln(struct account *a, int type, char **line)
+fetch_imappipe_getln(struct account *a, int type, char **line, int block)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
 	size_t			*llen = &data->llen;
 	char			*out, *err, *cause;
 	int			 tag;
+
+	data->cmd->timeout = conf.timeout;
+	if (!block)
+		data->cmd->timeout = 0;
 
 restart:
 	switch (cmd_poll(data->cmd, &out, &err, lbuf, llen, &cause)) {
@@ -81,8 +87,11 @@ restart:
 
 	if (err != NULL)
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
-	if (out == NULL)
+	if (out == NULL) {
+		if (!block)
+			return (1);
 		goto restart;
+	}
 	*line = out;
 
 	if (type == IMAP_RAW)
@@ -159,6 +168,19 @@ fetch_imappipe_start(struct account *a)
 	}
 
 	return (FETCH_SUCCESS);
+}
+
+void
+fetch_imappipe_fill(struct account *a, struct io **iop, u_int *n)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	if (data->cmd->io_in != NULL)
+		iop[(*n)++] = data->cmd->io_in;
+	if (data->cmd->io_out != NULL)
+		iop[(*n)++] = data->cmd->io_out;
+	if (data->cmd->io_err != NULL)
+		iop[(*n)++] = data->cmd->io_err;
 }
 
 int

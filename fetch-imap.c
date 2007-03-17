@@ -23,7 +23,8 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 	 fetch_imap_start(struct account *, struct ios *);
+int	 	 fetch_imap_start(struct account *);
+void	         fetch_imap_fill(struct account *, struct io **, u_int *);
 int	 	 fetch_imap_finish(struct account *);
 void		 fetch_imap_desc(struct account *, char *, size_t);
 
@@ -35,6 +36,7 @@ struct fetch fetch_imap = {
 	"imap",
 	{ "imap", "imaps" },
 	fetch_imap_start,
+	fetch_imap_fill,
 	imap_poll,	/* from imap-common.c */
 	imap_fetch,	/* from imap-common.c */
 	imap_purge,	/* from imap-common.c */
@@ -58,7 +60,7 @@ fetch_imap_putln(struct account *a, const char *fmt, ...)
 }
 
 int
-fetch_imap_getln(struct account *a, int type, char **line, int flag)
+fetch_imap_getln(struct account *a, int type, char **line, int block)
 {
 	struct fetch_imap_data	*data = a->data;
 	char		       **lbuf = &data->lbuf;
@@ -67,7 +69,7 @@ fetch_imap_getln(struct account *a, int type, char **line, int flag)
 	int			 tag;
 
 restart:
-	if (flag) {
+	if (!block) {
 		*line = io_readline2(data->io, &data->lbuf, &data->llen);
 		if (*line == NULL)
 			return (1);
@@ -123,7 +125,7 @@ fetch_imap_flush(struct account *a)
 }
 
 int
-fetch_imap_start(struct account *a, struct ios *ios)
+fetch_imap_start(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
@@ -140,7 +142,6 @@ fetch_imap_start(struct account *a, struct ios *ios)
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
-	ARRAY_ADD(ios, data->io, struct io *);
 
 	data->getln = fetch_imap_getln;
 	data->putln = fetch_imap_putln;
@@ -156,6 +157,14 @@ fetch_imap_start(struct account *a, struct ios *ios)
 	}
 
 	return (FETCH_SUCCESS);
+}
+
+void
+fetch_imap_fill(struct account *a, struct io **iop, u_int *n)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	iop[(*n)++] = data->io;
 }
 
 int

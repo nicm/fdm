@@ -34,11 +34,11 @@
 #include "match.h"
 
 int	poll_account(struct io *, struct account *);
-int	fetch_account(struct io *, struct account *, struct ios *, double);
+int	fetch_account(struct io *, struct account *, double);
 
 int	fetch_flush(struct account *, struct io *, int *, int *, int *, 
 	    const char **);
-int	fetch_poll(struct account *a, int, struct ios *, struct io **);
+int	fetch_poll(struct account *a, int, struct io *, struct io **);
 int	fetch_transform(struct account *, struct mail *);
 int	fetch_rule(struct match_ctx *, const char **);
 
@@ -73,7 +73,6 @@ child_fetch(struct child *child, struct io *io)
 	struct msg	 	 msg;
 	int			 error = 1;
 	double			 tim;
-	struct ios		 ios;
 
 #ifdef DEBUG
 	xmalloc_clear();
@@ -97,10 +96,7 @@ child_fetch(struct child *child, struct io *io)
 	tim = get_time();
 
 	/* start fetch */
-	ARRAY_INIT(&ios);
-	ARRAY_ADD(&ios, io, struct io *);
-	if (a->fetch->start != NULL &&
-	    a->fetch->start(a, &ios) != FETCH_SUCCESS) {
+	if (a->fetch->start != NULL && a->fetch->start(a) != FETCH_SUCCESS) {
 		log_warnx("%s: start error. aborting", a->name);
 		goto out;
 	}
@@ -112,7 +108,7 @@ child_fetch(struct child *child, struct io *io)
 		error = poll_account(io, a);
 		break;
 	case FDMOP_FETCH:
-		error = fetch_account(io, a, &ios, tim);
+		error = fetch_account(io, a, tim);
 		break;
 	default:
 		fatalx("child: unexpected command");
@@ -347,22 +343,27 @@ queue_length(struct match_queue *mq)
 }
 
 int
-fetch_poll(struct account *a, int blocked, struct ios *ios, struct io **rio)
+fetch_poll(struct account *a, int blocked, struct io *pio, struct io **rio)
 {
-	int	 timeout;
-	char	*cause;
-	
-	if (ARRAY_LENGTH(ios) == 1 && !blocked)
-		return (0); 
+	int	 	 timeout;
+	char		*cause;
+	struct io	*iop[NFDS];
+	u_int		 n;
 
+	n = 1;
+	iop[0] = pio;
+
+	if (a->fetch->fill != NULL)
+		a->fetch->fill(a, iop, &n);
+	if (n== 1 && !blocked)
+		return (0); 
+	
+	timeout = 0;
 	if (TAILQ_EMPTY(&matchq) && blocked)
 		timeout = conf.timeout;
-	else
-		timeout = 0;
 
-	log_debug3("%s: polling %u fds, timeout=%d", a->name, ARRAY_LENGTH(ios),
-	    timeout);
-	switch (io_polln(ios->list, ARRAY_LENGTH(ios), rio, timeout, &cause)) {
+	log_debug3("%s: polling %u fds, timeout=%d", a->name, n, timeout);
+	switch (io_polln(iop, n, rio, timeout, &cause)) {
 	case 0:
 		log_warnx("%s: connection unexpectedly closed", a->name);
 		return (1);
@@ -414,7 +415,7 @@ fetch_flush(struct account *a, struct io *pio, int *blocked, int *dropped,
 }
 
 int
-fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
+fetch_account(struct io *pio, struct account *a, double tim)
 {
 	struct mail	 	*m;
 	u_int	 	 	 n, dropped, kept, total;
@@ -470,7 +471,7 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 				}
 			}
 			if (error == FETCH_AGAIN) {
-				if (fetch_poll(a, blocked, ios, &rio) != 0)
+				if (fetch_poll(a, blocked, pio,&rio) != 0)
 					goto out;
 			}
 
@@ -548,9 +549,7 @@ fetch_account(struct io *pio, struct account *a, struct ios *ios, double tim)
 			    &cause) != 0)
 				goto out;
 
-			ARRAY_FREE(ios);
-			ARRAY_ADD(ios, pio, struct io *);
-			if (a->fetch->purge(a, ios) != FETCH_SUCCESS) {
+			if (a->fetch->purge(a) != FETCH_SUCCESS) {
 				cause = "purging";
 				goto out;
 			}

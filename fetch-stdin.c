@@ -28,7 +28,8 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_stdin_start(struct account *, struct ios *);
+int	 fetch_stdin_start(struct account *);
+void	 fetch_stdin_fill(struct account *, struct io **, u_int *);
 int	 fetch_stdin_finish(struct account *);
 int	 fetch_stdin_fetch(struct account *, struct mail *);
 int	 fetch_stdin_done(struct account *, struct mail *);
@@ -38,6 +39,7 @@ struct fetch fetch_stdin = {
 	"stdin",
 	{ NULL, NULL },
 	fetch_stdin_start,
+	fetch_stdin_fill,
 	NULL,
 	fetch_stdin_fetch,
 	NULL,
@@ -47,7 +49,7 @@ struct fetch fetch_stdin = {
 };
 
 int
-fetch_stdin_start(struct account *a, struct ios *ios)
+fetch_stdin_start(struct account *a)
 {
 	struct fetch_stdin_data	*data = a->data;
 
@@ -69,7 +71,6 @@ fetch_stdin_start(struct account *a, struct ios *ios)
 	data->io = io_create(STDIN_FILENO, NULL, IO_LF, conf.timeout);
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
-	ARRAY_ADD(ios, data->io, struct io *);
 
 	data->complete = 0;
 
@@ -77,6 +78,14 @@ fetch_stdin_start(struct account *a, struct ios *ios)
 	data->bodylines = -1;
 
 	return (FETCH_SUCCESS);
+}
+
+void
+fetch_stdin_fill(struct account *a, struct io **iop, u_int *n)
+{
+	struct fetch_stdin_data	*data = a->data;
+
+	iop[(*n)++] = data->io;
 }
 
 int

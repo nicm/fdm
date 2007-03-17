@@ -680,7 +680,6 @@ struct io {
 	int		 timeout;
 	const char	*eol;
 };
-ARRAY_DECL(ios, struct io *);
 
 /* Command flags. */
 #define CMD_IN  0x1

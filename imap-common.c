@@ -104,7 +104,7 @@ imap_login(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if (data->getln(a, IMAP_UNTAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_UNTAGGED, &line, 1) != 0)
 		return (1);
 	if (strncmp(line, "* PREAUTH", 9) == 0)
 		return (0);
@@ -118,15 +118,15 @@ imap_login(struct account *a)
 	if (data->putln(a, "%u LOGIN {%zu}", ++data->tag,
 	    strlen(data->user)) != 0)
 		return (1);
-	if (data->getln(a, IMAP_CONTINUE, &line, 0) != 0)
+	if (data->getln(a, IMAP_CONTINUE, &line, 1) != 0)
 		return (1);
 	if (data->putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
 		return (1);
-	if (data->getln(a, IMAP_CONTINUE, &line, 0) != 0)
+	if (data->getln(a, IMAP_CONTINUE, &line, 1) != 0)
 		return (1);
 	if (data->putln(a, "%s", data->pass) != 0)
 		return (1);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -143,10 +143,10 @@ imap_select(struct account *a)
 	if (data->putln(a, "%u SELECT %s", ++data->tag, data->folder) != 0)
 		return (1);
 	do {
-		if (data->getln(a, IMAP_UNTAGGED, &line, 0) != 0)
+		if (data->getln(a, IMAP_UNTAGGED, &line, 1) != 0)
 			return (1);
 	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_TAGGED, &line, 0) != 1)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -165,7 +165,7 @@ imap_close(struct account *a)
 
 	if (data->putln(a, "%u CLOSE", ++data->tag) != 0)
 		return (1);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -181,7 +181,7 @@ imap_logout(struct account *a)
 
 	if (data->putln(a, "%u LOGOUT", ++data->tag) != 0)
 		return (1);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -237,7 +237,7 @@ restart:
 		break;
 	}
 	if (type != -1) {
-		error = data->getln(a, type, &line, 1);
+		error = data->getln(a, type, &line, 0);
 		switch (error) {
 		case -1:
 			return (FETCH_ERROR);
@@ -404,7 +404,7 @@ imap_done(struct account *a, struct mail *m)
 	if (data->putln(a,
 	    "%u STORE %u +FLAGS \\Deleted", ++data->tag, aux->idx) != 0)
 		return (FETCH_ERROR);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
 		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);
@@ -413,14 +413,14 @@ imap_done(struct account *a, struct mail *m)
 }
 
 int
-imap_purge(struct account *a, struct ios *ios)
+imap_purge(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
 	if (data->putln(a, "%u EXPUNGE", ++data->tag) != 0)
 		return (FETCH_ERROR);
-	if (data->getln(a, IMAP_TAGGED, &line, 0) != 0)
+	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
 		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);
@@ -428,6 +428,5 @@ imap_purge(struct account *a, struct ios *ios)
 	if (imap_select(a) != 0)
 		return (FETCH_ERROR);
 
-	ARRAY_ADD(ios, data->io, struct io *);
 	return (FETCH_SUCCESS);
 }

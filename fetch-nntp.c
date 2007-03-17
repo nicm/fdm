@@ -56,6 +56,7 @@ struct fetch fetch_nntp = {
 	"nntp",
 	{ "nntp", NULL },
 	fetch_nntp_start,
+	NULL, /* fetch_nntp_fill */
 	fetch_nntp_poll,
 	fetch_nntp_fetch,
 	fetch_nntp_save,
