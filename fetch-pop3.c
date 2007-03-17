@@ -214,9 +214,6 @@ fetch_pop3_disconnect(struct account *a)
 	return (FETCH_SUCCESS);
 
 error:
-	io_writeline(data->io, "QUIT");
-	io_flush(data->io, NULL);
-
 	io_close(data->io);
 	io_free(data->io);
 

@@ -244,20 +244,17 @@ run_deliver(struct account *a, struct io *io, int *blocked, const char **cause)
 			*cause = "delivery";
 			return (1);
 		}
-
-		goto remove;
+	} else {
+		if (start_action(mctx->io, dctx) != 0) {
+			*cause = "delivery";
+			return (1);
+		}
+		if (dctx->blocked) {
+			*blocked = 1;
+			return (0);
+		}
 	}
 
-	if (start_action(mctx->io, dctx) != 0) {
-		*cause = "delivery";
-		return (1);
-	}
-	if (dctx->blocked) {
-		*blocked = 1;
-		return (0);
-	}
-
-remove:
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
 	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds", 
 	    a->name, mctx->mail->idx, dctx->rule->idx, 
