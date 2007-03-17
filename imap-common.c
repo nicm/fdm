@@ -82,6 +82,7 @@ imap_start(struct account *a)
 	data->lbuf = xmalloc(data->llen);
 
 	data->tag = 0;
+	data->state = IMAP_START;
 
 	return (FETCH_SUCCESS);
 }

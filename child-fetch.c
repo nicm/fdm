@@ -359,7 +359,7 @@ fetch_poll(struct account *a, int blocked, struct io *pio, struct io **rio)
 		return (0); 
 	
 	timeout = 0;
-	if (TAILQ_EMPTY(&matchq) && blocked)
+	if (TAILQ_EMPTY(&matchq) && (TAILQ_EMPTY(&deliverq) || blocked))
 		timeout = conf.timeout;
 
 	log_debug3("%s: polling %u fds, timeout=%d", a->name, n, timeout);

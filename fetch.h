@@ -82,6 +82,20 @@ struct fetch_nntp_data {
 	u_int		 group;
 	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
+	enum {
+		NNTP_START,
+		NNTP_NEXT,
+		NNTP_ARTICLE,
+		NNTP_LINE,
+	} state;
+	int		 flushing;
+	int		 bodylines;
+	u_int		 lines;
+	size_t		 size;
+
+	size_t		 llen;
+	char		*lbuf;
+
 	struct io	*io;
 };
 

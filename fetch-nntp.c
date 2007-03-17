@@ -106,13 +106,13 @@ fetch_nntp_line(struct account *a, char **lbuf, size_t *llen)
 }
 
 char *
-fetch_nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp, 
+fetch_nntp_check(struct account *a, char **lbuf, size_t *llen, int *cdp,
     u_int n, ...)
 {
-	char	*line;
 	va_list	 ap;
 	u_int	 i;
 	int	 code, arg;
+	char	*line;
 
 	if (cdp == NULL)
 		cdp = &code;
@@ -375,10 +375,10 @@ fetch_nntp_start(struct account *a)
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	u_int			 i;
-	char			*lbuf, *line, *cause;
-	size_t			 llen;
+	char			*line, *cause;
 
-	fatalx("nntp is currently broken");
+	data->llen = IO_LINESIZE;
+	data->lbuf = xmalloc(data->llen);
 
 	ARRAY_INIT(&data->groups);
 	for (i = 0; i < ARRAY_LENGTH(data->names); i++) {
@@ -390,6 +390,7 @@ fetch_nntp_start(struct account *a)
 	}
 
 	data->group = 0;
+	data->state = NNTP_START;
 
 	data->io = connectproxy(&data->server,
 	    conf.proxy ,IO_CRLF, conf.timeout, &cause);
@@ -401,40 +402,27 @@ fetch_nntp_start(struct account *a)
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-
 	if (fetch_nntp_load(a) != 0)
-		goto error;
+		return (FETCH_ERROR);
 	data->group = 0;
 	if (CURRENT_GROUP(data)->ignore) {
 		do {
 			data->group++;
 			if (data->group == TOTAL_GROUPS(data)) {
 				log_debug2("%s: no groups found", a->name);
-				goto error;
+				return (FETCH_ERROR);
 			}
 		} while (CURRENT_GROUP(data)->ignore);
 	}
 
-	if ((line = fetch_nntp_check(a, &lbuf, &llen, NULL, 1, 200)) == NULL)
-		goto error;
+	line = fetch_nntp_check(a, &data->lbuf, &data->llen, NULL, 1, 200);
+	if (line == NULL)
+		return (FETCH_ERROR);
 
-	if (fetch_nntp_group(a, &lbuf, &llen) != 0)
-		goto error;
+	if (fetch_nntp_group(a, &data->lbuf, &data->llen) != 0)
+		return (FETCH_ERROR);
 
-	xfree(lbuf);
 	return (FETCH_SUCCESS);
-
-error:
-	io_writeline(data->io, "QUIT");
-	io_flush(data->io, NULL);
-
-	io_close(data->io);
-	io_free(data->io);
-
-	xfree(lbuf);
-	return (FETCH_ERROR);
 }
 
 void
@@ -451,8 +439,7 @@ fetch_nntp_finish(struct account *a)
 	struct fetch_nntp_data	*data = a->data;	
 	struct fetch_nntp_group	*group;
 	u_int			 i;
-	char			*lbuf, *line;
-	size_t			 llen;
+	char			*line;
 
 	fetch_nntp_save(a);
 
@@ -465,42 +452,34 @@ fetch_nntp_finish(struct account *a)
 	}
 	ARRAY_FREE(&data->groups);
 
-	if (data->io == NULL)
+	if (data->io == NULL) {
+		xfree(data->lbuf);
 		return (FETCH_SUCCESS);
+	}
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-	
 	io_writeline(data->io, "QUIT");
-	if ((line = fetch_nntp_check(a, &lbuf, &llen, NULL, 1, 205)) == NULL)
+	line = fetch_nntp_check(a, &data->lbuf, &data->llen, NULL, 1, 205);
+	if (line == NULL)
 		goto error;
 
 	io_close(data->io);
 	io_free(data->io);
 
-	xfree(lbuf);
+	xfree(data->lbuf);
 	return (FETCH_SUCCESS);
 
 error:
-	io_writeline(data->io, "QUIT");
-	io_flush(data->io, NULL);
-
 	io_close(data->io);
 	io_free(data->io);
 
-	xfree(lbuf);
+	xfree(data->lbuf);
 	return (FETCH_ERROR);
 }
 
 int
 fetch_nntp_poll(struct account *a, u_int *n)
 {
-	struct fetch_nntp_data       	*data = a->data;
-	char			*lbuf;
-	size_t			 llen;
-
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
+	struct fetch_nntp_data	*data = a->data;
 
 	*n = CURRENT_GROUP(data)->size;
 	for (;;) {
@@ -510,17 +489,12 @@ fetch_nntp_poll(struct account *a, u_int *n)
 		if (CURRENT_GROUP(data)->ignore)
 			continue;
 
-		if (fetch_nntp_group(a, &lbuf, &llen) != 0)
-			goto error;
+		if (fetch_nntp_group(a, &data->lbuf, &data->llen) != 0)
+			return (FETCH_ERROR);
 		(*n) += CURRENT_GROUP(data)->size;
 	}
 
-	xfree(lbuf);
 	return (FETCH_SUCCESS);
-
-error:
-	xfree(lbuf);
-	return (FETCH_ERROR);
 }
 
 int
@@ -528,99 +502,136 @@ fetch_nntp_fetch(struct account *a, struct mail *m)
 {
 	struct fetch_nntp_data 	*data = a->data;
 	struct fetch_nntp_group	*group;
-	char			*lbuf, *line, *id;
-	size_t			 llen, off, len;
-	u_int			 lines, n;
-	int			 code, flushing;
-
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
+	char			*line, *id;
+	int			 code;
+	u_int			 n;
+	size_t			 len;
 
 restart:
-	io_writeline(data->io, "NEXT");
-	line = fetch_nntp_check(a, &lbuf, &llen, &code, 2, 223, 421);
-	if (line == NULL)
-		goto error;
-	if (code == 421) {
-		do {
-			data->group++;
-			if (data->group == TOTAL_GROUPS(data)) {
-				xfree(lbuf);
-				return (FETCH_COMPLETE);
-			}
-		} while (CURRENT_GROUP(data)->ignore);
-		if (fetch_nntp_group(a, &lbuf, &llen) != 0)
-			goto error;
-		goto restart;
+	line = NULL;
+	code = 0;
+	if (data->state != NNTP_START) {
+		line = io_readline2(data->io, &data->lbuf, &data->llen);
+		if (line == NULL)
+			return (FETCH_AGAIN);
+		if (data->state != NNTP_LINE) {
+			code = fetch_nntp_code(line);
+			if (code >= 100 && code <= 199)
+				goto restart;
+		}
 	}
 
-	/* fill this in as the last article */
-	if (fetch_nntp_parse223(line, &n, &id) != 0) {
-		log_warnx("%s: malformed response: %s", a->name, line);
-		goto restart;
-	}
-	group = CURRENT_GROUP(data);
-	if (n < group->last) {
-		log_warnx("%s: message number out of order", a->name);
-		goto error;
-	}
-	group->last = n;
-	if (group->id != NULL)
-		xfree(group->id);
-	group->id = id;
+	switch (data->state) {
+	case NNTP_START:
+		io_writeline(data->io, "NEXT");
+		data->state = NNTP_NEXT;
+		break;
+	case NNTP_NEXT:
+		if (code != 223 && code != 421)
+			goto bad;
+		if (code == 421) {
+			do {
+				data->group++;
+				if (data->group == TOTAL_GROUPS(data))
+					return (FETCH_COMPLETE);
+			} while (CURRENT_GROUP(data)->ignore);
+			if (fetch_nntp_group(a, &data->lbuf, &data->llen) != 0)
+				return (FETCH_ERROR);
+			io_writeline(data->io, "NEXT");
+			goto restart;
+		}
+		/* fill this in as the last article */
+		if (fetch_nntp_parse223(line, &n, &id) != 0) {
+			log_warnx("%s: malformed response: %s", a->name, line);
+			goto restart;
+		}
+		group = CURRENT_GROUP(data);
+		if (n < group->last) {
+			log_warnx("%s: message number out of order", a->name);
+			return (FETCH_ERROR);
+		}
+		group->last = n;
+		if (group->id != NULL)
+			xfree(group->id);
+		group->id = id;
 
-	/* retrieve the article */
-	io_writeline(data->io, "ARTICLE");
-	line = fetch_nntp_check(a, &lbuf, &llen, &code, 3, 220, 423, 430);
-	if (line == NULL)
-		goto error;
-	if (code == 423 || code == 430)
-		goto restart;
+		io_writeline(data->io, "ARTICLE");
+		data->state = NNTP_ARTICLE;
+		break;
+	case NNTP_ARTICLE:
+		if (code == 423 || code == 430)
+			goto restart;
+		if (code != 220)
+			goto bad;
+		
+		mail_open(m, IO_BLOCKSIZE);
+		m->size = 0;
 
-	mail_open(m, IO_BLOCKSIZE);
-	default_tags(&m->tags, CURRENT_GROUP(data)->name, a);
-	add_tag(&m->tags, "group", "%s", CURRENT_GROUP(data)->name);
-	add_tag(&m->tags, "server", "%s", data->server.host);
-	add_tag(&m->tags, "port", "%s", data->server.port);
+		m->auxdata = NULL;
+		m->auxfree = NULL;
 
-	flushing = 0;
-	off = lines = 0;
-	for (;;) {
-		if ((line = fetch_nntp_line(a, &lbuf, &llen)) == NULL)
-			goto error;
+		default_tags(&m->tags, CURRENT_GROUP(data)->name, a);
+		add_tag(&m->tags, "group", "%s", CURRENT_GROUP(data)->name);
+		add_tag(&m->tags, "server", "%s", data->server.host);
+		add_tag(&m->tags, "port", "%s", data->server.port);
 
+		data->flushing = 0;
+		data->lines = 0;
+		data->bodylines = -1;
+
+		data->state = NNTP_LINE;
+		break;
+	case NNTP_LINE:
 		if (line[0] == '.' && line[1] == '.')
 			line++;
-		else if (line[0] == '.') {
-			m->size = off;
-			break;
-		}
+		else if (line[0] == '.')
+			goto complete;
 
 		len = strlen(line);
-		if (len == 0 && m->body == -1)
-			m->body = off + 1;
-
-		if (!flushing) {
-			resize_mail(m, off + len + 1);
-
-			if (len > 0)
-				memcpy(m->data + off, line, len);
-			m->data[off + len] = '\n';
+		if (len == 0 && m->body == -1) {
+			m->body = m->size + 1;
+			data->bodylines = 0;
 		}
 
-		lines++;
-		off += len + 1;
-		if (off + lines > conf.max_size)
-			flushing = 1;
+		if (!data->flushing) {
+			resize_mail(m, m->size + len + 1);
+			
+			if (len > 0)
+				memcpy(m->data + m->size, line, len);
+			m->data[m->size + len] = '\n';
+		}
+
+		data->lines++;
+		if (data->bodylines != -1)
+			data->bodylines++;
+		m->size += len + 1;
+		if (m->size + data->lines > conf.max_size)
+			data->flushing = 1;
+		break;
 	}
 
-	xfree(lbuf);
-	if (flushing)
+	goto restart;
+
+complete:
+	data->state = NNTP_START;
+
+	add_tag(&m->tags, "lines", "%u", data->lines);
+	if (data->bodylines == -1) {
+		add_tag(&m->tags, "body_lines", "0");
+		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
+	} else {
+		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
+		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		    data->bodylines);
+	}
+
+	if (data->flushing)
 		return (FETCH_OVERSIZE);
+
 	return (FETCH_SUCCESS);
 
-error:
-	xfree(lbuf);
+bad:
+	log_warnx("%s: unexpected data: %s", a->name, line);
 	return (FETCH_ERROR);
 }
 
