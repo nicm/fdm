@@ -57,6 +57,10 @@ struct fetch_maildir_data {
 	char		 maildir[MAXPATHLEN];
 };
 
+struct fetch_maildir_mail {
+	char		 path[MAXPATHLEN];
+};
+
 /* NNTP group entry. */
 struct fetch_nntp_group {
 	char		*name;

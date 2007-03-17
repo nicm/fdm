@@ -276,7 +276,7 @@ run_done(struct account *a, int *dropped, int *kept, const char **cause)
 
 	if (TAILQ_EMPTY(&doneq))
 		return (0);
-
+	
 	mctx = TAILQ_FIRST(&doneq);
 	m = mctx->mail;
 	log_debug3("%s: running done queue", a->name);
@@ -352,7 +352,10 @@ fetch_poll(struct account *a, int blocked, struct ios *ios, struct io **rio)
 	int	 timeout;
 	char	*cause;
 	
-	if (TAILQ_EMPTY(&matchq) && (blocked || TAILQ_EMPTY(&deliverq)))
+	if (ARRAY_LENGTH(ios) == 1 && !blocked)
+		return (0); 
+
+	if (TAILQ_EMPTY(&matchq) && blocked)
 		timeout = conf.timeout;
 	else
 		timeout = 0;
@@ -919,6 +922,7 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 
 	/* if the current user is the same as the deliver user, don't bother
 	   passing up either */
+#ifndef ALWAYSPARENT
 	if (t->deliver->type == DELIVER_ASUSER && dctx->uid == geteuid()) {
 		dctx->blocked = 0;
 		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
@@ -952,6 +956,7 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 		
 		return (0);
 	}
+#endif
 
 	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_ACTION;

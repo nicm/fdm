@@ -31,12 +31,14 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_maildir_start(struct account *);
+int	 fetch_maildir_start(struct account *, struct ios *);
 int	 fetch_maildir_finish(struct account *);
 int	 fetch_maildir_poll(struct account *, u_int *);
 int	 fetch_maildir_fetch(struct account *, struct mail *);
-int	 fetch_maildir_done(struct account *, enum decision);
+int	 fetch_maildir_done(struct account *, struct mail *);
 void	 fetch_maildir_desc(struct account *, char *, size_t);
+
+void	 fetch_maildir_free(void *);
 
 int	 fetch_maildir_makepaths(struct account *);
 void	 fetch_maildir_freepaths(struct account *);
@@ -52,6 +54,14 @@ struct fetch fetch_maildir = {
 	fetch_maildir_finish,
 	fetch_maildir_desc
 };
+
+void
+fetch_maildir_free(void *ptr)
+{
+	struct fetch_maildir_mail	*aux = ptr;
+
+	xfree(aux);
+}
 
 /* Make an array of all the paths to visit. */
 int
@@ -123,11 +133,9 @@ fetch_maildir_freepaths(struct account *a)
 }
 
 int
-fetch_maildir_start(struct account *a)
+fetch_maildir_start(struct account *a, unused struct ios *ios)
 {
 	struct fetch_maildir_data	*data = a->data;
-
-	fatalx("maildir is currently broken");
 
 	data->dirp = NULL;
 
@@ -202,6 +210,7 @@ int
 fetch_maildir_fetch(struct account *a, struct mail *m)
 {
 	struct fetch_maildir_data	*data = a->data;
+	struct fetch_maildir_mail	*aux;
 	struct dirent			*dp;
 	char	       			*ptr;
 	struct stat			 sb;
@@ -261,6 +270,11 @@ restart:
 	mail_open(m, IO_ROUND(sb.st_size));
 	default_tags(&m->tags, data->maildir, a);
 	add_tag(&m->tags, "maildir", "%s", data->maildir);
+
+	aux = xmalloc(sizeof *aux);
+	strlcpy(aux->path, data->entry, sizeof aux->path);
+	m->auxdata = aux;
+	m->auxfree = fetch_maildir_free;
 	
 	log_debug2("%s: reading %ju bytes", a->name, (uintmax_t) sb.st_size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
@@ -288,15 +302,15 @@ restart:
 }
 
 int
-fetch_maildir_done(struct account *a, enum decision d)
+fetch_maildir_done(struct account *a, struct mail *m)
 {
-	struct fetch_maildir_data	*data = a->data;
+	struct fetch_maildir_mail	*aux = m->auxdata;
 
-	if (d == DECISION_KEEP)
+	if (m->decision == DECISION_KEEP)
 		return (FETCH_SUCCESS);
 
-	if (unlink(data->entry) != 0) {
-		log_warn("%s: %s: unlink", a->name, data->entry);
+	if (unlink(aux->path) != 0) {
+		log_warn("%s: %s: unlink", a->name, aux->path);
 		return (FETCH_ERROR);
 	}
 
