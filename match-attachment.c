@@ -27,6 +27,7 @@ int	match_attachment_match(struct match_ctx *, struct expritem *);
 void	match_attachment_desc(struct expritem *, char *, size_t);
 
 struct match match_attachment = {
+	"attachment",
 	match_attachment_match,
 	match_attachment_desc
 };
