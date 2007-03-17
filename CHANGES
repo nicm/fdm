@@ -1,3 +1,8 @@
+17 March 2007
+
+* Don't bother passing mail to parent if the user doesn't actually need to be
+  changed. 
+
 16 March 2007
 
 * Change so that the child uses poll(2) on all the fds rather than letting

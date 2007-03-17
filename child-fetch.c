@@ -830,7 +830,7 @@ do_deliver(struct rule *r, struct match_ctx *mctx)
 				dctx->account = a;
 				dctx->rule = r;
 				dctx->mail = m;
-				dctx->uid = ARRAY_ITEM(users, i, uid_t);
+				dctx->uid = ARRAY_ITEM(users, k, uid_t);
 				dctx->blocked = 0;
 
 				TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
@@ -897,7 +897,9 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 	struct account	*a = dctx->account;
 	struct action	*t = dctx->action;
 	struct mail	*m = dctx->mail;
+	struct mail	*md = &dctx->wr_mail;
 	struct msg	 msg;
+	u_int		 lines;	
 
 	dctx->tim = get_time();
  	if (t->deliver->deliver == NULL)
@@ -912,6 +914,42 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 		dctx->blocked = 0;
 		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
 			return (1);
+		return (0);
+	}
+
+	/* if the current user is the same as the deliver user, don't bother
+	   passing up either */
+	if (t->deliver->type == DELIVER_ASUSER && dctx->uid == geteuid()) {
+		dctx->blocked = 0;
+		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
+			return (1);
+		return (0);
+	}
+	if (t->deliver->type == DELIVER_WRBACK && dctx->uid == geteuid()) {
+		dctx->blocked = 0;
+
+		mail_open(md, IO_BLOCKSIZE);
+		md->decision = m->decision;
+		
+		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS) {
+			mail_destroy(md);
+			return (1);
+		}
+
+		memcpy(&msg.data.mail, md, sizeof msg.data.mail);
+		cleanup_deregister(md->shm.name);
+
+		mail_receive(m, &msg);
+		log_debug2("%s: received modified mail: size %zu, body %zd",
+		    a->name, m->size, m->body);
+
+		/* trim from line */
+		trim_from(m);
+	
+		/* and recreate the wrapped array */
+		lines = fill_wrapped(m);
+		log_debug2("%s: found %u wrapped lines", a->name, lines);
+		
 		return (0);
 	}
 
