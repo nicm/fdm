@@ -350,8 +350,8 @@ struct rmlist {
 };
 
 /* Regexp flags. */
-#define RE_ICASE 0x1
-#define RE_NOSUB 0x2
+#define RE_IGNCASE 0x1
+#define RE_NOSUBST 0x2
 
 /* A single mail. */
 struct mail {

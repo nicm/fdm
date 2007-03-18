@@ -1904,7 +1904,7 @@ expritem: not icase replstrv area
 
 		  flags = 0;
 		  if ($2)
-			  flags |= RE_ICASE;
+			  flags |= RE_IGNCASE;
 		  if (re_compile(&data->re, $3, flags, &cause) != 0)
 			  yyerror("%s", cause);
 		  xfree($3);
@@ -1999,7 +1999,7 @@ expritem: not icase replstrv area
 
 		  data->str.str = $3;
 
-		  if (re_compile(&data->re, $5, RE_NOSUB, &cause) != 0)
+		  if (re_compile(&data->re, $5, RE_NOSUBST, &cause) != 0)
 			  yyerror("%s", cause);
 		  xfree($5);
 	  }

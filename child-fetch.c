@@ -908,8 +908,8 @@ start_action(struct io *io, struct deliver_ctx *dctx)
  	if (t->deliver->deliver == NULL)
 		return (0);
 
-	log_debug2("%s: running action %s as user %lu", a->name, t->name,
-	    (u_long) dctx->uid);
+	log_debug2("%s: message %u, running action %s as user %lu",
+	    a->name, m->idx, t->name, (u_long) dctx->uid);
 	add_tag(&m->tags, "action", "%s", t->name);
 
 	/* just deliver now for in-child delivery */
@@ -920,7 +920,7 @@ start_action(struct io *io, struct deliver_ctx *dctx)
 		return (0);
 	}
 
-#ifndef ALWAYSPARENT
+#if 0
 	/* if the current user is the same as the deliver user, don't bother
 	   passing up either */
 	if (t->deliver->type == DELIVER_ASUSER && dctx->uid == geteuid()) {
@@ -997,8 +997,8 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, void *buf, size_t len)
 		return (0);
 
 	mail_receive(m, msg);
-	log_debug2("%s: received modified mail: size %zu, body %zd", a->name,
-	    m->size, m->body);
+	log_debug2("%s: message %u, received modified mail: size %zu, body %zd",
+	    a->name, m->idx, m->size, m->body);
 
 	/* trim from line */
 	trim_from(m);

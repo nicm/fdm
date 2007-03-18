@@ -37,9 +37,9 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 	re->flags = flags;
 
 	flags = REG_EXTENDED|REG_NEWLINE;
-	if (re->flags & RE_NOSUB)
+	if (re->flags & RE_NOSUBST)
 		flags |= REG_NOSUB;
-	if (re->flags & RE_ICASE)
+	if (re->flags & RE_IGNCASE)
 		flags |= REG_ICASE;
 
 	if ((error = regcomp(&re->re, s, flags)) != 0) {
@@ -60,7 +60,7 @@ re_string(struct re *re, char *s, struct rmlist *rml, char **cause)
 	regmatch_t	pm[NPMATCH];
 	u_int		i;
 
-	if (re->flags & RE_NOSUB) {
+	if (re->flags & RE_NOSUBST) {
 		if (rml != NULL)
 			fatalx("re_string: nosub re but rml != NULL");
 	} else {
@@ -108,7 +108,7 @@ re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
 	regmatch_t	pm[NPMATCH];
 	u_int		i;
 
-	if (re->flags & RE_NOSUB) {
+	if (re->flags & RE_NOSUBST) {
 		if (rml != NULL)
 			fatalx("re_string: nosub re but rml != NULL");
 	} else {
