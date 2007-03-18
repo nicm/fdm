@@ -909,8 +909,8 @@ int			 io_flush(struct io *, char **);
 int			 io_wait(struct io *, size_t, char **);
 
 /* log.c */
+void			 vlog(FILE *, int, const char *, va_list);
 void			 log_init(int);
-void		    	 vlog(int, const char *, va_list);
 void printflike1	 log_warn(const char *, ...);
 void printflike1	 log_warnx(const char *, ...);
 void printflike1	 log_info(const char *, ...);

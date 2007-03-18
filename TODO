@@ -26,7 +26,6 @@
 - refactor & clean up privsep mail transfer code
 - document mail_file, mbox_file and exec action
 - -q option to silence normal (info) output
-- sort out so normal (info) goes to stdout and all else to stderr
 - look at .netrc
 -- move lbuf stuff into fetch_*_data
 -- split fetch into next and get(line) and alloc mail outside

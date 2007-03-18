@@ -80,7 +80,7 @@ yyerror(const char *fmt, ...)
 	xasprintf(&s, "%s: %s at line %d", file, fmt, yylineno);
 
 	va_start(ap, fmt);
-	vlog(LOG_CRIT, s, ap);
+	vlog(stderr, LOG_CRIT, s, ap);
 	va_end(ap);
 
 	exit(1);
@@ -1306,7 +1306,7 @@ gid: replstrv
 /** USER: <uid> (uid_t) */
 user: /* empty */
       {
-	      $$ = 0;
+	      $$ = NOUSR;
       }
     | TOKUSER uid
 /**   [$2: uid (uid_t)] */
