@@ -125,6 +125,8 @@ mail_destroy(struct mail *m)
 
 	mail_free(m);
 	if (m->base != NULL) {
+		log_debug("mail_destroy: %ld %d %s", (long) getpid(),
+		    m->idx, m->shm.name);
 		strlcpy(path, m->shm.name, sizeof path);
 		shm_destroy(&m->shm);
 		cleanup_deregister(path);

@@ -428,6 +428,8 @@ free_rule(struct rule *r)
 		} else if (ei->match == &match_command) {
 			struct match_command_data	*data = ei->data;
 			xfree(data->cmd.str);
+			if (data->re.str != NULL)
+				re_free(&data->re);
 		} else if (ei->match == &match_tagged) {
 			struct match_tagged_data	*data = ei->data;
 			xfree(data->tag.str);

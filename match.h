@@ -111,7 +111,7 @@ struct match_command_data {
 	uid_t		 uid;
 	int		 pipe;		/* pipe mail to command */
 
-	struct re	 re;		/* re->re NULL to not check */
+	struct re	 re;		/* re->str NULL to not check */
 	int		 ret;		/* -1 to not check */
 };
 

@@ -315,6 +315,7 @@ void
 flush_queue(struct match_queue *mq)
 {
 	struct match_ctx	*mctx;
+	struct deliver_ctx	*dctx;
 	struct mail		*m;
 
 	while (!TAILQ_EMPTY(mq)) {
@@ -322,6 +323,11 @@ flush_queue(struct match_queue *mq)
 		m = mctx->mail;
 
 		TAILQ_REMOVE(mq, mctx, entry);
+		while (!TAILQ_EMPTY(&mctx->dqueue)) {
+			dctx = TAILQ_FIRST(&mctx->dqueue);
+			TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
+			xfree(dctx);
+		}
 		ARRAY_FREE(&mctx->stack);
 		xfree(mctx);
 
