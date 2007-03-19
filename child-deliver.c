@@ -33,6 +33,7 @@ child_deliver(struct child *child, struct io *io)
 	struct account			*a = data->account;
 	struct mail			*m = data->mail;
 	struct msg			 msg;
+	struct msgbuf			 msgbuf;
 	int				 error = 0;
 
 #ifndef NO_SETPROCTITLE
@@ -50,9 +51,14 @@ child_deliver(struct child *child, struct io *io)
 
 	/* inform parent we're done */
 	msg.type = MSG_DONE;
-	if (privsep_send(io, &msg, m->tags, STRB_SIZE(m->tags)) != 0)
+	msg.id = 0;
+
+	msgbuf.buf = m->tags;
+	msgbuf.len = STRB_SIZE(m->tags);
+
+	if (privsep_send(io, &msg, &msgbuf) != 0)
 		fatalx("deliver: privsep_send error");
-	if (privsep_recv(io, &msg, NULL, 0) != 0)
+	if (privsep_recv(io, &msg, NULL) != 0)
 		fatalx("deliver: privsep_recv error");
 	if (msg.type != MSG_EXIT)
 		fatalx("deliver: unexpected message");
@@ -104,8 +110,8 @@ void
 child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg, 
     struct child_deliver_data *data, int *result)
 {
-	struct match_ctx		*mctx = data->mctx;
-	struct mail			*m = mctx->mail;
+	struct mail_ctx			*mctx = data->mctx;
+	struct mail			*m = data->mail;
 	struct match_command_data	*cmddata = data->cmddata;
 	int				 flags, status, found = 0;
 	char				*s, *cause, *lbuf, *out, *err, tag[24];

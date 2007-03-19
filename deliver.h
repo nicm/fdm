@@ -25,22 +25,20 @@
 
 /* Deliver context. */
 struct deliver_ctx {
-	double		 tim;
+	double		 		 tim;
 
-	struct action	*action;
-	struct rule	*rule;
+	struct action			*action;
+	struct rule			*rule;
 
-	struct account	*account;
-	struct mail	*mail;
+	struct account			*account;
+	struct mail			*mail;
 
-	uid_t		 uid;
+	uid_t				 uid;
 
-	struct mail	 wr_mail;
+	struct mail	 		 wr_mail;
 
-	int		 blocked; /* blocked waiting for parent */
-	TAILQ_ENTRY(deliver_ctx) entry;
+	TAILQ_ENTRY(deliver_ctx)	 entry;
 };
-TAILQ_HEAD(deliver_queue, deliver_ctx);
 
 /* Delivery types. */
 enum delivertype {

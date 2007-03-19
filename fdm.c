@@ -278,12 +278,11 @@ main(int argc, char **argv)
 	pid_t		 pid;
 	struct children	 children, dead_children;
 	struct child	*child;
-	void		*buf;
-	size_t		 len;
 	struct io      **ios, *io;
 	double		 tim;
 	struct sigaction act;
 	struct msg	 msg;
+	struct msgbuf	 msgbuf;
 	size_t		 off;
 	struct macro	*macro;
 	struct child_fetch_data *cfd;
@@ -735,18 +734,21 @@ main(int argc, char **argv)
 				break;
 
 			/* and handle them if necessary */
-			if (privsep_recv(child->io, &msg, &buf, &len) != 0)
+			if (privsep_recv(child->io, &msg, &msgbuf) != 0)
 				fatalx("parent: privsep_recv error");
-			if (child->msg(child, &msg, buf, len) == 0)
+			log_debug3("parent: got message type %d, id %u from "
+			    "child %ld", msg.type, msg.id, (long) child->pid);
+
+			if (child->msg(child, &msg, &msgbuf) == 0)
 				continue;
 
 			/* child has said it is ready to exit, tell it to */
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
-			if (privsep_send(child->io, &msg, NULL, 0) != 0)
+			if (privsep_send(child->io, &msg, NULL) != 0)
 				fatalx("parent: privsep_send error");
 
-			/* wait for the child  */
+			/* wait for the child */
 			if (waitpid(child->pid, &status, 0) == -1)
 				fatal("waitpid");
 			if (WIFSIGNALED(status)) {

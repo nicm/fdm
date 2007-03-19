@@ -23,7 +23,7 @@
 #include "fdm.h"
 #include "match.h"
 
-int	match_command_match(struct match_ctx *, struct expritem *);
+int	match_command_match(struct mail_ctx *, struct expritem *);
 void	match_command_desc(struct expritem *, char *, size_t);
 
 struct match match_command = {
@@ -33,15 +33,14 @@ struct match match_command = {
 };
 
 int
-match_command_match(struct match_ctx *mctx, struct expritem *ei)
+match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 {
 	struct match_command_data	*data = ei->data;
 	struct account			*a = mctx->account;
 	struct mail			*m = mctx->mail;
 	struct io			*io = mctx->io;
 	struct msg			 msg;
-	void				*buf;
-	size_t				 len;
+	struct msgbuf			 msgbuf;
 
 	/*
 	 * We are called as the child so to change uid this needs to be done
@@ -49,26 +48,22 @@ match_command_match(struct match_ctx *mctx, struct expritem *ei)
 	 */
 	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_COMMAND;
+	msg.id = m->idx;
+
 	msg.data.account = a;
 	msg.data.cmddata = data;
 	msg.data.uid = data->uid;
 
+	msgbuf.buf = m->tags;
+	msgbuf.len = STRB_SIZE(m->tags);
+
 	mail_send(m, &msg);
 
-	if (privsep_send(io, &msg, m->tags, STRB_SIZE(m->tags)) != 0)
+	if (privsep_send(io, &msg, &msgbuf) != 0)
 		fatalx("child: privsep_send error");
 
-	if (privsep_recv(io, &msg, &buf, &len) != 0)
-		fatalx("child: privsep_recv error");
-	if (msg.type != MSG_DONE)
-		fatalx("child: unexpected message");
-
-	if (buf == NULL || len == 0)
-		fatalx("child: bad tags");
-	strb_destroy(&m->tags);
-	m->tags = buf;
-
-	return (msg.data.error);
+	mctx->msgid = msg.id;
+	return (MATCH_PARENT);
 }
 
 void

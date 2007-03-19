@@ -21,21 +21,20 @@
 #include "fdm.h"
 
 int
-privsep_send(struct io *io, struct msg *msg, void *buf, size_t len)
+privsep_send(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 {
 	char *cause;
 	
-	if (buf != NULL && len > 0)
-		msg->size = len;
-	else
-		msg->size = 0;
+	msg->size = 0;
+	if (msgbuf != NULL && msgbuf->buf != NULL && msgbuf->len > 0)
+		msg->size = msgbuf->len;
 
 	io_write(io, msg, sizeof *msg);
 	if (io_flush(io, &cause) != 0)
 		return (1);
 
-	if (buf != NULL && len > 0) {
-		io_write(io, buf, len);
+	if (msg->size != 0) {
+		io_write(io, msgbuf->buf, msgbuf->len);
 		if (io_flush(io, &cause) != 0)
 			return (1);
 	}
@@ -50,13 +49,8 @@ privsep_check(struct io *io)
 }
 
 int
-privsep_recv(struct io *io, struct msg *msg, void **buf, size_t *len)
+privsep_recv(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 {
-	if (len != NULL)
-		*len = 0;
-	if (buf != NULL)
-		*buf = NULL;
-
 	if (io_wait(io, sizeof *msg, NULL) != 0)
 		return (1);
 	if (io_read2(io, msg, sizeof *msg) != 0)
@@ -64,17 +58,17 @@ privsep_recv(struct io *io, struct msg *msg, void **buf, size_t *len)
 
 	if (msg->size == 0)
 		return (0);
-	if (buf == NULL || len == NULL)
+	if (msgbuf == NULL)
 		return (1);
 
-	*len = msg->size;
-	if (*len == 0) {
-		*buf = NULL;
+	msgbuf->len = msg->size;
+	if (msgbuf->len == 0) {
+		msgbuf->buf = NULL;
 		return (0);
 	}
-	if (io_wait(io, *len, NULL) != 0)
+	if (io_wait(io, msgbuf->len, NULL) != 0)
 		return (1);
-	if ((*buf = io_read(io, *len)) == NULL)
+	if ((msgbuf->buf = io_read(io, msgbuf->len)) == NULL)
 		return (1);
 
 	return (0);

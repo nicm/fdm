@@ -68,7 +68,6 @@ mail_receive(struct mail *m, struct msg *msg)
 {
 	struct mail	*mm = &msg->data.mail;
 
-	mm->done = m->done;
 	mm->idx = m->idx;
 
 	mm->tags = m->tags;

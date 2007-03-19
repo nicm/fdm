@@ -75,7 +75,7 @@ child_exit(int status)
 
 struct child *
 child_start(struct children *children, uid_t uid, int (*start)(struct child *,
-    struct io *), int (*msg)(struct child *, struct msg *, void *, size_t),
+    struct io *), int (*msg)(struct child *, struct msg *, struct msgbuf *),
     void *data)
 {
 	struct child	*child, *childp;

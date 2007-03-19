@@ -29,7 +29,7 @@
 
 int	fetch_pop3_start(struct account *);
 void	fetch_pop3_fill(struct account *, struct io **, u_int *);
-int	fetch_pop3_finish(struct account *);
+int	fetch_pop3_finish(struct account *, int);
 int	fetch_pop3_poll(struct account *, u_int *);
 int	fetch_pop3_fetch(struct account *, struct mail *);
 int	fetch_pop3_purge(struct account *);
@@ -39,7 +39,7 @@ void	fetch_pop3_desc(struct account *, char *, size_t);
 void	fetch_pop3_free(void *);
 
 int	fetch_pop3_connect(struct account *);
-int	fetch_pop3_disconnect(struct account *);
+int	fetch_pop3_disconnect(struct account *, int);
 
 int	fetch_pop3_line(struct account *, char **);
 int	fetch_pop3_okay(char *);
@@ -137,13 +137,13 @@ fetch_pop3_fill(struct account *a, struct io **iop, u_int *n)
 }
 
 int
-fetch_pop3_finish(struct account *a)
+fetch_pop3_finish(struct account *a, int aborted)
 {
 	struct fetch_pop3_data	*data = a->data;
 	u_int			 i;
 
 	if (data->io != NULL)
-		fetch_pop3_disconnect(a);
+		fetch_pop3_disconnect(a, aborted);
 
 	if (data->uid != NULL)
 		xfree(data->uid);
@@ -200,12 +200,12 @@ fetch_pop3_connect(struct account *a)
 }
 
 int
-fetch_pop3_disconnect(struct account *a)
+fetch_pop3_disconnect(struct account *a, int aborted)
 {
 	struct fetch_pop3_data	*data = a->data;
 
 	io_writeline(data->io, "QUIT");
-	if (fetch_pop3_check(a) == NULL)
+	if (!aborted && fetch_pop3_check(a) == NULL)
 		goto error;
 
 	io_close(data->io);
@@ -392,7 +392,7 @@ bad:
 int
 fetch_pop3_purge(struct account *a)
 {
-	if (fetch_pop3_disconnect(a) != 0)
+	if (fetch_pop3_disconnect(a, 0) != 0)
 		return (FETCH_ERROR);
 	return (fetch_pop3_connect(a));
 }

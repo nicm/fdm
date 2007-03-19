@@ -23,7 +23,7 @@
 #include "fdm.h"
 #include "match.h"
 
-int	match_regexp_match(struct match_ctx *, struct expritem *);
+int	match_regexp_match(struct mail_ctx *, struct expritem *);
 void	match_regexp_desc(struct expritem *, char *, size_t);
 
 struct match match_regexp = {
@@ -33,7 +33,7 @@ struct match match_regexp = {
 };
 
 int
-match_regexp_match(struct match_ctx *mctx, struct expritem *ei)
+match_regexp_match(struct mail_ctx *mctx, struct expritem *ei)
 {
 	struct match_regexp_data	*data = ei->data;
 	struct account			*a = mctx->account;

@@ -355,8 +355,8 @@ struct rmlist {
 
 /* A single mail. */
 struct mail {
-	double			 tim;
 	u_int			 idx;
+	double			 tim;
 
 	struct strb		*tags;
 
@@ -380,12 +380,41 @@ struct mail {
 	/* XXX move below into special struct and just cp it in mail_*? */
 	struct rmlist		 rml;		/* regexp matches */
 
-	int			 done;		/* mail is finished with */
 	enum decision		 decision;	/* final deliver decision */
 
 	void			 (*auxfree)(void *);
 	void			*auxdata;
 };
+
+/* Mail fetch/delivery return codes. */
+#define MAIL_CONTINUE 0
+#define MAIL_DELIVER 1
+#define MAIL_MATCH 2
+#define MAIL_ERROR 3
+#define MAIL_BLOCKED 4
+#define MAIL_DONE 5
+
+/* Mail fetch/delivery context. */
+struct mail_ctx {
+	int				 done;
+	u_int				 msgid;
+	
+	struct account			*account;
+	struct io			*io;
+	struct mail			*mail;
+
+	struct rule			*rule;
+	ARRAY_DECL(, struct rule *)	 stack;
+	struct expritem			*expritem;
+	int				 result;
+	int				 matched;
+
+	TAILQ_HEAD(, deliver_ctx)	 dqueue;
+
+	TAILQ_ENTRY(mail_ctx)		 entry;
+};
+TAILQ_HEAD(mail_queue, mail_ctx);
+extern struct mail_queue mail_queue;
 
 /* An attachment. */
 struct attach {
@@ -425,8 +454,15 @@ struct msgdata {
 	uid_t			 	 uid;
 };
 
+/* Privsep message buffer. */
+struct msgbuf {
+	void		*buf;
+	size_t		 len;
+}; 
+
 /* Privsep message. */
 struct msg {
+	u_int		 id;
 	enum msgtype	 type;
 	size_t		 size;
 
@@ -439,7 +475,10 @@ struct child {
 	struct io	*io;
 
 	void		*data;
-	int		 (*msg)(struct child *, struct msg *, void *, size_t);
+	int		 (*msg)(struct child *, struct msg *, struct msgbuf *);
+
+	void		*buf;
+	size_t		 len;
 };
 
 /* List of children. */
@@ -456,14 +495,19 @@ struct child_fetch_data {
 struct child_deliver_data {
 	void			 (*hook)(int, struct account *, struct msg *, 
 				      struct child_deliver_data *, int *);
+
 	struct child 		*child; /* the source of the request */
+
 	u_int			 msgid;
 	const char		*name;
+
 	struct account		*account;
-	struct action		*action;
-	struct deliver_ctx	*dctx;
 	struct mail		*mail;
-	struct match_ctx	*mctx;
+	struct action		*action;
+
+	struct deliver_ctx	*dctx;
+	struct mail_ctx		*mctx;
+
 	struct match_command_data *cmddata;
 };
 
@@ -780,11 +824,11 @@ struct attach 		*attach_build(struct mail *);
 void			 attach_free(struct attach *);
 
 /* privsep.c */
-int			 privsep_send(struct io *, struct msg *, void *,
-			     size_t);
+int			 privsep_send(struct io *, struct msg *,
+			     struct msgbuf *);
 int			 privsep_check(struct io *);
-int			 privsep_recv(struct io *, struct msg *, void **,
-			     size_t *);
+int			 privsep_recv(struct io *, struct msg *,
+			     struct msgbuf *);
 
 /* command.c */
 struct cmd 		*cmd_start(const char *, int, int, char *, size_t,
@@ -798,8 +842,8 @@ int			 child_fork(void);
 __dead void		 child_exit(int);
 struct child 		*child_start(struct children *, uid_t, 
     			     int (*)(struct child *, struct io *), 
-			     int (*)(struct child *, struct msg *, void *,
-			     size_t), void *);
+			     int (*)(struct child *, struct msg *,
+    			     struct msgbuf *), void *);
 
 /* child-fetch.c */
 int			 child_fetch(struct child *, struct io *);
@@ -812,12 +856,12 @@ void			 child_deliver_cmd_hook(int, struct account *,
 			     struct msg *, struct child_deliver_data *, int *);
 
 /* parent-fetch.c */
-int			 parent_fetch(struct child *, struct msg *, void *,
-			     size_t);
+int			 parent_fetch(struct child *, struct msg *,
+			     struct msgbuf *);
 
 /* parent-deliver.c */
-int			 parent_deliver(struct child *, struct msg *, void *,
-			     size_t);
+int			 parent_deliver(struct child *, struct msg *, 
+			     struct msgbuf *);
 
 /* connect.c */
 struct proxy 		*getproxy(const char *);
@@ -851,6 +895,10 @@ void			 trim_from(struct mail *);
 char 		        *make_from(struct mail *);
 u_int			 fill_wrapped(struct mail *);
 void			 set_wrapped(struct mail *, char);
+
+/* mail-state.c */
+int	mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
+int	mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
 /* cleanup.c */
 void			 cleanup_check(void);

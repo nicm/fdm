@@ -31,28 +31,25 @@
 
 void	parent_fetch_action(struct child *, struct children *,
     	    struct deliver_ctx *, struct msg *);
-void	parent_fetch_cmd(struct child *, struct children *, struct match_ctx *, 
+void	parent_fetch_cmd(struct child *, struct children *, struct mail_ctx *, 
 	    struct msg *);
 
 int
-parent_fetch(struct child *child, struct msg *msg, void *buf, size_t len)
+parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 {
 	struct child_fetch_data	*data = child->data;
 	struct children		*children = data->children;
 	struct deliver_ctx	*dctx;
-	struct match_ctx	*mctx;
+	struct mail_ctx		*mctx;
 	struct mail		*m;
-
-	log_debug3("parent_fetch: got message type %d from child %ld",
-	    msg->type, (long) child->pid);
 
 	switch (msg->type) {
 	case MSG_ACTION:
-		if (buf == NULL || len == 0)
+		if (msgbuf->buf == NULL || msgbuf->len == 0)
 			fatalx("parent_fetch: bad tags");
 		m = xcalloc(1, sizeof *m);
 		mail_receive(m, msg);
-		m->tags = buf;
+		m->tags = msgbuf->buf;
 
 		dctx = xcalloc(1, sizeof *dctx);
 		dctx->account = msg->data.account;
@@ -61,11 +58,11 @@ parent_fetch(struct child *child, struct msg *msg, void *buf, size_t len)
 		parent_fetch_action(child, children, dctx, msg);
 		break;
 	case MSG_COMMAND:
-		if (buf == NULL || len == 0)
+		if (msgbuf->buf == NULL || msgbuf->len == 0)
 			fatalx("parent_fetch: bad tags");
 		m = xcalloc(1, sizeof *m);
 		mail_receive(m, msg);
-		m->tags = buf;
+		m->tags = msgbuf->buf;
 
 		mctx = xcalloc(1, sizeof *mctx);
 		mctx->account = msg->data.account;
@@ -107,6 +104,7 @@ parent_fetch_action(struct child *child, struct children *children,
 
 	data = xmalloc(sizeof *data);
 	data->child = child;
+	data->msgid = msg->id;
 	data->account = dctx->account;
 	data->hook = child_deliver_action_hook;
 	data->action = t;
@@ -119,7 +117,7 @@ parent_fetch_action(struct child *child, struct children *children,
 
 void
 parent_fetch_cmd(struct child *child, struct children *children, 
-    struct match_ctx *mctx, struct msg *msg)
+    struct mail_ctx *mctx, struct msg *msg)
 {
 	uid_t				 uid = msg->data.uid;
 	struct mail			*m = mctx->mail; 
@@ -127,6 +125,7 @@ parent_fetch_cmd(struct child *child, struct children *children,
 
 	data = xmalloc(sizeof *data);
 	data->child = child;
+	data->msgid = msg->id;
 	data->account = mctx->account;
 	data->hook = child_deliver_cmd_hook;
 	data->mctx = mctx;

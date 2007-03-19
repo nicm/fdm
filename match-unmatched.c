@@ -23,7 +23,7 @@
 #include "fdm.h"
 #include "match.h"
 
-int	match_unmatched_match(struct match_ctx *, struct expritem *);
+int	match_unmatched_match(struct mail_ctx *, struct expritem *);
 void	match_unmatched_desc(struct expritem *, char *, size_t);
 
 struct match match_unmatched = { 
@@ -33,7 +33,7 @@ struct match match_unmatched = {
 };
 
 int
-match_unmatched_match(struct match_ctx *mctx, unused struct expritem *ei)
+match_unmatched_match(struct mail_ctx *mctx, unused struct expritem *ei)
 {
 	if (mctx->matched)
 		return (MATCH_FALSE);
