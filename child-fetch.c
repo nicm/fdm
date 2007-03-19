@@ -40,7 +40,10 @@ int	fetch_drain(u_int *, u_int *);
 int	fetch_done(struct mail_ctx *, u_int *, u_int *);
 int	fetch_match(int *, u_int *, struct msg *, struct msgbuf *);
 int	fetch_deliver(int *, struct msg *, struct msgbuf *);
-int	fetch_poll(struct io *, struct mail_ctx *, int, u_int);
+int	fetch_poll(struct account *, struct io *, struct mail_ctx *,
+	    int, u_int);
+int	fetch_get(struct account *, struct mail_ctx *, struct io *, u_int *);
+int	fetch_flush(struct account *, struct io *, u_int *, u_int *, u_int *);
 int	fetch_transform(struct account *, struct mail *);
 
 struct mail_queue matchq;
@@ -155,11 +158,10 @@ poll_account(unused struct io *io, struct account *a)
 }
 
 int
-fetch_poll(struct io *pio, struct mail_ctx *mctx, int blocked, u_int queued)
+fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx, 
+    int blocked, u_int queued)
 {
-	struct account 	*a = mctx->account;
-	static int	 finished;	/* fetch is complete */
-	static int	 holding;	/* holding for queue to drop */
+	static int	 holding;	/* holding fetch until queues drop */
 	struct io	*rio, *iop[NFDS];
 	char		*cause;
 	u_int		 n;
@@ -171,7 +173,7 @@ fetch_poll(struct io *pio, struct mail_ctx *mctx, int blocked, u_int queued)
 	/* 
 	 * If the queue is empty and the fetch finished, must be all done.
 	 */
-	if (queued == 0 && finished)
+	if (queued == 0 && mctx == NULL)
 		return (FETCH_COMPLETE);
 
 	/* 
@@ -186,22 +188,15 @@ fetch_poll(struct io *pio, struct mail_ctx *mctx, int blocked, u_int queued)
 	/* 
 	 * If not finished, try to get a mail.
 	 */
-	if (!finished && !holding) {
-		switch ((error = a->fetch->fetch(a, mctx->mail))) {
-		case FETCH_COMPLETE:
-			finished = 1;
-			return (FETCH_AGAIN);
-		case FETCH_AGAIN:
-			break;
-		default:
+	if (mctx != NULL && !holding) {
+		if ((error = a->fetch->fetch(a, mctx->mail)) != FETCH_AGAIN)
 			return (error);
-		}
 	}
 
 	/* 
 	 * If the fetch itself not finished, fill in its io list.
 	 */
-	if (!finished && a->fetch->fill != NULL)
+	if (mctx != NULL && a->fetch->fill != NULL)
 		a->fetch->fill(a, iop, &n);
 
 	/*
@@ -343,14 +338,85 @@ fetch_deliver(int *blocked, struct msg *msg, struct msgbuf *msgbuf)
 }
 
 int
+fetch_flush(struct account *a, struct io *pio, u_int *queued, u_int *dropped, 
+    u_int *kept)
+{
+	int	error;
+
+	error = FETCH_AGAIN;
+	while (error != FETCH_COMPLETE) {
+		error = fetch_get(a, NULL, pio, queued);
+		if (error == FETCH_ERROR)
+			return (1);
+
+		if (fetch_drain(dropped, kept) != 0)
+			return (1);
+	}
+
+	return (0);
+}
+
+int
+fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio, 
+    u_int *queued)
+{
+	struct msg	 msg, *msgp;
+	struct msgbuf	 msgbuf;
+	int		 error, blocked;
+	
+	error = FETCH_AGAIN;
+	msgp = NULL;
+	while (error == FETCH_AGAIN) {
+		blocked = 0;
+		
+		/*
+		 * Match a mail.
+		 */
+		if (fetch_match(&blocked, queued, msgp, &msgbuf) != 0) {
+			error = FETCH_ERROR;
+			break;
+		}
+		
+		/* 
+		 * Deliver a mail.
+		 */
+		if (fetch_deliver(&blocked, msgp, &msgbuf) != 0) {
+			error = FETCH_ERROR;
+			break;
+		}
+		
+		/*
+		 * Poll for new mails.
+		 */
+		log_debug3("%s: queued %u; blocked=%d", a->name, *queued,
+		    blocked);
+		error = fetch_poll(a, pio, mctx, blocked, *queued);
+		if (error == FETCH_ERROR || error == FETCH_COMPLETE)
+			break;
+		
+		/* 
+		 * Check for new privsep messages.
+		 */
+		msgp = NULL;
+		if (!privsep_check(pio))
+			continue;
+		if (privsep_recv(pio, &msg, &msgbuf) != 0)
+			fatalx("child: privsep_recv error");
+		log_debug3("%s: got message type %d, id %u", a->name,
+		    msg.type, msg.id);
+		msgp = &msg;
+	}
+
+	return (error);
+}
+
+int
 fetch_account(struct io *pio, struct account *a, double tim)
 {
 	struct mail	*m;
  	struct mail_ctx	*mctx;
-	struct msg	 msg, *msgp;
-	struct msgbuf	 msgbuf;
 	u_int	 	 n, queued, dropped, kept;
-	int		 error, blocked;
+	int		 error;
 
 	log_debug2("%s: fetching", a->name);
  	TAILQ_INIT(&matchq);
@@ -389,50 +455,11 @@ fetch_account(struct io *pio, struct account *a, double tim)
 		}
 			
 		/*
-		 * Loop handling mails.
+		 * Try to get a mail.
 		 */
-		error = FETCH_AGAIN;
-		msgp = NULL;
-		while (error == FETCH_AGAIN) {
-			blocked = 0;
-
-			/*
-			 * Match a mail.
-			 */
-			if (fetch_match(&blocked, &queued, msgp,&msgbuf) != 0) {
-				error = FETCH_ERROR;
-				goto out;
-			}
-
-			/* 
-			 * Deliver a mail.
-			 */
-			if (fetch_deliver(&blocked, msgp, &msgbuf) != 0) {
-				error = FETCH_ERROR;
-				goto out;
-			}
-			
-			/*
-			 * Poll for new mails.
-			 */
-			log_debug3("%s: queued %u; blocked=%d", a->name, queued,
-			    blocked);
-			error = fetch_poll(pio, mctx, blocked, queued);
-			if (error == FETCH_ERROR || error == FETCH_COMPLETE)
-				goto out;
-			
-			/* 
-			 * Check for new privsep messages.
-			 */
-			msgp = NULL;
-			if (!privsep_check(pio))
-				continue;
-			if (privsep_recv(pio, &msg, &msgbuf) != 0)
-				fatalx("child: privsep_recv error");
-			log_debug3("%s: got message type %d, id %u", a->name,
-			    msg.type, msg.id);
-			msgp = &msg;
-		}
+		error = fetch_get(a, mctx, pio, &queued);
+		if (error == FETCH_ERROR || error == FETCH_COMPLETE)
+			goto out;
 
 		/* 
 		 * Trim "From " line.
@@ -500,7 +527,6 @@ fetch_account(struct io *pio, struct account *a, double tim)
 		if (conf.purge_after == 0 || a->fetch->purge == NULL)
 			continue;
 
-#if 0
 		n++;
 		if (n >= conf.purge_after) {
 			log_debug("%s: got %u mails, purging", a->name, n);
@@ -510,12 +536,11 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			 * Must empty queues before purge to make sure things
 			 * like POP3 indexing don't get ballsed up.
 			 */
-			if (fetch_flush(void) != 0)
+			if (fetch_flush(a, pio, &queued, &dropped, &kept) != 0)
 				break;
 			if (a->fetch->purge(a) != FETCH_SUCCESS)
 				break;
 		}
-#endif
 	}
 
 out:
@@ -527,8 +552,12 @@ out:
 	}
 
 	/*
-	 * Drain the done queue if not an error.
-	 */ 
+	 * Flush the queues if not an error. 
+	 */
+	if (error != FETCH_ERROR) {
+		if (fetch_flush(a, pio, &queued, &dropped, &kept) != 0)
+			error = FETCH_ERROR;
+	}
 	if (error != FETCH_ERROR) {
 		if (fetch_drain(&dropped, &kept) != 0)
 			error = FETCH_ERROR;
