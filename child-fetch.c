@@ -45,14 +45,12 @@ int	fetch_poll(struct account *, struct io *, struct mail_ctx *,
 int	fetch_get(struct account *, struct mail_ctx *, struct io *, u_int *);
 int	fetch_flush(struct account *, struct io *, u_int *, u_int *, u_int *);
 int	fetch_transform(struct account *, struct mail *);
+void	fetch_free1(struct mail_ctx *);
+void	fetch_free(void);
 
 struct mail_queue matchq;
 struct mail_queue deliverq;
 struct mail_queue doneq;
-
-#define ACTION_DONE 0
-#define ACTION_ERROR 1
-#define ACTION_PARENT 2
 
 int
 child_fetch(struct child *child, struct io *io)
@@ -274,11 +272,7 @@ fetch_drain(u_int *dropped, u_int *kept)
 			return (1);
 
 		TAILQ_REMOVE(&doneq, mctx, entry);
-
-		mail_destroy(mctx->mail);
-		xfree(mctx->mail);
-		
-		xfree(mctx);
+		fetch_free1(mctx);
 	}
 
 	return (0);
@@ -408,6 +402,46 @@ fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
 	}
 
 	return (error);
+}
+
+void
+fetch_free1(struct mail_ctx *mctx)
+{
+	struct deliver_ctx	*dctx;
+
+	while (!TAILQ_EMPTY(&mctx->dqueue)) {
+		dctx = TAILQ_FIRST(&mctx->dqueue);
+		TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
+		xfree(dctx);
+	}
+
+	mail_destroy(mctx->mail);
+	xfree(mctx->mail);
+	xfree(mctx);
+}
+
+void
+fetch_free(void)
+{
+	struct mail_ctx	*mctx;
+
+	while (!TAILQ_EMPTY(&matchq)) {
+		mctx = TAILQ_FIRST(&matchq);
+		TAILQ_REMOVE(&matchq, mctx, entry);
+		fetch_free1(mctx);
+	}
+
+	while (!TAILQ_EMPTY(&deliverq)) {
+		mctx = TAILQ_FIRST(&deliverq);
+		TAILQ_REMOVE(&deliverq, mctx, entry);
+		fetch_free1(mctx);
+	}
+
+	while (!TAILQ_EMPTY(&doneq)) {
+		mctx = TAILQ_FIRST(&doneq);
+		TAILQ_REMOVE(&doneq, mctx, entry);
+		fetch_free1(mctx);
+	}
 }
 
 int
@@ -568,7 +602,7 @@ out:
 	 */
 	if (error == FETCH_ERROR) {
 		log_warnx("%s: fetching error. aborted", a->name);
-		/* XXX fetch_free(); */
+		fetch_free();
 	}
 
 	tim = get_time() - tim;
@@ -576,7 +610,7 @@ out:
 	if (n > 0) {
 		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
 		    "(average %.3f)", a->name, n, kept, tim, tim / n);
-		return (error != 1);
+		return (error == FETCH_ERROR);
 	}
 
 	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
