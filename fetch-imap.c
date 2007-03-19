@@ -25,7 +25,7 @@
 
 int	 	 fetch_imap_start(struct account *);
 void	         fetch_imap_fill(struct account *, struct io **, u_int *);
-int	 	 fetch_imap_finish(struct account *);
+int	 	 fetch_imap_finish(struct account *, int);
 void		 fetch_imap_desc(struct account *, char *, size_t);
 
 int printflike2	 fetch_imap_putln(struct account *, const char *, ...);
@@ -168,14 +168,16 @@ fetch_imap_fill(struct account *a, struct io **iop, u_int *n)
 }
 
 int
-fetch_imap_finish(struct account *a)
+fetch_imap_finish(struct account *a, int aborted)
 {
 	struct fetch_imap_data	*data = a->data;
 
 	if (data->io != NULL) {
-		if (imap_close(a) != 0 || imap_logout(a) != 0) {
+		if (aborted)
 			imap_abort(a);
-			return (FETCH_ERROR);
+		else if (imap_close(a) != 0 || imap_logout(a) != 0) {
+			imap_abort(a);
+			goto error;
 		}
 
 		if (data->io != NULL) { 
@@ -185,6 +187,15 @@ fetch_imap_finish(struct account *a)
 	}
 
 	return (imap_finish(a));
+
+error:
+	if (data->io != NULL) { 
+		io_close(data->io);
+		io_free(data->io);
+	}
+	
+	imap_finish(a);
+	return (FETCH_ERROR);
 }
 
 void

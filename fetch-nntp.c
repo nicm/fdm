@@ -31,7 +31,7 @@
 
 int	fetch_nntp_start(struct account *);
 void	fetch_nntp_fill(struct account *, struct io **, u_int *);
-int	fetch_nntp_finish(struct account *);
+int	fetch_nntp_finish(struct account *, int);
 int	fetch_nntp_poll(struct account *, u_int *);
 int	fetch_nntp_fetch(struct account *, struct mail *);
 void	fetch_nntp_desc(struct account *, char *, size_t);
@@ -435,14 +435,14 @@ fetch_nntp_fill(struct account *a, struct io **iop, u_int *n)
 }
 
 int
-fetch_nntp_finish(struct account *a)
+fetch_nntp_finish(struct account *a, int aborted)
 {
 	struct fetch_nntp_data	*data = a->data;	
 	struct fetch_nntp_group	*group;
 	u_int			 i;
-	char			*line;
 
-	fetch_nntp_save(a);
+	if (!aborted)
+		fetch_nntp_save(a);
 
 	for (i = 0; i < TOTAL_GROUPS(data); i++) {
 		group = GET_GROUP(data, i);
@@ -459,8 +459,8 @@ fetch_nntp_finish(struct account *a)
 	}
 
 	io_writeline(data->io, "QUIT");
-	line = fetch_nntp_check(a, &data->lbuf, &data->llen, NULL, 1, 205);
-	if (line == NULL)
+	if (!aborted &&
+	    fetch_nntp_check(a, &data->lbuf, &data->llen, NULL, 1, 205) == NULL)
 		goto error;
 
 	io_close(data->io);
