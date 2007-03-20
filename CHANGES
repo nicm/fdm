@@ -1,6 +1,7 @@
 20 March 2007
 
-* Try to get user/pass from .netrc if asked with "user from-netrc".
+* If user/pass is not specified on IMAP or POP3 accounts, attempt to read it
+  from the ~/.netrc file.
 * Redo child fetch stuff so that exec/pipe matches actually works
 * Stop exec/pipe matches early if only checking for regexp and it is found.
 * Sprinkle a few fsyncs, and block SIGTERM while writing to mboxes.
