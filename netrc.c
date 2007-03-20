@@ -67,12 +67,16 @@ netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 	char	*token;
 	int	 found;
 
-	*user = *pass = NULL;
+	if (user != NULL)
+		*user = NULL;
+	if (pass != NULL)
+		*pass = NULL;
+
 	found = 0;
 	for (;;) {
 		switch (netrc_token(f, &token)) {
 		case 1:
-			goto out;
+			return (0);
 		case -1:
 			return (-1);
 		}
@@ -91,13 +95,15 @@ netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 			if (strcmp(token, "default") == 0)
 				break;
 
-			if (strcmp(token, "login") == 0) {
+			if (user != NULL &&
+			    strcmp(token, "login") == 0) {
 				if (netrc_token(f, &token) != 0)
 					return (-1);
 				if (*token == '\0')
 					return (-1);
 				*user = xstrdup(token);
-			} else if (strcmp(token, "password") == 0) {
+			} else if (pass != NULL &&
+			    strcmp(token, "password") == 0) {
 				if (netrc_token(f, &token) != 0)
 					return (-1);
 				if (*token == '\0')
@@ -107,9 +113,6 @@ netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 		}
 	}
 
-out:
-	if (*user == NULL || *pass == NULL)
-		return (1);
 	return (0);
 }
 

@@ -69,7 +69,10 @@ struct account 			*find_account(char *);
 int				 have_accounts(char *);
 struct action  			*find_action(char *);
 void				 print_rule(struct rule *);
-void				 find_netrc(const char *, char **, char **);
+
+void				 netrc_user(const char *, char **);
+void				 netrc_pass(const char *, char **);
+void				 netrc_both(const char *, char **, char **);
 
 __dead printflike1 void
 yyerror(const char *fmt, ...)
@@ -551,7 +554,7 @@ expand_path(char *path)
 }
 
 void
-find_netrc(const char *host, char **user, char **pass)
+netrc_user(const char *host, char **user)
 {
 	FILE	*f;
 	char	*cause;
@@ -559,12 +562,55 @@ find_netrc(const char *host, char **user, char **pass)
 	if ((f = netrc_open(conf.info.home, &cause)) == NULL)
 		yyerror("%s", cause);
 
-	switch (netrc_lookup(f, host, user, pass)) {
-	case -1:
+	if (netrc_lookup(f, host, user, NULL) != 0)
 		yyerror("error reading .netrc");
-	case 1:
-		yyerror("user/pass for host %s not found in .netrc", host); 
-	}
+	if (*user == NULL)
+		yyerror("user for host %s not found in .netrc", host); 
+
+	if (**user == '\0')
+		yyerror("invalid user");
+
+	netrc_close(f);
+}
+
+void
+netrc_pass(const char *host, char **pass)
+{
+	FILE	*f;
+	char	*cause;
+
+	if ((f = netrc_open(conf.info.home, &cause)) == NULL)
+		yyerror("%s", cause);
+
+	if (netrc_lookup(f, host, NULL, pass) != 0)
+		yyerror("error reading .netrc");
+	if (*pass == NULL)
+		yyerror("pass for host %s not found in .netrc", host); 
+
+	if (**pass == '\0')
+		yyerror("invalid pass");
+
+	netrc_close(f);
+}
+
+void
+netrc_both(const char *host, char **user, char **pass)
+{
+	FILE	*f;
+	char	*cause;
+
+	if ((f = netrc_open(conf.info.home, &cause)) == NULL)
+		yyerror("%s", cause);
+
+	if (netrc_lookup(f, host, user, pass) != 0)
+		yyerror("error reading .netrc");
+	if (*user == NULL || *pass == NULL)
+		yyerror("user and pass for host %s not found in .netrc", host); 
+
+	if (**user == '\0')
+		yyerror("invalid user");
+	if (**pass == '\0')
+		yyerror("invalid pass");
 
 	netrc_close(f);
 }
@@ -622,8 +668,9 @@ find_netrc(const char *host, char **user, char **pass)
 	struct rule		*rule;
 	struct {
 		char		*user;
+		int		 user_netrc;
 		char		*pass;
-		int		 from_netrc;
+		int		 pass_netrc;
 	} userpass;
 }
 
@@ -2429,13 +2476,38 @@ userpassnetrc: TOKUSER replstrv TOKPASS replstrv
 			     yyerror("invalid pass");
 		     
 		     $$.user = $2;
+		     $$.user_netrc = 0;
 		     $$.pass = $4;
-		     $$.from_netrc = 0;
+		     $$.pass_netrc = 0;
 	     }
-           | TOKUSER TOKFROMNETRC
+           | TOKUSER TOKFROMNETRC TOKPASS TOKFROMNETRC
 	     {
-		     $$.from_netrc = 1;
+		     $$.user = NULL;
+		     $$.user_netrc = 1;
+		     $$.pass = NULL;
+		     $$.pass_netrc = 1;
 	     }
+           | TOKUSER replstrv TOKPASS TOKFROMNETRC
+	     {
+		     if (*$2 == '\0')
+			     yyerror("invalid user");
+
+		     $$.user = $2;
+		     $$.user_netrc = 0;
+		     $$.pass = NULL;
+		     $$.pass_netrc = 1;
+	     }
+           | TOKUSER TOKFROMNETRC TOKPASS replstrv
+	     {
+		     if (*$4 == '\0')
+			     yyerror("invalid pass");
+
+		     $$.user = NULL;
+		     $$.user_netrc = 1;
+		     $$.pass = $4;
+		     $$.pass_netrc = 0;
+	     }
+
 
 /** USERPASS: <userpass> (struct { ... } userpass) */
 userpass: TOKUSER replstrv TOKPASS replstrv
@@ -2447,14 +2519,16 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 			  yyerror("invalid pass");
 		  
 		  $$.user = $2;
+		  $$.user_netrc = 0;
 		  $$.pass = $4;
-		  $$.from_netrc = 0;
+		  $$.pass_netrc = 0;
 	  }
 	| /* empty */
 	  {
 		  $$.user = NULL;
+		  $$.user_netrc = 0;
 		  $$.pass = NULL;
-		  $$.from_netrc = 0;
+		  $$.pass_netrc = 0;
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
@@ -2467,11 +2541,20 @@ fetchtype: poptype server userpassnetrc
 		   $$.fetch = &fetch_pop3;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   if (!$3.from_netrc) {
-			   data->user = $3.user;
-			   data->pass = $3.pass;
-		   } else 
-			   find_netrc($2.host, &data->user, &data->pass);
+
+		   if ($3.user_netrc && $3.pass_netrc)
+			  netrc_both($2.host, &data->user, &data->pass);
+		   else {
+			   if ($3.user_netrc)
+				   netrc_user($2.host, &data->user);
+			   else
+				   data->user = $3.user;
+			   if ($3.pass_netrc)
+				   netrc_pass($2.host, &data->pass);
+			   else
+				   data->pass = $3.pass;
+		   }
+
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
@@ -2492,11 +2575,20 @@ fetchtype: poptype server userpassnetrc
 		   $$.fetch = &fetch_imap;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   if (!$3.from_netrc) {
-			   data->user = $3.user;
-			   data->pass = $3.pass;
-		   } else 
-			   find_netrc($2.host, &data->user, &data->pass);
+
+		   if ($3.user_netrc && $3.pass_netrc)
+			   netrc_both($2.host, &data->user, &data->pass);
+		   else {
+			   if ($3.user_netrc)
+				   netrc_user($2.host, &data->user);
+			   else
+				   data->user = $3.user;
+			   if ($3.pass_netrc)
+				   netrc_pass($2.host, &data->pass);
+			   else
+				   data->pass = $3.pass;
+		   }
+
 		   data->folder = $4 == NULL ? xstrdup("INBOX") : $4;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
