@@ -117,6 +117,9 @@ log_info(const char *emsg, ...)
 {
 	va_list	ap;
 
+	if (conf.quiet)
+		return;
+
 	va_start(ap, emsg);
 	vlog(stdout, LOG_INFO, emsg, ap);
 	va_end(ap);

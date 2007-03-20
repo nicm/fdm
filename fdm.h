@@ -612,6 +612,7 @@ struct rule {
 
 /* Configuration settings. */
 struct conf {
+	int			 quiet;
 	int 			 debug;
 	int			 syslog;
 

@@ -256,7 +256,7 @@ use_account(struct account *a, char **cause)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-klmnv] [-a name] [-D name=value] [-f conffile]"
+	printf("usage: %s [-klmnqv] [-a name] [-D name=value] [-f conffile]"
 	    " [-u user] [-x name] [fetch|poll]\n", __progname);
         exit(1);
 }
@@ -308,7 +308,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-        while ((opt = getopt(argc, argv, "a:D:f:klmnu:vx:?")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:?")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, xstrdup(optarg), char *);
@@ -376,6 +376,9 @@ main(int argc, char **argv)
                 case 'v':
                         conf.debug++;
                         break;
+		case 'q':
+			conf.quiet = 1;
+			break;
 		case 'x':
 			ARRAY_ADD(&conf.excl, xstrdup(optarg), char *);
 			break;
@@ -386,6 +389,8 @@ main(int argc, char **argv)
         }
 	argc -= optind;
 	argv += optind;
+	if (conf.quiet)
+		conf.debug = 0;
 	if (conf.check_only) {
 		if (argc != 0)
 			usage();

@@ -374,7 +374,7 @@ complete:
 	}
 
 	if (m->size + data->lines != data->size) {
-		log_warnx("%s: server lied about message size: expected %zu, "
+		log_info("%s: server lied about message size: expected %zu, "
 		    "got %zu (%u lines)", a->name, data->size, m->size + 
 		    data->lines, data->lines);
 	}
