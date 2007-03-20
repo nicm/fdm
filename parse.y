@@ -565,7 +565,7 @@ netrc_user(const char *host, char **user)
 	if (netrc_lookup(f, host, user, NULL) != 0)
 		yyerror("error reading .netrc");
 	if (*user == NULL)
-		yyerror("user for host %s not found in .netrc", host); 
+		yyerror("user for \"%s\" not found in .netrc", host); 
 
 	if (**user == '\0')
 		yyerror("invalid user");
@@ -585,7 +585,7 @@ netrc_pass(const char *host, char **pass)
 	if (netrc_lookup(f, host, NULL, pass) != 0)
 		yyerror("error reading .netrc");
 	if (*pass == NULL)
-		yyerror("pass for host %s not found in .netrc", host); 
+		yyerror("pass for \"%s\" not found in .netrc", host); 
 
 	if (**pass == '\0')
 		yyerror("invalid pass");
@@ -605,7 +605,7 @@ netrc_both(const char *host, char **user, char **pass)
 	if (netrc_lookup(f, host, user, pass) != 0)
 		yyerror("error reading .netrc");
 	if (*user == NULL || *pass == NULL)
-		yyerror("user and pass for host %s not found in .netrc", host); 
+		yyerror("user and pass for \"%s\" not found in .netrc", host); 
 
 	if (**user == '\0')
 		yyerror("invalid user");
