@@ -26,11 +26,11 @@
 - refactor & clean up privsep mail transfer code
 - document mail_file, mbox_file and exec action
 - -q option to silence normal (info) output
-- look at .netrc
 -- move lbuf stuff into fetch_*_data
 -- split fetch into next and get(line) and alloc mail outside
 -- rework IO_NOWAIT
 -- tidy child.c
 -- audit for uses of special "off" variables where m->size would do
 - is there any reason struct mail shouldn't point to a struct account?
-- coalesce multiple IMAP deletions into a single call
+- coalesce multiple IMAP deletions into a single call?
+- queue length options

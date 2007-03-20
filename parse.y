@@ -69,6 +69,7 @@ struct account 			*find_account(char *);
 int				 have_accounts(char *);
 struct action  			*find_action(char *);
 void				 print_rule(struct rule *);
+void				 find_netrc(const char *, char **, char **);
 
 __dead printflike1 void
 yyerror(const char *fmt, ...)
@@ -548,6 +549,25 @@ expand_path(char *path)
 
 	return (ptr);
 }
+
+void
+find_netrc(const char *host, char **user, char **pass)
+{
+	FILE	*f;
+	char	*cause;
+
+	if ((f = netrc_open(conf.info.home, &cause)) == NULL)
+		yyerror("%s", cause);
+
+	switch (netrc_lookup(f, host, user, pass)) {
+	case -1:
+		yyerror("error reading .netrc");
+	case 1:
+		yyerror("user/pass for host %s not found in .netrc", host); 
+	}
+
+	netrc_close(f);
+}
 %}
 
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
@@ -564,7 +584,7 @@ expand_path(char *path)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT
-%token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER
+%token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER TOKFROMNETRC
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -603,6 +623,7 @@ expand_path(char *path)
 	struct {
 		char		*user;
 		char		*pass;
+		int		 from_netrc;
 	} userpass;
 }
 
@@ -629,7 +650,7 @@ expand_path(char *path)
 %type  <strings> domains domainslist headers headerslist accounts accountslist
 %type  <strings> maildirslist maildirs groupslist groups
 %type  <users> users userslist
-%type  <userpass> userpass
+%type  <userpass> userpass userpassnetrc
 %type  <uid> uid user
 
 %%
@@ -2399,41 +2420,58 @@ imaptype: TOKIMAP
 		  $$ = FETCHPORT_SSL;
 	  }
 
+userpassnetrc: TOKUSER replstrv TOKPASS replstrv
+/**       [$2: replstrv (char *)] [$4: replstrv (char *)] */
+	     {
+		     if (*$2 == '\0')
+			     yyerror("invalid user");
+		     if (*$4 == '\0')
+			     yyerror("invalid pass");
+		     
+		     $$.user = $2;
+		     $$.pass = $4;
+		     $$.from_netrc = 0;
+	     }
+           | TOKUSER TOKFROMNETRC
+	     {
+		     $$.from_netrc = 1;
+	     }
+
 /** USERPASS: <userpass> (struct { ... } userpass) */
 userpass: TOKUSER replstrv TOKPASS replstrv
 /**       [$2: replstrv (char *)] [$4: replstrv (char *)] */
 	  {
-		   if (*$2 == '\0')
-			   yyerror("invalid user");
-		   if (*$4 == '\0')
-			   yyerror("invalid pass");
-
+		  if (*$2 == '\0')
+			  yyerror("invalid user");
+		  if (*$4 == '\0')
+			  yyerror("invalid pass");
+		  
 		  $$.user = $2;
 		  $$.pass = $4;
+		  $$.from_netrc = 0;
 	  }
 	| /* empty */
 	  {
 		  $$.user = NULL;
 		  $$.pass = NULL;
+		  $$.from_netrc = 0;
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server TOKUSER replstrv TOKPASS replstrv
+fetchtype: poptype server userpassnetrc
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
 /**        [$4: replstrv (char *)] [$6: replstrv (char *)] */
            {
 		   struct fetch_pop3_data	*data;
 
-		   if (*$4 == '\0')
-			   yyerror("invalid user");
-		   if (*$6 == '\0')
-			   yyerror("invalid pass");
-
 		   $$.fetch = &fetch_pop3;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->user = $4;
-		   data->pass = $6;
+		   if (!$3.from_netrc) {
+			   data->user = $3.user;
+			   data->pass = $3.pass;
+		   } else 
+			   find_netrc($2.host, &data->user, &data->pass);
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
@@ -2442,25 +2480,24 @@ fetchtype: poptype server TOKUSER replstrv TOKPASS replstrv
 			   data->server.port = xstrdup($$.fetch->ports[$1]);
 		   data->server.ai = NULL;
 	   }
-         | imaptype server TOKUSER replstrv TOKPASS replstrv folder
+         | imaptype server userpassnetrc folder
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$4: replstrv (char *)] [$6: replstrv (char *)] [$7: folder (char *)] */
            {
 		   struct fetch_imap_data	*data;
 
-		   if (*$4 == '\0')
-			   yyerror("invalid user");
-		   if (*$6 == '\0')
-			   yyerror("invalid pass");
-		   if ($7 != NULL && *$7 == '\0')
+		   if ($4 != NULL && *$4 == '\0')
 			   yyerror("invalid folder");
 
 		   $$.fetch = &fetch_imap;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->user = $4;
-		   data->pass = $6;
-		   data->folder = $7 == NULL ? xstrdup("INBOX") : $7;
+		   if (!$3.from_netrc) {
+			   data->user = $3.user;
+			   data->pass = $3.pass;
+		   } else 
+			   find_netrc($2.host, &data->user, &data->pass);
+		   data->folder = $4 == NULL ? xstrdup("INBOX") : $4;
 		   data->server.ssl = $1;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)

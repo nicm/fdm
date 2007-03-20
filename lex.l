@@ -130,6 +130,7 @@ file-umask return (TOKFILEUMASK);
 flock return (LCKFLOCK);
 folder return (TOKFOLDER);
 from-headers return (TOKFROMHEADERS);
+from-netrc return (TOKFROMNETRC);
 group return (TOKGROUP);
 groups return (TOKGROUPS);
 header return (TOKHEADER);
