@@ -189,7 +189,7 @@ restart:
 	/* write the message */
 	log_debug2("%s: writing to %s", a->name, src);
 	n = write(fd, m->data, m->size);
-	if (n < 0 || (size_t) n != m->size) {
+	if (n < 0 || (size_t) n != m->size || fsync(fd) != 0) {
 		log_warn("%s: write", a->name);
 		close(fd);
 		unlink(src);

@@ -49,6 +49,7 @@ mail_open(struct mail *m, size_t size)
 
 	strb_create(&m->tags);
 	ARRAY_INIT(&m->wrapped);
+	m->wrapchar = '\0';
 	m->attach = NULL;
 	m->attach_built = 0;
 }
@@ -60,6 +61,7 @@ mail_send(struct mail *m, struct msg *msg)
 
 	memcpy(mm, m, sizeof *mm);
 	ARRAY_INIT(&mm->wrapped);
+	mm->wrapchar = '\0';
 	mm->attach = NULL;
 }
 
@@ -89,6 +91,7 @@ mail_receive(struct mail *m, struct msg *msg)
 
 	m->data = m->base + m->off;
 	ARRAY_INIT(&m->wrapped);
+	m->wrapchar = '\0';
 }
 
 void
@@ -99,6 +102,7 @@ mail_free(struct mail *m)
 	if (m->tags != NULL)
 		strb_destroy(&m->tags);
 	ARRAY_FREE(&m->wrapped);
+	m->wrapchar = '\0';
 
 	if (m->auxfree != NULL && m->auxdata != NULL)
 		m->auxfree(m->auxdata);
@@ -610,6 +614,7 @@ fill_wrapped(struct mail *m)
 		fatalx("fill_wrapped: mail already wrapped");
 
 	ARRAY_INIT(&m->wrapped);
+	m->wrapchar = '\0';
 
 	end = m->body == -1 ? m->size : (size_t) m->body;
 	ptr = m->data;
@@ -640,6 +645,10 @@ void
 set_wrapped(struct mail *m, char ch)
 {
 	u_int	i;
+
+	if (m->wrapchar == ch)
+		return;
+	m->wrapchar = ch;
 
 	for (i = 0; i < ARRAY_LENGTH(&m->wrapped); i++)
 		m->data[ARRAY_ITEM(&m->wrapped, i, size_t)] = ch;

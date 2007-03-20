@@ -374,6 +374,7 @@ struct mail {
 	size_t	 	 	 space;		/* size of malloc'd area */
 
 	ARRAY_DECL(, size_t *)	 wrapped;	/* list of wrapped lines */
+	char			 wrapchar;	/* wrapped character */
 
 	ssize_t		 	 body;		/* offset of body */
 

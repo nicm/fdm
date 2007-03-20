@@ -38,8 +38,9 @@ int	fetch_account(struct io *, struct account *, double);
 
 int	fetch_drain(u_int *, u_int *);
 int	fetch_done(struct mail_ctx *, u_int *, u_int *);
-int	fetch_match(int *, u_int *, struct msg *, struct msgbuf *);
-int	fetch_deliver(int *, struct msg *, struct msgbuf *);
+int	fetch_match(struct account *, int *, u_int *, struct msg *, 
+	    struct msgbuf *);
+int	fetch_deliver(struct account *, int *, struct msg *, struct msgbuf *);
 int	fetch_poll(struct account *, struct io *, struct mail_ctx *,
 	    int, u_int);
 int	fetch_get(struct account *, struct mail_ctx *, struct io *, u_int *);
@@ -179,9 +180,8 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 	 */
 	if (queued >= MAXMAILQUEUED)
 		holding = 1;
-	if (queued < MINMAILQUEUED)
+	if (queued <= MINMAILQUEUED)
 		holding = 0;
-
 
 	/* 
 	 * If not finished, try to get a mail.
@@ -279,7 +279,8 @@ fetch_drain(u_int *dropped, u_int *kept)
 }
 
 int
-fetch_match(int *blocked, u_int *queued, struct msg *msg, struct msgbuf *msgbuf)
+fetch_match(struct account *a, int *blocked, u_int *queued, struct msg *msg,
+    struct msgbuf *msgbuf)
 {
 	struct mail_ctx	*mctx;
 	
@@ -287,6 +288,7 @@ fetch_match(int *blocked, u_int *queued, struct msg *msg, struct msgbuf *msgbuf)
 		return (0);
 
 	mctx = TAILQ_FIRST(&matchq);
+	log_debug3("%s: trying (match) message %u", a->name, mctx->mail->idx);
 	switch (mail_match(mctx, msg, msgbuf)) {
 	case MAIL_ERROR:
 		return (1);
@@ -308,14 +310,16 @@ fetch_match(int *blocked, u_int *queued, struct msg *msg, struct msgbuf *msgbuf)
 }
 
 int
-fetch_deliver(int *blocked, struct msg *msg, struct msgbuf *msgbuf)
+fetch_deliver(struct account *a, int *blocked, struct msg *msg, 
+    struct msgbuf *msgbuf)
 {
 	struct mail_ctx	*mctx;
 
 	if (TAILQ_EMPTY(&deliverq))
 		return (0);
-	
+
 	mctx = TAILQ_FIRST(&deliverq);
+	log_debug3("%s: trying (deliver) message %u", a->name, mctx->mail->idx);
 	switch (mail_deliver(mctx, msg, msgbuf)) {
 	case MAIL_ERROR:
 		return (1);
@@ -366,7 +370,7 @@ fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
 		/*
 		 * Match a mail.
 		 */
-		if (fetch_match(&blocked, queued, msgp, &msgbuf) != 0) {
+		if (fetch_match(a, &blocked, queued, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
 		}
@@ -374,7 +378,7 @@ fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
 		/* 
 		 * Deliver a mail.
 		 */
-		if (fetch_deliver(&blocked, msgp, &msgbuf) != 0) {
+		if (fetch_deliver(a, &blocked, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
 		}

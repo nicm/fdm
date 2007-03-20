@@ -42,6 +42,8 @@ match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 	struct msg			 msg;
 	struct msgbuf			 msgbuf;
 
+	set_wrapped(m, '\n');
+
 	/*
 	 * We are called as the child so to change uid this needs to be done
 	 * largely in the parent.

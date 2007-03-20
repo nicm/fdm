@@ -54,6 +54,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 
 	/* XXX necessary? */
 	ARRAY_FREE(&m->wrapped);
+	m->wrapchar = '\0';
 	fill_wrapped(m);
 
 	set_wrapped(m, ' ');

@@ -66,6 +66,7 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 
 	/* XXX needed? */
 	ARRAY_FREE(&m->wrapped);
+	m->wrapchar = '\0';
 	fill_wrapped(m);
 
 	/* invalidate the match data since stuff may have moved */

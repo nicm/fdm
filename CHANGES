@@ -1,7 +1,12 @@
-17 March 2007
+20 March 2007
 
-* Don't bother passing mail to parent if the user doesn't actually need to be
-  changed. 
+* Redo child fetch stuff so that exec/pipe matches actually works
+* Stop exec/pipe matches early if only checking for regexp and it is found.
+* Sprinkle a few fsyncs, and block SIGTERM while writing to mboxes.
+
+18 March 2007
+
+* Informational messages now go to stdout rather than stderr.
 
 16 March 2007
 

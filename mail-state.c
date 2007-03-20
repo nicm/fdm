@@ -20,6 +20,7 @@
 
 #include <fnmatch.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "fdm.h"
 #include "fetch.h"
@@ -46,6 +47,8 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	u_int		 i;
 	int		 error = MAIL_CONTINUE;
 	char		*an, *tkey, *tvalue;
+
+	set_wrapped(m, ' ');
 
 	/*
 	 * If blocked, check for msgs from parent.
@@ -260,6 +263,8 @@ mail_deliver(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct mail		*m = mctx->mail;
 	struct deliver_ctx	*dctx;
 
+	set_wrapped(m, '\n');
+
 	/*
 	 * If blocked, check for msgs from parent.
 	 */
@@ -438,14 +443,11 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	/* if the current user is the same as the deliver user, don't bother
 	   passing up either */
 	if (t->deliver->type == DELIVER_ASUSER && dctx->uid == geteuid()) {
-		dctx->blocked = 0;
 		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
 			return (ACTION_ERROR);
 		return (ACTION_DONE);
 	}
 	if (t->deliver->type == DELIVER_WRBACK && dctx->uid == geteuid()) {
-		dctx->blocked = 0;
-
 		mail_open(md, IO_BLOCKSIZE);
 		md->decision = m->decision;
 		

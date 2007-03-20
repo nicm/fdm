@@ -83,6 +83,11 @@ do_write(struct deliver_ctx *dctx, struct action *t, int appendf)
 		xfree(path);
 		return (DELIVER_FAILURE);
 	}
+	if (fsync(fileno(f)) != 0) {
+		log_warn("%s: %s: fsync", a->name, path);
+		xfree(path);
+		return (DELIVER_FAILURE);
+	}
 	fclose(f);
 
 	xfree(path);

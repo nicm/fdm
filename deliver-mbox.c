@@ -77,6 +77,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	int				 res = DELIVER_FAILURE;
 	gzFile				 gzf = NULL;
 	u_int				 n;
+	sigset_t	 		 set, oset;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
@@ -149,14 +150,23 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 		}
 	}
 
+	/*
+	 * mboxes are a pain: if we are interrupted after this we risk
+	 * having written a partial mail. So, block SIGTERM until we're
+	 * done.
+	 */
+ 	sigaddset(&set, SIGTERM);
+	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
+		fatal("sigprocmask");
+
 	/* write the from line */
 	if (deliver_mbox_write(fd, gzf, from, strlen(from)) < 0) {
 		log_warn("%s: %s: write", a->name, path);
-		goto out;
+		goto out2;
 	}
 	if (deliver_mbox_write(fd, gzf, "\n", 1) < 0) {
 		log_warn("%s: %s: write", a->name, path);
-		goto out;
+		goto out2;
 	}
 
 	/* write the mail */
@@ -176,14 +186,14 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 				if (deliver_mbox_write(fd, gzf, ">", 1) < 0) {
 					log_warn("%s: %s: write", a->name,
 					    path);
-					goto out;
+					goto out2;
 				}
 			}
 		}
 
 		if (deliver_mbox_write(fd, gzf, ptr, len) < 0) {
 			log_warn("%s: %s: write", a->name, path);
-			goto out;
+			goto out2;
 		}
 
 		line_next(m, &ptr, &len);
@@ -191,10 +201,20 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
 	if (deliver_mbox_write(fd, gzf, "\n\n", len) < 0) {
 		log_warn("%s: %s: write", a->name, path);
-		goto out;
+		goto out2;
+	}
+
+	if (fsync(fd) != 0) {
+		log_warn("%s: %s: fsync", a->name, path);
+		goto out2;
 	}
 
 	res = DELIVER_SUCCESS;
+
+out2:
+	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
+		fatal("sigprocmask");
+	
 out:
 	if (gzf != NULL)
 		gzclose(gzf);
