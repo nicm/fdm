@@ -95,15 +95,14 @@ netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 			if (strcmp(token, "default") == 0)
 				break;
 
-			if (user != NULL &&
-			    strcmp(token, "login") == 0) {
+			if (user != NULL && strcmp(token, "login") == 0) {
 				if (netrc_token(f, &token) != 0)
 					return (-1);
 				if (*token == '\0')
 					return (-1);
 				*user = xstrdup(token);
-			} else if (pass != NULL &&
-			    strcmp(token, "password") == 0) {
+			}
+			if (pass != NULL && strcmp(token, "password") == 0) {
 				if (netrc_token(f, &token) != 0)
 					return (-1);
 				if (*token == '\0')
