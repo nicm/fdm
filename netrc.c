@@ -46,12 +46,12 @@ netrc_open(const char *home, char **cause)
 		xasprintf(cause, "%s: world readable or writable", path);
 		return (NULL);
 	}
-	
+
 	if ((f = fopen(path, "r")) == NULL) {
 		xasprintf(cause, "%s: %s", path, strerror(errno));
 		return (NULL);
 	}
-	
+
 	return (f);
 }
 
@@ -60,7 +60,7 @@ netrc_close(FILE *f)
 {
 	fclose(f);
 }
-	
+
 int
 netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 {

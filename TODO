@@ -33,5 +33,5 @@
 - document mail_file, mbox_file in man page
 - document exec action in man page
 - document netrc in man page
-- document -q in man page
 - document queue stuff in man page
+- update options regress (queue*)

@@ -24,7 +24,7 @@ int
 privsep_send(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 {
 	char *cause;
-	
+
 	msg->size = 0;
 	if (msgbuf != NULL && msgbuf->buf != NULL && msgbuf->len > 0)
 		msg->size = msgbuf->len;

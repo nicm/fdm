@@ -460,7 +460,7 @@ find_users(struct mail *m)
 		if (*ARRAY_ITEM(conf.headers, i, char *) == '\0')
 			continue;
 
-		hdr = find_header(m, ARRAY_ITEM(conf.headers, i, char *), 
+		hdr = find_header(m, ARRAY_ITEM(conf.headers, i, char *),
 		    &len, 1);
 		if (hdr == NULL || len == 0)
 			continue;

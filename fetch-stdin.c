@@ -143,7 +143,7 @@ fetch_stdin_fetch(struct account *a, struct mail *m)
 restart:
 	/*
 	 * There can only ever be one mail on stdin, so the normal reentrancy
-	 * becomes irrelevent. Which is good since we need to detect when the 
+	 * becomes irrelevent. Which is good since we need to detect when the
 	 * fd is closed.
 	 */
 	error = io_pollline2(data->io, &line, &data->lbuf, &data->llen, &cause);
@@ -158,7 +158,7 @@ restart:
 		xfree(cause);
 		return (FETCH_ERROR);
 	}
-	
+
 	len = strlen(line);
 	if (len == 0 && m->body == -1) {
 		m->body = m->size + 1;
@@ -175,12 +175,12 @@ restart:
 	/* append an LF */
 	m->data[m->size + len] = '\n';
 	m->size += len + 1;
-	
+
 	if (m->size > conf.max_size) {
 		data->complete = 1;
 		return (FETCH_OVERSIZE);
 	}
-	
+
 	goto restart;
 
 complete:
@@ -195,7 +195,7 @@ complete:
 		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
 	} else {
 		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		add_tag(&m->tags, "header_lines", "%d", data->lines -
 		    data->bodylines);
 	}
 

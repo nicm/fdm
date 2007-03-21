@@ -62,16 +62,16 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	while ((ptr = find_header(m, hdr, &len, 0)) != NULL) {
 		log_debug3("%s: found header to remove: %.*s", a->name,
 		    (int) len, ptr);
-		
+
 		/* include the \n */
 		len++;
-		
+
 		/* remove the header */
 		memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
 		m->size -= len;
 		if (m->body != -1)
 			m->body -= len;
-	
+
 		/* fix up the wrapped array */
 		off = ptr - m->data;
 		i = 0;
@@ -89,7 +89,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct action *t)
 
 	/* invalidate the match data since stuff may have moved */
 	m->rml.valid = 0;
-	
+
 	set_wrapped(m, '\n');
 	return (DELIVER_SUCCESS);
 }

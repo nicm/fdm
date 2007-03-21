@@ -119,7 +119,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 				n++;
 				if (n >= LOCKRETRIES) {
 					log_warnx("%s: %s: couldn't obtain lock"
-					    " in %.2f seconds", a->name, path, 
+					    " in %.2f seconds", a->name, path,
 					    (LOCKSLEEPTIME * n) / 1000000.0);
 					goto out;
 				}
@@ -214,7 +214,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
 out2:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
 		fatal("sigprocmask");
-	
+
 out:
 	if (gzf != NULL)
 		gzclose(gzf);

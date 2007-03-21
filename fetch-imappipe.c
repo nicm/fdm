@@ -195,7 +195,7 @@ fetch_imappipe_finish(struct account *a, int aborted)
 			imap_abort(a);
 			goto error;
 		}
-		
+
 		if (data->cmd != NULL)
 			cmd_free(data->cmd);
 	}

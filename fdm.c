@@ -583,7 +583,7 @@ main(int argc, char **argv)
 		    "file-group=%lu, ", (u_long) conf.file_group);
 	}
 	if (sizeof tmp > off) {
-		off += xsnprintf(tmp + off, (sizeof tmp) - off, 
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "queue-high=%u, queue-low=%u, ", conf.queue_high,
 		    conf.queue_low);
 	}

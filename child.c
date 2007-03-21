@@ -100,7 +100,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 		}
 		io_close(child->io);
 		io_free(child->io);
-		
+
 		if (geteuid() == 0) {
 			if (dropto(uid) != 0)
 				fatal("dropto");

@@ -294,9 +294,9 @@ restart:
 		for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
 			uid = ARRAY_ITEM(&data->kept, i, char *);
 			if (strcmp(data->uid, uid) == 0) {
-				/* 
+				/*
 				 * Seen this message before and kept it, so
-				 * skip it this time. 
+				 * skip it this time.
 				 */
 				data->state = POP3_LIST;
 				break;
@@ -310,7 +310,7 @@ restart:
 			goto bad;
 		mail_open(m, IO_ROUND(data->size));
 		m->size = 0;
-		
+
 		aux = xmalloc(sizeof *aux);
 		aux->idx = data->cur;
 		aux->uid = data->uid;
@@ -326,7 +326,7 @@ restart:
 		data->flushing = 0;
 		data->lines = 0;
 		data->bodylines = -1;
-		
+
 		data->state = POP3_LINE;
 		break;
 	case POP3_LINE:
@@ -334,21 +334,21 @@ restart:
 			line++;
 		else if (line[0] == '.')
 			goto complete;
-	
+
 		len = strlen(line);
 		if (len == 0 && m->body == -1) {
 			m->body = m->size + 1;
 			data->bodylines = 0;
 		}
-		
+
 		if (!data->flushing) {
 			resize_mail(m, m->size + len + 1);
-			
+
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			m->data[m->size + len] = '\n';
 		}
-		
+
 		data->lines++;
 		if (data->bodylines != -1)
 			data->bodylines++;
@@ -369,13 +369,13 @@ complete:
 		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
 	} else {
 		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		add_tag(&m->tags, "header_lines", "%d", data->lines -
 		    data->bodylines);
 	}
 
 	if (m->size + data->lines != data->size) {
 		log_info("%s: server lied about message size: expected %zu, "
-		    "got %zu (%u lines)", a->name, data->size, m->size + 
+		    "got %zu (%u lines)", a->name, data->size, m->size +
 		    data->lines, data->lines);
 	}
 

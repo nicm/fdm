@@ -276,7 +276,7 @@ restart:
 	strlcpy(aux->path, data->entry, sizeof aux->path);
 	m->auxdata = aux;
 	m->auxfree = fetch_maildir_free;
-	
+
 	log_debug2("%s: reading %ju bytes", a->name, (uintmax_t) sb.st_size);
 	if (read(fd, m->data, sb.st_size) != sb.st_size) {
 		close(fd);

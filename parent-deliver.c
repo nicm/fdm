@@ -50,7 +50,7 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 
 	/* call the hook */
 	data->hook(1, a, msg, data, &msg->data.error);
-	
+
 	msg->type = MSG_DONE;
 	msg->id = data->msgid;
 
@@ -62,7 +62,7 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	child = data->child;
 	if (privsep_send(child->io, msg, msgbuf) != 0)
 		fatalx("parent_deliver: privsep_send error");
-	
+
 	mail_close(m);
 	xfree(m);
 

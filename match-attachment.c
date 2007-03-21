@@ -102,12 +102,12 @@ match_attachment_match(struct mail_ctx *mctx, struct expritem *ei)
 			return (MATCH_ERROR);
 		}
 	}
-	
+
 	/* if no attachments, none of the following conditions are true */
 	if (m->attach == NULL)
 		return (MATCH_FALSE);
-	
-	/* for any type or name matches, construct the value */  
+
+	/* for any type or name matches, construct the value */
 	if (data->op == ATTACHOP_ANYTYPE || data->op == ATTACHOP_ANYNAME)
 		value = replacestr(&data->value.str, m->tags, m, &m->rml);
 
@@ -131,7 +131,7 @@ match_attachment_match(struct mail_ctx *mctx, struct expritem *ei)
 		case ATTACHOP_ANYTYPE:
 			if (at->type == NULL)
 				break;
-				
+
 			if (fnmatch(value, at->type, FNM_CASEFOLD) == 0) {
 				xfree(value);
 				return (MATCH_TRUE);
@@ -140,7 +140,7 @@ match_attachment_match(struct mail_ctx *mctx, struct expritem *ei)
 		case ATTACHOP_ANYNAME:
 			if (at->name == NULL)
 				break;
-			
+
 			if (fnmatch(value, at->name, FNM_CASEFOLD) == 0) {
 				xfree(value);
 				return (MATCH_TRUE);
@@ -149,7 +149,7 @@ match_attachment_match(struct mail_ctx *mctx, struct expritem *ei)
 		default:
 			return (MATCH_ERROR);
 		}
-		
+
 		at = attach_visit(at, NULL);
 	}
 

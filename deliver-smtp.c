@@ -36,7 +36,7 @@ int	 deliver_smtp_code(char *);
 struct deliver deliver_smtp = {
 	"smtp",
 	DELIVER_ASUSER,
-	deliver_smtp_deliver, 
+	deliver_smtp_deliver,
 	deliver_smtp_desc
 };
 

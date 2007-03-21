@@ -29,7 +29,7 @@ void	 deliver_stdout_desc(struct action *, char *, size_t);
 
 struct deliver deliver_stdout = {
 	"stdout",
-	DELIVER_INCHILD, 
+	DELIVER_INCHILD,
 	deliver_stdout_deliver,
 	deliver_stdout_desc
 };
@@ -43,7 +43,7 @@ deliver_stdout_deliver(struct deliver_ctx *dctx, struct action *t)
         char				*from;
 
 	log_debug2("%s: writing to stdout", a->name);
-	
+
 	if (data->add_from) {
 		from = make_from(m);
 		log_debug3("%s: using from line: %s", a->name, from);

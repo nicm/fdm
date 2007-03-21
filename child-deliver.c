@@ -76,12 +76,12 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 	struct mail		*md = &dctx->wr_mail;
 
 	/* check if this is the parent */
-	if (pid != 0) { 
+	if (pid != 0) {
 		/* use new mail if necessary */
 		if (t->deliver->type != DELIVER_WRBACK) {
 			xfree(dctx);
 			return;
-		}		
+		}
 
 		if (*result != DELIVER_SUCCESS) {
 			mail_destroy(md);
@@ -107,7 +107,7 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 }
 
 void
-child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg, 
+child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
     struct child_deliver_data *data, int *result)
 {
 	struct mail_ctx			*mctx = data->mctx;
@@ -133,7 +133,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		goto error;
         }
 
-	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, cmddata->ret, 
+	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, cmddata->ret,
 	    cmddata->re.str == NULL ? "none" : cmddata->re.str);
 	flags = CMD_ONCE;
 	if (cmddata->pipe)
@@ -171,7 +171,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		log_debug3("%s: %s: out: %s", a->name, s, out);
 		if (found)
 			continue;
-			
+
 		found = re_string(&cmddata->re, out, &rml, &cause);
 		if (found == -1) {
 			log_warnx("%s: %s", a->name, cause);

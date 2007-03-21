@@ -77,7 +77,7 @@ strb_add(struct strb **sbp, const char *key, const char *value, ...)
 	strb_vadd(sbp, key, value, ap);
 	va_end(ap);
 }
-	
+
 void
 strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 {
@@ -115,7 +115,7 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 			if (sb->ent_max > UINT_MAX / 2) /* XXX */
 				fatalx("strb_add: ent_max too large");
 			n = sb->ent_max;
-			
+
 			sb->ent_max *= 2;
 			sb = *sbp = xrealloc(sb, 1, STRB_SIZE(sb));
 

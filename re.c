@@ -86,7 +86,7 @@ re_string(struct re *re, char *s, struct rmlist *rml, char **cause)
 		xasprintf(cause, "%s: regexec failed", re->str);
 		return (-1);
 	}
-	
+
 	if (rml != NULL) {
 		for (i = 0; i < NPMATCH; i++) {
 			if (pm[i].rm_eo <= pm[i].rm_so)

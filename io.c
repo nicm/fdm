@@ -192,7 +192,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 			io->closed = 1;
 			continue;
 		}
-		/* close on POLLHUP but only if there is nothing to read */ 
+		/* close on POLLHUP but only if there is nothing to read */
 		if (pfd->revents & POLLHUP && (pfd->revents & POLLIN) == 0) {
 			io->closed = 1;
 			continue;
@@ -656,7 +656,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		va_end(aq);
 
 		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, n + 1);
-		
+
  		xvsnprintf(io->wbase + io->woff + io->wsize, n + 1, fmt, ap);
 		io->wsize += n;
 	}
@@ -730,7 +730,7 @@ io_wait(struct io *io, size_t len, char **cause)
 			return (-1);
 		}
 	}
-	
+
 	io->flags = flags;
 	return (0);
 }

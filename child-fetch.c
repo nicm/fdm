@@ -38,7 +38,7 @@ int	fetch_account(struct io *, struct account *, double);
 
 int	fetch_drain(void);
 int	fetch_done(struct mail_ctx *);
-int	fetch_match(struct account *, int *, u_int *, struct msg *, 
+int	fetch_match(struct account *, int *, u_int *, struct msg *,
 	    struct msgbuf *);
 int	fetch_deliver(struct account *, int *, struct msg *, struct msgbuf *);
 int	fetch_poll(struct account *, struct io *, struct mail_ctx *,
@@ -160,7 +160,7 @@ poll_account(unused struct io *io, struct account *a)
 }
 
 int
-fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx, 
+fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
     int blocked, u_int queued)
 {
 	static int	 holding;	/* holding fetch until queues drop */
@@ -172,13 +172,13 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 	n = 1;
 	iop[0] = pio;
 
-	/* 
+	/*
 	 * If the queue is empty and the fetch finished, must be all done.
 	 */
 	if (queued == 0 && mctx == NULL)
 		return (FETCH_COMPLETE);
 
-	/* 
+	/*
 	 * Update the holding flag.
 	 */
 	if (queued >= (u_int) conf.queue_high)
@@ -186,7 +186,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 	if (queued <= (u_int) conf.queue_low)
 		holding = 0;
 
-	/* 
+	/*
 	 * If not finished, try to get a mail.
 	 */
 	if (mctx != NULL && !holding) {
@@ -194,7 +194,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 			return (error);
 	}
 
-	/* 
+	/*
 	 * If the fetch itself not finished, fill in its io list.
 	 */
 	if (mctx != NULL && a->fetch->fill != NULL)
@@ -209,7 +209,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 		return (FETCH_NONE);
 
 	/*
-	 * If the queues are empty, or blocked waiting for the parent, then 
+	 * If the queues are empty, or blocked waiting for the parent, then
 	 * let poll block.
 	 */
 	timeout = 0;
@@ -257,7 +257,7 @@ fetch_done(struct mail_ctx *mctx)
 	default:
 		fatalx("invalid decision");
 	}
-	
+
 	if (a->fetch->done(a, m) != FETCH_SUCCESS)
 		return (1);
 
@@ -270,7 +270,7 @@ fetch_drain(void)
 	struct mail_ctx	*mctx;
 
 	while (!TAILQ_EMPTY(&doneq)) {
-		mctx = TAILQ_FIRST(&doneq); 
+		mctx = TAILQ_FIRST(&doneq);
 		if (fetch_done(mctx) != 0)
 			return (1);
 
@@ -286,7 +286,7 @@ fetch_match(struct account *a, int *blocked, u_int *queued, struct msg *msg,
     struct msgbuf *msgbuf)
 {
 	struct mail_ctx	*mctx;
-	
+
 	if (TAILQ_EMPTY(&matchq))
 		return (0);
 
@@ -313,7 +313,7 @@ fetch_match(struct account *a, int *blocked, u_int *queued, struct msg *msg,
 }
 
 int
-fetch_deliver(struct account *a, int *blocked, struct msg *msg, 
+fetch_deliver(struct account *a, int *blocked, struct msg *msg,
     struct msgbuf *msgbuf)
 {
 	struct mail_ctx	*mctx;
@@ -357,18 +357,18 @@ fetch_flush(struct account *a, struct io *pio, u_int *queued)
 }
 
 int
-fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio, 
+fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
     u_int *queued)
 {
 	struct msg	 msg, *msgp;
 	struct msgbuf	 msgbuf;
 	int		 error, blocked;
-	
+
 	error = FETCH_AGAIN;
 	msgp = NULL;
 	while (error == FETCH_AGAIN) {
 		blocked = 0;
-		
+
 		/*
 		 * Match a mail.
 		 */
@@ -376,15 +376,15 @@ fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
 			error = FETCH_ERROR;
 			break;
 		}
-		
-		/* 
+
+		/*
 		 * Deliver a mail.
 		 */
 		if (fetch_deliver(a, &blocked, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
 		}
-		
+
 		/*
 		 * Poll for new mails.
 		 */
@@ -393,8 +393,8 @@ fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
 		error = fetch_poll(a, pio, mctx, blocked, *queued);
 		if (error == FETCH_ERROR || error == FETCH_COMPLETE)
 			break;
-		
-		/* 
+
+		/*
 		 * Check for new privsep messages.
 		 */
 		msgp = NULL;
@@ -421,6 +421,7 @@ fetch_free1(struct mail_ctx *mctx)
 		xfree(dctx);
 	}
 
+	ARRAY_FREE(&mctx->stack);
 	mail_destroy(mctx->mail);
 	xfree(mctx->mail);
 	xfree(mctx);
@@ -472,7 +473,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 		 * make a new one.
 		 */
 		if (mctx == NULL) {
-			m = xcalloc(1, sizeof *m); 
+			m = xcalloc(1, sizeof *m);
 			m->body = -1;
 			m->decision = DECISION_DROP;
 			m->idx = ++a->idx;
@@ -485,7 +486,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			mctx->done = 0;
 
 			mctx->matched = 0;
-			
+
 			mctx->account = a;
 			mctx->io = pio;
 
@@ -493,7 +494,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			TAILQ_INIT(&mctx->dqueue);
 			ARRAY_INIT(&mctx->stack);
 		}
-			
+
 		/*
 		 * Try to get a mail.
 		 */
@@ -501,7 +502,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 		if (error == FETCH_ERROR || error == FETCH_COMPLETE)
 			goto out;
 
-		/* 
+		/*
 		 * Trim "From " line.
 		 */
 		if (error == FETCH_SUCCESS) {
@@ -512,7 +513,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 
 		/*
 		 * And handle the return code.
-		 */ 
+		 */
 		switch (error) {
 		case FETCH_EMPTY:
 			log_warnx("%s: empty message", a->name);
@@ -522,13 +523,13 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			log_warnx("%s: message too big: %zu bytes (limit %zu)",
 			    a->name, m->size, conf.max_size);
 			if (conf.del_big) {
-				/* 
+				/*
 				 * Queue on the done queue and destroy the
 				 * mail file.
 				 */
 				TAILQ_INSERT_TAIL(&doneq, mctx, entry);
 				shm_destroy(&mctx->mail->shm);
-				
+
 				/*
 				 * Set error to success to allocate a new
 				 * context at the start of the loop.
@@ -538,7 +539,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			}
 			error = FETCH_ERROR;
 			goto out;
-		case FETCH_SUCCESS: 
+		case FETCH_SUCCESS:
 			/*
 			 * Got a mail: modify it and queue it.
 			 */
@@ -552,7 +553,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			break;
 		}
 
-		/* 
+		/*
 		 * Empty the done queue. Can get here either from FETCH_SUCCESS
 		 * or FETCH_NONE.
 		 */
@@ -571,7 +572,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 		if (n >= conf.purge_after) {
 			log_debug("%s: got %u mails, purging", a->name, n);
 			n = 0;
-			
+
 			/*
 			 * Must empty queues before purge to make sure things
 			 * like POP3 indexing don't get ballsed up.
@@ -587,12 +588,12 @@ out:
 	if (mctx != NULL) {
 		mail_destroy(m);
 		xfree(m);
-		
+
 		xfree(mctx);
 	}
 
 	/*
-	 * Flush the queues if not an error. 
+	 * Flush the queues if not an error.
 	 */
 	if (error != FETCH_ERROR) {
 		if (fetch_flush(a, pio, &queued) != 0)

@@ -253,7 +253,7 @@ restart:
 			return (FETCH_COMPLETE);
 
 		/* find and save the uid */
-		if (data->putln(a, 
+		if (data->putln(a,
 		    "%u FETCH %u UID", ++data->tag, data->cur) != 0)
 			return (FETCH_ERROR);
 		data->state = IMAP_UID1;
@@ -280,7 +280,7 @@ restart:
 				break;
 			}
 		}
-		if (data->putln(a, 
+		if (data->putln(a,
 		    "%u FETCH %u BODY[]", ++data->tag, data->cur) != 0)
 			return (FETCH_ERROR);
 		data->state = IMAP_FETCH;
@@ -326,7 +326,7 @@ restart:
 		data->flushing = data->size > conf.max_size;
 		data->lines = 0;
 		data->bodylines = -1;
-		
+
 		data->state = IMAP_LINE;
 		break;
 	case IMAP_LINE:
@@ -363,7 +363,7 @@ restart:
 			return (FETCH_ERROR);
 		goto complete;
 	}
-	
+
 	goto restart;
 
 complete:
@@ -380,10 +380,10 @@ complete:
 		add_tag(&m->tags, "header_lines", "%u",  data->lines - 1);
 	} else {
 		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		add_tag(&m->tags, "header_lines", "%d", data->lines -
 		    data->bodylines);
 	}
-	
+
 	if (data->flushing)
 		return (FETCH_OVERSIZE);
 	return (FETCH_SUCCESS);

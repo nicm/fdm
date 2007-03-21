@@ -55,7 +55,7 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 		return (DELIVER_FAILURE);
 	}
 	log_debug2("%s: adding header: %s", a->name, hdr);
-	
+
 	if (insert_header(m, NULL, "%s: %s", hdr, value) != 0) {
 		log_warnx("%s: failed to add header %s (%s)", a->name,
 		    hdr, value);
@@ -72,7 +72,7 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 	/* invalidate the match data since stuff may have moved */
 	m->rml.valid = 0;
 
-	xfree(hdr);	
+	xfree(hdr);
 	xfree(value);
 	return (DELIVER_SUCCESS);
 }
@@ -82,6 +82,6 @@ deliver_add_header_desc(struct action *t, char *buf, size_t len)
 {
 	struct deliver_add_header_data	*data = t->data;
 
-	xsnprintf(buf, len, 
+	xsnprintf(buf, len,
 	    "add-header \"%s\" \"%s\"", data->hdr.str, data->value.str);
 }

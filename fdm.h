@@ -48,7 +48,7 @@
 #define MAXMAILSIZE	IO_MAXBUFFERLEN
 #define DEFTIMEOUT	(900 * 1000)
 #define LOCKSLEEPTIME	10000
-#define LOCKRETRIES	1000 
+#define LOCKRETRIES	1000
 #define MAXNAMESIZE	64
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
@@ -345,7 +345,7 @@ struct rm {
 
 struct rmlist {
 	int		 valid;
-	
+
 	struct rm	 list[NPMATCH];
 };
 
@@ -399,7 +399,7 @@ struct mail {
 struct mail_ctx {
 	int				 done;
 	u_int				 msgid;
-	
+
 	struct account			*account;
 	struct io			*io;
 	struct mail			*mail;
@@ -459,7 +459,7 @@ struct msgdata {
 struct msgbuf {
 	void		*buf;
 	size_t		 len;
-}; 
+};
 
 /* Privsep message. */
 struct msg {
@@ -494,7 +494,7 @@ struct child_fetch_data {
 
 /* Deliver child data. */
 struct child_deliver_data {
-	void			 (*hook)(int, struct account *, struct msg *, 
+	void			 (*hook)(int, struct account *, struct msg *,
 				      struct child_deliver_data *, int *);
 
 	struct child 		*child; /* the source of the request */
@@ -801,7 +801,7 @@ struct macro		*find_macro(char *);
 struct actions		*match_actions(char *);
 void			 free_action(struct action *);
 void			 free_rule(struct rule *);
-void			 free_account(struct account *); 
+void			 free_account(struct account *);
 char			*expand_path(char *);
 
 /* netrc.c */
@@ -850,8 +850,8 @@ void			 cmd_free(struct cmd *);
 /* child.c */
 int			 child_fork(void);
 __dead void		 child_exit(int);
-struct child 		*child_start(struct children *, uid_t, 
-    			     int (*)(struct child *, struct io *), 
+struct child 		*child_start(struct children *, uid_t,
+    			     int (*)(struct child *, struct io *),
 			     int (*)(struct child *, struct msg *,
     			     struct msgbuf *), void *);
 
@@ -870,7 +870,7 @@ int			 parent_fetch(struct child *, struct msg *,
 			     struct msgbuf *);
 
 /* parent-deliver.c */
-int			 parent_deliver(struct child *, struct msg *, 
+int			 parent_deliver(struct child *, struct msg *,
 			     struct msgbuf *);
 
 /* connect.c */
@@ -937,7 +937,7 @@ const char 		*find_tag(struct strb *, const char *);
 const char		*match_tag(struct strb *, const char *);
 void			 default_tags(struct strb **, char *, struct account *);
 void			 update_tags(struct strb **);
-char 			*replace(char *, struct strb *, struct mail *, 
+char 			*replace(char *, struct strb *, struct mail *,
 			     struct rmlist *);
 char 			*replacestr(struct replstr *, struct strb *,
 			     struct mail *, struct rmlist *);

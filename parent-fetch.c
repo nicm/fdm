@@ -31,7 +31,7 @@
 
 void	parent_fetch_action(struct child *, struct children *,
     	    struct deliver_ctx *, struct msg *);
-void	parent_fetch_cmd(struct child *, struct children *, struct mail_ctx *, 
+void	parent_fetch_cmd(struct child *, struct children *, struct mail_ctx *,
 	    struct msg *);
 
 int
@@ -85,7 +85,7 @@ parent_fetch_action(struct child *child, struct children *children,
 {
 	struct action			*t = msg->data.action;
 	uid_t				 uid = msg->data.uid;
-	struct mail			*m = dctx->mail; 
+	struct mail			*m = dctx->mail;
 	struct mail			*md = &dctx->wr_mail;
 	struct child_deliver_data	*data;
 
@@ -116,11 +116,11 @@ parent_fetch_action(struct child *child, struct children *children,
 }
 
 void
-parent_fetch_cmd(struct child *child, struct children *children, 
+parent_fetch_cmd(struct child *child, struct children *children,
     struct mail_ctx *mctx, struct msg *msg)
 {
 	uid_t				 uid = msg->data.uid;
-	struct mail			*m = mctx->mail; 
+	struct mail			*m = mctx->mail;
 	struct child_deliver_data	*data;
 
 	data = xmalloc(sizeof *data);

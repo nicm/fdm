@@ -70,12 +70,22 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		case MATCH_ERROR:
 			return (MAIL_ERROR);
 		case MATCH_TRUE:
-			if (ei->op == OP_NONE || ei->op == OP_OR)
-				mctx->result = 1;
+			if (!ei->inverted) {
+				if (ei->op == OP_NONE || ei->op == OP_OR)
+					mctx->result = 1;
+			} else {
+				if (ei->op == OP_AND)
+					mctx->result = 0;
+			}
 			break;
 		case MATCH_FALSE:
-			if (ei->op == OP_AND)
-				mctx->result = 0;
+			if (!ei->inverted) {
+				if (ei->op == OP_AND)
+					mctx->result = 0;
+			} else {
+				if (ei->op == OP_NONE || ei->op == OP_OR)
+					mctx->result = 1;
+			}
 			break;
 		default:
 			fatalx("child: unexpected response");
@@ -115,7 +125,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	 */
 	if (mctx->expritem == NULL) {
 		/*
-		 * Check rule account list. 
+		 * Check rule account list.
 		 */
 		aa = mctx->rule->accounts;
 		if (aa != NULL && !ARRAY_EMPTY(aa)) {
@@ -138,8 +148,8 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 			mctx->result = 1;
 			goto skip;
 		}
-		
-		/* 
+
+		/*
 		 * Start the expression.
 		 */
 		mctx->result = 0;
@@ -156,12 +166,22 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	case MATCH_PARENT:
 		return (MAIL_BLOCKED);
 	case MATCH_TRUE:
-		if (ei->op == OP_NONE || ei->op == OP_OR)
-			mctx->result = 1;
+		if (!ei->inverted) {
+			if (ei->op == OP_NONE || ei->op == OP_OR)
+				mctx->result = 1;
+		} else {
+			if (ei->op == OP_AND)
+				mctx->result = 0;
+		}
 		break;
 	case MATCH_FALSE:
-		if (ei->op == OP_AND)
-			mctx->result = 0;
+		if (!ei->inverted) {
+			if (ei->op == OP_AND)
+				mctx->result = 0;
+		} else {
+			if (ei->op == OP_NONE || ei->op == OP_OR)
+				mctx->result = 1;
+		}
 		break;
 	}
 
@@ -169,7 +189,7 @@ next_expritem:
 	/*
 	 * Move to the next item. If there is one, then return.
 	 */
-	mctx->expritem = TAILQ_NEXT(mctx->expritem, entry); 
+	mctx->expritem = TAILQ_NEXT(mctx->expritem, entry);
 	if (mctx->expritem != NULL)
 		return (MAIL_CONTINUE);
 
@@ -182,7 +202,7 @@ skip:
 	mctx->matched = 1;
 	log_debug2("%s: matched to rule %u", a->name, mctx->rule->idx);
 
-	/* 
+	/*
 	 * If this rule is stop, mark the context so when we get back after
 	 * delivery we know to stop.
 	 */
@@ -195,55 +215,55 @@ skip:
 	if (!TAILQ_EMPTY(&mctx->rule->rules)) {
 		log_debug2("%s: entering nested rules", a->name);
 
-		/* 
+		/*
 		 * Stack the current rule (we are at the end of it so the
 		 * the expritem must be NULL already).
 		 */
 		ARRAY_ADD(&mctx->stack, mctx->rule, struct rule *);
 
-		/* 
+		/*
 		 * Continue with the first rule of the nested list.
 		 */
 		mctx->rule = TAILQ_FIRST(&mctx->rule->rules);
 		return (MAIL_CONTINUE);
 	}
 
-	/* 
+	/*
 	 * Tag mail if necessary.
 	 */
 	if (mctx->rule->key.str != NULL) {
 		tkey = replacestr(&mctx->rule->key, m->tags, m, &m->rml);
 		tvalue = replacestr(&mctx->rule->value, m->tags, m, &m->rml);
-		
+
 		if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
 			log_debug2("%s: tagging message: %s (%s)", a->name,
 			    tkey, tvalue);
 			add_tag(&m->tags, tkey, "%s", tvalue);
 		}
-		
+
 		if (tkey != NULL)
 			xfree(tkey);
 		if (tvalue != NULL)
 			xfree(tvalue);
 	}
 
-	/* 
+	/*
 	 * Fill the delivery action queue.
-	 */  
-	if (!ARRAY_EMPTY(mctx->rule->actions)) { 
+	 */
+	if (!ARRAY_EMPTY(mctx->rule->actions)) {
 		if (fill_delivery_queue(mctx, mctx->rule) != 0)
 			return (MAIL_ERROR);
 		error = MAIL_DELIVER;
 	}
 
 next_rule:
-	/* 
+	/*
 	 * Move to the next rule.
 	 */
 	mctx->rule = TAILQ_NEXT(mctx->rule, entry);
 
 	/*
-	 * If no more rules, try to move up the stack. 
+	 * If no more rules, try to move up the stack.
 	 */
 	while (mctx->rule == NULL) {
 		if (ARRAY_EMPTY(&mctx->stack))
@@ -273,7 +293,7 @@ mail_deliver(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 			return (MAIL_BLOCKED);
 		mctx->msgid = 0;
 
-		/* 
+		/*
 		 * Got message. Finish delivery.
 		 */
 		dctx = TAILQ_FIRST(&mctx->dqueue);
@@ -291,7 +311,7 @@ mail_deliver(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	 */
 	if (TAILQ_EMPTY(&mctx->dqueue))
 		return (MAIL_MATCH);
-		
+
 	/*
 	 * Get the first delivery action and start it.
 	 */
@@ -308,8 +328,8 @@ done:
 	 * Remove completed action from queue.
 	 */
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
-	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds", 
-	    a->name, m->idx, dctx->rule->idx, 
+	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds",
+	    a->name, m->idx, dctx->rule->idx,
 	    dctx->action->deliver->name, get_time() - dctx->tim);
 	xfree(dctx);
 	return (MAIL_CONTINUE);
@@ -422,7 +442,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	struct mail	*md = &dctx->wr_mail;
 	struct msg	 msg;
 	struct msgbuf	 msgbuf;
-	u_int		 lines;	
+	u_int		 lines;
 
 	dctx->tim = get_time();
  	if (t->deliver->deliver == NULL)
@@ -450,7 +470,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	if (t->deliver->type == DELIVER_WRBACK && dctx->uid == geteuid()) {
 		mail_open(md, IO_BLOCKSIZE);
 		md->decision = m->decision;
-		
+
 		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS) {
 			mail_destroy(md);
 			return (ACTION_ERROR);
@@ -466,11 +486,11 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 
 		/* trim from line */
 		trim_from(m);
-	
+
 		/* and recreate the wrapped array */
 		lines = fill_wrapped(m);
 		log_debug2("%s: found %u wrapped lines", a->name, lines);
-		
+
 		return (ACTION_DONE);
 	}
 #endif
@@ -489,7 +509,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	mail_send(m, &msg);
 
 	log_debug3("%s: sending action to parent", a->name);
-	if (privsep_send(mctx->io, &msg, &msgbuf) != 0) 
+	if (privsep_send(mctx->io, &msg, &msgbuf) != 0)
 		fatalx("child: privsep_send error");
 
 	mctx->msgid = msg.id;
@@ -498,21 +518,21 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 
 int
 finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
-{	
+{
 	struct account	*a = dctx->account;
 	struct action	*t = dctx->action;
 	struct mail	*m = dctx->mail;
 	u_int		 lines;
-	
+
 	if (msgbuf->buf == NULL || msgbuf->len == 0)
 		fatalx("child: bad tags");
 	strb_destroy(&m->tags);
 	m->tags = msgbuf->buf;
 	update_tags(&m->tags);
-	
+
 	if (msg->data.error != 0)
 		return (ACTION_ERROR);
-	
+
 	if (t->deliver->type != DELIVER_WRBACK)
 		return (ACTION_DONE);
 
@@ -522,409 +542,10 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 
 	/* trim from line */
 	trim_from(m);
-	
+
 	/* and recreate the wrapped array */
 	lines = fill_wrapped(m);
 	log_debug2("%s: found %u wrapped lines", a->name, lines);
 
 	return (ACTION_DONE);
 }
-
-/* -------------------------------------------------------------------------- */
-#if 0
- int
-run_match(struct account *a, const char **cause)
-{
-	switch (fetch_rule(mctx, cause)) {
-	case FETCH_ERROR:
-		return (1);
-	case FETCH_AGAIN:
-		/* delivering mail, queue for delivery */
-		log_debug3("%s: %u, adding to deliver queue", a->name, m->idx);
-		TAILQ_REMOVE(&matchq, mctx, entry);
-		TAILQ_INSERT_TAIL(&deliverq, mctx, entry);
-		break;
-	case FETCH_COMPLETE:
-		/* finished with mail, queue on done queue */
-		log_debug3("%s: %u, adding to done queue", a->name, m->idx);
-		TAILQ_REMOVE(&matchq, mctx, entry);
-		TAILQ_INSERT_TAIL(&doneq, mctx, entry);
-
-		/*
-		 * Destroy mail data now it is finished, just keep the mail
-		 * structure.
-		 */
-		shm_destroy(&mctx->mail->shm);
-		break;
-	}
-
-	return (0);
-}
-
-int
-run_done(struct account *a, const char **cause)
-{
-	struct match_ctx	*mctx;
-	struct mail		*m;
-	int			 error = 0;
-	const char		*type;
-
-	if (TAILQ_EMPTY(&doneq))
-		return (0);
-	
-	mctx = TAILQ_FIRST(&doneq);
-	m = mctx->mail;
-	log_debug3("%s: running done queue", a->name);
-
-	TAILQ_REMOVE(&doneq, mctx, entry);
-	ARRAY_FREE(&mctx->stack);
-	log_debug("%s: message %u done after %.3f seconds", a->name, m->idx,
-	    get_time() - mctx->tim);
-	xfree(mctx);
-
-	if (a->fetch->done != NULL) {
-		switch (m->decision) {
-		case DECISION_DROP:
-			type = "deleting";
-			dropped++;
-			break;
-		case DECISION_KEEP:
-			type = "keeping";
-			kept++;
-			break;
-		default:
-			fatalx("invalid decision");
-		}
-		log_debug("%s: %s message %u", a->name, type, m->idx);
-		
-		if (a->fetch->done(a, m) != FETCH_SUCCESS) {
-			*cause = type;
-			error = 1;
-		}
-	}
-
-	mail_destroy(m);
-	xfree(m);
-
-	return (error);
-}
-
-void
-flush_queue(struct match_queue *mq)
-{
-	struct match_ctx	*mctx;
-	struct deliver_ctx	*dctx;
-	struct mail		*m;
-
-	while (!TAILQ_EMPTY(mq)) {
-		mctx = TAILQ_FIRST(mq);
-		m = mctx->mail;
-
-		TAILQ_REMOVE(mq, mctx, entry);
-		while (!TAILQ_EMPTY(&mctx->dqueue)) {
-			dctx = TAILQ_FIRST(&mctx->dqueue);
-			TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
-			xfree(dctx);
-		}
-		ARRAY_FREE(&mctx->stack);
-		xfree(mctx);
-		
-		mail_destroy(m);
-		xfree(m);
-	}
-}
-
-int
-run_deliver(struct account *a, const char **cause)
-{
-	struct match_ctx	*mctx;
-	struct mail		*m;
-	struct deliver_ctx	*dctx;
-
-	if (TAILQ_EMPTY(&deliverq))
-		return (0);
-	
-	mctx = TAILQ_FIRST(&deliverq);
-	m = mctx->mail;
-
-	if (TAILQ_EMPTY(&mctx->dqueue)) {
-		/* delivery done. return to match queue */
-		log_debug3("%s: %u, returning to match queue", a->name, m->idx);
-		TAILQ_REMOVE(&deliverq, mctx, entry);
-		TAILQ_INSERT_HEAD(&matchq, mctx, entry);
-		return (0);
-	}
-
-	/* start the first action */
-	log_debug3("%s: running deliver queue", a->name);
-	dctx = TAILQ_FIRST(&mctx->dqueue);
-
-	switch (start_action(mctx, dctx)) {
-	case ACTION_ERROR:
-		*cause = "delivery";
-		return (1);
-	case ACTION_PARENT:
-		log_debug3("%s: %u, adding to blocked queue", a->name, m->idx);
-		TAILQ_REMOVE(&deliverq, mctx, entry);
-		TAILQ_INSERT_HEAD(&blockedq, mctx, entry);
-		return (0);
-	}
-
-	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
-	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds", 
-	    a->name, mctx->mail->idx, dctx->rule->idx, 
-	    dctx->action->deliver->name,  get_time() - dctx->tim);
-	xfree(dctx);
-	return (0);
-}
-
-int
-recvd_deliver(struct msg *msg, struct msgbuf *msgbuf, void *data, 
-    const char **cause)
-{
-	struct match_ctx	*mctx = data;
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct deliver_ctx	*dctx;
-	
-	if (msg->type != MSG_DONE)
-		fatalx("child: unexpected message");
-
-	log_debug3("%s: %u, returning to deliver queue", a->name, m->idx);
-	TAILQ_REMOVE(&blockedq, mctx, entry);
-	TAILQ_INSERT_HEAD(&deliverq, mctx, entry);
-
-	dctx = TAILQ_FIRST(&mctx->dqueue);
-	if (finish_action(dctx, msg, msgbuf) != ACTION_DONE) {
-		*cause = "delivery";
-		return (1);
-	}
-
-	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
-	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds", 
-	    a->name, mctx->mail->idx, dctx->rule->idx, 
-	    dctx->action->deliver->name,  get_time() - dctx->tim);
-	xfree(dctx);
-	return (0);
-}
-
-int
-fetch_rule(struct match_ctx *mctx, const char **cause)
-{
-	struct account		*a = mctx->account;
-	struct strings		*aa;
-	struct mail		*m = mctx->mail;
-	struct rule		*r = mctx->rule;
-	u_int		 	 i;
-	int		 	 error;
-	char			*tkey, *tvalue;
-
-	/* matching finished */
-	if (m->done) {
-		if (conf.keep_all || a->keep)
-			m->decision = DECISION_KEEP;
-		return (FETCH_COMPLETE);
-	}
-
-	/* end of ruleset reached */
-	if (r == NULL) {
-		switch (conf.impl_act) {
-		case DECISION_NONE:
-			log_warnx("%s: reached end of ruleset. no "
-			    "unmatched-mail option; keeping mail",  a->name);
-			m->decision = DECISION_KEEP;
-			break;
-		case DECISION_KEEP:
-			log_debug2("%s: reached end of ruleset. keeping mail",
-			    a->name);
-			m->decision = DECISION_KEEP;
-			break;
-		case DECISION_DROP:
-			log_debug2("%s: reached end of ruleset. dropping mail",
-			    a->name);
-			m->decision = DECISION_DROP;
-			break;
-		}
-		m->done = 1;
-		return (FETCH_SUCCESS);
-	}
-
-	mctx->rule = TAILQ_NEXT(mctx->rule, entry);
-	while (mctx->rule == NULL) {
-		if (ARRAY_EMPTY(&mctx->stack))
-			break;
-		mctx->rule = ARRAY_LAST(&mctx->stack, struct rule *);
-		mctx->rule = TAILQ_NEXT(mctx->rule, entry);
-		ARRAY_TRUNC(&mctx->stack, 1, struct rule *);
-	}
-
- 	aa = r->accounts;
-	if (!ARRAY_EMPTY(aa)) {
-		for (i = 0; i < ARRAY_LENGTH(aa); i++) {
-			if (name_match(ARRAY_ITEM(aa, i, char *), a->name))
-				break;
-		}
-		if (i == ARRAY_LENGTH(aa))
-			return (FETCH_SUCCESS);
-	}
-
-	/* match all the regexps */
-	switch (r->type) {
-	case RULE_EXPRESSION:
-		/* combine wrapped lines */
-		set_wrapped(m, ' ');
-		
-		/* perform the expression */
-		if ((error = do_expr(r, mctx)) == -1) {
-			*cause = "matching";
-			return (FETCH_ERROR);
-		}
-		
-		/* continue if no match */
-		if (!error)
-			return (FETCH_SUCCESS);
-		break;
-	case RULE_ALL:
-		break;
-	}
-
-	/* reset wrapped lines */
-	set_wrapped(m, '\n');
-		
-	/* report rule number */
-	if (TAILQ_EMPTY(&r->rules))
-		log_debug2("%s: matched to rule %u", a->name, r->idx);
-	else
-		log_debug2("%s: matched to rule %u (nested)", a->name, r->idx);
-
-	/* deal with nested rules */
-	if (!TAILQ_EMPTY(&r->rules)) {
-		log_debug2("%s: entering nested rules", a->name);
-		ARRAY_ADD(&mctx->stack, r, struct rule *);
-		mctx->rule = TAILQ_FIRST(&r->rules);
-		return (FETCH_SUCCESS);
-	}
-	
-	/* tag mail if needed */
-	if (r->key.str != NULL) {
-		tkey = replacestr(&r->key, m->tags, m, &m->rml);
-		tvalue = replacestr(&r->value, m->tags, m, &m->rml);
-		
-		if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
-			log_debug2("%s: tagging message: %s (%s)", 
-			    a->name, tkey, tvalue);
-			add_tag(&m->tags, tkey, "%s", tvalue);
-		}
-		
-		if (tkey != NULL)
-			xfree(tkey);
-		if (tvalue != NULL)
-			xfree(tvalue);
-	}
-1	/* if this rule is marked as stop, mark the mail as done */
-	if (r->stop)
-		m->done = 1;
-
-	/* handle delivery */
-	if (r->actions != NULL) {
-		log_debug2("%s: delivering message", a->name);
-		mctx->matched = 1;
-		if (do_deliver(r, mctx) != 0) {
-			*cause = "delivery";
-			return (FETCH_ERROR);
-		}
-		return (FETCH_AGAIN);
-	}
-
-	return (FETCH_SUCCESS);
-}
-
-int
-do_expr(struct rule *r, struct match_ctx *mctx)
-{
-	int		 fres, cres;
-	struct expritem	*ei;
-	char		 desc[DESCBUFSIZE];
-
-	fres = 0;
-	TAILQ_FOREACH(ei, r->expr, entry) {
-		cres = ei->match->match(mctx, ei);
-		if (cres == MATCH_ERROR)
-			return (-1);
-		cres = cres == MATCH_TRUE;
-		if (ei->inverted)
-			cres = !cres;
-		switch (ei->op) {
-		case OP_NONE:
-		case OP_OR:
-			fres = fres || cres;
-			break;
-		case OP_AND:
-			fres = fres && cres;
-			break;
-		}
-
-		ei->match->desc(ei, desc, sizeof desc);
-		log_debug2("%s: tried %s%s, got %d", mctx->account->name,
-		    ei->inverted ? "not " : "", desc, cres);
-	}
-
-	return (fres);
-}
-
-int
-do_deliver(struct rule *r, struct match_ctx *mctx)
-{
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct action		*t;
-	struct actions		*ta;
-	u_int		 	 i, j, k;
-	char			*s;
-	struct replstr		*rs;
-	struct deliver_ctx	*dctx;
-	struct strings		*users;
-	int			 should_free;
-
-	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		rs = &ARRAY_ITEM(r->actions, i, struct replstr);
-		s = replacestr(rs, m->tags, m, &m->rml);
-
-		log_debug2("%s: looking for actions matching: %s", a->name, s);
-		ta = match_actions(s);
-		if (ARRAY_EMPTY(ta))
-			goto empty;
-		xfree(s);
-
-		log_debug2("%s: found %u actions", a->name, ARRAY_LENGTH(ta));
-		for (j = 0; j < ARRAY_LENGTH(ta); j++) {
-			t = ARRAY_ITEM(ta, j, struct action *);
-			users = get_users(mctx, r, t, &should_free);
-
-			for (k = 0; k < ARRAY_LENGTH(users); k++) {
-				dctx = xmalloc(sizeof *dctx);
-				dctx->action = t;
-				dctx->account = a;
-				dctx->rule = r;
-				dctx->mail = m;
-				dctx->uid = ARRAY_ITEM(users, k, uid_t);
-
-				TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
-			}
-
-			if (should_free)
-				ARRAY_FREEALL(users);
-		}
-
-		ARRAY_FREEALL(ta);
-	}
-
-	return (0);
-
-empty:
-	xfree(s);
-	ARRAY_FREEALL(ta);
-	log_warnx("%s: no actions matching: %s (%s)", a->name, s, rs->str);
-	return (1);
-}
-#endif

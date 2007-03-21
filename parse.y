@@ -540,7 +540,7 @@ expand_path(char *path)
 		endpwent();
 		return (NULL);
 	}
-	
+
 	if (ptr == NULL)
 		ptr = xstrdup(pw->pw_dir);
 	else
@@ -565,13 +565,13 @@ find_netrc(const char *host, char **user, char **pass)
 
 	if (user != NULL) {
 		if (*user == NULL)
-			yyerror("can't find user for \"%s\" in .netrc", host); 
+			yyerror("can't find user for \"%s\" in .netrc", host);
 		if (**user == '\0')
 			yyerror("invalid user");
 	}
-	if (pass != NULL) { 
+	if (pass != NULL) {
 		if (*pass == NULL)
-			yyerror("can't find pass for \"%s\" in .netrc", host); 
+			yyerror("can't find pass for \"%s\" in .netrc", host);
 		if (**pass == '\0')
 			yyerror("invalid pass");
 	}
@@ -976,7 +976,7 @@ set: TOKSET TOKMAXSIZE size
 	     if ($3 > MAXQUEUEVALUE)
 		     yyerror("queue-low too big: %lld", $3);
 	     if (conf.queue_high == -1)
-		     yyerror("queue-high not specified"); 
+		     yyerror("queue-high not specified");
 	     if ($3 >= conf.queue_high)
 		     yyerror("queue-low must be smaller than queue-high");
 	     conf.queue_low = $3;
@@ -2460,7 +2460,7 @@ userpassnetrc: TOKUSER replstrv TOKPASS replstrv
 			     yyerror("invalid user");
 		     if (*$4 == '\0')
 			     yyerror("invalid pass");
-		     
+
 		     $$.user = $2;
 		     $$.user_netrc = 0;
 		     $$.pass = $4;
@@ -2503,7 +2503,7 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 			  yyerror("invalid user");
 		  if (*$4 == '\0')
 			  yyerror("invalid pass");
-		  
+
 		  $$.user = $2;
 		  $$.user_netrc = 0;
 		  $$.pass = $4;

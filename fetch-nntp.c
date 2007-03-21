@@ -437,7 +437,7 @@ fetch_nntp_fill(struct account *a, struct io **iop, u_int *n)
 int
 fetch_nntp_finish(struct account *a, int aborted)
 {
-	struct fetch_nntp_data	*data = a->data;	
+	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	u_int			 i;
 
@@ -564,7 +564,7 @@ restart:
 			goto restart;
 		if (code != 220)
 			goto bad;
-		
+
 		mail_open(m, IO_BLOCKSIZE);
 		m->size = 0;
 
@@ -596,7 +596,7 @@ restart:
 
 		if (!data->flushing) {
 			resize_mail(m, m->size + len + 1);
-			
+
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			m->data[m->size + len] = '\n';
@@ -622,7 +622,7 @@ complete:
 		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
 	} else {
 		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines - 
+		add_tag(&m->tags, "header_lines", "%d", data->lines -
 		    data->bodylines);
 	}
 
