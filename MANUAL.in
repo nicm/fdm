@@ -7,6 +7,7 @@ fdm ============================================================================
 %%	Macros
 %%	Including other files
 ##	Invoking fdm
+%%	Temporary files
 %%	Command line arguments
 %%	Running from cron
 %%	The lock file
@@ -229,6 +230,20 @@ Macros are not substituted in strings specified using single-quotes.
 
 fdm may be invoked manually from the command line or regularly using a program
 such as cron(8).
+
+%%% Temporary files
+
+As each mail is being processed, it is stored in a temporary file in /tmp, or
+if the TMPDIR environment variable exists in the directory it points to.
+
+fdm tries to queue a number of mails simultaneously, so that older can be
+delivered while waiting for the server to provide the next. The maximum length
+of the queue is set by the 'queue-high' option (the default is two) and the
+maximum mail size accepted by the 'maximum-size' option (the default is 32
+MB). In addition, the 'rewrite' action requires an additional temporary
+mail. Although fdm will fail rather than dropping mail if the disk becomes
+full, users should bear in mind the possibility and set the size of the
+temporary directory and the fdm options according to their needs.
 
 %%% Command line arguments
 
@@ -994,16 +1009,38 @@ The possible options are:
 
 - maximum-size <size>
 
-This specifies the maximum size of mail that fdm will accept. fdm uses /tmp
-(by default) to save mails, it is recommended that this be less than the
-size of the /tmp partition (less than half the size if using rewrite). If
-mail over this size is encountered, fdm will abort with an error, without
-deleting the mail from the server (unless 'delete-oversized' is set).
+This specifies the maximum size of mail that fdm will accept. The default is 32
+MB. Note that fdm may be storing a number of mails, up to the 'queue-high'
+setting (plus one if rewrite is used), simultaneously so care should be taken
+when increasing this option.
+
+If mail over the maximum size is encountered, fdm will abort with an error,
+without deleting the mail from the server (unless 'delete-oversized' is set).
 
 - delete-oversized
 
 If this option is set, fdm will delete oversized mail from the server rather
 than leaving it for the user to sort out.
+
+- queue-high <number>
+
+This sets the number of mails fdm will queue simultaneously. The default is
+two.  Once this limit is reached, fdm will cease fetching mail until the number
+queued drops to the value of the 'queue-low' setting.
+
+fdm queues mails so that they may be processed while waiting for data from the
+server. Changing this option can increase (or decrease) performance, it's
+usefulness varies wildly with the ruleset, speed of connection and remote host,
+and the local hardware.
+
+The maximum possible value is currently 50. To ensure fdm fetches and delivers
+mail sequentially, set this option to one.
+
+- queue-low <number>
+
+This sets the number of mails fdm will wait for the queue to drop to before
+restarting fetching after the 'queue-high' limit has been reached. The default
+is three-quarters of the 'queue-high' setting.
 
 - allow-multiple
 

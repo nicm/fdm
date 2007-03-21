@@ -1,3 +1,8 @@
+21 March 2007
+
+* queue-low and queue-high options. Default queue limit is 2.
+* Default maximum-size now 32 MB and maximum now 1 GB.
+
 20 March 2007
 
 * -q option to quiet unnecessary chatter.

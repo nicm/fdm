@@ -469,12 +469,12 @@ main(int argc, char **argv)
 
 	/* sort out queue limits */
 	if (conf.queue_high == -1)
-		conf.queue_high = MAXMAILQUEUE;
+		conf.queue_high = DEFMAILQUEUE;
 	if (conf.queue_low == -1) {
-		conf.queue_low = conf.queue_high * MINMAILQUEUE / MAXMAILQUEUE;
+		conf.queue_low = conf.queue_high * 3 / 4;
 		if (conf.queue_low >= conf.queue_high)
 			conf.queue_low = conf.queue_high - 1;
-	}
+ 	}
 
 	/* set the umask */
 	umask(conf.file_umask);

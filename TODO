@@ -33,4 +33,3 @@
 - document mail_file, mbox_file and exec action
 - document netrc
 - document -q
-- document queue length options
