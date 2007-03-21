@@ -594,7 +594,7 @@ find_netrc(const char *host, char **user, char **pass)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT
-%token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER
+%token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -958,6 +958,28 @@ set: TOKSET TOKMAXSIZE size
 	     if ($3 > INT_MAX / 1000)
 		     yyerror("timeout too long: %lld", $3);
 	     conf.timeout = $3 * 1000;
+     }
+   | TOKSET TOKQUEUEHIGH numv
+/**  [$3: time (long long)] */
+     {
+	     if ($3 == 0)
+		     yyerror("zero queue-high");
+	     if ($3 > MAXQUEUEVALUE)
+		     yyerror("queue-high too big: %lld", $3);
+	     if (conf.queue_low != -1 && $3 <= conf.queue_low)
+		     yyerror("queue-high must be larger than queue-low");
+	     conf.queue_high = $3;
+     }
+   | TOKSET TOKQUEUELOW numv
+/**  [$3: time (long long)] */
+     {
+	     if ($3 > MAXQUEUEVALUE)
+		     yyerror("queue-low too big: %lld", $3);
+	     if (conf.queue_high == -1)
+		     yyerror("queue-high not specified"); 
+	     if ($3 >= conf.queue_high)
+		     yyerror("queue-low must be smaller than queue-high");
+	     conf.queue_low = $3;
      }
    | TOKSET domains
 /**  [$2: domains (struct strings *)] */

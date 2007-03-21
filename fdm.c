@@ -268,7 +268,7 @@ main(int argc, char **argv)
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*errstr, *proxy = NULL, *s;
-	char		 tmp[512], *ptr, *strs, *user = NULL, *lock = NULL;
+	char		 tmp[1024], *ptr, *strs, *user = NULL, *lock = NULL;
 	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
@@ -302,6 +302,8 @@ main(int argc, char **argv)
 	conf.purge_after = 0;
 	conf.file_umask = DEFUMASK;
 	conf.file_group = NOGRP;
+	conf.queue_high = -1;
+	conf.queue_low = -1;
 
 	log_init(1);
 
@@ -465,6 +467,15 @@ main(int argc, char **argv)
 	}
 	log_debug2("configuration loaded");
 
+	/* sort out queue limits */
+	if (conf.queue_high == -1)
+		conf.queue_high = MAXMAILQUEUE;
+	if (conf.queue_low == -1) {
+		conf.queue_low = conf.queue_high * MINMAILQUEUE / MAXMAILQUEUE;
+		if (conf.queue_low >= conf.queue_high)
+			conf.queue_low = conf.queue_high - 1;
+	}
+
 	/* set the umask */
 	umask(conf.file_umask);
 
@@ -570,6 +581,11 @@ main(int argc, char **argv)
 	if (sizeof tmp > off && conf.file_group != NOGRP) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "file-group=%lu, ", (u_long) conf.file_group);
+	}
+	if (sizeof tmp > off) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off, 
+		    "queue-high=%u, queue-low=%u, ", conf.queue_high,
+		    conf.queue_low);
 	}
 	if (sizeof tmp > off && conf.lock_file != NULL) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,

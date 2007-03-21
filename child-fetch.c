@@ -178,9 +178,9 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 	/* 
 	 * Update the holding flag.
 	 */
-	if (queued >= MAXMAILQUEUED)
+	if (queued >= (u_int) conf.queue_high)
 		holding = 1;
-	if (queued <= MINMAILQUEUED)
+	if (queued <= (u_int) conf.queue_low)
 		holding = 0;
 
 	/* 

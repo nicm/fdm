@@ -158,6 +158,8 @@ pop3s return (TOKPOP3S);
 port return (TOKPORT);
 proxy return (TOKPROXY);
 purge-after return (TOKPURGEAFTER);
+queue-high return (TOKQUEUEHIGH);
+queue-low return (TOKQUEUELOW);
 remove-header return (TOKREMOVEHEADER);
 returns return (TOKRETURNS);
 rewrite return (TOKREWRITE);
