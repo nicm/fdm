@@ -36,22 +36,25 @@
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *, double);
 
-int	fetch_drain(u_int *, u_int *);
-int	fetch_done(struct mail_ctx *, u_int *, u_int *);
+int	fetch_drain(void);
+int	fetch_done(struct mail_ctx *);
 int	fetch_match(struct account *, int *, u_int *, struct msg *, 
 	    struct msgbuf *);
 int	fetch_deliver(struct account *, int *, struct msg *, struct msgbuf *);
 int	fetch_poll(struct account *, struct io *, struct mail_ctx *,
 	    int, u_int);
 int	fetch_get(struct account *, struct mail_ctx *, struct io *, u_int *);
-int	fetch_flush(struct account *, struct io *, u_int *, u_int *, u_int *);
+int	fetch_flush(struct account *, struct io *, u_int *);
 int	fetch_transform(struct account *, struct mail *);
 void	fetch_free1(struct mail_ctx *);
 void	fetch_free(void);
 
-struct mail_queue matchq;
-struct mail_queue deliverq;
-struct mail_queue doneq;
+struct mail_queue 	matchq;
+struct mail_queue 	deliverq;
+struct mail_queue	doneq;
+
+u_int		  	dropped;
+u_int		  	kept;
 
 int
 child_fetch(struct child *child, struct io *io)
@@ -234,7 +237,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 }
 
 int
-fetch_done(struct mail_ctx *mctx, u_int *dropped, u_int *kept)
+fetch_done(struct mail_ctx *mctx)
 {
 	struct account	*a = mctx->account;
 	struct mail	*m = mctx->mail;
@@ -244,11 +247,11 @@ fetch_done(struct mail_ctx *mctx, u_int *dropped, u_int *kept)
 
 	switch (m->decision) {
 	case DECISION_DROP:
-		(*dropped)++;
+		dropped++;
 		log_debug("%s: dropping message %u", a->name, m->idx);
 		break;
 	case DECISION_KEEP:
-		(*kept)++;
+		kept++;
 		log_debug("%s: keeping message %u", a->name, m->idx);
 		break;
 	default:
@@ -262,13 +265,13 @@ fetch_done(struct mail_ctx *mctx, u_int *dropped, u_int *kept)
 }
 
 int
-fetch_drain(u_int *dropped, u_int *kept)
+fetch_drain(void)
 {
 	struct mail_ctx	*mctx;
 
 	while (!TAILQ_EMPTY(&doneq)) {
 		mctx = TAILQ_FIRST(&doneq); 
-		if (fetch_done(mctx, dropped, kept) != 0)
+		if (fetch_done(mctx) != 0)
 			return (1);
 
 		TAILQ_REMOVE(&doneq, mctx, entry);
@@ -336,8 +339,7 @@ fetch_deliver(struct account *a, int *blocked, struct msg *msg,
 }
 
 int
-fetch_flush(struct account *a, struct io *pio, u_int *queued, u_int *dropped, 
-    u_int *kept)
+fetch_flush(struct account *a, struct io *pio, u_int *queued)
 {
 	int	error;
 
@@ -347,7 +349,7 @@ fetch_flush(struct account *a, struct io *pio, u_int *queued, u_int *dropped,
 		if (error == FETCH_ERROR)
 			return (1);
 
-		if (fetch_drain(dropped, kept) != 0)
+		if (fetch_drain() != 0)
 			return (1);
 	}
 
@@ -453,7 +455,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 {
 	struct mail	*m;
  	struct mail_ctx	*mctx;
-	u_int	 	 n, queued, dropped, kept;
+	u_int	 	 n, queued;
 	int		 error;
 
 	log_debug2("%s: fetching", a->name);
@@ -554,7 +556,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 		 * Empty the done queue. Can get here either from FETCH_SUCCESS
 		 * or FETCH_NONE.
 		 */
-		if (fetch_drain(&dropped, &kept) != 0) {
+		if (fetch_drain() != 0) {
 			error = FETCH_ERROR;
 			goto out;
 		}
@@ -574,7 +576,7 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			 * Must empty queues before purge to make sure things
 			 * like POP3 indexing don't get ballsed up.
 			 */
-			if (fetch_flush(a, pio, &queued, &dropped, &kept) != 0)
+			if (fetch_flush(a, pio, &queued) != 0)
 				break;
 			if (a->fetch->purge(a) != FETCH_SUCCESS)
 				break;
@@ -593,11 +595,11 @@ out:
 	 * Flush the queues if not an error. 
 	 */
 	if (error != FETCH_ERROR) {
-		if (fetch_flush(a, pio, &queued, &dropped, &kept) != 0)
+		if (fetch_flush(a, pio, &queued) != 0)
 			error = FETCH_ERROR;
 	}
 	if (error != FETCH_ERROR) {
-		if (fetch_drain(&dropped, &kept) != 0)
+		if (fetch_drain() != 0)
 			error = FETCH_ERROR;
 	}
 
