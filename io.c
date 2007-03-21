@@ -296,7 +296,7 @@ io_fill(struct io *io)
 	if (io->ssl == NULL) {
 		n = read(io->fd, io->rbase + io->roff + io->rsize,
 		    IO_BLOCKSIZE);
-		if (n == 0)
+		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
 			if (io->error != NULL)
@@ -371,7 +371,7 @@ io_push(struct io *io)
 	/* write as much as possible */
 	if (io->ssl == NULL) {
 		n = write(io->fd, io->wbase + io->woff, io->wsize);
-		if (n == 0)
+		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
 			if (io->error != NULL)
