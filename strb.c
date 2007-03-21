@@ -140,8 +140,8 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 void *
 strb_address(struct strb *sb, const char *key)
 {
-	struct strbent	 sbe;
-	u_int		  i;
+	struct strbent	sbe;
+	u_int		i;
 
 	for (i = 0; i < sb->ent_used; i++) {
 		memcpy(&sbe, STRB_ENTRY(sb, i), sizeof sbe);
