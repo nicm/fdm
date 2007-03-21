@@ -23,7 +23,7 @@
 .Sh SYNOPSIS
 .Nm fdm
 .Bk -words
-.Op Fl klmnv
+.Op Fl klmnqv
 .Op Fl a Ar account
 .Oo Fl D Ar name Ns = 
 .Ar value Oc
@@ -80,6 +80,9 @@ Ignore the lock file and run regardless of other instances of
 .Nm .
 .It Fl n
 Do not process any accounts, just verify the configuration file syntax and exit.
+.Pp
+.It Fl q
+Quiet mode. Only print errors.
 .Pp
 .It Fl u Ar user
 Specify the default user for delivery.

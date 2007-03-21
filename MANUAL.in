@@ -239,11 +239,11 @@ if the TMPDIR environment variable exists in the directory it points to.
 
 fdm tries to queue a number of mails simultaneously, so that older can be
 delivered while waiting for the server to provide the next. The maximum length
-of the queue is set by the 'queue-high' option (the default is two) and the
-maximum mail size accepted by the 'maximum-size' option (the default is 32
-MB). In addition, the 'rewrite' action requires an additional temporary
-mail. Although fdm will fail rather than dropping mail if the disk becomes
-full, users should bear in mind the possibility and set the size of the
+of the queue for each account is set by the 'queue-high' option (the default is
+two) and the maximum mail size accepted by the 'maximum-size' option (the
+default is 32 MB). In addition, the 'rewrite' action requires an additional
+temporary mail. Although fdm will fail rather than dropping mail if the disk
+becomes full, users should bear in mind the possibility and set the size of the
 temporary directory and the fdm options according to their needs.
 
 %%% Command line arguments
@@ -1051,8 +1051,8 @@ The possible options are:
 
 This specifies the maximum size of mail that fdm will accept. The default is 32
 MB. Note that fdm may be storing a number of mails, up to the 'queue-high'
-setting (plus one if rewrite is used), simultaneously so care should be taken
-when increasing this option.
+setting (plus one if rewrite is used) for each account, simultaneously so care
+should be taken when increasing this option.
 
 If mail over the maximum size is encountered, fdm will abort with an error,
 without deleting the mail from the server (unless 'delete-oversized' is set).
