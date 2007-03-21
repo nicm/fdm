@@ -30,6 +30,8 @@
 - is there any reason struct mail shouldn't point to a struct account?
 - coalesce multiple IMAP deletions into a single call? is this possible?
 - option for using PCRE
-- document mail_file, mbox_file and exec action
-- document netrc
-- document -q
+- document mail_file, mbox_file in man page
+- document exec action in man page
+- document netrc in man page
+- document -q in man page
+- document queue stuff in man page

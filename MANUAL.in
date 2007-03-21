@@ -15,6 +15,7 @@ fdm ============================================================================
 ##	Fetching mail
 %%	Mail tagging
 %%	POP3 and POP3S
+%%	The .netrc file
 %%	IMAP and IMAPS
 %%	IMAP over a pipe or via ssh
 %%	stdin and local mail
@@ -25,7 +26,7 @@ fdm ============================================================================
 %%	Maildirs
 %%	Mboxes
 %%	SMTP
-%%	Write, pipe and append
+%%	Write, pipe, exec and append
 %%	stdout
 %% 	Rewriting mail
 %%	Adding or removing headers and appending a string
@@ -249,7 +250,7 @@ temporary directory and the fdm options according to their needs.
 
 The fdm binary has the following synopsis:
 
-	fdm [-klmnv] [-f conffile] [-u user] [-a account] [-x account]
+	fdm [-klmnqv] [-f conffile] [-u user] [-a account] [-x account]
 		[-D name=value] [fetch | poll]
 
 The meaning of the flags are covered in the fdm(1) man page, but a brief
@@ -265,6 +266,7 @@ Flag	Meaning
 -m	Ignore the lock file.
 -n	Run a syntax check on the configuration file and exit without fetching
 	any mail.
+-q	Quiet mode. Don't print anything except errors.
 -v	Print verbose debugging output. This option may be specified multiple
 	times for increasing levels of verbosity. Useful levels are -vv to
 	display the result of parsing the configuration file, and -vvvv to copy
@@ -456,7 +458,8 @@ quarter		%Q		The current quarter (1-4).
 
 In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
 replaced with the result of any bracket expressions in the last regexp (see
-later section on regexps).
+later section on regexps). A leading ~ or ~user is expanded in strings where a
+path or command is expected.
 
 Some accounts add additional tags, discussed below.
 
@@ -469,19 +472,22 @@ appropriate.
 
 Mail may be fetched from a POP3 account. A POP3 account is defined by
 specifying the following parameters: the server host and optionally port, and
-the user name and password. If the port is not specified, the default port
-('pop3' in the services(5) database) is used. Examples of such an account
-definition are:
+optionally the user name and password. If the port is not specified, the
+default port ('pop3' in the services(5) database) is used. If the user name,
+password, or both is omitted, fdm attempts to look it up the .netrc file, see
+the next section for details.
+
+Examples of a POP3 account definition are:
 
 	account "pop3acct" pop3 server "pop.isp.com" user "bob" pass "pass"
 
 	account "gmx" pop3 server "pop.gmx.net" port 110 user "jim" pass "pass"
 
 	account "acct" pop3 server "10.0.0.1" port "pop3"
-		user "nicholas" pass "my-password" keep
+		user "nicholas" keep
 
 	account "lycos" disabled pop3 server $localserver port 10110
-		user "bob@lycos.co.uk" pass "password"
+		pass "password"
 
 Note that the server string is enclosed in double quotes even if it is an IP,
 and don't forget to escape any " and \ characters in passwords!
@@ -502,6 +508,33 @@ delivering to a pipe), it is included in the counts even though fdm later
 strips it. These tags are not updated to reflect any changes made to the mail
 by fdm rules.
 
+%%% The .netrc file
+
+If the user name or password is omitted in POP3 or IMAP account definitions,
+fdm will attempt to look it up in the .netrc file in the invoking user's home
+directory.
+
+The .netrc file format is shared with ftp(1) and some other programs. It
+consists of a number of 'machine' sections and optionally one 'default' section
+containing a username ('login') and password for that host. fdm accepts entries
+only if the machine name matches the POP3 or IMAP server string exactly. If no
+matches are found and a 'default' section exists, it is used.
+
+An example .netrc file is:
+
+	machine "my.mail-server.com"
+	login "nicholas"
+	password "abcdef"
+
+	machine "pop.googlemail.com"
+	password "pass1"
+
+	default
+	login "bob"
+	password "moo"
+
+fdm will abort if the .netrc file is world-writable or world-readable.
+
 %%% IMAP and IMAPS
 
 IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
@@ -521,7 +554,7 @@ Examples of IMAP and IMAPS accounts include:
 		user "nicholas" pass "pass" folder "Saved"
 
 	account "workspam" disabled imap server "my-work.ath.cx"
-		user "Nicholas" pass "pass" folder "Junk"
+		user "Nicholas" folder "Junk"
 
 As with POP3, IMAP adds the 'server', 'port', 'server_uid' and the three line
 count tags to mail.
@@ -673,7 +706,9 @@ Mails may be saved to a maildir through a 'maildir' action, defined like so:
 
 	action "mymaildiraction" maildir "/path/to/maildir"
 
-If the maildir does not exist, it is created.
+If the maildir does not exist, it is created. Mails saved to a maildir are
+tagged with a 'mail_file' tag containing the full path to the file in which
+they were saved.
 
 %%% Mboxes
 
@@ -691,7 +726,8 @@ fdm will append .gz to the mbox path (if it is not already present) and append
 compressed data. If the mbox exists but is not already compressed, uncompressed
 data will be appended.
 
-If the mbox does not exist, it is created.
+If the mbox does not exist, it is created. Mails saved to an mbox are tagged
+with an 'mbox_file' tag with the path of the mbox.
 
 %%% SMTP
 
@@ -708,11 +744,13 @@ Examples include:
 
 	action "mysmtpaction" smtp server "smtp.server" to "me@somewhere"
 
-%%% Write, pipe and append
+%%% Write, pipe, exec and append
 
-Actions may be defined to write or append a mail to a file, or to pipe it to
-a shell command. The append action appends to and write overwrites the file.
-% tokens are replaced in the file or command as for maildir and mbox actions.
+Actions may be defined to write or append a mail to a file, to pipe it to a
+shell command, or merely to execute a shell command. The append action appends
+to and write overwrites the file. % tokens are replaced in the file or command
+as for maildir and mbox actions.
+
 Examples are:
 
 	action "mywriteaction" write "/tmp/file"
@@ -720,6 +758,8 @@ Examples are:
 	action "myappendaction" append "/tmp/file"
 
 	action "mypipeaction" pipe "cat > /dev/null"
+
+	action "domaildirexec" exec "~/.fdm.d/my-special-script %[mail_file]"
 
 %%% stdout
 
