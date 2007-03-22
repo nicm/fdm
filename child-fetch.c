@@ -249,6 +249,8 @@ fetch_done(struct mail_ctx *mctx)
 	if (a->fetch->done == NULL)
 		return (0);
 
+	if (conf.keep_all || a->keep)
+		m->decision = DECISION_KEEP;
 	switch (m->decision) {
 	case DECISION_DROP:
 		dropped++;
