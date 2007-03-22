@@ -300,7 +300,7 @@ restart:
 				 * Seen this message before and kept it, so
 				 * skip it this time.
 				 */
-				data->state = POP3_LIST;
+				data->state = POP3_START;
 				break;
 			}
 		}
