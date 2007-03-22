@@ -553,12 +553,12 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			 * Got a mail: modify it and queue it.
 			 */
 			if (total != -1) {
-				log_debug("%s: got message %u of %d after "
+				log_debug("%s: got message %u of %d in "
 				    "%.3f seconds: size %zu, body %zd", a->name,
 				    m->idx, total, get_time() - m->tim, m->size,
 				    m->body);
 			} else {
-				log_debug("%s: got message %u after %.3f "
+				log_debug("%s: got message %u in %.3f "
 				    "seconds: size %zu, body %zd", a->name,
 				    m->idx, get_time() - m->tim, m->size,
 				    m->body);

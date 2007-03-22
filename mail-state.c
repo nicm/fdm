@@ -328,7 +328,7 @@ done:
 	 * Remove completed action from queue.
 	 */
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
-	log_debug("%s: message %u delivered (rule %u, %s) after %.3f seconds",
+	log_debug("%s: message %u delivered (rule %u, %s) in %.3f seconds",
 	    a->name, m->idx, dctx->rule->idx,
 	    dctx->action->deliver->name, get_time() - dctx->tim);
 	xfree(dctx);
