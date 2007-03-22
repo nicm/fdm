@@ -78,6 +78,7 @@ extern char	*__progname;
 #define __packed __attribute__ ((__packed__))
 #endif
 
+#ifdef DEBUG
 #define NFDS 64
 #define COUNTFDS(s) do {						\
 	int	fd_i, fd_n;						\
@@ -88,6 +89,7 @@ extern char	*__progname;
 	}								\
 	log_debug2("%s: %d file descriptors in use", s, fd_n);		\
 } while (0)
+#endif
 
 /* Convert a file mode. */
 #define MODE(m) \
@@ -318,7 +320,7 @@ struct strb {
 
 /* Initial string block slots and block size. */
 #define STRBENTRIES 64
-#define STRBBLOCK 512
+#define STRBBLOCK 1024
 
 /* String block access macros. */
 #define STRB_KEY(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + (sbe)->key)
@@ -689,7 +691,7 @@ extern struct conf		 conf;
 #define IO_FLUSHSIZE (2 * IO_BLOCKSIZE)
 
 /* Maximum number of pollfds. */
-#define IO_POLLFDS 64
+#define IO_POLLFDS 256
 
 /* IO buffer size macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)

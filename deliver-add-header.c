@@ -64,7 +64,6 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
 		return (DELIVER_FAILURE);
 	}
 
-	/* XXX needed? */
 	ARRAY_FREE(&m->wrapped);
 	m->wrapchar = '\0';
 	fill_wrapped(m);

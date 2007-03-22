@@ -782,7 +782,9 @@ replstrv: strv
 		  xfree($1);
 	  }
 
+/** REPLPATHV: <string> (char *) */
 replpathv: strv
+/**        [$1: strv (char *)] */
 	   {
 		  struct replpath	rp;
 
@@ -798,7 +800,7 @@ replpathv: strv
 
 /** INCLUDE */
 include: TOKINCLUDE replpathv
-/**      [$2: replstrv (char *)] */
+/**      [$2: replpathv (char *)] */
 	 {
 		 char			*path;
 		 struct fileent		*top;
@@ -933,7 +935,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.lock_types = $3;
      }
    | TOKSET TOKLOCKFILE replpathv
-/**  [$3: replstrv (char *)] */
+/**  [$3: replpathv (char *)] */
      {
 	     if (conf.lock_file != NULL)
 		     xfree(conf.lock_file);
@@ -960,7 +962,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.timeout = $3 * 1000;
      }
    | TOKSET TOKQUEUEHIGH numv
-/**  [$3: time (long long)] */
+/**  [$3: numv (long long)] */
      {
 	     if ($3 == 0)
 		     yyerror("zero queue-high");
@@ -971,7 +973,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.queue_high = $3;
      }
    | TOKSET TOKQUEUELOW numv
-/**  [$3: time (long long)] */
+/**  [$3: numv (long long)] */
      {
 	     if ($3 > MAXQUEUEVALUE)
 		     yyerror("queue-low too big: %lld", $3);
@@ -1231,7 +1233,7 @@ headerslist: headerslist replstrv
 
 /** MAILDIRSLIST: <strings> (struct strings *) */
 maildirslist: maildirslist replpathv
-/**           [$1: maildirslist (struct strings *)] [$2: replstrv (char *)] */
+/**           [$1: maildirslist (struct strings *)] [$2: replpathv (char *)] */
 	   {
 		   if (*$2 == '\0')
 			   yyerror("invalid maildir");
@@ -1240,7 +1242,7 @@ maildirslist: maildirslist replpathv
 		   ARRAY_ADD($$, $2, char *);
 	   }
 	 | replpathv
-/**        [$1: replstrv (char *)] */
+/**        [$1: replpathv (char *)] */
 	   {
 		   if (*$1 == '\0')
 			   yyerror("invalid maildir");
@@ -1252,7 +1254,7 @@ maildirslist: maildirslist replpathv
 
 /** MAILDIRS: <strings> (struct strings *) */
 maildirs: TOKMAILDIR replpathv
-/**       [$2: replstrv (char *)] */
+/**       [$2: replpathv (char *)] */
 	  {
 		  if (*$2 == '\0')
 			  yyerror("invalid maildir");
@@ -2453,8 +2455,9 @@ imaptype: TOKIMAP
 		  $$ = FETCHPORT_SSL;
 	  }
 
+/** USERPASSNETRC: <userpass> (struct { ... } userpass) */
 userpassnetrc: TOKUSER replstrv TOKPASS replstrv
-/**       [$2: replstrv (char *)] [$4: replstrv (char *)] */
+/**            [$2: replstrv (char *)] [$4: replstrv (char *)] */
 	     {
 		     if (*$2 == '\0')
 			     yyerror("invalid user");
@@ -2474,6 +2477,7 @@ userpassnetrc: TOKUSER replstrv TOKPASS replstrv
 		     $$.pass_netrc = 1;
 	     }
            | TOKUSER replstrv
+/**          [$2: replstrv (char *)] */
 	     {
 		     if (*$2 == '\0')
 			     yyerror("invalid user");
@@ -2484,6 +2488,7 @@ userpassnetrc: TOKUSER replstrv TOKPASS replstrv
 		     $$.pass_netrc = 1;
 	     }
            | TOKPASS replstrv
+/**          [$2: replstrv (char *)] */
 	     {
 		     if (*$2 == '\0')
 			     yyerror("invalid pass");
@@ -2520,7 +2525,7 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
 fetchtype: poptype server userpassnetrc
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
-/**        [$4: replstrv (char *)] [$6: replstrv (char *)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2551,7 +2556,7 @@ fetchtype: poptype server userpassnetrc
 	   }
          | imaptype server userpassnetrc folder
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
-/**        [$4: replstrv (char *)] [$6: replstrv (char *)] [$7: folder (char *)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] [$4: folder (char *)] */
            {
 		   struct fetch_imap_data	*data;
 
@@ -2623,7 +2628,7 @@ fetchtype: poptype server userpassnetrc
 	   }
 	 | TOKNNTP server groups TOKCACHE replpathv
 /**        [$2: server (struct { ... } server)] */
-/**        [$3: groups (struct strings *)] [$5: replstrv (char *)] */
+/**        [$3: groups (struct strings *)] [$5: replpathv (char *)] */
            {
 		   struct fetch_nntp_data	*data;
 		   char				*group;

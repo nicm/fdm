@@ -168,7 +168,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
     int blocked, u_int queued)
 {
 	static int	 holding;	/* holding fetch until queues drop */
-	struct io	*rio, *iop[NFDS];
+	struct io	*rio, *iop[IO_POLLFDS];
 	char		*cause;
 	u_int		 n;
 	int		 timeout, error;

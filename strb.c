@@ -112,11 +112,15 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	if (sbep == NULL) {
 		if (sb->ent_used > sb->ent_max) {
 			/* allocate some more */
-			if (sb->ent_max > UINT_MAX / 2) /* XXX */
-				fatalx("strb_add: ent_max too large");
 			n = sb->ent_max;
 
+			size = STRB_SIZE(sb);
+			if (sb->ent_max > UINT_MAX / 2)
+				fatalx("strb_add: ent_max too large");
 			sb->ent_max *= 2;
+			if (STRB_SIZE(sb) < size)
+				fatalx("strb_add: size too large");
+
 			sb = *sbp = xrealloc(sb, 1, STRB_SIZE(sb));
 
 			memset(STRB_ENTRY(sb, n), 0, STRB_ENTSIZE(sb) / 2);

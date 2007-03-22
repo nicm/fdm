@@ -154,9 +154,11 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	len--;
 	hdr++;
 
-	/* now follows a set of attributes of the form name=value, seperated
-	   by semicolons, possibly crossing multiple lines and possibly with
-	   the value enclosed in quotes */
+	/*
+	 * Now follows a set of attributes of the form name=value, seperated
+	 * by semicolons, possibly crossing multiple lines and possibly with
+	 * the value enclosed in quotes.
+	 */
 	namelen = strlen(name);
 	for (;;) {
 		/* skip spaces and newlines */
