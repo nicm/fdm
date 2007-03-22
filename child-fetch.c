@@ -254,7 +254,7 @@ fetch_done(struct mail_ctx *mctx)
 	switch (m->decision) {
 	case DECISION_DROP:
 		dropped++;
-		log_debug("%s: dropping message %u", a->name, m->idx);
+		log_debug("%s: deleting message %u", a->name, m->idx);
 		break;
 	case DECISION_KEEP:
 		kept++;
