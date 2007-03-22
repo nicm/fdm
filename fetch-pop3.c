@@ -27,7 +27,7 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_pop3_start(struct account *);
+int	fetch_pop3_start(struct account *, int *);
 void	fetch_pop3_fill(struct account *, struct io **, u_int *);
 int	fetch_pop3_finish(struct account *, int);
 int	fetch_pop3_poll(struct account *, u_int *);
@@ -114,9 +114,10 @@ fetch_pop3_check(struct account *a)
 }
 
 int
-fetch_pop3_start(struct account *a)
+fetch_pop3_start(struct account *a, int *total)
 {
 	struct fetch_pop3_data	*data = a->data;
+	int			 error;
 
 	ARRAY_INIT(&data->kept);
 
@@ -125,7 +126,9 @@ fetch_pop3_start(struct account *a)
 
 	data->state = POP3_START;
 
-	return (fetch_pop3_connect(a));
+	if ((error = fetch_pop3_connect(a)) != FETCH_ERROR)
+		*total = data->num;
+	return (error);
 }
 
 void
@@ -192,7 +195,6 @@ fetch_pop3_connect(struct account *a)
  		log_warnx("%s: invalid response: %s", a->name, line);
 		return (FETCH_ERROR);
 	}
-	log_debug("%s: %u messages found", a->name, data->num);
 
 	data->cur = 0;
 

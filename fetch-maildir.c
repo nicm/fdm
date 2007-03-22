@@ -31,7 +31,7 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_maildir_start(struct account *);
+int	 fetch_maildir_start(struct account *, int *);
 int	 fetch_maildir_finish(struct account *, int);
 int	 fetch_maildir_poll(struct account *, u_int *);
 int	 fetch_maildir_fetch(struct account *, struct mail *);
@@ -134,7 +134,7 @@ fetch_maildir_freepaths(struct account *a)
 }
 
 int
-fetch_maildir_start(struct account *a)
+fetch_maildir_start(struct account *a, unused int *total)
 {
 	struct fetch_maildir_data	*data = a->data;
 

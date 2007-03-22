@@ -1,3 +1,8 @@
+22 March 2007
+
+* Return total number of mails from start function if possible and print 
+  "X of Y" when reporting mail fetches with -v.
+
 21 March 2007
 
 * queue-low and queue-high options. Default queue limit is 2.

@@ -28,7 +28,7 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_stdin_start(struct account *);
+int	 fetch_stdin_start(struct account *, int *);
 void	 fetch_stdin_fill(struct account *, struct io **, u_int *);
 int	 fetch_stdin_finish(struct account *, int);
 int	 fetch_stdin_fetch(struct account *, struct mail *);
@@ -49,7 +49,7 @@ struct fetch fetch_stdin = {
 };
 
 int
-fetch_stdin_start(struct account *a)
+fetch_stdin_start(struct account *a, unused int *total)
 {
 	struct fetch_stdin_data	*data = a->data;
 

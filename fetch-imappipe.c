@@ -23,7 +23,7 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 	 fetch_imappipe_start(struct account *);
+int	 	 fetch_imappipe_start(struct account *, int *);
 void	 	 fetch_imappipe_fill(struct account *, struct io **, u_int *n);
 int	 	 fetch_imappipe_finish(struct account *, int);
 void		 fetch_imappipe_desc(struct account *, char *, size_t);
@@ -134,7 +134,7 @@ fetch_imappipe_flush(struct account *a)
 }
 
 int
-fetch_imappipe_start(struct account *a)
+fetch_imappipe_start(struct account *a, int *total)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
@@ -167,6 +167,7 @@ fetch_imappipe_start(struct account *a)
 		return (FETCH_ERROR);
 	}
 
+	*total = data->num;
 	return (FETCH_SUCCESS);
 }
 

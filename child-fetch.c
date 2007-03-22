@@ -53,6 +53,7 @@ struct mail_queue 	matchq;
 struct mail_queue 	deliverq;
 struct mail_queue	doneq;
 
+int			total = -1; /* total from fetch, -1 for unknown */
 u_int		  	dropped;
 u_int		  	kept;
 
@@ -92,9 +93,11 @@ child_fetch(struct child *child, struct io *io)
 	tim = get_time();
 
 	/* start fetch */
-	if (a->fetch->start != NULL && a->fetch->start(a) != FETCH_SUCCESS) {
-		log_warnx("%s: start error. aborting", a->name);
-		goto out;
+	if (a->fetch->start != NULL) {
+		if (a->fetch->start(a, &total) != FETCH_SUCCESS) {
+			log_warnx("%s: start error. aborting", a->name);
+			goto out;
+		}
 	}
 
 	/* process fetch */
@@ -147,8 +150,9 @@ poll_account(unused struct io *io, struct account *a)
 {
 	u_int	n;
 
+	/* XXX use total? */
 	log_debug2("%s: polling", a->name);
-
+	
 	if (a->fetch->poll(a, &n) == FETCH_ERROR) {
 		log_warnx("%s: polling error. aborted", a->name);
 		return (1);
@@ -460,6 +464,9 @@ fetch_account(struct io *pio, struct account *a, double tim)
 	int		 error;
 
 	log_debug2("%s: fetching", a->name);
+	if (total != -1)
+		log_debug("%s: %d messages found", a->name, total);
+
  	TAILQ_INIT(&matchq);
  	TAILQ_INIT(&deliverq);
  	TAILQ_INIT(&doneq);
@@ -543,9 +550,17 @@ fetch_account(struct io *pio, struct account *a, double tim)
 			/*
 			 * Got a mail: modify it and queue it.
 			 */
-			log_debug("%s: got message %u after %.3f seconds: "
-			    "size %zu, body %zd", a->name, m->idx,
-			    get_time() - m->tim, m->size, m->body);
+			if (total != -1) {
+				log_debug("%s: got message %u of %d after "
+				    "%.3f seconds: size %zu, body %zd", a->name,
+				    m->idx, total, get_time() - m->tim, m->size,
+				    m->body);
+			} else {
+				log_debug("%s: got message %u after %.3f "
+				    "seconds: size %zu, body %zd", a->name,
+				    m->idx, get_time() - m->tim, m->size,
+				    m->body);
+			}
 			fetch_transform(a, m);
 			TAILQ_INSERT_TAIL(&matchq, mctx, entry);
 			mctx = NULL;
