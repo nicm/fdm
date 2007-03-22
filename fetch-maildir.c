@@ -183,18 +183,25 @@ fetch_maildir_poll(struct account *a, u_int *n)
 		}
 
 		while ((dp = readdir(dirp)) != NULL) {
+			if (dp->d_type == DT_REG) {
+				(*n)++;
+				continue;
+			}
+			if (dp->d_type != DT_UNKNOWN)
+				continue;
+
 			if (printpath(entry, sizeof entry, "%s/%s", path,
 			    dp->d_name) != 0) {
 				log_warn("%s: %s: printpath", a->name, path);
 				closedir(dirp);
 				return (FETCH_ERROR);
 			}
+
 			if (stat(entry, &sb) != 0) {
 				log_warn("%s: %s: stat", a->name, entry);
 				closedir(dirp);
 				return (FETCH_ERROR);
 			}
-
 			if (!S_ISREG(sb.st_mode))
 				continue;
 
