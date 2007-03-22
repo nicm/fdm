@@ -72,7 +72,7 @@ vlog(FILE *f, int pri, const char *fmt, va_list ap)
 			vfprintf(f, nfmt, ap);
 			free(nfmt);
 		}
-		fflush(stderr);
+		fflush(f);
 	} else
 		vsyslog(pri, fmt, ap);
 }
