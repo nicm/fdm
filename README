@@ -2,7 +2,7 @@ fdm is a small program designed to fetch mail from POP3 or IMAP servers, or
 receive local mail from stdin, and deliver it in various ways.
 
 As of fdm 0.9, the caching has been changed, so Berkeley DB is no longer
-needed (for the moment).
+required.
 
 See the included MANUAL file and the fdm(1) and fdm.conf(5) man pages for
 installation and usage instructions. They are online at:
@@ -12,15 +12,6 @@ installation and usage instructions. They are online at:
 Some example configurations are included in the examples directory.
 
 Feedback, bug reports, suggestions, etc, are welcome.
-
-I'm keen to add more example configs, so if yours is more than a few lines
-and you don't mind it being included in the fdm distribution, strip out any
-usernames/passwords and send it to me. I'd particularly like to have any that
-use features not used in the current examples, but simpler configs are also
-welcome.
-
-I usually prefer to use the address below but if for some reason it doesn't
-work, I can also be reached at: nicm123@gmail.com
 
 You can also find me on IRC on freenode or efnet with nick "NicM".
 
