@@ -169,13 +169,13 @@ will not insert a
 .Sq Received
 header into each mail.
 .It Ic file-umask Ic user | Ar umask
-This specifies the 
+This specifies the
 .Xr umask 2
 to use when creating files.
 .Ic user
-means to use the umask set when 
-.Xr fdm 1 
-is started, or 
+means to use the umask set when
+.Xr fdm 1
+is started, or
 .Ar umask
 may be specified as a three-digit octal number.
 The default is 077.
@@ -183,7 +183,7 @@ The default is 077.
 This option allows the default group ownership of files and directories created
 by
 .Xr fdm 1
-to be specified. 
+to be specified.
 .Ar group
 may be a group name string or a numeric gid.
 If
@@ -304,11 +304,13 @@ see
 for details.
 .It Xo Ic pop3 Ic server Ar host
 .Op Ic port Ar port
-.Ic user Ar user Ic pass Ar pass
+.Op Ic user Ar user
+.Op Ic pass Ar pass
 .Xc
 .It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
-.Ic user Ar user Ic pass Ar pass
+.Op Ic user Ar user
+.Op Ic pass Ar pass
 .Xc
 These statements define a POP3 or POP3S account.
 The
@@ -317,6 +319,13 @@ The
 and
 .Ar pass
 arguments must be strings.
+If the user or pass is not provided,
+.Xr fdm 1
+attempts to look it up in the
+.Pa ~/.netrc
+file (see
+.Xr ftp 1
+for details of the file format).
 The port option may be either a string which will be looked up in the
 .Xr services 5
 database, or a number.
@@ -387,7 +396,7 @@ When
 is run again, fetching begins at the cached article.
 .El
 .Sh TAGGING
-As mail is processed by 
+As mail is processed by
 .Xr fdm 1 ,
 it is tagged with a number of name/value pairs.
 Some tags are added automatically, and mail may also be tagged explicitly by
@@ -487,11 +496,15 @@ to
 .Ar path
 and attempt to write mail using
 .Xr gzip 1
-compression. 
+compression.
 If the mbox does not exist, it is created.
+.It Xo Ic exec Ar command
+.Xc
+Execute
+.Ar command .
 .It Xo Ic pipe Ar command
 .Xc
-Pipe the entire mail to
+Pipe the mail to
 .Ar command .
 .It Xo Ic write Ar path
 .Xc
@@ -539,7 +552,7 @@ Append
 .Ar string
 to the mail.
 .It Ic stdout Op Ic add-from
-Write the mail to 
+Write the mail to
 .Em stdout .
 If
 .Ic add-from
