@@ -482,6 +482,9 @@ Keep the mail, do not remove it from the account.
 Save the mail to the maildir specified by
 .Ar path .
 If the maildir does not exist, it is created.
+.Pp
+Mail delivered to a maildir is tagged with a mail_file tag containing the full
+path of the mail file.
 .It Xo Ic mbox Ar path Op Ic compress
 .Xc
 Append the mail to the mbox at
@@ -498,6 +501,9 @@ and attempt to write mail using
 .Xr gzip 1
 compression.
 If the mbox does not exist, it is created.
+.Pp
+Mail delivered to an mbox is tagged with a mbox_file tag containing the path of
+the mbox.
 .It Xo Ic exec Ar command
 .Xc
 Execute

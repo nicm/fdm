@@ -103,3 +103,79 @@ set file-group 0
 @0 ^options are:.*file-group=0
 set file-group "wheel"
 @0 ^options are:.*file-group=0
+
+set queue-high 0
+@1 ^/dev/stdin: zero queue-high at line 1$
+set queue-high 1
+@0 ^options are:.*queue-high=1, queue-low=0
+set queue-high 25
+@0 ^options are:.*queue-high=25, queue-low=18
+set queue-high 49
+@0 ^options are:.*queue-high=49, queue-low=36
+set queue-high 50
+@0 ^options are:.*queue-high=50, queue-low=37
+set queue-high 51
+@1 ^/dev/stdin: queue-high too big: 51 at line 1$
+
+set queue-low 0
+@1 ^/dev/stdin: queue-high not specified at line 1$
+set queue-low 1
+@1 ^/dev/stdin: queue-high not specified at line 1$
+set queue-low 25
+@1 ^/dev/stdin: queue-high not specified at line 1$
+set queue-low 49
+@1 ^/dev/stdin: queue-high not specified at line 1$
+set queue-low 50
+@1 ^/dev/stdin: queue-high not specified at line 1$
+set queue-low 51
+@1 ^/dev/stdin: queue-low too big: 51 at line 1$
+
+set queue-high 25
+set queue-low 0
+@0 ^options are:.*queue-high=25, queue-low=0
+set queue-high 25
+set queue-low 1
+@0 ^options are:.*queue-high=25, queue-low=1
+set queue-high 25
+set queue-low 24
+@0 ^options are:.*queue-high=25, queue-low=24
+set queue-high 25
+set queue-low 25
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 25
+set queue-low 26
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 25
+set queue-low 49
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 25
+set queue-low 50
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 25
+set queue-low 51
+@1 ^/dev/stdin: queue-low too big: 51 at line 2$
+
+set queue-high 0
+set queue-low 25
+@1 ^/dev/stdin: zero queue-high at line 1$
+set queue-high 1
+set queue-low 25
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 24
+set queue-low 25
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 25
+set queue-low 25
+@1 ^/dev/stdin: queue-low must be smaller than queue-high at line 2$
+set queue-high 26
+set queue-low 25
+@0 ^options are:.*queue-high=26, queue-low=25
+set queue-high 49
+set queue-low 25
+@0 ^options are:.*queue-high=49, queue-low=25
+set queue-high 50
+set queue-low 25
+@0 ^options are:.*queue-high=50, queue-low=25
+set queue-high 51
+set queue-low 25
+@1 ^/dev/stdin: queue-high too big: 51 at line 1$
