@@ -31,4 +31,5 @@
 - coalesce multiple IMAP deletions into a single call? is this possible?
 - option for using PCRE
 - document queue stuff in man page
-- fclose/close error checks
+- audit close/closedir error checks
+

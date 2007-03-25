@@ -87,7 +87,8 @@ load_conf(void)
 
         yyparse();
 
-        fclose(yyin);
+        if (fclose(yyin) != 0)
+		return (1);
 
         return (0);
 }
