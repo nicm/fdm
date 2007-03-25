@@ -75,21 +75,26 @@ do_write(struct deliver_ctx *dctx, struct action *t, int appendf)
         f = fopen(path, appendf ? "a" : "w");
         if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, path);
-		xfree(path);
-		return (DELIVER_FAILURE);
+		goto error;
 	}
 	if (fwrite(m->data, m->size, 1, f) != 1) {
 		log_warn("%s: %s: fwrite", a->name, path);
-		xfree(path);
-		return (DELIVER_FAILURE);
+		goto error;
+	}
+	if (fflush(f) != 0) {
+		log_warn("%s: %s: fflush", a->name, path);
+		goto error;
 	}
 	if (fsync(fileno(f)) != 0) {
 		log_warn("%s: %s: fsync", a->name, path);
-		xfree(path);
-		return (DELIVER_FAILURE);
+		goto error;
 	}
 	fclose(f);
 
 	xfree(path);
 	return (DELIVER_SUCCESS);
+
+error:
+	xfree(path);
+	return (DELIVER_FAILURE);
 }
