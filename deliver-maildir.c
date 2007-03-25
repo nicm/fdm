@@ -208,7 +208,8 @@ restart:
 	    src + strlen(path) + 1, dst + strlen(path) + 1);
 	if (link(src, dst) != 0) {
 		if (errno == EEXIST) {
-			unlink(src);
+			if (unlink(src) != 0)
+				fatal("unlink");
 			cleanup_deregister(src);
 			xfd = fd = -1;
 
