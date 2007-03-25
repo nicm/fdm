@@ -156,8 +156,10 @@ fetch_maildir_finish(struct account *a, unused int aborted)
 
 	fetch_maildir_freepaths(a);
 
-	if (data->dirp != NULL)
-		closedir(data->dirp);
+	if (data->dirp != NULL && closedir(data->dirp) != 0) {
+		log_warn("%s: %s: closedir", a->name, data->path);
+		return (FETCH_ERROR);
+	}
 
 	return (FETCH_SUCCESS);
 }
@@ -208,7 +210,10 @@ fetch_maildir_poll(struct account *a, u_int *n)
 			(*n)++;
 		}
 
-		closedir(dirp);
+		if (closedir(dirp) != 0) {
+			log_warn("%s: %s: closedir", a->name, path);
+			return (FETCH_ERROR);
+		}
 	}
 
 	return (FETCH_SUCCESS);
@@ -242,7 +247,11 @@ restart:
 	do {
 		dp = readdir(data->dirp);
 		if (dp == NULL) {
-			closedir(data->dirp);
+			if (closedir(data->dirp) != 0) {
+				log_warn("%s: %s: closedir", a->name,
+				    data->path);
+				return (FETCH_ERROR);
+			}
 			data->dirp = NULL;
 
 			data->index++;
