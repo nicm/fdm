@@ -845,8 +845,10 @@ main(int argc, char **argv)
  	log_debug2("parent: finished, total time %.3f seconds", tim);
 
 out:
-	if (!conf.allow_many && *conf.lock_file != '\0')
-		unlink(conf.lock_file);
+	if (!conf.allow_many && *conf.lock_file != '\0') {
+		if (unlink(conf.lock_file) != 0)
+			fatal("unlink");
+	}
 
 #ifdef DEBUG
 	COUNTFDS("parent");

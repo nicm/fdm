@@ -338,12 +338,12 @@ fetch_nntp_save(struct account *a)
 		goto error;
 	}
 	cleanup_register(tmp);
+
 	if ((f = fdopen(fd, "r+")) == NULL) {
 		log_warn("%s: fdopen", a->name);
-		close(fd);
-		unlink(tmp);
 		goto error;
 	}
+	fd = -1;
 
 	for (i = 0; i < TOTAL_GROUPS(data); i++) {
 		group = GET_GROUP(data, i);
@@ -354,10 +354,10 @@ fetch_nntp_save(struct account *a)
 	}
 
 	fclose(f);
+	f = NULL;
 
 	if (rename(tmp, data->path) == -1) {
 		log_warn("%s: rename", a->name);
-		unlink(tmp);
 		goto error;
 	}
 
@@ -365,6 +365,14 @@ fetch_nntp_save(struct account *a)
 	return (0);
 
 error:
+	if (f != NULL || fd != -1) {
+		if (f != NULL)
+			fclose(f);
+		if (fd != -1)
+			close(fd);
+		if (unlink(tmp) != 0)
+			fatal("unlink");
+	}
 	cleanup_deregister(tmp);
 	return (1);
 }

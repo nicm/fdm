@@ -66,7 +66,7 @@ mail_send(struct mail *m, struct msg *msg)
 }
 
 void
-mail_receive(struct mail *m, struct msg *msg)
+mail_receive(struct mail *m, struct msg *msg, int destroy)
 {
 	struct mail	*mm = &msg->data.mail;
 
@@ -82,10 +82,12 @@ mail_receive(struct mail *m, struct msg *msg)
 	mm->auxdata = m->auxdata;
 	m->auxdata = NULL;
 
-	mail_destroy(m);
+	if (destroy)
+		mail_destroy(m);
+	else 
+		mail_close(m);
 
 	memcpy(m, mm, sizeof *m);
-
 	m->base = shm_reopen(&m->shm);
 	cleanup_register(m->shm.name);
 
@@ -116,7 +118,6 @@ mail_close(struct mail *m)
 	mail_free(m);
 	if (m->base != NULL) {
 		strlcpy(path, m->shm.name, sizeof path);
-		shm_free(&m->shm);
 		cleanup_deregister(path);
 	}
 }
@@ -232,7 +233,8 @@ error:
 	error = errno;
 	close(fd);
 	if (locks & LOCK_DOTLOCK) {
-		unlink(lock);
+		if (unlink(lock) != 0)
+			fatal("unlink");
 		cleanup_deregister(lock);
 		xfree(lock);
 	}
@@ -247,7 +249,8 @@ closelock(int fd, const char *path, u_int locks)
 
 	if (locks & LOCK_DOTLOCK) {
 		xasprintf(&lock, "%s.lock", path);
-		unlink(lock);
+		if (unlink(lock) != 0)
+			fatal("unlink");
 		cleanup_deregister(lock);
 		xfree(lock);
 	}

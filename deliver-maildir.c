@@ -52,7 +52,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	char				 host2[MAXHOSTNAMELEN], *host;
 	char	 			 name[MAXPATHLEN];
 	char				 src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 			 exists, fd, len, res = DELIVER_FAILURE;
+	int	 			 exists, xfd = -1, fd = -1, len, res;
 	ssize_t			 	 n;
 	size_t	 			 first, last;
 	gid_t				 gid;
@@ -60,7 +60,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
-		goto out;
+		goto error;
 	}
 	log_debug2("%s: saving to maildir %s", a->name, path);
 
@@ -68,59 +68,59 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	gid = conf.file_group;
 	if (checkperms(a->name, path, &exists) != 0) {
 		log_warn("%s: %s: checkperms", a->name, path);
-		goto out;
+		goto error;
 	}
 	if (!exists && mkdir(path, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, path);
-		goto out;
+		goto error;
 	} else if (!exists && gid != NOGRP && chown(path, -1, gid) == -1) {
 		log_warn("%s: %s: chown", a->name, path);
-		goto out;
+		goto error;
 	}
 	if (printpath(name, sizeof name, "%s/cur", path) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
-		goto out;
+		goto error;
 	}
 	if (checkperms(a->name, name, &exists) != 0) {
 		log_warn("%s: %s: checkperms", a->name, name);
-		goto out;
+		goto error;
 	}
 	if (!exists && mkdir(name, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, name);
-		goto out;
+		goto error;
 	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
 		log_warn("%s: %s: chown", a->name, name);
-		goto out;
+		goto error;
 	}
 	if (printpath(name, sizeof name, "%s/new", path) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
-		goto out;
+		goto error;
 	}
 	if (checkperms(a->name, name, &exists) != 0) {
 		log_warn("%s: %s: checkperms", a->name, name);
-		goto out;
+		goto error;
 	}
 	if (!exists && mkdir(name, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, name);
-		goto out;
+		goto error;
 	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
 		log_warn("%s: %s: chown", a->name, name);
-		goto out;
+		goto error;
 	}
 	if (printpath(name, sizeof name, "%s/tmp", path) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
-		goto out;
+		goto error;
 	}
 	if (checkperms(a->name, name, &exists) != 0) {
 		log_warn("%s: %s: checkperms", a->name, name);
-		goto out;
+		goto error;
 	}
 	if (!exists && mkdir(name, DIRMODE) != 0) {
 		log_warn("%s: %s: mkdir", a->name, name);
-		goto out;
+		goto error;
 	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
 		log_warn("%s: %s: chown", a->name, name);
-		goto out;
+		goto error;
 	}
 
 	if (gethostname(host1, sizeof host1) != 0)
@@ -163,27 +163,29 @@ restart:
 		    (long) time(NULL), (long) getpid(), delivered, host);
 		if ((size_t) len >= sizeof name) {
 			log_warn("%s: %s: xsnprintf", a->name, path);
-			goto out;
+			goto error;
 		}
 
 		if (printpath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {
 			log_warn("%s: %s: printpath", a->name, path);
-			goto out;
+			goto error;
 		}
 
 		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, FILEMODE);
 		if (fd == -1 && errno != EEXIST) {
 			log_warn("%s: %s: open", a->name, src);
-			goto out;
+			goto error;
 		}
 
 		delivered++;
 	} while (fd == -1);
 	cleanup_register(src);
+
+	xfd = fd;
 	if (conf.file_group != NOGRP &&
 	    fchown(fd, (uid_t) -1, conf.file_group) == -1) {
 		log_warn("%s: %s: fchown", a->name, path);
-		goto out;
+		goto error;
 	}
 
 	/* write the message */
@@ -191,49 +193,58 @@ restart:
 	n = write(fd, m->data, m->size);
 	if (n < 0 || (size_t) n != m->size || fsync(fd) != 0) {
 		log_warn("%s: write", a->name);
-		close(fd);
-		unlink(src);
-		cleanup_deregister(src);
-		goto out;
+		goto error;
 	}
 	close(fd);
+	fd = -1;
 
 	/* create the new path and attempt to link it. a failed link jumps
 	   back to find another name in the tmp directory */
 	if (printpath(dst, sizeof dst, "%s/new/%s", path, name) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
-		goto out;
+		goto error;
 	}
 	log_debug2("%s: linking .../%s to .../%s", a->name,
 	    src + strlen(path) + 1, dst + strlen(path) + 1);
 	if (link(src, dst) != 0) {
-		unlink(src);
-		cleanup_deregister(src);
 		if (errno == EEXIST) {
+			unlink(src);
+			cleanup_deregister(src);
+			xfd = fd = -1;
+
 			log_debug2("%s: link failed", a->name);
 			goto restart;
 		}
 		log_warn("%s: %s: link(\"%s\")", a->name, src, dst);
-		goto out;
+		goto error;
 	}
 
 	/* unlink the original tmp file */
 	log_debug2("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
 	if (unlink(src) != 0) {
-		cleanup_deregister(src);
 		log_warn("%s: %s: unlink", a->name, src);
-		goto out;
+		goto error;
 	}
 	cleanup_deregister(src);
 
 	/* save the mail file as a tag */
 	add_tag(&m->tags, "mail_file", "%s", dst);
 
-	res = DELIVER_SUCCESS;
-out:
 	if (path != NULL)
 		xfree(path);
-	return (res);
+	return (DELIVER_SUCCESS);
+
+error:
+	if (fd != -1 || xfd != -1) {
+		if (fd != -1)
+			close(fd);
+		if (unlink(src) != 0)
+			fatal("unlink");
+		cleanup_deregister(src);
+	}
+	if (path != NULL)
+		xfree(path);
+	return (DELIVER_FAILURE);
 }
 
 void

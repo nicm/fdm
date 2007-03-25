@@ -884,7 +884,7 @@ struct io		*connectio(struct server *, const char *, int, char **);
 /* mail.c */
 void			 mail_open(struct mail *, size_t);
 void			 mail_send(struct mail *, struct msg *);
-void			 mail_receive(struct mail *, struct msg *);
+void			 mail_receive(struct mail *, struct msg *, int);
 void			 mail_reopen(struct mail *, char *);
 void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);

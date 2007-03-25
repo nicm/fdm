@@ -91,7 +91,7 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 		}
 
 		mail_close(md);
-		mail_receive(m, msg);
+		mail_receive(m, msg, 0);
 
 		xfree(dctx);
 		return;

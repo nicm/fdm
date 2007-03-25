@@ -47,8 +47,12 @@ cleanup_purge(void)
 	 * This must be signal safe.
 	 */
 
- 	TAILQ_FOREACH(cent, &cleanlist, entry)
-		unlink(cent->path);
+ 	TAILQ_FOREACH(cent, &cleanlist, entry) {
+		if (unlink(cent->path) != 0) {
+			write(STDERR_FILENO, "unlink failed\n", 14);
+			_exit(1);
+		}
+	}
 }
 
 void

@@ -146,9 +146,10 @@ void
 shm_destroy(struct shm *shm)
 {
 #ifdef SHM_DEBUG
-	log_debug("shm_destroy: %s", shm->name);
+	log_debug("%ld shm_destroy: %s", (long) getpid(), shm->name);
 #endif
 
 	shm_free(shm);
-	unlink(shm->name);
+	if (unlink(shm->name) != 0)
+		fatal("unlink");
 }
