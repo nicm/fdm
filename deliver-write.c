@@ -89,7 +89,10 @@ do_write(struct deliver_ctx *dctx, struct action *t, int appendf)
 		log_warn("%s: %s: fsync", a->name, path);
 		goto error;
 	}
-	fclose(f);
+	if (fclose(f) != 0) {
+		log_warn("%s: %s: fclose", a->name, path);
+		goto error;
+	}
 
 	xfree(path);
 	return (DELIVER_SUCCESS);

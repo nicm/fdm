@@ -303,7 +303,12 @@ fetch_nntp_load(struct account *a)
 		xfree(name);
 	}
 
-	fclose(f);
+	if (fclose(f) != 0) {
+		log_warn("%s: fclose", a->name);
+		f = NULL;
+		goto error;
+	}
+
 	closelock(fd, data->path, conf.lock_types);
 	return (0);
 
@@ -353,7 +358,11 @@ fetch_nntp_save(struct account *a)
 		    group->name, group->last, strlen(group->id), group->id);
 	}
 
-	fclose(f);
+	if (fclose(f) != 0) {
+		log_warn("%s: fclose", a->name);
+		f = NULL;
+		goto error;
+	}
 	f = NULL;
 
 	if (rename(tmp, data->path) == -1) {
