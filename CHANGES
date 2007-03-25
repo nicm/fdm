@@ -1,7 +1,14 @@
 25 March 2007
 
-* Die on unlink(2) failures, led to discovery of a double-unlink of a tmp file 
-  (bad!), also fixed. Part of SF bug 1687830 from Markus Elfring.
+* Die on unlink(2) failures, led to discovery of a missing fflush before fsync
+  and a double-unlink of a tmp file (bad!), also fixed. Part of SF bug 1687830
+  from Markus Elfring. Also fix some fclose(3) and closedir(3) return value
+  checks as part of the same bug. I'm still on the fence about close(2). SUSv3
+  says that it can only die on EBADF, EINTR and EIO: the first will cause
+  problems before close, and I don't see how the latter can affect anything
+  given that write(2) (or fsync(2) when applicable) will have previously
+  returned success (fdm already checks their return). OTOH, it would be both
+  tidy and future-proof to check it.
 
 22 March 2007
 
