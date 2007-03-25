@@ -52,7 +52,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
 	char				 host2[MAXHOSTNAMELEN], *host;
 	char	 			 name[MAXPATHLEN];
 	char				 src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 			 exists, xfd = -1, fd = -1, len, res;
+	int	 			 exists, xfd = -1, fd = -1, len;
 	ssize_t			 	 n;
 	size_t	 			 first, last;
 	gid_t				 gid;

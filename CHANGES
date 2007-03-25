@@ -1,3 +1,8 @@
+25 March 2007
+
+* Die on unlink(2) failures, led to discovery of a double-unlink of a tmp file 
+  (bad!), also fixed. Part of SF bug 1687830 from Markus Elfring.
+
 22 March 2007
 
 * Return total number of mails from start function if possible and print 
