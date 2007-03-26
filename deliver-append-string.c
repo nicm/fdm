@@ -37,12 +37,16 @@ struct deliver deliver_append_string = {
 int
 deliver_append_string_deliver(struct deliver_ctx *dctx, struct action *t)
 {
+	struct account	*a = dctx->account;
 	struct mail	*m = dctx->mail;
 	char		*ptr = t->data;
 	size_t		 len;
 
 	len = strlen(ptr);
-	resize_mail(m, m->size + len);
+	if (mail_resize(m, m->size + len) != 0) {
+		log_warn("%s: failed to resize mail", a->name);
+		return (DELIVER_FAILURE);
+	}
 	memcpy(m->data + m->size, ptr, len);
 	m->size += len;
 

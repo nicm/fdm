@@ -582,7 +582,11 @@ restart:
 		if (code != 220)
 			goto bad;
 
-		mail_open(m, IO_BLOCKSIZE);
+		if (mail_open(m, IO_BLOCKSIZE) != 0) {
+			log_warn("%s: failed to create mail", a->name);
+			return (FETCH_ERROR);
+		}
+
 		m->size = 0;
 
 		m->auxdata = NULL;
@@ -612,7 +616,10 @@ restart:
 		}
 
 		if (!data->flushing) {
-			resize_mail(m, m->size + len + 1);
+			if (mail_resize(m, m->size + len + 1) != 0) {
+				log_warn("%s: failed to resize mail", a->name);
+				return (FETCH_ERROR);
+			}
 
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);

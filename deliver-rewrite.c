@@ -95,8 +95,12 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 				if (len == 0 && md->body == -1)
 					md->body = md->size + 1;
 
-				resize_mail(md, md->size + len + 1);
-
+				if (mail_resize(md, md->size + len + 1) != 0) {
+					log_warn("%s: failed to resize mail",
+					    a->name);
+					goto error;
+				}
+				
 				if (len > 0)
 					memcpy(md->data + md->size, out, len);
 

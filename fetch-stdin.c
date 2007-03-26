@@ -131,7 +131,10 @@ fetch_stdin_fetch(struct account *a, struct mail *m)
 		return (FETCH_COMPLETE);
 
 	if (m->data == NULL) {
-		mail_open(m, IO_BLOCKSIZE);
+		if (mail_open(m, IO_BLOCKSIZE) != 0) {
+			log_warn("%s: failed to create mail", a->name);
+			return (FETCH_ERROR);
+		}
 		m->size = 0;
 
 		m->auxdata = NULL;
@@ -168,7 +171,10 @@ restart:
 	if (data->bodylines != -1)
 		data->bodylines++;
 
-	resize_mail(m, m->size + len + 1);
+	if (mail_resize(m, m->size + len + 1) != 0) {
+		log_warn("%s: failed to resize mail", a->name);
+		return (FETCH_ERROR);
+	}
 	if (len > 0)
 		memcpy(m->data + m->size, line, len);
 

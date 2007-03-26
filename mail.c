@@ -34,15 +34,16 @@
 
 void	mail_free(struct mail *);
 
-void
+int
 mail_open(struct mail *m, size_t size)
 {
 	m->size = size;
 	m->space = m->size;
 	m->body = -1;
 
-	m->base = shm_malloc(&m->shm, m->size);
-	cleanup_register(m->shm.name);
+	if ((m->base = shm_malloc(&m->shm, m->size)) == NULL)
+		return (1);
+ 	cleanup_register(m->shm.name);
 
 	m->off = 0;
 	m->data = m->base + m->off;
@@ -52,6 +53,8 @@ mail_open(struct mail *m, size_t size)
 	m->wrapchar = '\0';
 	m->attach = NULL;
 	m->attach_built = 0;
+
+	return (0);
 }
 
 void
@@ -65,7 +68,7 @@ mail_send(struct mail *m, struct msg *msg)
 	mm->attach = NULL;
 }
 
-void
+int
 mail_receive(struct mail *m, struct msg *msg, int destroy)
 {
 	struct mail	*mm = &msg->data.mail;
@@ -88,12 +91,15 @@ mail_receive(struct mail *m, struct msg *msg, int destroy)
 		mail_close(m);
 
 	memcpy(m, mm, sizeof *m);
-	m->base = shm_reopen(&m->shm);
+	if ((m->base = shm_reopen(&m->shm)) == NULL)
+		return (1);
 	cleanup_register(m->shm.name);
 
 	m->data = m->base + m->off;
 	ARRAY_INIT(&m->wrapped);
 	m->wrapchar = '\0';
+
+	return (0);
 }
 
 void
@@ -135,16 +141,18 @@ mail_destroy(struct mail *m)
 	}
 }
 
-void
-resize_mail(struct mail *m, size_t size)
+int
+mail_resize(struct mail *m, size_t size)
 {
 	if (SIZE_MAX - m->off < size)
 		fatalx("resize_mail: SIZE_MAX - m->off < size");
 	while (m->space <= (m->off + size)) {
-		m->base = shm_realloc(&m->shm, 2, m->space);
+		if ((m->base = shm_realloc(&m->shm, 2, m->space)) == NULL)
+			return (1);
 		m->space *= 2;
 	}
 	m->data = m->base + m->off;
+	return (0);
 }
 
 char *
@@ -380,7 +388,10 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	hdrlen++;
 
 	/* make space for the header */
-	resize_mail(m, m->size + hdrlen);
+	if (mail_resize(m, m->size + hdrlen) != 0) {
+		xfree(hdr);
+		return (1);
+	}
 	ptr = m->data + off;
 	memmove(ptr + hdrlen, ptr, m->size - off);
 

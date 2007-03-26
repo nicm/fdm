@@ -1,7 +1,15 @@
+26 March 2007
+
+* Verify that the mmap'd temporary file is actually writable and syncable before
+  using it. Otherwise if it is overallocated we risk getting SIGBUS or similar
+  later when trying to use the space.
+* When sending delivery done messages, check that the child process isn't dead
+  before trying to talk to it. 
+
 25 March 2007
 
-* Handle unlink(2)/fclose failures, led to discovery of a missing fflush before
-  fsync and a double-unlink of a tmp file (bad!), also fixed. Part of SF bug
+* Handle unlink(2)/fclose(3) failures, led to discovery of a missing fflush
+  before fsync and a double-unlink of a tmp file (bad!), also fixed. Part of bug
   1687830 from Markus Elfring. Also fix some closedir(3) return value checks.
   I'm still on the fence about close(2). SUSv3 says that it can only die on
   EBADF, EINTR and EIO: the first will cause problems before close, and I don't

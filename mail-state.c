@@ -468,7 +468,10 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 		return (ACTION_DONE);
 	}
 	if (t->deliver->type == DELIVER_WRBACK && dctx->uid == geteuid()) {
-		mail_open(md, IO_BLOCKSIZE);
+		if (mail_open(md, IO_BLOCKSIZE) != 0) {
+			log_warn("%s: failed to create mail", a->name);
+			return (ACTION_ERROR);
+		}
 		md->decision = m->decision;
 
 		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS) {
@@ -480,7 +483,10 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 		cleanup_deregister(md->shm.name);
 		strb_destroy(&md->tags);
 
-		mail_receive(m, &msg, 1);
+		if (mail_receive(m, msg, 0) != 0) {
+			log_warn("%s: can't receive mail", a->name);
+			return (ACTION_ERROR);
+		}
 		log_debug2("%s: received modified mail: size %zu, body %zd",
 		    a->name, m->size, m->body);
 
@@ -536,7 +542,10 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 	if (t->deliver->type != DELIVER_WRBACK)
 		return (ACTION_DONE);
 
-	mail_receive(m, msg, 1);
+	if (mail_receive(m, msg, 1) != 0) {
+		log_warn("%s: can't receive mail", a->name);
+		return (ACTION_ERROR);
+	}
 	log_debug2("%s: message %u, received modified mail: size %zu, body %zd",
 	    a->name, m->idx, m->size, m->body);
 

@@ -310,7 +310,10 @@ restart:
 	case POP3_RETR:
 		if (!fetch_pop3_okay(line))
 			goto bad;
-		mail_open(m, IO_ROUND(data->size));
+		if (mail_open(m, IO_ROUND(data->size)) != 0) {
+			log_warn("%s: failed to create mail", a->name);
+			return (FETCH_ERROR);
+		}
 		m->size = 0;
 
 		aux = xmalloc(sizeof *aux);
@@ -344,7 +347,10 @@ restart:
 		}
 
 		if (!data->flushing) {
-			resize_mail(m, m->size + len + 1);
+			if (mail_resize(m, m->size + len + 1) != 0) {
+				log_warn("%s: failed to resize mail", a->name);
+				return (FETCH_ERROR);
+			}
 
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);

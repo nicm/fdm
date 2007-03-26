@@ -60,8 +60,13 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	mail_send(m, msg);
 
 	child = data->child;
-	if (privsep_send(child->io, msg, msgbuf) != 0)
-		fatalx("parent_deliver: privsep_send error");
+	if (kill(child->pid, 0) == -1) {
+		if (errno != ESRCH)
+			fatal("kill");
+	} else {
+		if (privsep_send(child->io, msg, msgbuf) != 0)
+			fatalx("parent_deliver: privsep_send error");
+	}
 
 	mail_close(m);
 	xfree(m);

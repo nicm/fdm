@@ -29,6 +29,7 @@
 #include "deliver.h"
 #include "match.h"
 
+void	parent_fetch_error(struct child *, struct msg *);
 void	parent_fetch_action(struct child *, struct children *,
     	    struct deliver_ctx *, struct msg *);
 void	parent_fetch_cmd(struct child *, struct children *, struct mail_ctx *,
@@ -48,7 +49,11 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 		if (msgbuf->buf == NULL || msgbuf->len == 0)
 			fatalx("parent_fetch: bad tags");
 		m = xcalloc(1, sizeof *m);
-		mail_receive(m, msg, 0);
+		if (mail_receive(m, msg, 0) != 0) {
+			log_warn("parent_fetch: can't receive mail");
+			parent_fetch_error(child, msg);
+			break;
+		}
 		m->tags = msgbuf->buf;
 
 		dctx = xcalloc(1, sizeof *dctx);
@@ -61,7 +66,11 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 		if (msgbuf->buf == NULL || msgbuf->len == 0)
 			fatalx("parent_fetch: bad tags");
 		m = xcalloc(1, sizeof *m);
-		mail_receive(m, msg, 0);
+		if (mail_receive(m, msg, 0) != 0) {
+			log_warn("parent_fetch: can't receive mail");
+			parent_fetch_error(child, msg);
+			break;
+		}
 		m->tags = msgbuf->buf;
 
 		mctx = xcalloc(1, sizeof *mctx);
@@ -80,6 +89,15 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 }
 
 void
+parent_fetch_error(struct child *child, struct msg *msg) 
+{
+	msg->type = MSG_DONE;
+	msg->data.error = DELIVER_FAILURE;
+	if (privsep_send(child->io, msg, NULL) != 0)
+		fatalx("parent_deliver: privsep_send error");
+}
+
+void
 parent_fetch_action(struct child *child, struct children *children,
     struct deliver_ctx *dctx, struct msg *msg)
 {
@@ -88,14 +106,18 @@ parent_fetch_action(struct child *child, struct children *children,
 	struct mail			*m = dctx->mail;
 	struct mail			*md = &dctx->wr_mail;
 	struct child_deliver_data	*data;
-
+ 
 	memset(md, 0, sizeof *md);
 	/*
 	 * If writing back, open a new mail now and set its ownership so it
 	 * can be accessed by the child.
 	 */
 	if (t->deliver->type == DELIVER_WRBACK) {
-		mail_open(md, IO_BLOCKSIZE);
+		if (mail_open(md, IO_BLOCKSIZE) != 0) {
+			log_warn("parent: failed to create mail");
+			parent_fetch_error(child, msg);
+			return;
+		}
 		if (geteuid() == 0 &&
 		    fchown(md->shm.fd, conf.child_uid, conf.child_gid) != 0)
 			fatal("fchown");

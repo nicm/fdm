@@ -21,6 +21,8 @@
 
 #include <fcntl.h>
 #include <limits.h>
+#include <setjmp.h>
+#include <signal.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -32,6 +34,68 @@
 #define SHM_PROTW PROT_READ|PROT_WRITE
 #define SHM_PROTR PROT_READ
 
+int	failed;
+jmp_buf	jb;
+
+void	shm_sighandler(int);
+int	shm_test(void *, size_t, int);
+
+void
+shm_sighandler(int sig)
+{
+	if (sig == SIGSEGV || sig == SIGBUS)
+		longjmp(jb, 1);
+}
+
+int
+shm_test(void *base, size_t size, int wr)
+{
+	struct sigaction	 act;
+	char			*ptr;
+	volatile char		 c;
+
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+
+	act.sa_handler = shm_sighandler;
+	if (sigaction(SIGSEGV, &act, NULL) < 0)
+		fatal("sigaction");
+	if (sigaction(SIGBUS, &act, NULL) < 0)
+		fatal("sigaction");
+
+	/*
+	 * We check the mapped area by writing to/reading from the area and
+	 * checking for SIGSEGV or SIGBUS.
+	 */
+	failed = 0;
+	if (setjmp(jb) == 0) {
+		if (wr) {
+			for (ptr = base; ptr < ((char *) base) + size; ptr++)
+				*ptr = 0xff;
+		} else {
+			for (ptr = base; ptr < ((char *) base) + size; ptr++)
+				c = *ptr;
+		}
+	} else
+		failed = 1;
+
+	act.sa_handler = SIG_DFL;
+	if (sigaction(SIGSEGV, &act, NULL) < 0)
+		fatal("sigaction");
+	if (sigaction(SIGBUS, &act, NULL) < 0)
+		fatal("sigaction");
+
+	if (failed) {
+		errno = ENOMEM;
+		return (1);
+	}
+
+	if (msync(base, size, MS_SYNC) != 0)
+		return (1);
+ 
+	return (0);
+}
+
 void *
 shm_reopen(struct shm *shm)
 {
@@ -40,12 +104,15 @@ shm_reopen(struct shm *shm)
 #endif
 
 	if ((shm->fd = open(shm->name, O_RDWR, 0)) < 0)
-		fatal("open");
+		return (NULL);
 
 	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
-		fatal("mmap");
+		return (NULL);
 	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
+
+	if (shm_test(shm->data, shm->size, 0) != 0)
+		return (NULL);
 
 	return (shm->data);
 }
@@ -53,6 +120,7 @@ shm_reopen(struct shm *shm)
 void *
 shm_malloc(struct shm *shm, size_t size)
 {
+	int	error;
 	char	c;
 
         if (size == 0)
@@ -60,40 +128,51 @@ shm_malloc(struct shm *shm, size_t size)
 
 	if (printpath(shm->name, sizeof shm->name,
 	    "%s/%s.XXXXXXXXXX", conf.tmp_dir, __progname) != 0)
-		fatal("printpath");
+		return (NULL);
 	if ((shm->fd = mkstemp(shm->name)) < 0)
-		fatal("mkstemp");
+		return (NULL);
 
 #ifdef SHM_DEBUG
 	log_debug("shm_malloc: %s", shm->name);
 #endif
 
-	shm->size = size;
 	if (lseek(shm->fd, size, SEEK_SET) < 0)
-		fatal("lseek");
-
+		goto error;
 	c = '\0';
 	if (write(shm->fd, &c, 1) < 0)
-		fatal("write");
+		goto error;
 
-	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
-		fatal("mmap");
-	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
+		goto error;
+	madvise(shm->data, size, MADV_SEQUENTIAL);
+
+	if (shm_test(shm->data, size, 1) != 0)
+		goto error;
+	shm->size = size;
 
 	return (shm->data);
+
+error:
+	error = errno;
+	unlink(shm->name);
+	errno = error;
+	return (NULL);
 }
 
 void *
 shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 {
-	size_t	newsize = nmemb * size;
-	char	c;
+	size_t	 newsize = nmemb * size;
+	char	*base, c;
 
 #ifdef SHM_DEBUG
 	log_debug("shm_realloc: %s: %zu -> %zu", shm->name, shm->size, newsize);
 #endif
 
+	if (newsize == shm->size)
+		return (shm->data);
+	
 	if (size == 0)
                 fatalx("shm_realloc: zero size");
         if (SIZE_MAX / nmemb < size)
@@ -101,23 +180,32 @@ shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 
 	if (munmap(shm->data, shm->size) != 0)
 		fatal("munmap");
+	shm->data = NULL;
 
 	if (newsize < shm->size) {
 		if (ftruncate(shm->fd, newsize) != 0)
-			fatal("ftruncate");
+			return (NULL);
 	} else {
 		if (lseek(shm->fd, newsize, SEEK_SET) < 0)
-			fatal("lseek");
-
+			return (NULL);
 		c = '\0';
 		if (write(shm->fd, &c, 1) < 0)
-			fatal("write");
+			return (NULL);
 	}
 
-	shm->size = newsize;
-	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, newsize, SHM_PROTW, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
-		fatal("mmap");
+		return (NULL);
+	madvise(shm->data, newsize, MADV_SEQUENTIAL);
+
+	if (newsize > shm->size) {
+		base = shm->data;
+		if (shm_test(base + shm->size, newsize - shm->size, 1) != 0) {
+			shm->size = newsize;
+			return (NULL);
+		}
+	}
+	shm->size = newsize;
 
 	return (shm->data);
 }
@@ -132,7 +220,7 @@ shm_free(struct shm *shm)
 	if (shm->fd == -1)
 		return;
 
-	if (munmap(shm->data, shm->size) != 0)
+	if (shm->data != NULL && munmap(shm->data, shm->size) != 0)
 		fatal("munmap");
 
 	shm->data = NULL;
