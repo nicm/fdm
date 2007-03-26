@@ -119,7 +119,7 @@ lint:
 		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}
 
 depend:
-		mkdep ${CFLAGS} ${SRCS}
+		mkdep ${CFLAGS} ${SRCS:M*.c}
 
 regress:	${PROG}
 		cd regress && ${MAKE}
