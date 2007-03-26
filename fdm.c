@@ -792,6 +792,8 @@ main(int argc, char **argv)
 			}
 
 			io_close(child->io);
+			io_free(child->io);
+			child->io = NULL;
 
 			ARRAY_REMOVE(&children, i, struct child *);
 			ARRAY_ADD(&dead_children, child, struct child *);
