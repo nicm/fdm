@@ -108,6 +108,9 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 
 		io = io_create(fds[1], NULL, IO_LF, INFTIM);
 		n = start(child, io);
+		io_close(io);
+		io_free(io);
+		
 #ifdef PROFILE
 		/*
 		 * We want to use _exit rather than exit in the child process,
@@ -119,6 +122,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 		extern void _mcleanup(void);
 		_mcleanup();
 #endif
+		
 		child_exit(n);
 	}
 	close(fds[1]);

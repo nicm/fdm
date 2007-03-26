@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -35,6 +36,13 @@ child_deliver(struct child *child, struct io *io)
 	struct msg			 msg;
 	struct msgbuf			 msgbuf;
 	int				 error = 0;
+
+#ifdef DEBUG
+	xmalloc_clear();
+	COUNTFDS(a->name);
+#endif
+
+	log_debug2("%s: deliver started, pid %ld", a->name, (long) getpid());
 
 #ifndef NO_SETPROCTITLE
 	setproctitle("%s[%lu]", data->name, (u_long) geteuid());
@@ -62,6 +70,11 @@ child_deliver(struct child *child, struct io *io)
 		fatalx("deliver: privsep_recv error");
 	if (msg.type != MSG_EXIT)
 		fatalx("deliver: unexpected message");
+
+#ifdef DEBUG
+	COUNTFDS(a->name);
+	xmalloc_report(a->name);
+#endif 
 
 	return (error);
 }

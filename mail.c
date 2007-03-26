@@ -124,6 +124,7 @@ mail_close(struct mail *m)
 	mail_free(m);
 	if (m->base != NULL) {
 		strlcpy(path, m->shm.name, sizeof path);
+		shm_free(&m->shm);
 		cleanup_deregister(path);
 	}
 }

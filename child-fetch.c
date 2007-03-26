@@ -73,7 +73,7 @@ child_fetch(struct child *child, struct io *io)
 #endif
 
 	io->flags |= IO_NOWAIT;
-	log_debug2("%s: started, pid %ld", a->name, (long) getpid());
+	log_debug2("%s: fetch started, pid %ld", a->name, (long) getpid());
 
 #ifndef NO_SETPROCTITLE
 	setproctitle("child: %s", a->name);
@@ -134,13 +134,10 @@ out:
 	if (msg.type != MSG_EXIT)
 		fatalx("child: unexpected message");
 
-	io_close(io);
-	io_free(io);
-
 #ifdef DEBUG
 	COUNTFDS(a->name);
 	xmalloc_report(a->name);
-#endif
+#endif 
 
 	return (error);
 }
