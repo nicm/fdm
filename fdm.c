@@ -445,7 +445,7 @@ main(int argc, char **argv)
 	} else
 		log_debug2("uname: %s", strerror(errno));
 
-	/* save the home dir and misc user info and set the umask */
+	/* save the home dir and misc user info */
 	fill_info(getenv("HOME"));
 	log_debug2("user is: %s, home is: %s", conf.info.user, conf.info.home);
 
