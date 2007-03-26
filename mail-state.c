@@ -60,10 +60,11 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 
 		if (msg->type != MSG_DONE)
 			fatalx("child: unexpected message");
-		if (msgbuf->buf == NULL || msgbuf->len == 0)
-			fatalx("child: bad tags");
-		strb_destroy(&m->tags);
-		m->tags = msgbuf->buf;
+		if (msgbuf->buf != NULL && msgbuf->len != 0) {
+			strb_destroy(&m->tags);
+			m->tags = msgbuf->buf;
+			update_tags(&m->tags);
+		}
 
 		ei = mctx->expritem;
 		switch (msg->data.error) {
@@ -530,11 +531,11 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct mail	*m = dctx->mail;
 	u_int		 lines;
 
-	if (msgbuf->buf == NULL || msgbuf->len == 0)
-		fatalx("child: bad tags");
-	strb_destroy(&m->tags);
-	m->tags = msgbuf->buf;
-	update_tags(&m->tags);
+	if (msgbuf->buf != NULL && msgbuf->len != 0) {
+		strb_destroy(&m->tags);
+		m->tags = msgbuf->buf;
+		update_tags(&m->tags);
+	}
 
 	if (msg->data.error != 0)
 		return (ACTION_ERROR);

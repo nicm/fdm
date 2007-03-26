@@ -50,7 +50,6 @@ restart:
 			fatal("shmctl");
 		return (NULL);
 	}
-
 	return (shm->data);
 } 
 
