@@ -41,7 +41,7 @@ mail_open(struct mail *m, size_t size)
 	m->space = m->size;
 	m->body = -1;
 
-	if ((m->base = shm_malloc(&m->shm, m->size)) == NULL)
+	if ((m->base = shm_create(&m->shm, m->size)) == NULL)
 		return (1);
  	cleanup_register(m->shm.name);
 
@@ -124,7 +124,7 @@ mail_close(struct mail *m)
 	mail_free(m);
 	if (m->base != NULL) {
 		strlcpy(path, m->shm.name, sizeof path);
-		shm_free(&m->shm);
+		shm_close(&m->shm);
 		cleanup_deregister(path);
 	}
 }
@@ -148,7 +148,7 @@ mail_resize(struct mail *m, size_t size)
 	if (SIZE_MAX - m->off < size)
 		fatalx("resize_mail: SIZE_MAX - m->off < size");
 	while (m->space <= (m->off + size)) {
-		if ((m->base = shm_realloc(&m->shm, 2, m->space)) == NULL)
+		if ((m->base = shm_resize(&m->shm, 2, m->space)) == NULL)
 			return (1);
 		m->space *= 2;
 	}

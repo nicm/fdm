@@ -286,6 +286,9 @@ struct proxy {
 
 /* Shared memory. */
 struct shm {
+	key_t	 key;
+	int	 id;
+
 	char	 name[MAXPATHLEN];
 	int	 fd;
 
@@ -788,11 +791,12 @@ int			 vasprintf(char **, const char *, va_list);
 #endif
 
 /* shm.c */
-void 			*shm_reopen(struct shm *);
-void			*shm_malloc(struct shm *, size_t);
-void			*shm_realloc(struct shm *, size_t, size_t);
-void			 shm_free(struct shm *);
+void			*shm_create(struct shm *, size_t);
+int			 shm_owner(struct shm *, uid_t, gid_t);
 void			 shm_destroy(struct shm *);
+void			 shm_close(struct shm *);
+void			*shm_reopen(struct shm *);
+void			*shm_resize(struct shm *, size_t, size_t);
 
 /* parse.y */
 extern struct macros	 macros;

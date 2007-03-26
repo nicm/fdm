@@ -27,6 +27,7 @@
 struct cleanent {
 	char			*path;
 
+
 	TAILQ_ENTRY(cleanent)	 entry;
 };
 TAILQ_HEAD(, cleanent)		 cleanlist;

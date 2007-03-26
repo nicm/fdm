@@ -29,7 +29,9 @@
 
 #include "fdm.h"
 
-#undef SHM_DEBUG
+/*
+ * This implements a sort of shared memory using mmap'd files in TMPDIR.
+ */
 
 #define SHM_PROTW PROT_READ|PROT_WRITE
 #define SHM_PROTR PROT_READ
