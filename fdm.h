@@ -286,11 +286,18 @@ struct proxy {
 
 /* Shared memory. */
 struct shm {
+#ifdef SHM_SYSV
 	key_t	 key;
 	int	 id;
-
+#define SHM_REGISTER(shm)
+#define SHM_DEREGISTER(shm)
+#endif
+#ifdef SHM_MMAP
 	char	 name[MAXPATHLEN];
 	int	 fd;
+#define SHM_REGISTER(shm) cleanup_register((shm)->name)
+#define SHM_DEREGISTER(shm) cleanup_deregister((shm)->name)
+#endif
 
 	void	*data;
 	size_t	 size;

@@ -20,10 +20,13 @@
 #include <sys/mman.h>
 
 #include <fcntl.h>
+#include <setjmp.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "fdm.h"
+
+#ifdef SHM_MMAP
 
 /*
  * This implements shared memory using mmap'd files in TMPDIR.
@@ -34,7 +37,67 @@
 
 #define SHM_PROT PROT_READ|PROT_WRITE
 
+void	shm_sighandler(int);
+
+int	shm_verify(char *, size_t, size_t);
 int	shm_expand(struct shm *, size_t);
+
+int	failed;
+jmp_buf	jb;
+
+void
+shm_sighandler(int sig)
+{
+	if (sig == SIGSEGV || sig == SIGBUS)
+		longjmp(jb, 1);
+}
+
+/* Verify mmap'd range is available. */
+int
+shm_verify(char *base, size_t offset, size_t size)
+{
+	struct sigaction	 act;
+	char			*ptr;
+
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+
+	act.sa_handler = shm_sighandler;
+	if (sigaction(SIGSEGV, &act, NULL) < 0)
+		fatal("sigaction");
+	if (sigaction(SIGBUS, &act, NULL) < 0)
+		fatal("sigaction");
+
+	/*
+	 * Fill the buffer and check for SIGBUS or SIGSEGV.
+	 */
+	failed = 0;
+	if (setjmp(jb) == 0) {
+		for (ptr = base + offset; ptr < base + offset + size; ptr++)
+			*ptr = 0xff;
+	} else
+		failed = 1;
+
+	act.sa_handler = SIG_DFL;
+	if (sigaction(SIGSEGV, &act, NULL) < 0)
+		fatal("sigaction");
+	if (sigaction(SIGBUS, &act, NULL) < 0)
+		fatal("sigaction");
+
+	if (failed) {
+		errno = ENOMEM;
+		return (1);
+	}
+
+	/*
+	 * Sync the region. This'll hopefully complain if there isn't enough
+	 * disk space.
+	 */
+	if (msync(base + offset, size, MS_SYNC) != 0)
+		return (1);
+ 
+	return (0);
+}
 
 /* Expand or reduce shm file to size. */
 int
@@ -74,12 +137,18 @@ shm_create(struct shm *shm, size_t size)
 	if (shm_expand(shm, size) != 0)
 		goto error;
 
-	shm->size = size;
-	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, size, SHM_PROT, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		goto error;
-	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
+	madvise(shm->data, size, MADV_SEQUENTIAL);
 
+	if (shm_verify(shm->data, 0, shm->size) != 0) {
+		if (munmap(shm->data, shm->size) != 0)
+			fatal("munmap");
+		goto error;
+	}
+
+	shm->size = size;
 	return (shm->data);
 
 error:
@@ -155,12 +224,16 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	if (shm_expand(shm, newsize) != 0)
 		return (NULL);
 
-	shm->size = newsize;
-	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, newsize, SHM_PROT, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		return (NULL);
-	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
+	madvise(shm->data, newsize, MADV_SEQUENTIAL);
 
+	if (shm_verify(shm->data, shm->size, newsize - shm->size) != 0)
+		return (NULL);
+
+	shm->size = newsize;
 	return (shm->data);
 }
 
+#endif /* SHM_MMAP */

@@ -25,6 +25,8 @@
 
 #include "fdm.h"
 
+#ifdef SHM_SYSV
+
 void *
 shm_create(struct shm *shm, size_t size)
 {
@@ -133,4 +135,6 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 
 	return (shm->data);
 }
+
+#endif /* SHM_SYSV */
 
