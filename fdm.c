@@ -804,7 +804,6 @@ main(int argc, char **argv)
 	/* free the dead children */
 	for (i = 0; i < ARRAY_LENGTH(&dead_children); i++) {
 		child = ARRAY_ITEM(&dead_children, i, struct child *);
-		io_free(child->io);
 		if (child->data != NULL)
 			xfree(child->data);
 		xfree(child);
