@@ -1065,7 +1065,7 @@ than leaving it for the user to sort out.
 - queue-high <number>
 
 This sets the number of mails fdm will queue simultaneously. The default is
-two.  Once this limit is reached, fdm will cease fetching mail until the number
+two. Once this limit is reached, fdm will cease fetching mail until the number
 queued drops to the value of the 'queue-low' setting.
 
 fdm queues mails so that they may be processed while waiting for data from the
