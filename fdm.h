@@ -524,13 +524,16 @@ struct child_deliver_data {
 	struct match_command_data *cmddata;
 };
 
+/* Users list. */
+ARRAY_DECL(users, uid_t);
+
 /* Account entry. */
 struct account {
 	u_int			 idx;
 
 	char			 name[MAXNAMESIZE];
 
-	struct strings		*users;
+	struct users		*users;
 	int			 find_uid;
 
 	int			 disabled;
@@ -546,7 +549,7 @@ struct account {
 struct action {
 	char			 name[MAXNAMESIZE];
 
-	struct strings		*users;
+	struct users		*users;
 	int			 find_uid;
 
 	struct deliver		*deliver;
@@ -603,7 +606,7 @@ struct rule {
 	struct strings		*accounts;
 	struct expr		*expr;
 
-	struct strings		*users;
+	struct users		*users;
 	int			 find_uid;	/* find uids from headers */
 
 	int			 stop;		/* stop matching at this rule */
@@ -807,9 +810,11 @@ void			*shm_resize(struct shm *, size_t, size_t);
 
 /* parse.y */
 extern struct macros	 macros;
+struct users		*weed_users(struct users *);
 struct strings 		*weed_strings(struct strings *);
 void			 free_strings(struct strings *);
 char 			*fmt_strings(const char *, struct strings *);
+char 			*fmt_users(const char *, struct users *);
 struct macro		*find_macro(char *);
 struct actions		*match_actions(char *);
 void			 free_action(struct action *);
@@ -911,7 +916,7 @@ int			 insert_header(struct mail *, const char *,
 int			 remove_header(struct mail *, const char *);
 char 			*find_header(struct mail *, const char *, size_t *,
 			     int);
-struct strings		*find_users(struct mail *);
+struct users		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
 char 		        *make_from(struct mail *);

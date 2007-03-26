@@ -176,6 +176,37 @@ weed_strings(struct strings *sp)
 	return (sp);
 }
 
+struct users *
+weed_users(struct users *up)
+{
+	u_int	i, j;
+	uid_t	uid;
+
+	if (ARRAY_LENGTH(up) == 0)
+		return (up);
+
+	for (i = 0; i < ARRAY_LENGTH(up) - 1; i++) {
+		uid = ARRAY_ITEM(up, i, uid_t);
+		if (uid == NOUSR)
+			continue;
+		
+		for (j = i + 1; j < ARRAY_LENGTH(up); j++) {
+			if (ARRAY_ITEM(up, j, uid_t) == uid)
+				ARRAY_ITEM(up, j, uid_t) = NOUSR;
+		}
+	}
+
+	i = 0;
+	while (i < ARRAY_LENGTH(up)) {
+		if (ARRAY_ITEM(up, i, uid_t) == NOUSR)
+			ARRAY_REMOVE(up, i, uid_t);
+		else
+			i++;
+	}
+
+	return (up);
+}
+
 char *
 fmt_strings(const char *prefix, struct strings *sp)
 {
@@ -203,7 +234,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 	off = 0;
 	if (prefix != NULL) {
 		ENSURE_SIZE(buf, len, strlen(prefix));
-		strlcpy(buf, prefix, len);
+		off = strlcpy(buf, prefix, len);
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
@@ -213,6 +244,52 @@ fmt_strings(const char *prefix, struct strings *sp)
 		ENSURE_FOR(buf, len, off, slen + 4);
 		xsnprintf(buf + off, len - off, "\"%s\" ", s);
 		off += slen + 3;
+	}
+
+	buf[off - 1] = '\0';
+
+	return (buf);
+
+}
+
+char *
+fmt_users(const char *prefix, struct users *up)
+{
+	char	*buf;
+	size_t	 uidlen, len;
+	ssize_t	 off;
+	u_int	 i;
+	uid_t	 uid;
+
+	if (ARRAY_LENGTH(up) == 0) {
+		if (prefix != NULL)
+			return (xstrdup(prefix));
+		return (xstrdup(""));
+	}
+	if (ARRAY_LENGTH(up) == 1) {
+		uid = ARRAY_ITEM(up, 0, uid_t);
+		if (prefix != NULL)
+			xasprintf(&buf, "%s%lu", prefix, (u_long) uid);
+		else
+			xasprintf(&buf, "%lu", (u_long) uid);
+		return (buf);
+	}
+
+	len = BUFSIZ;
+	buf = xmalloc(len);
+	off = 0;
+	if (prefix != NULL) {
+		ENSURE_SIZE(buf, len, strlen(prefix));
+		off = strlcpy(buf, prefix, len);
+	}
+
+	for (i = 0; i < ARRAY_LENGTH(up); i++) {
+		uid = ARRAY_ITEM(up, i, uid_t);
+		uidlen = xsnprintf(NULL, 0, "%lu", (u_long) uid);
+
+		ENSURE_FOR(buf, len, off, uidlen + 2);
+		xsnprintf(buf + off, len - off, "%lu ", (u_long) uid);
+		off += uidlen + 1;
 	}
 
 	buf[off - 1] = '\0';
@@ -292,7 +369,7 @@ void
 print_rule(struct rule *r)
 {
 	struct expritem	*ei;
-	char		 s[1024], *sa, *ss, desc[DESCBUFSIZE];
+	char		 s[1024], *sa, *su, *ss, desc[DESCBUFSIZE];
 	size_t		 off;
 
 	switch (r->type) {
@@ -325,10 +402,14 @@ print_rule(struct rule *r)
 		sa = fmt_strings(" accounts=", r->accounts);
 	else
 		sa = xstrdup("");
+	if (r->users != NULL)
+		su = fmt_users(" users=", r->users);
+	else
+		su = xstrdup("");
 	if (r->actions != NULL) {
 		ss = fmt_strings(NULL, (struct strings *) r->actions);
-		log_debug2("added rule %u:%s actions=%s matches=%s", r->idx,
-		    sa, ss, s);
+		log_debug2("added rule %u:%s%s actions=%s matches=%s", r->idx,
+		    sa, su, ss, s);
 		xfree(ss);
 	} else if (r->key.str != NULL) {
 		log_debug2("added rule %u:%s tag=%s (%s) matches=%s", r->idx,
@@ -336,15 +417,14 @@ print_rule(struct rule *r)
 	} else
 		log_debug2("added rule %u:%s nested matches=%s", r->idx, sa, s);
 	xfree(sa);
+	xfree(su);
 }
 
 void
 free_action(struct action *t)
 {
-	if (t->users != NULL) {
-		free_strings(t->users);
+	if (t->users != NULL)
 		ARRAY_FREEALL(t->users);
-	}
 
 	if (t->deliver == &deliver_pipe || t->deliver == &deliver_exec) {
 		struct deliver_pipe_data		*data = t->data;
@@ -396,10 +476,8 @@ free_rule(struct rule *r)
 		free_strings(r->accounts);
 		ARRAY_FREEALL(r->accounts);
 	}
-	if (r->users != NULL) {
-		free_strings(r->users);
+	if (r->users != NULL)
 		ARRAY_FREEALL(r->users);
-	}
 	if (r->actions != NULL) {
 		free_strings((struct strings *) r->actions);
 		ARRAY_FREEALL(r->actions);
@@ -458,10 +536,8 @@ free_rule(struct rule *r)
 void
 free_account(struct account *a)
 {
-	if (a->users != NULL) {
-		free_strings(a->users);
+	if (a->users != NULL)
 		ARRAY_FREEALL(a->users);
-	}
 
 	if (a->fetch == &fetch_pop3) {
 		struct fetch_pop3_data		*data = a->data;
@@ -625,7 +701,7 @@ find_netrc(const char *host, char **user, char **pass)
 	uid_t			 uid;
 	gid_t			 gid;
 	struct {
-		struct strings	*users;
+		struct users	*users;
 		int		 find_uid;
 	} users;
 	enum cmp		 cmp;
@@ -1401,7 +1477,7 @@ users: /* empty */
 /**    [$3: userslist (struct { ... } users)] */
        {
 	       $$ = $3;
-	       $$.users = weed_strings($$.users);
+	       $$.users = weed_users($$.users);
 	       $$.find_uid = 0;
        }
 
@@ -1729,7 +1805,7 @@ defaction: TOKACTION replstrv users action
 /**        [$4: action (struct action)] */
 	   {
 		   struct action	*t;
-		   char			 desc[DESCBUFSIZE];
+		   char			*su, desc[DESCBUFSIZE];
 
 		   if (strlen($2) >= MAXNAMESIZE)
 			   yyerror("action name too long: %s", $2);
@@ -1745,8 +1821,14 @@ defaction: TOKACTION replstrv users action
 		   t->find_uid = $3.find_uid;
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
+		   if (t->users != NULL)
+			   su = fmt_users(" users=", t->users);
+		   else
+			   su = xstrdup("");
 		   t->deliver->desc(t, desc, sizeof desc);
-		   log_debug2("added action \"%s\": deliver=%s", t->name, desc);
+		   log_debug2("added action \"%s\":%s deliver=%s", t->name, su,
+		       desc);
+		   xfree(su);
 
 		   xfree($2);
 	   }
@@ -2664,8 +2746,8 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 /**      [$6: keep (int)] */
          {
 		 struct account		*a;
-		 char			 desc[DESCBUFSIZE]
-;
+		 char			*su, desc[DESCBUFSIZE];
+
 		 if (strlen($2) >= MAXNAMESIZE)
 			 yyerror("account name too long: %s", $2);
 		 if (*$2 == '\0')
@@ -2683,8 +2765,14 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 		 a->data = $5.data;
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);
 
+		 if (a->users != NULL)
+			 su = fmt_users(" users=", a->users);
+		 else
+			 su = xstrdup("");
 		 a->fetch->desc(a, desc, sizeof desc);
-		 log_debug2("added account \"%s\": fetch=%s", a->name, desc);
+		 log_debug2("added account \"%s\":%s fetch=%s", a->name, su,
+		     desc);
+		 xfree(su);
 
 		 xfree($2);
 	 }

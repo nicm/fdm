@@ -453,11 +453,11 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 	return (out);
 }
 
-struct strings *
+struct users *
 find_users(struct mail *m)
 {
 	struct passwd	*pw;
-	struct strings	*users;
+	struct users	*users;
 	u_int	 	 i, j;
 	char		*hdr, *ptr, *dptr, *dom;
 	size_t	 	 len, alen;
@@ -509,7 +509,7 @@ find_users(struct mail *m)
 		xfree(users);
 		return (NULL);
 	}
-	return (weed_strings(users));
+	return (weed_users(users));
 }
 
 char *

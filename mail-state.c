@@ -26,7 +26,7 @@
 #include "fetch.h"
 #include "match.h"
 
-struct strings *find_delivery_users(struct mail_ctx *, struct action *, int *);
+struct users   *find_delivery_users(struct mail_ctx *, struct action *, int *);
 int		fill_delivery_queue(struct mail_ctx *, struct rule *);
 
 int		start_action(struct mail_ctx *, struct deliver_ctx *);
@@ -336,13 +336,13 @@ done:
 	return (MAIL_CONTINUE);
 }
 
-struct strings *
+struct users *
 find_delivery_users(struct mail_ctx *mctx, struct action *t, int *should_free)
 {
 	struct account	*a = mctx->account;
 	struct mail	*m = mctx->mail;
 	struct rule	*r = mctx->rule;
-	struct strings	*users;
+	struct users	*users;
 
 	*should_free = 0;
 	users = NULL;
@@ -386,7 +386,7 @@ fill_delivery_queue(struct mail_ctx *mctx, struct rule *r)
 	char			*s;
 	struct replstr		*rs;
 	struct deliver_ctx	*dctx;
-	struct strings		*users;
+	struct users		*users;
 	int			 should_free;
 
 	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
