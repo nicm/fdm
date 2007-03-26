@@ -30,9 +30,6 @@
 
 /*
  * This implements shared memory using mmap'd files in TMPDIR.
- *
- * If the disk gets full, we get a SIGBUS and die, but there isn't much to do
- * aside from some horrible slow hacks to ensure everything is writable.
  */
 
 #define SHM_PROT PROT_READ|PROT_WRITE

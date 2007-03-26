@@ -2,7 +2,7 @@
 
 * Option to use SYSV shared memory (build with make -DSHM_SYSV). Not a real
   option, or documented, yet because I'm not sure how to deal with cleaning up
-  on SIGTERM.
+  on SIGTERM. It might even go away again.
 * Play some games to ensure that that the full extent of the mmap'd temporary
   file is actually writable before using it. Otherwise if there is insufficient
   disk space we risk getting an unexpected SIGBUS later when trying to use it.
