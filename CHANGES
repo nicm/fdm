@@ -1,8 +1,11 @@
 26 March 2007
 
-* Verify that the mmap'd temporary file is actually writable and syncable before
-  using it. Otherwise if it is overallocated we risk getting SIGBUS or similar
-  later when trying to use the space.
+* Option to use SYSV shared memory (build with make -DSHM_SYSV). Not a real
+  option, or documented, yet because I'm not sure how to deal with cleaning up
+  on SIGTERM.
+* Play some games to ensure that that the full extent of the mmap'd temporary
+  file is actually writable before using it. Otherwise if there is insufficient
+  disk space we risk getting an unexpected SIGBUS later when trying to use it.
 * When sending delivery done messages, check that the child process isn't dead
   before trying to talk to it. 
 
