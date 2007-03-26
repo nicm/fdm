@@ -90,13 +90,13 @@ match_command_desc(struct expritem *ei, char *buf, size_t len)
 		}
 	} else {
 		if (data->uid != NOUSR) {
-			xsnprintf(buf, len,
-			    "command %s \"%s\" user %lu returns (%s, \"%s\")",
+			xsnprintf(buf, len, 
+			    "%s \"%s\" user %lu returns (%s, \"%s\")",
 			    type, data->cmd.str, (u_long) data->uid, ret,
 			    data->re.str);
 		} else {
 			xsnprintf(buf, len,
-			    "command %s \"%s\" returns (%s, \"%s\")",
+			    "%s \"%s\" returns (%s, \"%s\")",
 			    type, data->cmd.str, ret, data->re.str);
 		}
 	}
