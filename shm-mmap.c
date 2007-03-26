@@ -20,110 +20,47 @@
 #include <sys/mman.h>
 
 #include <fcntl.h>
-#include <limits.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "fdm.h"
 
 /*
- * This implements a sort of shared memory using mmap'd files in TMPDIR.
+ * This implements shared memory using mmap'd files in TMPDIR.
+ *
+ * If the disk gets full, we get a SIGBUS and die, but there isn't much to do
+ * aside from some horrible slow hacks to ensure everything is writable.
  */
 
-#define SHM_PROTW PROT_READ|PROT_WRITE
-#define SHM_PROTR PROT_READ
+#define SHM_PROT PROT_READ|PROT_WRITE
 
-int	failed;
-jmp_buf	jb;
+int	shm_expand(struct shm *, size_t);
 
-void	shm_sighandler(int);
-int	shm_test(void *, size_t, int);
-
-void
-shm_sighandler(int sig)
-{
-	if (sig == SIGSEGV || sig == SIGBUS)
-		longjmp(jb, 1);
-}
-
+/* Expand or reduce shm file to size. */
 int
-shm_test(void *base, size_t size, int wr)
+shm_expand(struct shm *shm, size_t size)
 {
-	struct sigaction	 act;
-	char			*ptr;
-	volatile char		 c;
+	char	c;
+	
+	if (size == shm->size)
+		return (0);
+	
+	if (size < shm->size)
+		return (ftruncate(shm->fd, size) != 0);
 
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-
-	act.sa_handler = shm_sighandler;
-	if (sigaction(SIGSEGV, &act, NULL) < 0)
-		fatal("sigaction");
-	if (sigaction(SIGBUS, &act, NULL) < 0)
-		fatal("sigaction");
-
-	/*
-	 * We check the mapped area by writing to/reading from the area and
-	 * checking for SIGSEGV or SIGBUS.
-	 */
-	failed = 0;
-	if (setjmp(jb) == 0) {
-		if (wr) {
-			for (ptr = base; ptr < ((char *) base) + size; ptr++)
-				*ptr = 0xff;
-		} else {
-			for (ptr = base; ptr < ((char *) base) + size; ptr++)
-				c = *ptr;
-		}
-	} else
-		failed = 1;
-
-	act.sa_handler = SIG_DFL;
-	if (sigaction(SIGSEGV, &act, NULL) < 0)
-		fatal("sigaction");
-	if (sigaction(SIGBUS, &act, NULL) < 0)
-		fatal("sigaction");
-
-	if (failed) {
-		errno = ENOMEM;
+	if (lseek(shm->fd, size, SEEK_SET) == -1)
 		return (1);
-	}
-
-	if (msync(base, size, MS_SYNC) != 0)
+	c = '\0';
+	if (write(shm->fd, &c, 1) == -1)
 		return (1);
- 
 	return (0);
 }
 
+/* Create an shm file and map it. */
 void *
-shm_reopen(struct shm *shm)
-{
-#ifdef SHM_DEBUG
-	log_debug("shm_reopen: %s", shm->name);
-#endif
-
-	if ((shm->fd = open(shm->name, O_RDWR, 0)) < 0)
-		return (NULL);
-
-	shm->data = mmap(NULL, shm->size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
-	if (shm->data == MAP_FAILED)
-		return (NULL);
-	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
-
-	if (shm_test(shm->data, shm->size, 0) != 0)
-		return (NULL);
-
-	return (shm->data);
-}
-
-void *
-shm_malloc(struct shm *shm, size_t size)
+shm_create(struct shm *shm, size_t size)
 {
 	int	error;
-	char	c;
 
         if (size == 0)
                 fatalx("shm_malloc: zero size");
@@ -134,24 +71,14 @@ shm_malloc(struct shm *shm, size_t size)
 	if ((shm->fd = mkstemp(shm->name)) < 0)
 		return (NULL);
 
-#ifdef SHM_DEBUG
-	log_debug("shm_malloc: %s", shm->name);
-#endif
-
-	if (lseek(shm->fd, size, SEEK_SET) < 0)
-		goto error;
-	c = '\0';
-	if (write(shm->fd, &c, 1) < 0)
+	if (shm_expand(shm, size) != 0)
 		goto error;
 
-	shm->data = mmap(NULL, size, SHM_PROTW, MAP_SHARED, shm->fd, 0);
+	shm->size = size;
+	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		goto error;
-	madvise(shm->data, size, MADV_SEQUENTIAL);
-
-	if (shm_test(shm->data, size, 1) != 0)
-		goto error;
-	shm->size = size;
+	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
 
 	return (shm->data);
 
@@ -162,19 +89,60 @@ error:
 	return (NULL);
 }
 
+/* Destroy shm file. */
+void
+shm_destroy(struct shm *shm)
+{
+	shm_close(shm);
+
+	if (unlink(shm->name) != 0)
+		fatal("unlink");
+	*shm->name = '\0';
+}
+
+/* Close and unmap shm without destroying file. */
+void
+shm_close(struct shm *shm)
+{
+	if (munmap(shm->data, shm->size) != 0)
+		fatal("munmap");
+	shm->data = NULL;
+
+	close(shm->fd);
+	shm->fd = -1;
+}
+
+/* Reopen and map shm file. */
 void *
-shm_realloc(struct shm *shm, size_t nmemb, size_t size)
+shm_reopen(struct shm *shm)
+{
+	if ((shm->fd = open(shm->name, O_RDWR, 0)) < 0)
+		return (NULL);
+
+	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	if (shm->data == MAP_FAILED)
+		return (NULL);
+	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
+
+	return (shm->data);
+}
+
+/* Set ownership of shm file. */
+int
+shm_owner(struct shm *shm, uid_t uid, gid_t gid)
+{
+	if (fchown(shm->fd, uid, gid) != 0)
+		return (1);
+
+	return (0);
+}
+
+/* Resize an shm file. */ 
+void *
+shm_resize(struct shm *shm, size_t nmemb, size_t size)
 {
 	size_t	 newsize = nmemb * size;
-	char	*base, c;
 
-#ifdef SHM_DEBUG
-	log_debug("shm_realloc: %s: %zu -> %zu", shm->name, shm->size, newsize);
-#endif
-
-	if (newsize == shm->size)
-		return (shm->data);
-	
 	if (size == 0)
                 fatalx("shm_realloc: zero size");
         if (SIZE_MAX / nmemb < size)
@@ -184,62 +152,15 @@ shm_realloc(struct shm *shm, size_t nmemb, size_t size)
 		fatal("munmap");
 	shm->data = NULL;
 
-	if (newsize < shm->size) {
-		if (ftruncate(shm->fd, newsize) != 0)
-			return (NULL);
-	} else {
-		if (lseek(shm->fd, newsize, SEEK_SET) < 0)
-			return (NULL);
-		c = '\0';
-		if (write(shm->fd, &c, 1) < 0)
-			return (NULL);
-	}
+	if (shm_expand(shm, newsize) != 0)
+		return (NULL);
 
-	shm->data = mmap(NULL, newsize, SHM_PROTW, MAP_SHARED, shm->fd, 0);
+	shm->size = newsize;
+	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		return (NULL);
-	madvise(shm->data, newsize, MADV_SEQUENTIAL);
-
-	if (newsize > shm->size) {
-		base = shm->data;
-		if (shm_test(base + shm->size, newsize - shm->size, 1) != 0) {
-			shm->size = newsize;
-			return (NULL);
-		}
-	}
-	shm->size = newsize;
+	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
 
 	return (shm->data);
 }
 
-void
-shm_free(struct shm *shm)
-{
-#ifdef SHM_DEBUG
-	log_debug("shm_free: %s", shm->name);
-#endif
-
-	if (shm->fd == -1)
-		return;
-
-	if (shm->data != NULL && munmap(shm->data, shm->size) != 0)
-		fatal("munmap");
-
-	shm->data = NULL;
-	shm->size = 0;
-
-	close(shm->fd);
-	shm->fd = -1;
-}
-
-void
-shm_destroy(struct shm *shm)
-{
-#ifdef SHM_DEBUG
-	log_debug("%ld shm_destroy: %s", (long) getpid(), shm->name);
-#endif
-
-	shm_free(shm);
-	if (unlink(shm->name) != 0)
-		fatal("unlink");
-}

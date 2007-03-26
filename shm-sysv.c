@@ -60,7 +60,7 @@ shm_destroy(struct shm *shm)
 	
 	if (shmctl(shm->id, IPC_RMID, NULL) != 0)
 		fatal("shmctl");
-	shm->id = 0;
+	shm->id = -1;
 }
 
 void
