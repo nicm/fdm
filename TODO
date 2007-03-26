@@ -25,8 +25,6 @@
 - deliver to IMAP folder
 - refactor & clean up privsep mail transfer code
 - split fetch into next and get(line) and alloc mail outside
-- rework IO_NOWAIT
-- tidy child.c
 - is there any reason struct mail shouldn't point to a struct account?
 - coalesce multiple IMAP deletions into a single call? is this possible?
 - option for using PCRE

@@ -197,8 +197,6 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 	dst = xmalloc(len);
 
 	for (ptr = src; *ptr != '\0'; ptr++) {
-		alias = NULL;
-
 		switch (*ptr) {
 		case '%':
 			break;
@@ -247,6 +245,7 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 				break;
 			}
 
+			alias = NULL;
 			if (ALIAS_IDX(ch) != -1)
 				alias = aliases[ALIAS_IDX(ch)];
 			if (alias == NULL)
