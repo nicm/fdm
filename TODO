@@ -28,6 +28,5 @@
 - is there any reason struct mail shouldn't point to a struct account?
 - coalesce multiple IMAP deletions into a single call? is this possible?
 - option for using PCRE
-- document queue stuff in man page
 - audit close/closedir error checks
 
