@@ -384,10 +384,10 @@ Or afterwards:
 
 	./fdm-sanitize <vvvv-output >my-output
 
-Since fdm fetches multiple simultaneously, which may mix intersperse debugging
-output, it is recommended to fetch each account seperately if running the output
-through fdm-sanitize. If this is not done, it may not be able to detect all
-username/password occurances.
+Since fdm fetches multiple accounts simultaneously, which may intersperse
+debugging output, it is recommended to fetch each account seperately if running
+the output through fdm-sanitize. If this is not done, it may not be able to
+detect all usernames or passwords.
 
 The '-k' command line option (and the 'keep' keywords on actions and accounts,
 covered later) prevent fdm from deleting any mail after delivery. This may be
@@ -629,7 +629,7 @@ specified like so:
 The cache is a file used to store details of the last article fetched. If only
 one group is supplied in the account definition, %[group] tags are replaced by
 the name of the group in the cache path. If multiple groups are provided,
-the %[group] is just removed.
+%[group] is removed.
 
 Note that whether a message is kept or deleted is irrelevent to NNTP, articles
 are always left on the server. The index and message-id of the last article
@@ -638,8 +638,8 @@ newsgroup is again fetched.
 
 As with POP3 and IMAP, NNTP accounts add the 'server' and 'port' tags to mail.
 In addition, a 'group' tag is added with the group name. This can ensure
-articles are matched purely on the group they are fetched on (trying to do this
-using headers is unreliable with cross-posted articles). For example:
+articles are matched purely on the group they are fetched from (trying to do
+this using headers is unreliable with cross-posted articles). For example:
 
 match all account "news" {
 	match string "%[group]" to "comp.lang.c" action "news-%[group]"
@@ -885,10 +885,10 @@ following syntax:
 
 The 'case' keyword instructs fdm to match the regexp case sensitively rather
 than the default of case insensitivity. The 'in headers' or 'in body' keywords
-in struct fdm to search only the headers or body of each mail, the default is
-to match the regexp against the entire mail. The regexp itself is an extended
-regexp specified as a simple string, but care must be taken to escape \s and
-"s properly.
+make fdm search only the headers or body of each mail, the default is to match
+the regexp against the entire mail. The regexp itself is an extended regexp
+specified as a simple string, but care must be taken to escape \s and "s
+properly.
 
 Examples include:
 
@@ -912,7 +912,7 @@ Or:
 	match all action "%1mail"
 
 This is particularly useful in combination with nested rules (see later):
-bracket expressions in regexp on the outer rule may be compared on inner
+bracket expressions in a regexp on the outer rule may be compared on inner
 rules.
 
 Note that %0 to %9 are used only for 'regexp' rules. Regexps are part of
@@ -920,8 +920,8 @@ Note that %0 to %9 are used only for 'regexp' rules. Regexps are part of
 
 %%% Matching by age or size
 
-Mail may be matched based on its age, or its size. An age condition is
-specified as follows:
+Mail may be matched based on its age or size. An age condition is specified as
+follows:
 
 	age [<|>] <age> [hours|minutes|seconds|days|months|years]
 
@@ -933,9 +933,14 @@ with a unit. Examples are:
 
 	match age > 100 hours action "tooold"
 
+The age is extracted from the 'Date' header, if possible. To match mails for
+which the header was invalid, the following form may be used:
+
+	match age invalid action "baddate"
+
 The size condition is similar:
 
-	size [<|>] <size>
+	size [<|>] <size> [K|KB|kilobytes...]
 
 Where <size> is a simple number in bytes, or suffixed directly (no space) with
 'K', 'M' or 'G' to specify a size in kilobytes, megabytes or gigabytes, such
@@ -954,17 +959,17 @@ the form:
 
 If 'exec' is used, the command is executed. If 'pipe', the mail is piped to the
 command's stdin. The <command> is a simple string. % tokens are replaced as
-normal, with the exception of %t.
+normal.
 
 Any of the <return code> or <stdout regexp> or both may be specified. The
 <return code> is a simple number which is compared against the return code from
 the command, the <stdout regexp> is a regexp that is matched case insensitively
 against each line output by the command on stdout. The result of any bracket
-expressions in the stdout regexp are saved as `command0` to `command9` tags on
+expressions in the stdout regexp are saved as 'command0' to 'command9' tags on
 the mail.
 
 Any output on stderr is logged by fdm, so 2>&1 must be included in the command
-in order to apply the regexp to it too.
+in order to apply the regexp to it.
 
 Examples:
 
@@ -979,7 +984,7 @@ Examples:
 %%% Attachments
 
 There are five conditions available to filter based on the size, quantity, type
-and name of attachments. Thay all specified prefixed with the 'attachment'
+and name of attachments. Thay are all prefixed with the 'attachment'
 keyword. Two compare the overall number of attachments:
 
 The 'attachment count' conditions matches if the number of attachments is
@@ -1142,10 +1147,6 @@ the ruleset (doesn't match any rules, or only rules with the 'continue'
 keyword). If 'drop' is specified, such mail is dropped. If 'keep', it is
 kept. The default is to keep the mail, and issue a warning.
 
-In addition to these options, some environment variables may be used to control
-fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
-temporary files.
-
 - purge-after <message count>
 
 The 'purge-after' option instructs fdm to attempt to purge deleted mail after
@@ -1160,7 +1161,7 @@ quickly, so this option should be used with care.
 
 - no-received
 
-If this option is present, fdm will not insert a "Received" header into fetched
+If this option is present, fdm will not insert a 'Received' header into fetched
 mail.
 
 - file-umask [user|<umask>]
@@ -1181,6 +1182,10 @@ does not attempt to set the group of new files and directories.
 This controls the maximum time to wait for a server to send data before closing
 a connection. The default is 900 seconds.
 
+In addition to these options, some environment variables may be used to control
+fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
+temporary files.
+
 ### Archiving and searching mail
 
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir
@@ -1188,8 +1193,8 @@ into another, for example to archive older mail (with drop) or to search for
 mail matching a particular pattern (with keep). The 'age' condition, and the
 %[maildir] and time/date tags are particularly useful for archiving. For
 example, to archive all mail older than 30 days by quarter, something like this
-may suffice (obviously, the account restriction can be dropped if being used in
-a single-purpose configuration file):
+may suffice (the account restriction can be dropped if being used in a
+single-purpose configuration file):
 
 	account "archive" disabled maildir "source-maildir"
 	action "archive" mbox "%[maildir]q%Q"
@@ -1276,9 +1281,6 @@ There are also a number of books and probably websites on the subject.
 This is because gmail is broken, see:
 
 	http://pyropus.ca/software/getmail/faq.html#faq-notabug-gmail-bug
-
-Gmail also consistently gives false sizes when asked using the POP3 LIST
-command, which fdm will warn about.
 
 %%% Why doesn't fdm run as a daemon?
 
