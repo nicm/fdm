@@ -381,7 +381,7 @@ this output, either while it is being collected:
 	fdm -vvvv -a testacct f 2>&1|./fdm-sanitize|tee my-output
 
 Or afterwards:
-	
+
 	./fdm-sanitize <vvvv-output >my-output
 
 Since fdm fetches multiple simultaneously, which may mix intersperse debugging
@@ -574,7 +574,7 @@ output is found on stderr, fdm will print it (or log it with '-l').
 Examples are:
 
 	account "imapssh" imap pipe "ssh jim@myhost /usr/local/libexec/imapd"
-	
+
 	account "imapssh2" imap pipe "/usr/bin/whatever" user "bob" pass "bah"
 
 %%% stdin and local mail
@@ -763,7 +763,7 @@ Examples are:
 
 %%% stdout
 
-fdm can write mails directly to stdout, optionally prepending an mbox-style 
+fdm can write mails directly to stdout, optionally prepending an mbox-style
 'From' line:
 
 	action "sofrom" stdout add-from

@@ -135,7 +135,7 @@ out:
 #ifdef DEBUG
 	COUNTFDS(a->name);
 	xmalloc_report(a->name);
-#endif 
+#endif
 
 	return (error);
 }
@@ -147,7 +147,7 @@ poll_account(unused struct io *io, struct account *a)
 
 	/* XXX use total? */
 	log_debug2("%s: polling", a->name);
-	
+
 	if (a->fetch->poll(a, &n) == FETCH_ERROR) {
 		log_warnx("%s: polling error. aborted", a->name);
 		return (1);

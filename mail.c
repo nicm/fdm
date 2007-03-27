@@ -87,7 +87,7 @@ mail_receive(struct mail *m, struct msg *msg, int destroy)
 
 	if (destroy)
 		mail_destroy(m);
-	else 
+	else
 		mail_close(m);
 
 	memcpy(m, mm, sizeof *m);

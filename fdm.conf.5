@@ -78,7 +78,7 @@ If it is not specified, oversize messages are a fatal error and cause
 .Xr fdm 1
 to abort.
 .Pp
-Note that 
+Note that
 .Xr fdm 1
 may have a number of messages queued (up to the
 .Ic queue-high
@@ -91,9 +91,9 @@ implications should
 .Xr fdm 1
 abort due to the space becoming full.
 .It Ic queue-high Ar number
-This sets the maximum number of messages 
+This sets the maximum number of messages
 .Xr fdm 1
-will hold simultaneously. 
+will hold simultaneously.
 .Xr fdm 1
 will attempt to process previously queued messages as the next is being
 fetched. Once this limit is reached, no further messages wil be fetched until
@@ -102,7 +102,7 @@ the number of messages held drops to the
 value.
 .It Ic queue-low Ar number
 This is the length to which the message queue must drop before fetching
-continues after the 
+continues after the
 .Ic queue-high
 limit has been reached.
 .It Ic allow-multiple

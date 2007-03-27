@@ -92,7 +92,7 @@ shm_verify(char *base, size_t offset, size_t size)
 	 */
 	if (msync(base + offset, size, MS_SYNC) != 0)
 		return (1);
- 
+
 	return (0);
 }
 
@@ -101,10 +101,10 @@ int
 shm_expand(struct shm *shm, size_t size)
 {
 	char	c;
-	
+
 	if (size == shm->size)
 		return (0);
-	
+
 	if (size < shm->size)
 		return (ftruncate(shm->fd, size) != 0);
 
@@ -203,7 +203,7 @@ shm_owner(struct shm *shm, uid_t uid, gid_t gid)
 	return (0);
 }
 
-/* Resize an shm file. */ 
+/* Resize an shm file. */
 void *
 shm_resize(struct shm *shm, size_t nmemb, size_t size)
 {

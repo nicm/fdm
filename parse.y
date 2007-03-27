@@ -189,7 +189,7 @@ weed_users(struct users *up)
 		uid = ARRAY_ITEM(up, i, uid_t);
 		if (uid == NOUSR)
 			continue;
-		
+
 		for (j = i + 1; j < ARRAY_LENGTH(up); j++) {
 			if (ARRAY_ITEM(up, j, uid_t) == uid)
 				ARRAY_ITEM(up, j, uid_t) = NOUSR;

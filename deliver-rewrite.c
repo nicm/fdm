@@ -100,7 +100,7 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
 					    a->name);
 					goto error;
 				}
-				
+
 				if (len > 0)
 					memcpy(md->data + md->size, out, len);
 

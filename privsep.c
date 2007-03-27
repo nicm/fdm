@@ -61,7 +61,7 @@ privsep_recv(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 	if (io_read2(io, msg, sizeof *msg) != 0)
 		return (1);
 
-	if (msg->size == 0) 
+	if (msg->size == 0)
 		return (0);
 
 	if (msgbuf == NULL)

@@ -74,7 +74,7 @@ child_deliver(struct child *child, struct io *io)
 #ifdef DEBUG
 	COUNTFDS(a->name);
 	xmalloc_report(a->name);
-#endif 
+#endif
 
 	return (error);
 }

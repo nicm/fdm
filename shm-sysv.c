@@ -17,8 +17,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/ipc.h>                                                        
-#include <sys/shm.h>  
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <sys/stat.h>
 
 #include <string.h>
@@ -53,13 +53,13 @@ restart:
 		return (NULL);
 	}
 	return (shm->data);
-} 
+}
 
 void
 shm_destroy(struct shm *shm)
 {
 	shm_close(shm);
-	
+
 	if (shmctl(shm->id, IPC_RMID, NULL) != 0)
 		fatal("shmctl");
 	shm->id = -1;
