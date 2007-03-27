@@ -1,3 +1,9 @@
+27 March 2007
+
+* Accept size with either CRLF or LF as when warning about bad size predictions
+  from POP3 servers. Google gives the size with LF and then sends the mail data
+  (as it must do) with CRLF.
+
 26 March 2007
 
 * Fix stupid use of struct strings for uid_ts and make users be printed when
