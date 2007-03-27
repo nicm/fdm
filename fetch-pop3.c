@@ -381,7 +381,10 @@ complete:
 		    data->bodylines);
 	}
 
-	if (m->size + data->lines != data->size) {
+	/*
+	 * Accept size with either CRLF or just LF line endings.
+	 */
+	if (m->size + data->lines != data->size && m->size != data->size) {
 		log_info("%s: server lied about message size: expected %zu, "
 		    "got %zu (%u lines)", a->name, data->size, m->size +
 		    data->lines, data->lines);
