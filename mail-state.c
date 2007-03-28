@@ -180,6 +180,8 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	case MATCH_FALSE:
 		this = 0;
 		break;
+	default:
+		fatalx("child: unexpected op");
 	}
 	apply_result(ei, &mctx->result, this);
 

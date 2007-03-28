@@ -68,7 +68,7 @@ strb_dump(struct strb *sb, const char *prefix, void (*p)(const char *, ...))
 	}
 }
 
-void
+void printflike3
 strb_add(struct strb **sbp, const char *key, const char *value, ...)
 {
 	va_list	ap;

@@ -796,7 +796,7 @@ size_t	 		 strlcat(char *, const char *, size_t);
 
 #ifdef NO_ASPRINTF
 /* asprintf.c */
-int			 asprintf(char **, const char *, ...);
+int 			 asprintf(char **, const char *, ...);
 int			 vasprintf(char **, const char *, va_list);
 #endif
 
@@ -905,13 +905,13 @@ void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);
 int			 mail_resize(struct mail *, size_t);
 char 			*rfc822_time(time_t, char *, size_t);
-int 			 printpath(char *, size_t, const char *, ...);
+int printflike3		 printpath(char *, size_t, const char *, ...);
 int			 openlock(const char *, u_int, int, mode_t);
 void			 closelock(int, const char *, u_int);
 int			 checkperms(const char *, const char *, int *);
 void			 line_init(struct mail *, char **, size_t *);
 void			 line_next(struct mail *, char **, size_t *);
-int			 insert_header(struct mail *, const char *,
+int printflike3		 insert_header(struct mail *, const char *,
 			     const char *, ...);
 int			 remove_header(struct mail *, const char *);
 char 			*find_header(struct mail *, const char *, size_t *,
@@ -940,7 +940,7 @@ void			 strb_clear(struct strb **);
 void			 strb_destroy(struct strb **);
 void			 strb_dump(struct strb *, const char *,
     			     void (*)(const char *, ...));
-void			 strb_add(struct strb **, const char *, const char *,
+void printflike3	 strb_add(struct strb **, const char *, const char *,
 			     ...);
 void			 strb_vadd(struct strb **, const char *, const char *,
 			     va_list);
