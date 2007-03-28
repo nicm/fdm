@@ -167,6 +167,8 @@ The configuration file has the following general rules:
 - Regexps are specified as normal strings without additional adornment other
   than the "s (not wrapped in /s). All regexps are extended regexps and
   case insensitive by default.
+- Strings may be concatenated using plus: "a" + "b" is the same as "ab". This
+  is most useful to wrap strings across multiple lines.
 
 Definition/option lines generally follow the following basic form:
 
