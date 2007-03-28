@@ -1,3 +1,7 @@
+28 March 2007
+
+* Allow short-circuit evaluation of 'and' and 'or' operators.
+
 27 March 2007
 
 * Accept size with either CRLF or LF as when warning about bad size predictions
