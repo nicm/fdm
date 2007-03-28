@@ -26,6 +26,8 @@
 #include "fetch.h"
 #include "match.h"
 
+void		apply_result(struct expritem *, int *, int);
+
 struct users   *find_delivery_users(struct mail_ctx *, struct action *, int *);
 int		fill_delivery_queue(struct mail_ctx *, struct rule *);
 
@@ -45,7 +47,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct strings	*aa;
 	struct expritem	*ei;
 	u_int		 i;
-	int		 error = MAIL_CONTINUE;
+	int		 this, error = MAIL_CONTINUE;
 	char		*an, *tkey, *tvalue, desc[DESCBUFSIZE];
 
 	set_wrapped(m, ' ');
@@ -71,27 +73,16 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		case MATCH_ERROR:
 			return (MAIL_ERROR);
 		case MATCH_TRUE:
-			if (!ei->inverted) {
-				if (ei->op == OP_NONE || ei->op == OP_OR)
-					mctx->result = 1;
-			} else {
-				if (ei->op == OP_AND)
-					mctx->result = 0;
-			}
+			this = 1; 
 			break;
 		case MATCH_FALSE:
-			if (!ei->inverted) {
-				if (ei->op == OP_AND)
-					mctx->result = 0;
-			} else {
-				if (ei->op == OP_NONE || ei->op == OP_OR)
-					mctx->result = 1;
-			}
+			this = 0;
 			break;
 		default:
 			fatalx("child: unexpected response");
 		}
-
+		apply_result(ei, &mctx->result, this);
+	
 		goto next_expritem;
 	}
 
@@ -168,17 +159,13 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		break;
 	case OP_AND:
 		/* And and the result is already false. */
-		if (!mctx->result) {
-			mctx->expritem = NULL;
-			goto skip;
-		}
+		if (!mctx->result)
+			goto next_expritem;
 		break;
 	case OP_OR:
 		/* Or and the result is already true. */
-		if (mctx->result) {
-			mctx->expritem = NULL;
-			goto skip;
-		}
+		if (mctx->result)
+			goto next_expritem;
 		break;
 	}
 
@@ -188,24 +175,14 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	case MATCH_PARENT:
 		return (MAIL_BLOCKED);
 	case MATCH_TRUE:
-		if (!ei->inverted) {
-			if (ei->op == OP_NONE || ei->op == OP_OR)
-				mctx->result = 1;
-		} else {
-			if (ei->op == OP_AND)
-				mctx->result = 0;
-		}
+		this = 1; 
 		break;
 	case MATCH_FALSE:
-		if (!ei->inverted) {
-			if (ei->op == OP_AND)
-				mctx->result = 0;
-		} else {
-			if (ei->op == OP_NONE || ei->op == OP_OR)
-				mctx->result = 1;
-		}
+		this = 0;
 		break;
 	}
+	apply_result(ei, &mctx->result, this);
+
 	ei->match->desc(ei, desc, sizeof desc);
 	log_debug3("%s: tried %s, result now %d", a->name, desc, mctx->result);
 
@@ -302,6 +279,24 @@ next_rule:
 	}
 
 	return (error);
+}
+
+void
+apply_result(struct expritem *ei, int *result, int this)
+{
+	if (ei->inverted)
+		this = !this;
+	switch (ei->op) {
+	case OP_NONE:
+		*result = this;
+		break;
+	case OP_OR:
+		*result = *result || this;
+		break;
+	case OP_AND:
+		*result = *result && this;
+		break;
+	}
 }
 
 int
