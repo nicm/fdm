@@ -25,7 +25,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       parse.y lex.l
 
 LEX= lex
-YACC= yacc -d
+YACC= yacc -dv
 
 CC= cc
 INCDIRS+= -I. -I- -I/usr/local/include

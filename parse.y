@@ -733,7 +733,7 @@ find_netrc(const char *host, char **user, char **pass)
 %type  <replstrs> actions actionslist
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to folder strv replstrv retre replpathv
+%type  <string> port to folder xstrv strv replstrv retre replpathv
 %type  <strings> domains domainslist headers headerslist accounts accountslist
 %type  <strings> maildirslist maildirs groupslist groups
 %type  <users> users userslist
@@ -754,48 +754,65 @@ cmds: /* empty */
     | cmds set
     | cmds close
 
+/** XSTRV: <string> (char *) */
+xstrv: STRING
+       {
+	       $$ = $1;
+       }
+     | STRMACRO
+       {
+	       struct macro	*macro;
+
+	       if (strlen($1) > MAXNAMESIZE)
+		       yyerror("macro name too long: %s", $1);
+
+	       if ((macro = find_macro($1)) == NULL)
+		       yyerror("undefined macro: %s", $1);
+	       if (macro->type != MACRO_STRING)
+		       yyerror("string macro expected: %s", $1);
+
+	       $$ = xstrdup(macro->value.str);
+
+	       xfree($1);
+       }
+     | STRMACROB
+       {
+	       struct macro	*macro;
+	       char 		 name[MAXNAMESIZE];
+
+	       if (strlen($1) > MAXNAMESIZE + 2)
+		       yyerror("macro name too long: %s", $1);
+
+	       name[0] = $1[0];
+	       name[1] = '\0';
+	       strlcat(name, $1 + 2, MAXNAMESIZE);
+	       name[strlen(name) - 1] = '\0';
+
+	       if ((macro = find_macro(name)) == NULL)
+		       yyerror("undefined macro: %s", name);
+	       if (macro->type != MACRO_STRING)
+		       yyerror("string macro expected: %s", name);
+
+	       $$ = xstrdup(macro->value.str);
+
+	       xfree($1);
+       }
+
 /** STRV: <string> (char *) */
-strv: STRING
+strv: xstrv
+/**   [$1: xstrv (char *)] */
       {
 	      $$ = $1;
       }
-    | STRMACRO
+    | strv '+' xstrv
+/**   [$1: strv (char *)] [$3: xstrv (char *)] */
       {
-	      struct macro	*macro;
+	      size_t	size;
 
-	      if (strlen($1) > MAXNAMESIZE)
-		      yyerror("macro name too long: %s", $1);
-
-	      if ((macro = find_macro($1)) == NULL)
-		      yyerror("undefined macro: %s", $1);
-	      if (macro->type != MACRO_STRING)
-		      yyerror("string macro expected: %s", $1);
-
-	      $$ = xstrdup(macro->value.str);
-
-	      xfree($1);
-      }
-    | STRMACROB
-      {
-	      struct macro	*macro;
-	      char 		 name[MAXNAMESIZE];
-
-	      if (strlen($1) > MAXNAMESIZE + 2)
-		      yyerror("macro name too long: %s", $1);
-
-	      name[0] = $1[0];
-	      name[1] = '\0';
-	      strlcat(name, $1 + 2, MAXNAMESIZE);
-	      name[strlen(name) - 1] = '\0';
-
-	      if ((macro = find_macro(name)) == NULL)
-		      yyerror("undefined macro: %s", name);
-	      if (macro->type != MACRO_STRING)
-		      yyerror("string macro expected: %s", name);
-
-	      $$ = xstrdup(macro->value.str);
-
-	      xfree($1);
+	      size = strlen($1) + strlen($3) + 1;
+	      $$ = xrealloc($1, 1, size);
+	      strlcat($$, $3, size);
+	      xfree($3);
       }
 
 /** NUMV: <number> (long long) */
@@ -1165,7 +1182,8 @@ set: TOKSET TOKMAXSIZE size
      }
 
 /** DEFMACRO */
-defmacro: STRMACRO '=' STRING
+defmacro: STRMACRO '=' strv
+/**       [$3: strv (char *)] */
      	  {
 		  struct macro	*macro;
 
@@ -1186,7 +1204,8 @@ defmacro: STRMACRO '=' STRING
 			  xfree($1);
 		  }
 	  }
-        | NUMMACRO '=' NUMBER
+        | NUMMACRO '=' numv
+/**       [$3: numv (long long)] */
 	  {
 		  struct macro	*macro;
 

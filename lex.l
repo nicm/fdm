@@ -184,6 +184,7 @@ write return (TOKWRITE);
 = return ('=');
 == return (TOKEQ);
 != return (TOKNE);
+\+ return ('+');
 \( return ('(');
 \) return (')');
 \, return (',');

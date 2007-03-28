@@ -1,5 +1,6 @@
 28 March 2007
 
+* + may be used to concatenate strings.
 * Allow short-circuit evaluation of 'and' and 'or' operators.
 
 27 March 2007
