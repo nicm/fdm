@@ -27,8 +27,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_append_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_append_desc(struct action *, char *, size_t);
+int	 deliver_append_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_append_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_append = {
 	"append",
@@ -38,15 +38,15 @@ struct deliver deliver_append = {
 };
 
 int
-deliver_append_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_append_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
-	return (do_write(dctx, t, 1));
+	return (do_write(dctx, ti, 1));
 }
 
 void
-deliver_append_desc(struct action *t, char *buf, size_t len)
+deliver_append_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_write_data	*data = t->data;
+	struct deliver_write_data	*data = ti->data;
 
 	xsnprintf(buf, len, "append \"%s\"", data->path.str);
 }

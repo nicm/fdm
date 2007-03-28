@@ -23,8 +23,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_drop_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_drop_desc(struct action *, char *, size_t);
+int	 deliver_drop_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_drop_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_drop = {
 	"drop",
@@ -34,7 +34,7 @@ struct deliver deliver_drop = {
 };
 
 int
-deliver_drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
+deliver_drop_deliver(struct deliver_ctx *dctx, unused struct actitem *ti)
 {
 	struct mail	*m = dctx->mail;
 
@@ -44,7 +44,7 @@ deliver_drop_deliver(struct deliver_ctx *dctx, unused struct action *t)
 }
 
 void
-deliver_drop_desc(unused struct action *t, char *buf, size_t len)
+deliver_drop_desc(unused struct actitem *ti, char *buf, size_t len)
 {
 	strlcpy(buf, "drop", len);
 }

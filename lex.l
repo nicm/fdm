@@ -239,6 +239,9 @@ read_str(char endc, int esc)
                         break;
 		case '$':
 		case '%':
+			if (!esc)
+				break;
+
 			name[0] = ch;
 			off = 1;
 

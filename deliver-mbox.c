@@ -33,8 +33,8 @@
 /* With gcc 2.95.x, you can't include zlib.h before openssl.h. */
 #include <zlib.h>
 
-int	 deliver_mbox_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_mbox_desc(struct action *, char *, size_t);
+int	 deliver_mbox_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_mbox_desc(struct actitem *, char *, size_t);
 
 int	 deliver_mbox_write(int, gzFile, const void *, size_t);
 
@@ -66,11 +66,11 @@ deliver_mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
 }
 
 int
-deliver_mbox_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_mbox_data	*data = t->data;
+	struct deliver_mbox_data	*data = ti->data;
 	char				*path, *ptr, *ptr2, *from = NULL;
 	size_t	 			 len, len2;
 	int	 			 exists, fd = -1, fd2;
@@ -228,9 +228,9 @@ out:
 }
 
 void
-deliver_mbox_desc(struct action *t, char *buf, size_t len)
+deliver_mbox_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_mbox_data	*data = t->data;
+	struct deliver_mbox_data	*data = ti->data;
 
 	if (data->compress)
 		xsnprintf(buf, len, "mbox \"%s\" compress", data->path.str);

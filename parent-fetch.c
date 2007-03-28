@@ -101,7 +101,7 @@ void
 parent_fetch_action(struct child *child, struct children *children,
     struct deliver_ctx *dctx, struct msg *msg)
 {
-	struct action			*t = msg->data.action;
+	struct actitem			*ti = msg->data.actitem;
 	uid_t				 uid = msg->data.uid;
 	struct mail			*m = dctx->mail;
 	struct mail			*md = &dctx->wr_mail;
@@ -112,7 +112,7 @@ parent_fetch_action(struct child *child, struct children *children,
 	 * If writing back, open a new mail now and set its ownership so it
 	 * can be accessed by the child.
 	 */
-	if (t->deliver->type == DELIVER_WRBACK) {
+	if (ti->deliver->type == DELIVER_WRBACK) {
 		if (mail_open(md, IO_BLOCKSIZE) != 0) {
 			log_warn("parent: failed to create mail");
 			parent_fetch_error(child, msg);
@@ -133,7 +133,7 @@ parent_fetch_action(struct child *child, struct children *children,
 	data->msgid = msg->id;
 	data->account = dctx->account;
 	data->hook = child_deliver_action_hook;
-	data->action = t;
+	data->actitem = ti;
 	data->dctx = dctx;
 	data->mail = m;
 	data->name = "deliver";

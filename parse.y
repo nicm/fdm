@@ -44,6 +44,7 @@
 struct strb	*parse_tags = NULL;
 struct macros	 macros = TAILQ_HEAD_INITIALIZER(macros);
 u_int		 ruleidx;
+u_int		 actidx;
 
 struct fileent {
 	FILE			*yyin;
@@ -69,6 +70,7 @@ struct account 			*find_account(char *);
 int				 have_accounts(char *);
 struct action  			*find_action(char *);
 void				 print_rule(struct rule *);
+void				 print_action(struct action *);
 
 void				 find_netrc(const char *, char **, char **);
 
@@ -369,7 +371,7 @@ void
 print_rule(struct rule *r)
 {
 	struct expritem	*ei;
-	char		 s[1024], *sa, *su, *ss, desc[DESCBUFSIZE];
+	char		 s[BUFSIZ], *sa, *su, *ss, desc[DESCBUFSIZE];
 	size_t		 off;
 
 	switch (r->type) {
@@ -421,47 +423,83 @@ print_rule(struct rule *r)
 }
 
 void
+print_action(struct action *t)
+{
+	struct actitem	*ti;
+	char		 s[BUFSIZ], *su, desc[DESCBUFSIZE];
+	size_t		 off;
+
+	if (t->users != NULL)
+		su = fmt_users(" users=", t->users);
+	else
+		su = xstrdup("");
+	off = xsnprintf(s, sizeof s, "added action \"%s\":%s deliver=",
+	    t->name, su);
+	xfree(su);
+
+	TAILQ_FOREACH(ti, t->list, entry) {
+		ti->deliver->desc(ti, desc, sizeof desc);
+		off += xsnprintf(s + off, (sizeof s) - off, "%u:%s ", 
+		    ti->idx, desc);
+		if (off >= sizeof s)
+			break;
+	}
+	log_debug2("%s", s);
+}
+
+void
 free_action(struct action *t)
 {
+	struct actitem	*ti;
+
 	if (t->users != NULL)
 		ARRAY_FREEALL(t->users);
 
-	if (t->deliver == &deliver_pipe || t->deliver == &deliver_exec) {
-		struct deliver_pipe_data		*data = t->data;
-		xfree(data->cmd.str);
-	} else if (t->deliver == &deliver_rewrite) {
-		struct deliver_rewrite_data		*data = t->data;
-		xfree(data->cmd.str);
-	} else if (t->deliver == &deliver_write ||
-	    t->deliver == &deliver_append) {
-		struct deliver_write_data		*data = t->data;
-		xfree(data->path.str);
-	} else if (t->deliver == &deliver_maildir) {
-		struct deliver_maildir_data		*data = t->data;
-		xfree(data->path.str);
-	} else if (t->deliver == &deliver_remove_header) {
-		struct deliver_remove_header_data	*data = t->data;
-		xfree(data->hdr.str);
-	} else if (t->deliver == &deliver_add_header) {
-		struct deliver_add_header_data		*data = t->data;
-		xfree(data->hdr.str);
-		xfree(data->value.str);
-	} else if (t->deliver == &deliver_append_string) {
-		struct deliver_append_string_data	*data = t->data;
-		xfree(data->str.str);
-	} else if (t->deliver == &deliver_mbox) {
-		struct deliver_mbox_data		*data = t->data;
-		xfree(data->path.str);
-	} else if (t->deliver == &deliver_smtp) {
-		struct deliver_smtp_data		*data = t->data;
-		xfree(data->to.str);
-		xfree(data->server.host);
-		xfree(data->server.port);
-		if (data->server.ai != NULL)
-			freeaddrinfo(data->server.ai);
+	while (!TAILQ_EMPTY(t->list)) {
+		ti = TAILQ_FIRST(t->list);
+		TAILQ_REMOVE(t->list, ti, entry);
+
+		if (ti->deliver == &deliver_pipe ||
+		    ti->deliver == &deliver_exec) {
+			struct deliver_pipe_data	*data = ti->data;
+			xfree(data->cmd.str);
+		} else if (ti->deliver == &deliver_rewrite) {
+			struct deliver_rewrite_data	*data = ti->data;
+			xfree(data->cmd.str);
+		} else if (ti->deliver == &deliver_write ||
+		    ti->deliver == &deliver_append) {
+			struct deliver_write_data	*data = ti->data;
+			xfree(data->path.str);
+		} else if (ti->deliver == &deliver_maildir) {
+			struct deliver_maildir_data	*data = ti->data;
+			xfree(data->path.str);
+		} else if (ti->deliver == &deliver_remove_header) {
+			struct deliver_remove_header_data *data = ti->data;
+			xfree(data->hdr.str);
+		} else if (ti->deliver == &deliver_add_header) {
+			struct deliver_add_header_data	*data = ti->data;
+			xfree(data->hdr.str);
+			xfree(data->value.str);
+		} else if (ti->deliver == &deliver_append_string) {
+			struct deliver_append_string_data *data = ti->data;
+			xfree(data->str.str);
+		} else if (ti->deliver == &deliver_mbox) {
+			struct deliver_mbox_data	*data = ti->data;
+			xfree(data->path.str);
+		} else if (ti->deliver == &deliver_smtp) {
+			struct deliver_smtp_data	*data = ti->data;
+			xfree(data->to.str);
+			xfree(data->server.host);
+			xfree(data->server.port);
+			if (data->server.ai != NULL)
+				freeaddrinfo(data->server.ai);
+		}
+		if (ti->data != NULL)
+			xfree(ti->data);
+
+		xfree(ti);
 	}
-	if (t->data != NULL)
-		xfree(t->data);
+	xfree(t->list);
 
 	xfree(t);
 }
@@ -693,7 +731,8 @@ find_netrc(const char *host, char **user, char **pass)
 	} match;
 	enum area	 	 area;
 	enum exprop		 exprop;
-	struct action	 	 action;
+	struct actitem 		*actitem;
+	struct actlist 		*actlist;
 	struct expr		*expr;
 	struct expritem		*expritem;
 	struct strings		*strings;
@@ -717,7 +756,8 @@ find_netrc(const char *host, char **user, char **pass)
 %token <number> NUMBER
 %token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
-%type  <action> action
+%type  <actitem> actitem
+%type  <actlist> actlist
 %type  <area> area
 %type  <cmp> cmp cmp2
 %type  <expr> expr exprlist
@@ -1627,204 +1667,238 @@ addfrom: TOKADDFROM
 	 }
 
 /** ACTION: <action> (struct action) */
-action: TOKPIPE strv
+actitem: TOKPIPE strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_pipe_data	*data;
-
-		if (*$2 == '\0')
-			yyerror("invalid command");
-
-		$$.deliver = &deliver_pipe;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->cmd.str = $2;
-	}
-      | TOKEXEC strv
+	 {
+		 struct deliver_pipe_data	*data;
+		    
+		 if (*$2 == '\0')
+			 yyerror("invalid command");
+		 
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_pipe;
+		 
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		 
+		 data->cmd.str = $2;
+	 }
+       | TOKEXEC strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_pipe_data	*data;
-
-		if (*$2 == '\0')
-			yyerror("invalid command");
-
-		$$.deliver = &deliver_exec;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->cmd.str = $2;
-	}
-      | TOKREWRITE strv
+	 {
+		 struct deliver_pipe_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid command");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_exec;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->cmd.str = $2;
+	 }
+       | TOKREWRITE strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_rewrite_data	*data;
-
-		if (*$2 == '\0')
-			yyerror("invalid command");
-
-		$$.deliver = &deliver_rewrite;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->cmd.str = $2;
-	}
-      | TOKWRITE strv
+	 {
+		 struct deliver_rewrite_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid command");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_rewrite;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->cmd.str = $2;
+	 }
+       | TOKWRITE strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_write_data	*data;
+	 {
+		 struct deliver_write_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid path");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_write;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
 
-		if (*$2 == '\0')
-			yyerror("invalid path");
-
-		$$.deliver = &deliver_write;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->path.str = $2;
-	}
-      | TOKAPPEND strv
+		 data->path.str = $2;
+	 }
+       | TOKAPPEND strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_write_data	*data;
+	 {
+		 struct deliver_write_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid path");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_append;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
 
-		if (*$2 == '\0')
-			yyerror("invalid path");
-
-		$$.deliver = &deliver_append;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->path.str = $2;
-	}
-      | TOKMAILDIR strv
+		 data->path.str = $2;
+	 }
+       | TOKMAILDIR strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_maildir_data	*data;
-
-		if (*$2 == '\0')
-			yyerror("invalid path");
-
-		$$.deliver = &deliver_maildir;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->path.str = $2;
-	}
-      | TOKREMOVEHEADER strv
+	 {
+		 struct deliver_maildir_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid path");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_maildir;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->path.str = $2;
+	 }
+       | TOKREMOVEHEADER strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_remove_header_data *data;
-		char				*cp;
-
-		if (*$2 == '\0')
-			yyerror("invalid header");
-
-		$$.deliver = &deliver_remove_header;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		for (cp = $2; *cp != '\0'; cp++)
-			*cp = tolower((int) *cp);
-		data->hdr.str = $2;
-	}
-      | TOKADDHEADER strv strv
+	 {
+		 struct deliver_remove_header_data *data;
+		 char				*cp;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid header");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_remove_header;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 for (cp = $2; *cp != '\0'; cp++)
+			 *cp = tolower((int) *cp);
+		 data->hdr.str = $2;
+	 }
+       | TOKADDHEADER strv strv
 /**     [$2: strv (char *)] [$3: strv (char *)] */
-	{
-		struct deliver_add_header_data	*data;
-
-		if (*$2 == '\0')
-			yyerror("invalid header");
-
-		$$.deliver = &deliver_add_header;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->hdr.str = $2;
-		data->value.str = $3;
-	}
-      | TOKAPPENDSTRING strv
+	 {
+		 struct deliver_add_header_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid header");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_add_header;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->hdr.str = $2;
+		 data->value.str = $3;
+	 }
+	 | TOKAPPENDSTRING strv
 /**     [$2: strv (char *)] */
-	{
-		struct deliver_append_string_data	*data;
+	 {
+		 struct deliver_append_string_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid string");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_append_string;
+		
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
 
-		if (*$2 == '\0')
-			yyerror("invalid string");
-
-		$$.deliver = &deliver_append_string;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->str.str = $2;
-	}
-      | TOKMBOX strv compress
+		 data->str.str = $2;
+	 }
+       | TOKMBOX strv compress
 /**     [$2: strv (char *)] [$3: compress (int)] */
-	{
-		struct deliver_mbox_data	*data;
+	 {
+		 struct deliver_mbox_data	*data;
+		   
+		 if (*$2 == '\0')
+			 yyerror("invalid path");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_mbox;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->path.str = $2;
+		 data->compress = $3;
+	 }
+       | TOKSMTP server to
+/**     [$2: server (struct  { ... } server)] [$3: to (char *)] */
+	 {
+		 struct deliver_smtp_data	*data;
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_smtp;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
 
-		if (*$2 == '\0')
-			yyerror("invalid path");
-
-		$$.deliver = &deliver_mbox;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->path.str = $2;
-		data->compress = $3;
-	}
-      | TOKSMTP server to
-/**     [$2: server (struct { ... } server)] [$3: to (char *)] */
-	{
-		struct deliver_smtp_data	*data;
-
-		$$.deliver = &deliver_smtp;
-
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
-
-		data->server.host = $2.host;
-		data->server.port = $2.port != NULL ? $2.port : xstrdup("smtp");
-		data->server.ai = NULL;
-		data->to.str = $3;
-	}
-      | TOKSTDOUT addfrom
+		 data->server.host = $2.host;
+		 if ($2.port != NULL)
+			 data->server.port = $2.port;
+		 else
+			 data->server.port = xstrdup("smtp");
+		 data->server.ai = NULL;
+		 data->to.str = $3;
+	 }
+       | TOKSTDOUT addfrom
 /**     [$2: addfrom (int)] */
-	{
-		struct deliver_stdout_data	*data;
+	 {
+		 struct deliver_stdout_data	*data;
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_stdout;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->add_from = $2;
+	 }
+       | TOKDROP
+         {
+		 $$ = xcalloc(1, sizeof *$$);	
+		 $$->deliver = &deliver_drop;
+	 }
+       | TOKKEEP
+         {
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_keep;
+	 }
 
-		$$.deliver = &deliver_stdout;
+actlist: actlist actitem
+	 {
+		 $$ = $1;
 
-		data = xcalloc(1, sizeof *data);
-		$$.data = data;
+		 TAILQ_INSERT_TAIL($$, $2, entry);
+		 $2->idx = actidx++;
+	 }
+       | actitem
+	 {
+		 $$ = xmalloc(sizeof *$$);
+		 TAILQ_INIT($$);
+		 
+		 TAILQ_INSERT_HEAD($$, $1, entry);
+		 $1->idx = 0;
 
-		data->add_from = $2;
-	}
-      | TOKDROP
-        {
-		$$.deliver = &deliver_drop;
-	}
-      | TOKKEEP
-        {
-		$$.deliver = &deliver_keep;
-	}
+		 actidx = 1;
+	 }
 
 /** DEFACTION */
-defaction: TOKACTION replstrv users action
+defaction: TOKACTION replstrv users actitem
 /**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
 /**        [$4: action (struct action)] */
 	   {
 		   struct action	*t;
-		   char			*su, desc[DESCBUFSIZE];
 
 		   if (strlen($2) >= MAXNAMESIZE)
 			   yyerror("action name too long: %s", $2);
@@ -1834,23 +1908,48 @@ defaction: TOKACTION replstrv users action
 			   yyerror("duplicate action: %s", $2);
 
 		   t = xmalloc(sizeof *t);
-		   memcpy(t, &$4, sizeof *t);
 		   strlcpy(t->name, $2, sizeof t->name);
+
+		   t->list = xmalloc(sizeof *t->list);
+		   TAILQ_INIT(t->list);
+		   TAILQ_INSERT_HEAD(t->list, $4, entry);
+		   $4->idx = 0;
+
 		   t->users = $3.users;
 		   t->find_uid = $3.find_uid;
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
-		   if (t->users != NULL)
-			   su = fmt_users(" users=", t->users);
-		   else
-			   su = xstrdup("");
-		   t->deliver->desc(t, desc, sizeof desc);
-		   log_debug2("added action \"%s\":%s deliver=%s", t->name, su,
-		       desc);
-		   xfree(su);
+		   print_action(t);
 
 		   xfree($2);
 	   }
+	 | TOKACTION replstrv users '{' actlist '}'
+/**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
+/**        [$4: action (struct action)] */
+	   {
+		   struct action	*t;
+
+		   if (strlen($2) >= MAXNAMESIZE)
+			   yyerror("action name too long: %s", $2);
+		   if (*$2 == '\0')
+			   yyerror("invalid action name");
+		   if (find_action($2) != NULL)
+			   yyerror("duplicate action: %s", $2);
+
+		   t = xmalloc(sizeof *t);
+		   strlcpy(t->name, $2, sizeof t->name);
+
+		   t->list = $5;
+
+		   t->users = $3.users;
+		   t->find_uid = $3.find_uid;
+		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
+
+		   print_action(t);
+
+		   xfree($2);
+	   }
+
 
 /** ACCOUNTS: <strings> (struct strings *) */
 accounts: /* empty */

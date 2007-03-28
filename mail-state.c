@@ -30,6 +30,8 @@ void		apply_result(struct expritem *, int *, int);
 
 struct users   *find_delivery_users(struct mail_ctx *, struct action *, int *);
 int		fill_delivery_queue(struct mail_ctx *, struct rule *);
+void		fill_delivery_action(struct mail_ctx *, struct rule *,
+    		    struct action *, struct users *);
 
 int		start_action(struct mail_ctx *, struct deliver_ctx *);
 int		finish_action(struct deliver_ctx *, struct msg *,
@@ -355,7 +357,7 @@ done:
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
 	log_debug("%s: message %u delivered (rule %u, %s) in %.3f seconds",
 	    a->name, m->idx, dctx->rule->idx,
-	    dctx->action->deliver->name, get_time() - dctx->tim);
+	    dctx->actitem->deliver->name, get_time() - dctx->tim);
 	xfree(dctx);
 	return (MAIL_CONTINUE);
 }
@@ -406,10 +408,9 @@ fill_delivery_queue(struct mail_ctx *mctx, struct rule *r)
 	struct mail		*m = mctx->mail;
 	struct action		*t;
 	struct actions		*ta;
-	u_int		 	 i, j, k;
+	u_int		 	 i, j;
 	char			*s;
 	struct replstr		*rs;
-	struct deliver_ctx	*dctx;
 	struct users		*users;
 	int			 should_free;
 
@@ -427,20 +428,9 @@ fill_delivery_queue(struct mail_ctx *mctx, struct rule *r)
 		for (j = 0; j < ARRAY_LENGTH(ta); j++) {
 			t = ARRAY_ITEM(ta, j, struct action *);
 			users = find_delivery_users(mctx, t, &should_free);
-
-			for (k = 0; k < ARRAY_LENGTH(users); k++) {
-				dctx = xcalloc(1, sizeof *dctx);
-				dctx->action = t;
-				dctx->account = a;
-				dctx->rule = r;
-				dctx->mail = m;
-				dctx->uid = ARRAY_ITEM(users, k, uid_t);
-
-				log_debug3("%s: action %s, uid %lu", a->name,
-				    t->name, (u_long) dctx->uid);
-				TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
-			}
-
+			
+			fill_delivery_action(mctx, r, t, users);
+			
 			if (should_free)
 				ARRAY_FREEALL(users);
 		}
@@ -458,84 +448,63 @@ empty:
 
 }
 
+void
+fill_delivery_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
+    struct users *users)
+{
+	struct account		*a = mctx->account;
+	struct mail		*m = mctx->mail;
+	struct actitem		*ti;
+	struct deliver_ctx	*dctx;
+	u_int			 i;
+
+	for (i = 0; i < ARRAY_LENGTH(users); i++) {	
+		TAILQ_FOREACH(ti, t->list, entry) {
+			dctx = xcalloc(1, sizeof *dctx);
+			dctx->action = t;
+			dctx->actitem = ti;
+			dctx->account = a;
+			dctx->rule = r;
+			dctx->mail = m;
+			dctx->uid = ARRAY_ITEM(users, i, uid_t);
+
+			log_debug3("%s: action %s:%u (%s), uid %lu", a->name,
+			    t->name, ti->idx, ti->deliver->name, 
+			    (u_long) dctx->uid);
+			TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
+		}
+	}
+}
+
 int
 start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 {
 	struct account	*a = dctx->account;
 	struct action	*t = dctx->action;
+ 	struct actitem	*ti = dctx->actitem;
 	struct mail	*m = dctx->mail;
-#if 0
-	struct mail	*md = &dctx->wr_mail;
-#endif
 	struct msg	 msg;
 	struct msgbuf	 msgbuf;
-#if 0
-	u_int		 lines;
-#endif
 
 	dctx->tim = get_time();
- 	if (t->deliver->deliver == NULL)
-		return (0);
-
-	log_debug2("%s: message %u, running action %s as user %lu",
-	    a->name, m->idx, t->name, (u_long) dctx->uid);
+	log_debug2("%s: message %u, running action %s:%u (%s) as user %lu",
+	    a->name, m->idx, t->name, ti->idx, ti->deliver->name,
+	    (u_long) dctx->uid);
 	add_tag(&m->tags, "action", "%s", t->name);
 
 	/* just deliver now for in-child delivery */
-	if (t->deliver->type == DELIVER_INCHILD) {
-		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
+	if (ti->deliver->type == DELIVER_INCHILD) {
+		if (ti->deliver->deliver(dctx, ti) != DELIVER_SUCCESS)
 			return (ACTION_ERROR);
 		return (ACTION_DONE);
 	}
-
-#if 0
-	/* if the current user is the same as the deliver user, don't bother
-	   passing up either */
-	if (t->deliver->type == DELIVER_ASUSER && dctx->uid == geteuid()) {
-		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS)
-			return (ACTION_ERROR);
-		return (ACTION_DONE);
-	}
-	if (t->deliver->type == DELIVER_WRBACK && dctx->uid == geteuid()) {
-		if (mail_open(md, IO_BLOCKSIZE) != 0) {
-			log_warn("%s: failed to create mail", a->name);
-			return (ACTION_ERROR);
-		}
-		md->decision = m->decision;
-
-		if (t->deliver->deliver(dctx, t) != DELIVER_SUCCESS) {
-			mail_destroy(md);
-			return (ACTION_ERROR);
-		}
-
-		memcpy(&msg.data.mail, md, sizeof msg.data.mail);
-		cleanup_deregister(md->shm.name);
-		strb_destroy(&md->tags);
-
-		if (mail_receive(m, msg, 0) != 0) {
-			log_warn("%s: can't receive mail", a->name);
-			return (ACTION_ERROR);
-		}
-		log_debug2("%s: received modified mail: size %zu, body %zd",
-		    a->name, m->size, m->body);
-
-		/* trim from line */
-		trim_from(m);
-
-		/* and recreate the wrapped array */
-		lines = fill_wrapped(m);
-		log_debug2("%s: found %u wrapped lines", a->name, lines);
-
-		return (ACTION_DONE);
-	}
-#endif
 
 	memset(&msg, 0, sizeof msg);
 	msg.type = MSG_ACTION;
 	msg.id = m->idx;
 
 	msg.data.account = a;
-	msg.data.action = t;
+	msg.data.actitem = ti;
 	msg.data.uid = dctx->uid;
 
 	msgbuf.buf = m->tags;
@@ -555,7 +524,7 @@ int
 finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 {
 	struct account	*a = dctx->account;
-	struct action	*t = dctx->action;
+ 	struct actitem	*ti = dctx->actitem;
 	struct mail	*m = dctx->mail;
 	u_int		 lines;
 
@@ -568,7 +537,7 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 	if (msg->data.error != 0)
 		return (ACTION_ERROR);
 
-	if (t->deliver->type != DELIVER_WRBACK)
+	if (ti->deliver->type != DELIVER_WRBACK)
 		return (ACTION_DONE);
 
 	if (mail_receive(m, msg, 1) != 0) {

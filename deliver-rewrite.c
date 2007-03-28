@@ -29,8 +29,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_rewrite_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_rewrite_desc(struct action *, char *, size_t);
+int	 deliver_rewrite_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_rewrite_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_rewrite = {
 	"rewrite",
@@ -40,11 +40,11 @@ struct deliver deliver_rewrite = {
 };
 
 int
-deliver_rewrite_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_rewrite_data	*data = t->data;
+	struct deliver_rewrite_data	*data = ti->data;
 	struct mail			*md = &dctx->wr_mail;
         char				*s, *cause, *out, *err;
 	size_t				 len;
@@ -135,9 +135,9 @@ error:
 }
 
 void
-deliver_rewrite_desc(struct action *t, char *buf, size_t len)
+deliver_rewrite_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_rewrite_data	*data = t->data;
+	struct deliver_rewrite_data	*data = ti->data;
 
 	xsnprintf(buf, len, "rewrite \"%s\"", data->cmd.str);
 }

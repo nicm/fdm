@@ -24,8 +24,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_append_string_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_append_string_desc(struct action *, char *, size_t);
+int	 deliver_append_string_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_append_string_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_append_string = {
 	"append-string",
@@ -35,11 +35,11 @@ struct deliver deliver_append_string = {
 };
 
 int
-deliver_append_string_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_append_string_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account	*a = dctx->account;
 	struct mail	*m = dctx->mail;
-	char		*ptr = t->data;
+	char		*ptr = ti->data;
 	size_t		 len;
 
 	len = strlen(ptr);
@@ -54,9 +54,9 @@ deliver_append_string_deliver(struct deliver_ctx *dctx, struct action *t)
 }
 
 void
-deliver_append_string_desc(struct action *t, char *buf, size_t len)
+deliver_append_string_desc(struct actitem *ti, char *buf, size_t len)
 {
-	size_t			 sz;
+	size_t	sz;
 
 	*buf = '\0';
 	if ((sz = strlcpy(buf, "append-string \"", len)) >= len)
@@ -64,7 +64,7 @@ deliver_append_string_desc(struct action *t, char *buf, size_t len)
 	buf += sz;
 	len -= sz;
 
-	sz = strnvis(buf, t->data, len, VIS_CSTYLE|VIS_TAB|VIS_NL);
+	sz = strnvis(buf, ti->data, len, VIS_CSTYLE|VIS_TAB|VIS_NL);
 	if (sz >= len)
 		return;
 	buf += sz;

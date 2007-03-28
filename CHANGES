@@ -1,5 +1,13 @@
 28 March 2007
 
+* Compound actions, using a list in {}s, eg:
+
+	action "abc" {
+		rewrite ...
+		mbox ...
+	}
+
+* Macros shouldn't be expanded inside single quotes. Fixed.
 * + may be used to concatenate strings.
 * Allow short-circuit evaluation of 'and' and 'or' operators.
 

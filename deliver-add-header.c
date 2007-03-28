@@ -23,8 +23,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_add_header_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_add_header_desc(struct action *, char *, size_t);
+int	 deliver_add_header_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_add_header_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_add_header = {
 	"add-header",
@@ -34,11 +34,11 @@ struct deliver deliver_add_header = {
 };
 
 int
-deliver_add_header_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_add_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_add_header_data	*data = t->data;
+	struct deliver_add_header_data	*data = ti->data;
 	char				*hdr, *value = NULL;
 
 	hdr = replacestr(&data->hdr, m->tags, m, &m->rml);
@@ -79,9 +79,9 @@ error:
 }
 
 void
-deliver_add_header_desc(struct action *t, char *buf, size_t len)
+deliver_add_header_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_add_header_data	*data = t->data;
+	struct deliver_add_header_data	*data = ti->data;
 
 	xsnprintf(buf, len,
 	    "add-header \"%s\" \"%s\"", data->hdr.str, data->value.str);

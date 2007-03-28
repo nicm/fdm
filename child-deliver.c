@@ -83,7 +83,7 @@ void
 child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
     struct child_deliver_data *data, int *result)
 {
-	struct action		*t = data->action;
+	struct actitem		*ti = data->actitem;
 	struct deliver_ctx	*dctx = data->dctx;
 	struct mail		*m = data->mail;
 	struct mail		*md = &dctx->wr_mail;
@@ -91,7 +91,7 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 	/* check if this is the parent */
 	if (pid != 0) {
 		/* use new mail if necessary */
-		if (t->deliver->type != DELIVER_WRBACK) {
+		if (ti->deliver->type != DELIVER_WRBACK) {
 			xfree(dctx);
 			return;
 		}
@@ -114,8 +114,8 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 	}
 
 	/* this is the child. do the delivery */
-	*result = t->deliver->deliver(dctx, t);
-	if (t->deliver->type != DELIVER_WRBACK || *result != DELIVER_SUCCESS)
+	*result = ti->deliver->deliver(dctx, ti);
+	if (ti->deliver->type != DELIVER_WRBACK || *result != DELIVER_SUCCESS)
 		return;
 
 	mail_send(md, msg);

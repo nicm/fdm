@@ -27,8 +27,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_exec_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_exec_desc(struct action *, char *, size_t);
+int	 deliver_exec_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_exec_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_exec = {
 	"exec",
@@ -38,15 +38,15 @@ struct deliver deliver_exec = {
 };
 
 int
-deliver_exec_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_exec_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
-	return (do_pipe(dctx, t, 0));
+	return (do_pipe(dctx, ti, 0));
 }
 
 void
-deliver_exec_desc(struct action *t, char *buf, size_t len)
+deliver_exec_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_pipe_data	*data = t->data;
+	struct deliver_pipe_data	*data = ti->data;
 
 	xsnprintf(buf, len, "exec \"%s\"", data->cmd.str);
 }

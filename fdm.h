@@ -461,7 +461,7 @@ struct msgdata {
 
 	/* these only work so long as they aren't moved in either process */
 	struct account			*account;
-	struct action			*action;
+	struct actitem			*actitem;
 	struct match_command_data	*cmddata;
 
 	uid_t			 	 uid;
@@ -516,7 +516,7 @@ struct child_deliver_data {
 
 	struct account		*account;
 	struct mail		*mail;
-	struct action		*action;
+	struct actitem		*actitem;
 
 	struct deliver_ctx	*dctx;
 	struct mail_ctx		*mctx;
@@ -545,6 +545,19 @@ struct account {
 	TAILQ_ENTRY(account)	 entry;
 };
 
+/* Action item. */
+struct actitem {
+	u_int			 idx;
+
+	struct deliver		*deliver;
+	void			*data;
+
+	TAILQ_ENTRY(actitem)	 entry;
+}; 
+
+/* Action list. */
+TAILQ_HEAD(actlist, actitem);
+
 /* Action definition. */
 struct action {
 	char			 name[MAXNAMESIZE];
@@ -552,8 +565,7 @@ struct action {
 	struct users		*users;
 	int			 find_uid;
 
-	struct deliver		*deliver;
-	void			*data;
+	struct actlist		*list;
 
 	TAILQ_ENTRY(action)	 entry;
 };

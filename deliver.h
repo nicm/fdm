@@ -28,6 +28,7 @@ struct deliver_ctx {
 	double		 		 tim;
 
 	struct action			*action;
+	struct actitem			*actitem;
 	struct rule			*rule;
 
 	struct account			*account;
@@ -52,8 +53,8 @@ struct deliver {
 	const char	*name;
 	enum delivertype type;
 
-	int	 	 (*deliver)(struct deliver_ctx *, struct action *);
-	void		 (*desc)(struct action *, char *, size_t);
+	int	 	 (*deliver)(struct deliver_ctx *, struct actitem *);
+	void		 (*desc)(struct actitem *, char *, size_t);
 };
 
 /* Deliver smtp states. */
@@ -128,7 +129,7 @@ extern struct deliver	 deliver_stdout;
 
 /* deliver-pipe.c */
 extern struct deliver 	 deliver_pipe;
-int	 		 do_pipe(struct deliver_ctx *, struct action *, int);
+int	 		 do_pipe(struct deliver_ctx *, struct actitem *, int);
 
 /* deliver-exec.c */
 extern struct deliver 	 deliver_exec;
@@ -156,7 +157,7 @@ extern struct deliver 	 deliver_mbox;
 
 /* deliver-write.c */
 extern struct deliver 	 deliver_write;
-int	 		 do_write(struct deliver_ctx *, struct action *, int);
+int	 		 do_write(struct deliver_ctx *, struct actitem *, int);
 
 /* deliver-append.c */
 extern struct deliver 	 deliver_append;

@@ -24,8 +24,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_stdout_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_stdout_desc(struct action *, char *, size_t);
+int	 deliver_stdout_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_stdout_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_stdout = {
 	"stdout",
@@ -35,11 +35,11 @@ struct deliver deliver_stdout = {
 };
 
 int
-deliver_stdout_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_stdout_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_stdout_data	*data = t->data;
+	struct deliver_stdout_data	*data = ti->data;
         char				*from;
 
 	log_debug2("%s: writing to stdout", a->name);
@@ -68,9 +68,9 @@ deliver_stdout_deliver(struct deliver_ctx *dctx, struct action *t)
 }
 
 void
-deliver_stdout_desc(struct action *t, char *buf, size_t len)
+deliver_stdout_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_stdout_data	*data = t->data;
+	struct deliver_stdout_data	*data = ti->data;
 
 	xsnprintf(buf, len, "stdout%s", data->add_from ? " add-from" : "");
 }

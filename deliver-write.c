@@ -27,8 +27,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_write_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_write_desc(struct action *, char *, size_t);
+int	 deliver_write_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_write_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_write = {
 	"write",
@@ -38,25 +38,25 @@ struct deliver deliver_write = {
 };
 
 int
-deliver_write_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_write_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
-	return (do_write(dctx, t, 0));
+	return (do_write(dctx, ti, 0));
 }
 
 void
-deliver_write_desc(struct action *t, char *buf, size_t len)
+deliver_write_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_write_data	*data = t->data;
+	struct deliver_write_data	*data = ti->data;
 
 	xsnprintf(buf, len, "write \"%s\"", data->path.str);
 }
 
 int
-do_write(struct deliver_ctx *dctx, struct action *t, int appendf)
+do_write(struct deliver_ctx *dctx, struct actitem *ti, int appendf)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_write_data	*data = t->data;
+	struct deliver_write_data	*data = ti->data;
         char				*path;
         FILE    			*f;
 

@@ -28,8 +28,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_smtp_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_smtp_desc(struct action *, char *, size_t);
+int	 deliver_smtp_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_smtp_desc(struct actitem *, char *, size_t);
 
 int	 deliver_smtp_code(char *);
 
@@ -63,11 +63,11 @@ deliver_smtp_code(char *line)
 }
 
 int
-deliver_smtp_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_smtp_data	*data = t->data;
+	struct deliver_smtp_data	*data = ti->data;
 	int		 		 done, code;
 	struct io			*io;
 	char				*cause, *to, *from, *line, *ptr, *lbuf;
@@ -205,9 +205,9 @@ error:
 }
 
 void
-deliver_smtp_desc(struct action *t, char *buf, size_t len)
+deliver_smtp_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_smtp_data	*data = t->data;
+	struct deliver_smtp_data	*data = ti->data;
 
 	xsnprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,

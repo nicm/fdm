@@ -30,8 +30,8 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_maildir_deliver(struct deliver_ctx *, struct action *);
-void	 deliver_maildir_desc(struct action *, char *, size_t);
+int	 deliver_maildir_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_maildir_desc(struct actitem *, char *, size_t);
 
 struct deliver deliver_maildir = {
 	"maildir",
@@ -41,11 +41,11 @@ struct deliver deliver_maildir = {
 };
 
 int
-deliver_maildir_deliver(struct deliver_ctx *dctx, struct action *t)
+deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_maildir_data	*data = t->data;
+	struct deliver_maildir_data	*data = ti->data;
 	static u_int			 delivered = 0;
 	char				*path, ch;
 	char			 	 host1[MAXHOSTNAMELEN];
@@ -249,9 +249,9 @@ error:
 }
 
 void
-deliver_maildir_desc(struct action *t, char *buf, size_t len)
+deliver_maildir_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_maildir_data	*data = t->data;
+	struct deliver_maildir_data	*data = ti->data;
 
 	xsnprintf(buf, len, "maildir \"%s\"", data->path.str);
 }
