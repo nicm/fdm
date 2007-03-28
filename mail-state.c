@@ -46,7 +46,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct expritem	*ei;
 	u_int		 i;
 	int		 error = MAIL_CONTINUE;
-	char		*an, *tkey, *tvalue;
+	char		*an, *tkey, *tvalue, desc[DESCBUFSIZE];
 
 	set_wrapped(m, ' ');
 
@@ -168,13 +168,17 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		break;
 	case OP_AND:
 		/* And and the result is already false. */
-		if (!mctx->result)
+		if (!mctx->result) {
+			mctx->expritem = NULL;
 			goto skip;
+		}
 		break;
 	case OP_OR:
 		/* Or and the result is already true. */
-		if (mctx->result)
+		if (mctx->result) {
+			mctx->expritem = NULL;
 			goto skip;
+		}
 		break;
 	}
 
@@ -202,6 +206,8 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		}
 		break;
 	}
+	ei->match->desc(ei, desc, sizeof desc);
+	log_debug3("%s: tried %s, result now %d", a->name, desc, mctx->result);
 
 next_expritem:
 	/*
@@ -212,6 +218,9 @@ next_expritem:
 		return (MAIL_CONTINUE);
 
 skip:
+	log_debug3("%s: finished rule %u, result %d", a->name, mctx->rule->idx,
+	    mctx->result);
+
 	/*
 	 * If the result was false, skip to find the next rule.
 	 */
@@ -286,6 +295,7 @@ next_rule:
 	while (mctx->rule == NULL) {
 		if (ARRAY_EMPTY(&mctx->stack))
 			break;
+		log_debug2("%s: exiting nested rules", a->name);
 		mctx->rule = ARRAY_LAST(&mctx->stack, struct rule *);
 		mctx->rule = TAILQ_NEXT(mctx->rule, entry);
 		ARRAY_TRUNC(&mctx->stack, 1, struct rule *);
