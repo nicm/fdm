@@ -28,4 +28,3 @@
 - coalesce multiple IMAP deletions into a single call? is this possible?
 - option for using PCRE
 - audit close/closedir error checks
-

@@ -140,8 +140,10 @@ shm_create(struct shm *shm, size_t size)
 	madvise(shm->data, size, MADV_SEQUENTIAL);
 
 	if (shm_verify(shm->data, 0, shm->size) != 0) {
+		error = errno;
 		if (munmap(shm->data, shm->size) != 0)
 			fatal("munmap");
+		errno = error;
 		goto error;
 	}
 
