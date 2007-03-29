@@ -121,11 +121,20 @@ struct deliver_append_string_data {
 	struct replstr	str;
 };
 
+/* Deliver tag data. */
+struct deliver_tag_data {
+	struct replstr	 key;
+	struct replstr	 value;
+};
+
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;
 
-/* deliver-smtp.c */
+/* deliver-stdout.c */
 extern struct deliver	 deliver_stdout;
+
+/* deliver-tag.c */
+extern struct deliver	 deliver_tag;
 
 /* deliver-pipe.c */
 extern struct deliver 	 deliver_pipe;

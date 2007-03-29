@@ -616,9 +616,6 @@ struct rule {
 
 	int			 stop;		/* stop matching at this rule */
 
-	struct replstr		 key;
-	struct replstr		 value;
-
 	struct rules		 rules;
 	struct action		*lambda;
 	struct replstrs		*actions;

@@ -29,4 +29,4 @@
 - option for using PCRE
 - audit close/closedir error checks
 - document compound actions
-- lambda actions & make tag an action (special-case stop = 0 amd warn)
+- document lambda actions

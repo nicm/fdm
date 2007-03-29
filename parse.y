@@ -378,7 +378,7 @@ print_rule(struct rule *r)
 	size_t		 off;
 
 	if (r->expr == NULL)
-		strlcpy(s, "all", sizeof s);
+		strlcpy(s, "all ", sizeof s);
 	else {
 		*s = '\0';
 		off = 0;
@@ -410,18 +410,15 @@ print_rule(struct rule *r)
 		su = xstrdup("");
 	if (r->lambda != NULL) {
 		make_actlist(r->lambda->list, desc, sizeof desc);
-		log_debug2("added rule %u:%s%s matches=%s lambda=%s", r->idx,
+		log_debug2("added rule %u:%s%s matches=%slambda=%s", r->idx,
 		    sa, su, s, desc);
 	} else if (r->actions != NULL) {
 		ss = fmt_strings(NULL, (struct strings *) r->actions);
-		log_debug2("added rule %u:%s%s matches=%s actions=%s", r->idx,
+		log_debug2("added rule %u:%s%s matches=%sactions=%s", r->idx,
 		    sa, su, s, ss);
 		xfree(ss);
-	} else if (r->key.str != NULL) {
-		log_debug2("added rule %u:%s matches=%s tag=%s (%s)", r->idx,
-		    sa, s, r->key.str, r->value.str);
 	} else
-		log_debug2("added rule %u:%s matches=%s nested", r->idx, sa, s);
+		log_debug2("added rule %u:%s matches=%snested", r->idx, sa, s);
 	xfree(sa);
 	xfree(su);
 }
@@ -508,6 +505,11 @@ free_actitem(struct actitem *ti)
 	} else if (ti->deliver == &deliver_mbox) {
 		struct deliver_mbox_data		*data = ti->data;
 		xfree(data->path.str);
+	} else if (ti->deliver == &deliver_tag) {
+		struct deliver_tag_data		*data = ti->data;
+		xfree(data->key.str);
+		if (data->value.str != NULL)
+			xfree(data->value.str);
 	} else if (ti->deliver == &deliver_smtp) {
 		struct deliver_smtp_data		*data = ti->data;
 		xfree(data->to.str);
@@ -538,11 +540,6 @@ free_rule(struct rule *r)
 		free_strings((struct strings *) r->actions);
 		ARRAY_FREEALL(r->actions);
 	}
-
-	if (r->key.str != NULL)
-		xfree(r->key.str);
-	if (r->value.str != NULL)
-		xfree(r->value.str);
 
 	if (r->lambda != NULL)
 		free_action(r->lambda);
@@ -978,7 +975,7 @@ include: TOKINCLUDE replpathv
 			 curfile = $2;
 		 log_debug2("including file %s", curfile);
 		 yyrestart(yyin);
-		 yylineno = 0;
+		 yylineno = 1;
 	 }
 
 /** SIZE: <number> (long long) */
@@ -1880,6 +1877,38 @@ actitem: TOKPIPE strv
 		   
 		 data->add_from = $2;
 	 }
+       | TOKTAG strv
+	 {
+		 struct deliver_tag_data	*data;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid tag");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_tag;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->key.str = $2;
+		 data->value.str = NULL;
+	 }
+       | TOKTAG strv TOKVALUE strv
+	 {
+		 struct deliver_tag_data	*data;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid tag");
+		   
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_tag;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+		   
+		 data->key.str = $2;
+		 data->value.str = $4;
+	 }
        | TOKDROP
          {
 		 $$ = xcalloc(1, sizeof *$$);	
@@ -2480,19 +2509,46 @@ match: TOKMATCH expr
 perform: TOKTAG strv
 /**      [$2: strv (char *)] */
 	 {
+		 struct action			*t;
+		 struct actitem			*ti;
+		 struct deliver_tag_data	*data;
+		 char				*file;
+
+		 file = curfile == NULL ? conf.conf_file : curfile;
+		 log_warnx("%s: \"match ... tag\" is deprecated, please use "
+		     "\"match ... action tag\" at line %d", file, yylineno);
+		 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
 
+		 if (*$2 == '\0')
+			 yyerror("invalid tag");
+		   
+		 ti = xcalloc(1, sizeof *$$);
+		 ti->deliver = &deliver_tag;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 ti->data = data;
+		   
+		 data->key.str = $2;
+		 data->value.str = NULL;
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
-		 $$->lambda = NULL;	
 		 $$->actions = NULL;
-		 $$->key.str = $2;
-		 $$->value.str = xstrdup("");
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
 		 $$->find_uid = 0;
+
+		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
+		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
+		 t->users = NULL;
+		 t->find_uid = 0; 
+		 t->list = xmalloc(sizeof *t->list);
+		 TAILQ_INIT(t->list);
+		 TAILQ_INSERT_HEAD(t->list, ti, entry);
+		 ti->idx = 0;
 
 		 if (currule == NULL)
 			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
@@ -2502,18 +2558,46 @@ perform: TOKTAG strv
        | TOKTAG strv TOKVALUE strv
 /**      [$2: strv (char *)] [$4: strv (char *)] */
 	 {
+		 struct action			*t;
+		 struct actitem			*ti;
+		 struct deliver_tag_data	*data;
+		 char				*file;
+
+		 file = curfile == NULL ? conf.conf_file : curfile;
+		 log_warnx("%s: \"match ... tag\" is deprecated, please use "
+		     "\"match ... action tag\" at line %d", file, yylineno);
+		 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
+
+		 if (*$2 == '\0')
+			 yyerror("invalid tag");
+		   
+		 ti = xcalloc(1, sizeof *$$);
+		 ti->deliver = &deliver_tag;
+		   
+		 data = xcalloc(1, sizeof *data);
+		 ti->data = data;
+		   
+		 data->key.str = $2;
+		 data->value.str = $4;
 
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
-		 $$->key.str = $2;
-		 $$->value.str = $4;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
 		 $$->find_uid = 0;
+
+		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
+		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
+		 t->users = NULL;
+		 t->find_uid = 0; 
+		 t->list = xmalloc(sizeof *t->list);
+		 TAILQ_INIT(t->list);
+		 TAILQ_INSERT_HEAD(t->list, ti, entry);
+		 ti->idx = 0;
 
 		 if (currule == NULL)
 			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
@@ -2527,8 +2611,6 @@ perform: TOKTAG strv
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
-		 $$->key.str = NULL;
-		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$4;
 		 $$->users = $1.users;
@@ -2555,8 +2637,6 @@ perform: TOKTAG strv
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
 		 $$->actions = NULL;
-		 $$->key.str = NULL;
-		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$6;
 		 $$->users = $1.users;
@@ -2581,8 +2661,6 @@ perform: TOKTAG strv
 		 $$->idx = ruleidx++;
 		 $$->lambda = NULL;	
 		 $$->actions = $2;
-		 $$->key.str = NULL;
-		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$3;
 		 $$->users = $1.users;
@@ -2599,8 +2677,6 @@ perform: TOKTAG strv
 		 $$->idx = ruleidx++;
 		 $$->lambda = NULL;	
 		 $$->actions = NULL;
-		 $$->key.str = NULL;
-		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;

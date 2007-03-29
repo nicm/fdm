@@ -51,7 +51,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct users	*users;
 	u_int		 i;
 	int		 should_free, this, error = MAIL_CONTINUE;
-	char		*an, *tkey, *tvalue, desc[DESCBUFSIZE];
+	char		*an, desc[DESCBUFSIZE];
 
 	set_wrapped(m, ' ');
 
@@ -235,25 +235,6 @@ skip:
 		 */
 		mctx->rule = TAILQ_FIRST(&mctx->rule->rules);
 		return (MAIL_CONTINUE);
-	}
-
-	/*
-	 * Tag mail if necessary.
-	 */
-	if (mctx->rule->key.str != NULL) {
-		tkey = replacestr(&mctx->rule->key, m->tags, m, &m->rml);
-		tvalue = replacestr(&mctx->rule->value, m->tags, m, &m->rml);
-
-		if (tkey != NULL && *tkey != '\0' && tvalue != NULL) {
-			log_debug2("%s: tagging message: %s (%s)", a->name,
-			    tkey, tvalue);
-			add_tag(&m->tags, tkey, "%s", tvalue);
-		}
-
-		if (tkey != NULL)
-			xfree(tkey);
-		if (tvalue != NULL)
-			xfree(tvalue);
 	}
 
 	/* 
