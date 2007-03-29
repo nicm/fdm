@@ -69,8 +69,11 @@ int 			 	 yywrap(void);
 struct account 			*find_account(char *);
 int				 have_accounts(char *);
 struct action  			*find_action(char *);
+void				 free_actitem(struct actitem *);
 void				 print_rule(struct rule *);
 void				 print_action(struct action *);
+void				 make_actlist(struct actlist *, char *, size_t);
+
 
 void				 find_netrc(const char *, char **, char **);
 
@@ -374,11 +377,9 @@ print_rule(struct rule *r)
 	char		 s[BUFSIZ], *sa, *su, *ss, desc[DESCBUFSIZE];
 	size_t		 off;
 
-	switch (r->type) {
-	case RULE_ALL:
+	if (r->expr == NULL)
 		strlcpy(s, "all", sizeof s);
-		break;
-	case RULE_EXPRESSION:
+	else {
 		*s = '\0';
 		off = 0;
 		TAILQ_FOREACH(ei, r->expr, entry) {
@@ -398,7 +399,6 @@ print_rule(struct rule *r)
 			strlcat(s, desc, sizeof s);
 			strlcat(s, " ", sizeof s);
 		}
-		break;
 	}
 	if (r->accounts != NULL)
 		sa = fmt_strings(" accounts=", r->accounts);
@@ -408,16 +408,20 @@ print_rule(struct rule *r)
 		su = fmt_users(" users=", r->users);
 	else
 		su = xstrdup("");
-	if (r->actions != NULL) {
+	if (r->lambda != NULL) {
+		make_actlist(r->lambda->list, desc, sizeof desc);
+		log_debug2("added rule %u:%s%s matches=%s lambda=%s", r->idx,
+		    sa, su, s, desc);
+	} else if (r->actions != NULL) {
 		ss = fmt_strings(NULL, (struct strings *) r->actions);
-		log_debug2("added rule %u:%s%s actions=%s matches=%s", r->idx,
-		    sa, su, ss, s);
+		log_debug2("added rule %u:%s%s matches=%s actions=%s", r->idx,
+		    sa, su, s, ss);
 		xfree(ss);
 	} else if (r->key.str != NULL) {
-		log_debug2("added rule %u:%s tag=%s (%s) matches=%s", r->idx,
-		    sa, r->key.str, r->value.str, s);
+		log_debug2("added rule %u:%s matches=%s tag=%s (%s)", r->idx,
+		    sa, s, r->key.str, r->value.str);
 	} else
-		log_debug2("added rule %u:%s nested matches=%s", r->idx, sa, s);
+		log_debug2("added rule %u:%s matches=%s nested", r->idx, sa, s);
 	xfree(sa);
 	xfree(su);
 }
@@ -425,8 +429,7 @@ print_rule(struct rule *r)
 void
 print_action(struct action *t)
 {
-	struct actitem	*ti;
-	char		 s[BUFSIZ], *su, desc[DESCBUFSIZE];
+	char		 s[BUFSIZ], *su;
 	size_t		 off;
 
 	if (t->users != NULL)
@@ -437,14 +440,24 @@ print_action(struct action *t)
 	    t->name, su);
 	xfree(su);
 
-	TAILQ_FOREACH(ti, t->list, entry) {
+	make_actlist(t->list, s + off, (sizeof s) - off);
+	log_debug2("%s", s);
+}
+
+void
+make_actlist(struct actlist *tl, char *buf, size_t len)
+{
+	struct actitem	*ti;
+	char		 desc[DESCBUFSIZE];
+	size_t		 off;
+
+	off = 0;
+	TAILQ_FOREACH(ti, tl, entry) {
 		ti->deliver->desc(ti, desc, sizeof desc);
-		off += xsnprintf(s + off, (sizeof s) - off, "%u:%s ", 
-		    ti->idx, desc);
-		if (off >= sizeof s)
+		off += xsnprintf(buf + off, len - off, "%u:%s ", ti->idx, desc);
+		if (off >= len)
 			break;
 	}
-	log_debug2("%s", s);
 }
 
 void
@@ -459,49 +472,54 @@ free_action(struct action *t)
 		ti = TAILQ_FIRST(t->list);
 		TAILQ_REMOVE(t->list, ti, entry);
 
-		if (ti->deliver == &deliver_pipe ||
-		    ti->deliver == &deliver_exec) {
-			struct deliver_pipe_data	*data = ti->data;
-			xfree(data->cmd.str);
-		} else if (ti->deliver == &deliver_rewrite) {
-			struct deliver_rewrite_data	*data = ti->data;
-			xfree(data->cmd.str);
-		} else if (ti->deliver == &deliver_write ||
-		    ti->deliver == &deliver_append) {
-			struct deliver_write_data	*data = ti->data;
-			xfree(data->path.str);
-		} else if (ti->deliver == &deliver_maildir) {
-			struct deliver_maildir_data	*data = ti->data;
-			xfree(data->path.str);
-		} else if (ti->deliver == &deliver_remove_header) {
-			struct deliver_remove_header_data *data = ti->data;
-			xfree(data->hdr.str);
-		} else if (ti->deliver == &deliver_add_header) {
-			struct deliver_add_header_data	*data = ti->data;
-			xfree(data->hdr.str);
-			xfree(data->value.str);
-		} else if (ti->deliver == &deliver_append_string) {
-			struct deliver_append_string_data *data = ti->data;
-			xfree(data->str.str);
-		} else if (ti->deliver == &deliver_mbox) {
-			struct deliver_mbox_data	*data = ti->data;
-			xfree(data->path.str);
-		} else if (ti->deliver == &deliver_smtp) {
-			struct deliver_smtp_data	*data = ti->data;
-			xfree(data->to.str);
-			xfree(data->server.host);
-			xfree(data->server.port);
-			if (data->server.ai != NULL)
-				freeaddrinfo(data->server.ai);
-		}
-		if (ti->data != NULL)
-			xfree(ti->data);
-
-		xfree(ti);
+		free_actitem(ti);
 	}
 	xfree(t->list);
 
 	xfree(t);
+}
+
+void
+free_actitem(struct actitem *ti)
+{
+	if (ti->deliver == &deliver_pipe || ti->deliver == &deliver_exec) {
+		struct deliver_pipe_data		*data = ti->data;
+		xfree(data->cmd.str);
+	} else if (ti->deliver == &deliver_rewrite) {
+		struct deliver_rewrite_data		*data = ti->data;
+		xfree(data->cmd.str);
+	} else if (ti->deliver == &deliver_write ||
+	    ti->deliver == &deliver_append) {
+		struct deliver_write_data		*data = ti->data;
+		xfree(data->path.str);
+	} else if (ti->deliver == &deliver_maildir) {
+		struct deliver_maildir_data		*data = ti->data;
+		xfree(data->path.str);
+	} else if (ti->deliver == &deliver_remove_header) {
+		struct deliver_remove_header_data	*data = ti->data;
+		xfree(data->hdr.str);
+	} else if (ti->deliver == &deliver_add_header) {
+		struct deliver_add_header_data		*data = ti->data;
+		xfree(data->hdr.str);
+		xfree(data->value.str);
+	} else if (ti->deliver == &deliver_append_string) {
+		struct deliver_append_string_data	 *data = ti->data;
+		xfree(data->str.str);
+	} else if (ti->deliver == &deliver_mbox) {
+		struct deliver_mbox_data		*data = ti->data;
+		xfree(data->path.str);
+	} else if (ti->deliver == &deliver_smtp) {
+		struct deliver_smtp_data		*data = ti->data;
+		xfree(data->to.str);
+		xfree(data->server.host);
+		xfree(data->server.port);
+		if (data->server.ai != NULL)
+			freeaddrinfo(data->server.ai);
+	}
+	if (ti->data != NULL)
+		xfree(ti->data);
+
+	xfree(ti);
 }
 
 void
@@ -525,6 +543,9 @@ free_rule(struct rule *r)
 		xfree(r->key.str);
 	if (r->value.str != NULL)
 		xfree(r->value.str);
+
+	if (r->lambda != NULL)
+		free_action(r->lambda);
 
 	while (!TAILQ_EMPTY(&r->rules)) {
 		rr = TAILQ_FIRST(&r->rules);
@@ -725,10 +746,6 @@ find_netrc(const char *host, char **user, char **pass)
 		char		*host;
 		char		*port;
 	} server;
-	struct {
-		struct expr	*expr;
-		enum ruletype	 type;
-	} match;
 	enum area	 	 area;
 	enum exprop		 exprop;
 	struct actitem 		*actitem;
@@ -760,7 +777,7 @@ find_netrc(const char *host, char **user, char **pass)
 %type  <actlist> actlist
 %type  <area> area
 %type  <cmp> cmp cmp2
-%type  <expr> expr exprlist
+%type  <expr> expr exprlist match
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
@@ -768,7 +785,6 @@ find_netrc(const char *host, char **user, char **pass)
 %type  <flag> addfrom
 %type  <gid> gid
 %type  <locks> lock locklist
-%type  <match> match
 %type  <number> size time numv retrc
 %type  <replstrs> actions actionslist
 %type  <rule> perform
@@ -2453,13 +2469,11 @@ expr: expritem
 match: TOKMATCH expr
 /**    [$2: expr (struct expr *)] */
        {
-	       $$.expr = $2;
-	       $$.type = RULE_EXPRESSION;
+	       $$ = $2;
        }
      | TOKMATCH TOKALL
        {
-	       $$.expr = NULL;
-	       $$.type = RULE_ALL;
+	       $$ = NULL;
        }
 
 /** PERFORM: <rule> (struct rule *) */
@@ -2471,6 +2485,7 @@ perform: TOKTAG strv
 
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
+		 $$->lambda = NULL;	
 		 $$->actions = NULL;
 		 $$->key.str = $2;
 		 $$->value.str = xstrdup("");
@@ -2505,14 +2520,69 @@ perform: TOKTAG strv
 		 else
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
+       | users TOKACTION actitem cont
+	 {
+		 struct action	*t;
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->idx = ruleidx++;
+		 $$->actions = NULL;
+		 $$->key.str = NULL;
+		 $$->value.str = NULL;
+		 TAILQ_INIT(&$$->rules);
+		 $$->stop = !$3;
+		 $$->users = $1.users;
+		 $$->find_uid = $1.find_uid;
+
+		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
+		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
+		 t->users = NULL;
+		 t->find_uid = 0; 
+		 t->list = xmalloc(sizeof *t->list);
+		 TAILQ_INIT(t->list);
+		 TAILQ_INSERT_HEAD(t->list, $3, entry);
+		 $3->idx = 0;
+
+		 if (currule == NULL)
+			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
+		 else
+			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
+	 }
+       | users TOKACTIONS '{' actlist '}' cont
+	 {
+		 struct action	*t;
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->idx = ruleidx++;
+		 $$->actions = NULL;
+		 $$->key.str = NULL;
+		 $$->value.str = NULL;
+		 TAILQ_INIT(&$$->rules);
+		 $$->stop = !$6;
+		 $$->users = $1.users;
+		 $$->find_uid = $1.find_uid;
+
+		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
+		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
+		 t->users = NULL;
+		 t->find_uid = 0; 
+		 t->list = $4;
+
+		 if (currule == NULL)
+			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
+		 else
+			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
+	 }
        | users actions cont
 /**      [$1: users (struct { ... } users)] */
 /**      [$2: actions (struct replstrs *)] [$3: cont (int)] */
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
+		 $$->lambda = NULL;	
 		 $$->actions = $2;
 		 $$->key.str = NULL;
+		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$3;
 		 $$->users = $1.users;
@@ -2527,8 +2597,10 @@ perform: TOKTAG strv
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
+		 $$->lambda = NULL;	
 		 $$->actions = NULL;
 		 $$->key.str = NULL;
+		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
@@ -2559,8 +2631,7 @@ rule: match accounts perform
 /**   [$3: perform (struct rule *)] */
       {
 	      $3->accounts = $2;
-	      $3->expr = $1.expr;
-	      $3->type = $1.type;
+	      $3->expr = $1;
 
 	      print_rule($3);
       }

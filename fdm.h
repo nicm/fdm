@@ -604,16 +604,9 @@ TAILQ_HEAD(expr, expritem);
 /* Rule list. */
 TAILQ_HEAD(rules, rule);
 
-/* Rule types. */
-enum ruletype {
-	RULE_EXPRESSION,
-	RULE_ALL
-};
-
 /* Rule entry. */
 struct rule {
 	u_int			 idx;
-	enum ruletype		 type;
 
 	struct strings		*accounts;
 	struct expr		*expr;
@@ -627,6 +620,7 @@ struct rule {
 	struct replstr		 value;
 
 	struct rules		 rules;
+	struct action		*lambda;
 	struct replstrs		*actions;
 
 	TAILQ_ENTRY(rule)	 entry;

@@ -1,3 +1,13 @@
+29 March 2007
+
+* Lambda actions:
+
+	match "regexp" action mbox ...
+	match "regexp" actions {
+		rewrite ...
+		mbox ...
+	}
+
 28 March 2007
 
 * Compound actions, using a list in {}s, eg:

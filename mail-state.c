@@ -48,8 +48,9 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct mail	*m = mctx->mail;
 	struct strings	*aa;
 	struct expritem	*ei;
+	struct users	*users;
 	u_int		 i;
-	int		 this, error = MAIL_CONTINUE;
+	int		 should_free, this, error = MAIL_CONTINUE;
 	char		*an, *tkey, *tvalue, desc[DESCBUFSIZE];
 
 	set_wrapped(m, ' ');
@@ -255,6 +256,20 @@ skip:
 			xfree(tvalue);
 	}
 
+	/* 
+	 * Handle lambda actions.
+	 */
+	if (mctx->rule->lambda != NULL) {
+		users = find_delivery_users(mctx, NULL, &should_free);
+
+		fill_delivery_action(mctx, 
+		    mctx->rule, mctx->rule->lambda, users);
+			
+		if (should_free)
+			ARRAY_FREEALL(users);
+		error = MAIL_DELIVER;
+	}
+
 	/*
 	 * Fill the delivery action queue.
 	 */
@@ -372,19 +387,19 @@ find_delivery_users(struct mail_ctx *mctx, struct action *t, int *should_free)
 
 	*should_free = 0;
 	users = NULL;
-	if (r->find_uid) {		/* rule comes first */
+	if (r->find_uid) {			/* rule comes first */
 		*should_free = 1;
 		users = find_users(m);
 	} else if (r->users != NULL) {
 		*should_free = 0;
 		users = r->users;
-	} else if (t->find_uid) {	/* then action */
+	} else if (t != NULL && t->find_uid) {	/* then action */
 		*should_free = 1;
 		users = find_users(m);
-	} else if (t->users != NULL) {
+	} else if (t != NULL && t->users != NULL) {
 		*should_free = 0;
 		users = t->users;
-	} else if (a->find_uid) {	/* then account */
+	} else if (a->find_uid) {		/* then account */
 		*should_free = 1;
 		users = find_users(m);
 	} else if (a->users != NULL) {
@@ -458,7 +473,7 @@ fill_delivery_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 	struct deliver_ctx	*dctx;
 	u_int			 i;
 
-	for (i = 0; i < ARRAY_LENGTH(users); i++) {	
+	for (i = 0; i < ARRAY_LENGTH(users); i++) {
 		TAILQ_FOREACH(ti, t->list, entry) {
 			dctx = xcalloc(1, sizeof *dctx);
 			dctx->action = t;
