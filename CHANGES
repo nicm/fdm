@@ -1,5 +1,8 @@
 29 March 2007
 
+* Tags are now done using an action (tag) rather than a special-case match
+  rule. The old way still works but generates a warning which will become an
+  error within a few releases.
 * Because yacc needs to move back and forwards, just swapping the file out from
   under it when including can cause problems. So, switch to letting lex do all
   the work and feed the include file to yacc as if it was inline. This sucks a
