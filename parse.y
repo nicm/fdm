@@ -46,14 +46,6 @@ struct macros	 macros = TAILQ_HEAD_INITIALIZER(macros);
 u_int		 ruleidx;
 u_int		 actidx;
 
-struct fileent {
-	FILE			*yyin;
-	int		 	 yylineno;
-	char			*curfile;
-};
-ARRAY_DECL(, struct fileent *)	 filestack;
-char				*curfile;
-
 ARRAY_DECL(, struct rule *)	 rulestack;
 struct rule			*currule;
 
@@ -96,14 +88,9 @@ yyerror(const char *fmt, ...)
 int
 yywrap(void)
 {
-	struct macro		*macro;
-	struct fileent		*top;
-	char			*file;
+	struct macro	*macro;
 
-	file = curfile == NULL ? conf.conf_file : curfile;
-	log_debug2("finished file %s", file);
-
-	if (ARRAY_EMPTY(&filestack)) {
+	if (include_finish() != 0) {
 		while (!TAILQ_EMPTY(&macros)) {
 			macro = TAILQ_FIRST(&macros);
 			TAILQ_REMOVE(&macros, macro, entry);
@@ -115,21 +102,11 @@ yywrap(void)
 		if (parse_tags != NULL)
 			strb_destroy(&parse_tags);
 
-		ARRAY_FREE(&filestack);
 		if (!ARRAY_EMPTY(&rulestack))
 			yyerror("missing }");
 		ARRAY_FREE(&rulestack);
 		return (1);
 	}
-
-	top = ARRAY_LAST(&filestack, struct fileent *);
-	yyin = top->yyin;
-	yyrestart(yyin);
-	yylineno = top->yylineno;
-	xfree(curfile);
-	curfile = top->curfile;
-	xfree(top);
-	ARRAY_TRUNC(&filestack, 1, struct fileent *);
 
         return (0);
 }
@@ -717,7 +694,7 @@ find_netrc(const char *host, char **user, char **pass)
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
-%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKINCLUDE
+%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY
 %token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKSIZE TOKMAILDIRS
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
@@ -767,6 +744,7 @@ find_netrc(const char *host, char **user, char **pass)
 	} userpass;
 }
 
+%token INCLUDE
 %token <number> NUMBER
 %token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
 
@@ -802,10 +780,10 @@ cmds: /* empty */
     | cmds account
     | cmds defaction
     | cmds defmacro
-    | cmds include
     | cmds rule
     | cmds set
     | cmds close
+    | cmds INCLUDE
 
 /** XSTRV: <string> (char *) */
 xstrv: STRING
@@ -943,40 +921,6 @@ replpathv: strv
 		  $$ = replacepath(&rp, parse_tags, NULL, NULL);
 		  xfree($1);
 	   }
-
-/** INCLUDE */
-include: TOKINCLUDE replpathv
-/**      [$2: replpathv (char *)] */
-	 {
-		 char			*path;
-		 struct fileent		*top;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid include file");
-
-		 top = xmalloc(sizeof *top);
-		 top->yyin = yyin;
-		 top->yylineno = yylineno;
-		 top->curfile = curfile;
-		 ARRAY_ADD(&filestack, top, struct fileent *);
-
-		 yyin = fopen($2, "r");
-		 if (yyin == NULL) {
-			 xasprintf(&path,
-			     "%s/%s", xdirname(conf.conf_file), $2);
-			 if (access(path, R_OK) != 0)
-				 yyerror("%s: %s", path, strerror(errno));
-			 yyin = fopen(path, "r");
-			 if (yyin == NULL)
-				 yyerror("%s: %s", path, strerror(errno));
-			 curfile = path;
-			 xfree($2);
-		 } else
-			 curfile = $2;
-		 log_debug2("including file %s", curfile);
-		 yyrestart(yyin);
-		 yylineno = 1;
-	 }
 
 /** SIZE: <number> (long long) */
 size: numv
@@ -2515,8 +2459,9 @@ perform: TOKTAG strv
 		 char				*file;
 
 		 file = curfile == NULL ? conf.conf_file : curfile;
-		 log_warnx("%s: \"match ... tag\" is deprecated, please use "
-		     "\"match ... action tag\" at line %d", file, yylineno);
+		 log_warnx("%s: \"match ... tag ...\" is deprecated, "
+		     "please use \"match ... action tag ... continue\" "
+		     "at line %d", file, yylineno);
 		 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");

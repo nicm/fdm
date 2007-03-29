@@ -38,11 +38,24 @@ extern __dead printflike1 void	 yyerror(const char *, ...);
 
 char 				*read_str(char, int);
 
+/*
+ * For include files. Because of yacc read-ahead include works in a weird way:
+ * the include var is parsed by lex and causes a buffer switch to the new file
+ * yacc then carries on with this as if it was inline, until EOF is reached
+ * and lex calls yywrap() which switches back to the old file. If this seems
+ * like a horrible hack to you, that's because it is.
+ */
+struct fileent {
+	FILE			*yyin;
+	int		 	 yylineno;
+	YY_BUFFER_STATE		 yybuffer;
+	char			*curfile;
+};
+ARRAY_DECL(, struct fileent *)	 filestack;
+char				*curfile;
+
 /* Redefine ECHO to cause an error. */
 #define ECHO yyerror("syntax error");
-
-/* Use a one-byte buffer so flushing it on include doesn't do any harm. */
-#define YY_READ_BUF_SIZE 1
 
 %}
 
@@ -64,6 +77,40 @@ char 				*read_str(char, int);
 \" {
 	yylval.string = read_str('"', 1);
         return (STRING);
+}
+include[ \t]*\" {
+	struct replpath	 rp;
+	char		*s;
+
+	if (parse_tags == NULL) {
+		strb_create(&parse_tags);
+		default_tags(&parse_tags, NULL, NULL);
+	}
+	
+	rp.str = read_str('"', 1);
+	s = replacepath(&rp, parse_tags, NULL, NULL);
+	xfree(rp.str);
+
+	include_start(s);
+
+	return (INCLUDE);
+}
+include[ \t]*\' {
+	struct replpath	 rp;
+	char		*s;
+
+	if (parse_tags == NULL) {
+		strb_create(&parse_tags);
+		default_tags(&parse_tags, NULL, NULL);
+	}
+	
+	rp.str = read_str('\'', 0);
+	s = replacepath(&rp, parse_tags, NULL, NULL);
+	xfree(rp.str);
+
+	include_start(s);
+
+	return (INCLUDE);
 }
 \$[A-Za-z][A-Za-z0-9_]* {
         yylval.string = xstrdup(yytext);
@@ -137,7 +184,6 @@ headers return (TOKHEADERS);
 imap return (TOKIMAP);
 imaps return (TOKIMAPS);
 in return (TOKIN);
-include return (TOKINCLUDE);
 invalid return (TOKINVALID);
 keep return (TOKKEEP);
 lock-file return (TOKLOCKFILE);
@@ -299,4 +345,66 @@ read_str(char endc, int esc)
         buf[pos] = '\0';
 
 	return (buf);
+}
+
+void
+include_start(char *file)
+{
+	char		*path;
+	struct fileent	*top;
+
+	if (*file == '\0')
+		yyerror("invalid include file");
+
+	top = xmalloc(sizeof *top);
+	top->yyin = yyin;
+	top->yylineno = yylineno;	
+	top->yybuffer = YY_CURRENT_BUFFER;
+	top->curfile = curfile;
+	ARRAY_ADD(&filestack, top, struct fileent *);
+
+	yyin = fopen(file, "r");
+	if (yyin == NULL) {
+		xasprintf(&path, "%s/%s", xdirname(conf.conf_file), file);
+		if (access(path, R_OK) != 0)
+			yyerror("%s: %s", path, strerror(errno));
+		yyin = fopen(path, "r");
+		if (yyin == NULL)
+			yyerror("%s: %s", path, strerror(errno));
+		curfile = path;
+		xfree(file);
+	} else
+		curfile = file;
+
+	log_debug2("including file %s", curfile);
+	yy_switch_to_buffer(yy_create_buffer(yyin, YY_BUF_SIZE));
+	yylineno = 1;
+}
+
+int
+include_finish(void)
+{
+	struct fileent	*top;
+
+	if (ARRAY_EMPTY(&filestack)) {
+		ARRAY_FREE(&filestack);
+		return (1);
+	}
+
+	log_debug2("finished file %s", curfile);
+	yy_delete_buffer(YY_CURRENT_BUFFER);
+
+	top = ARRAY_LAST(&filestack, struct fileent *);
+
+	yyin = top->yyin;
+	yylineno = top->yylineno;
+	yy_switch_to_buffer(top->yybuffer);
+
+	xfree(curfile);
+	curfile = top->curfile;
+
+	xfree(top);
+	ARRAY_TRUNC(&filestack, 1, struct fileent *);
+
+	return (0);
 }

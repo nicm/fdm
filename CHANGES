@@ -1,5 +1,9 @@
 29 March 2007
 
+* Because yacc needs to move back and forwards, just swapping the file out from
+  under it when including can cause problems. So, switch to letting lex do all
+  the work and feed the include file to yacc as if it was inline. This sucks a
+  bit but there aren't many other options. Reported by Frank Terbeck.
 * Lambda actions:
 
 	match "regexp" action mbox ...

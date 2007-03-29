@@ -811,7 +811,13 @@ void			 shm_close(struct shm *);
 void			*shm_reopen(struct shm *);
 void			*shm_resize(struct shm *, size_t, size_t);
 
+/* lex.l */
+extern char		*curfile;
+void			 include_start(char *);
+int			 include_finish(void);
+
 /* parse.y */
+extern struct strb	*parse_tags;
 extern struct macros	 macros;
 struct users		*weed_users(struct users *);
 struct strings 		*weed_strings(struct strings *);
