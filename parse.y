@@ -2530,7 +2530,7 @@ perform: TOKTAG strv
 		 $$->key.str = NULL;
 		 $$->value.str = NULL;
 		 TAILQ_INIT(&$$->rules);
-		 $$->stop = !$3;
+		 $$->stop = !$4;
 		 $$->users = $1.users;
 		 $$->find_uid = $1.find_uid;
 
