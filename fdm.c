@@ -311,9 +311,6 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
-	setbuf(stdout, NULL);
-	setbuf(stderr, NULL);
-
         while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:?")) != EOF) {
                 switch (opt) {
 		case 'a':
