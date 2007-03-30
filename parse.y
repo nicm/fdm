@@ -785,6 +785,18 @@ cmds: /* empty */
     | cmds close
     | cmds INCLUDE
 
+/* Plural/singular combinations. */
+actionp: TOKACTION
+       | TOKACTIONS
+userp: TOKUSER
+     | TOKUSERS
+accountp: TOKACCOUNT
+        | TOKACCOUNTS
+groupp: TOKGROUP
+      | TOKGROUPS
+maildirp: TOKMAILDIR
+        | TOKMAILDIRS
+
 /** XSTRV: <string> (char *) */
 xstrv: STRING
        {
@@ -1345,7 +1357,7 @@ maildirslist: maildirslist replpathv
 	   }
 
 /** MAILDIRS: <strings> (struct strings *) */
-maildirs: TOKMAILDIR replpathv
+maildirs: maildirp replpathv
 /**       [$2: replpathv (char *)] */
 	  {
 		  if (*$2 == '\0')
@@ -1355,7 +1367,7 @@ maildirs: TOKMAILDIR replpathv
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2, char *);
 	  }
-        | TOKMAILDIRS '{' maildirslist '}'
+        | maildirp '{' maildirslist '}'
 /**       [$3: maildirslist (struct strings *)] */
 	  {
 		  $$ = weed_strings($3);
@@ -1471,17 +1483,12 @@ users: /* empty */
 	       $$.users = NULL;
 	       $$.find_uid = 0;
        }
-     | TOKUSER TOKFROMHEADERS
+     | userp TOKFROMHEADERS
        {
 	       $$.users = NULL;
 	       $$.find_uid = 1;
        }
-     | TOKUSERS TOKFROMHEADERS
-       {
-	       $$.users = NULL;
-	       $$.find_uid = 1;
-       }
-     | TOKUSER uid
+     | userp uid
 /**    [$2: uid (uid_t)] */
        {
 	       $$.users = xmalloc(sizeof *$$.users);
@@ -1489,7 +1496,7 @@ users: /* empty */
 	       ARRAY_ADD($$.users, $2, uid_t);
 	       $$.find_uid = 0;
        }
-     | TOKUSERS '{' userslist '}'
+     | userp '{' userslist '}'
 /**    [$3: userslist (struct { ... } users)] */
        {
 	       $$ = $3;
@@ -1945,7 +1952,7 @@ accounts: /* empty */
 	  {
 		  $$ = NULL;
 	  }
-        | TOKACCOUNT replstrv
+        | accountp replstrv
 /**       [$2: replstrv (char *)] */
 	  {
 		  if (*$2 == '\0')
@@ -1957,7 +1964,7 @@ accounts: /* empty */
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2, char *);
 	  }
-	| TOKACCOUNTS '{' accountslist '}'
+	| accountp '{' accountslist '}'
 /**       [$3: accountslist (struct strings *)] */
 	  {
 		  $$ = weed_strings($3);
@@ -1989,11 +1996,11 @@ accountslist: accountslist replstrv
 	      }
 
 /** ACTIONS: <replstrs> (struct replstrs *) */
-actions: TOKACTION TOKNONE
+actions: actionp TOKNONE
 	 {
 		 $$ = NULL;
 	 }
-       | TOKACTION strv
+       | actionp strv
 /**      [$2: strv (char *)] */
 	 {
 		 if (*$2 == '\0')
@@ -2004,7 +2011,7 @@ actions: TOKACTION TOKNONE
 		 ARRAY_EXPAND($$, 1, struct replstr);
 		 ARRAY_LAST($$, struct replstr).str = $2;
 	 }
-       | TOKACTIONS '{' actionslist '}'
+       | actionp '{' actionslist '}'
 /**      [$3: actionslist (struct replstrs *)] */
          {
 		 $$ = $3;
@@ -2549,7 +2556,7 @@ perform: TOKTAG strv
 		 else
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
-       | users TOKACTION actitem cont
+       | users actionp actitem cont
 	 {
 		 struct action	*t;
 
@@ -2575,7 +2582,7 @@ perform: TOKTAG strv
 		 else
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
-       | users TOKACTIONS '{' actlist '}' cont
+       | users actionp '{' actlist '}' cont
 	 {
 		 struct action	*t;
 
@@ -2705,7 +2712,7 @@ groupslist: groupslist replstrv
 	    }
 
 /** GROUPS: <strings> (struct strings *) */
-groups: TOKGROUP replstrv
+groups: groupp replstrv
 /**     [$2: replstrv (char *)] */
 	{
 		char			*cp;
@@ -2721,7 +2728,7 @@ groups: TOKGROUP replstrv
 
 		ARRAY_ADD($$, $2, char *);
 	}
-      | TOKGROUPS '{' groupslist '}'
+      | groupp '{' groupslist '}'
 /**     [$3: groupslist (struct strings *)] */
         {
 		$$ = weed_strings($3);

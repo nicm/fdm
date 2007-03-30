@@ -1,3 +1,8 @@
+30 March 2007
+
+* Allow plural and singular to be interchanged in most places, don't insist on
+  "accounts { "abc" }" and "account "abc"".
+
 29 March 2007
 
 * Tags are now done using an action (tag) rather than a special-case match
