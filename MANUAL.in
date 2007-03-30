@@ -164,7 +164,9 @@ The configuration file has the following general rules:
 - Whitespace is largely ignored. Lines may generally be split, concatenated
   or indented as preferred.
 - Lists are usually specified as 'singular item' or 'plural { item item }', for
-  example: 'user "nicholas"', 'users { "nicholas" "bob" }'.
+  example: 'user "nicholas"', 'users { "nicholas" "bob" }'. The singular/plural
+  distinction is not required, it is recommended only to aid readability: 
+  'user { "nicholas "bob" }' is also accepted.
 - Regexps are specified as normal strings without additional adornment other
   than the "s (not wrapped in /s). All regexps are extended regexps and
   case insensitive by default.
@@ -821,6 +823,16 @@ using {}. For example,
 		append-string "my string!!"
 		mbox "mbox2"
 	}
+
+	action "myaction" users { "bob" "jim" } {
+		rewrite "rev"
+		maildir "%h/%u's maildir"
+	}
+
+Compound action are executed from top-to-bottom, once for each user. Note that
+the effects are cumulative: the second example above would deliver a mail
+rewritten once to 'bob' and twice to 'jim'. If this is not desired, seperate
+actions must be used.
 
 ### Filtering mail
 
