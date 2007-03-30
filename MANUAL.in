@@ -30,6 +30,7 @@ fdm ============================================================================
 %%	stdout
 %% 	Rewriting mail
 %%	Adding or removing headers and appending a string
+%%	Compound actions
 ##	Filtering mail
 %%	Nesting rules
 %%	The all condition
@@ -685,6 +686,7 @@ filtering rule (see the section on filtering below), the default user is
 used, see the '-u' command line option and the 'default-user' option in the
 setting options section
 
+
 %%% Drop and keep actions
 
 The simplest actions are the 'drop' and 'keep' actions. They have no parameters
@@ -808,6 +810,17 @@ Or to remove all instances of a header from mail:
 A similar action can append a string to each mail:
 
 	action "append-sep" append-string "--cut here--\n"
+
+%%% Compound actions
+
+Compound actions may be defined which perform multiple single actions types.
+They are similar to standard single actions but multiple actions are provided
+using {}. For example,
+
+	action "multiple" {
+		append-string "my string!!"
+		mbox "mbox2"
+	}
 
 ### Filtering mail
 
@@ -1301,12 +1314,12 @@ has a negligible practical effect on performance in any case.
 
 Yes! Rewrite the mail using sed to remove the crap, for example:
 
-action "full-disclosure" maildir "%h/mail/full-disclosure"
-action "strip-full-disclosure"
+action "full-disclosure" {
 	rewrite "sed 's/^\\(Subject:.*\\)\\[Full-disclosure\\] /\\1/'"
-
+	maildir "%h/mail/full-disclosure"
+}
 match "^List-Id:.*<full-disclosure\\.lists\\.grok\\.org\\.uk>" in headers
-	actions { "strip-full-disclosure" "full-disclosure" }
+	action "full-disclosure"
 
 ================================================================================
 $Id$
