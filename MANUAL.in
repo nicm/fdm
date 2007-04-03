@@ -30,6 +30,7 @@ fdm ============================================================================
 %%	stdout
 %% 	Rewriting mail
 %%	Adding or removing headers and appending a string
+%%	Tagging
 %%	Compound actions
 ##	Filtering mail
 %%	Nesting rules
@@ -40,7 +41,8 @@ fdm ============================================================================
 %%	Matching by age or size
 %%	Using a shell command
 %%	Attachments
-%%	Tagging
+%%	Matching tags
+%%	Lambda actions
 ##	Setting options
 ##	Archiving and searching mail
 ##	Using fdm behind a proxy
@@ -813,6 +815,18 @@ A similar action can append a string to each mail:
 
 	action "append-sep" append-string "--cut here--\n"
 
+%%% Tagging
+
+Mails may be assigned one of more tags manually using the tag action type. For
+example,
+
+	match all account "my*" tag "myaccts"
+
+	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
+
+The tag is attached to the mail with the specified value, or no value if one is
+not provided.
+
 %%% Compound actions
 
 Compound actions may be defined which perform multiple single actions types.
@@ -863,6 +877,7 @@ used.
 
 The <actions> item is a list of actions to execute when this rule matches.
 It is in the same list format: 'action "name"' or "actions { "name1" "name2" }'.
+It may also be a lambda (inline) action, see the section below.
 
 If a rule with the 'continue' keyword matches, evaluation does not stop after
 the actions are executed, instead subsequent rules are matched.
@@ -879,6 +894,20 @@ If the conditions on the outer rule match, the inner rules are evaluated. If
 none of the inner rules match (or they all specify the 'continue' keyword)
 evaluation continues outside to rules following the nested rule, otherwise it
 stops.
+
+%%% Lambda actions
+
+Lambda actions are unnamed actions included inline as part of the filtering rule.
+This can be convenient for actions which do not need to be used multiple times.
+Lambda actions are specified as a combination of the rule and an action definition.
+For example:
+
+	match all action maildir "mymaildir"
+
+	match all actions {
+		rewrite "rev"
+		tag "reversed"
+	} continue
 
 %%% The all condition
 
@@ -1043,19 +1072,7 @@ attachment MIME type and name attribute (if any) using fnmatch(3):
 
 	match attachment any-name "*.doc" action "action"
 
-%%% Tagging
-
-Mails may be assigned one of more tags manually using a special form of
-filtering rule, with the following syntax:
-
-	match <conditions> [<accounts>] tag <tag> [value <value>]
-
-The string <tag> is attached to the mail with the specified value, or no
-value if a value is not provided:
-
-	match all account "my*" tag "myaccts"
-
-	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
+%%% Matching tags
 
 The existence of a tag may be tested for using the 'tagged' condition:
 
