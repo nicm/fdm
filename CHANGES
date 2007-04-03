@@ -1,3 +1,9 @@
+03 April 2007
+
+* Instead of doing complicated things to see if a mmap'd region is okay, just
+  fill it with zeros using write(2). This also avoids FS fragmentation on
+  FreeBSD, per its mmap(2). Also use MAP_NOSYNC.
+
 30 March 2007
 
 * Allow plural and singular to be interchanged in most places, don't insist on

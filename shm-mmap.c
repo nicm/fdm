@@ -34,73 +34,21 @@
 
 #define SHM_PROT PROT_READ|PROT_WRITE
 
-void	shm_sighandler(int);
-
-int	shm_verify(char *, size_t, size_t);
 int	shm_expand(struct shm *, size_t);
 
-int	failed;
-jmp_buf	jb;
+char	shm_block[BUFSIZ];
 
-void
-shm_sighandler(int sig)
-{
-	if (sig == SIGSEGV || sig == SIGBUS)
-		longjmp(jb, 1);
-}
-
-/* Verify mmap'd range is available. */
-int
-shm_verify(char *base, size_t offset, size_t size)
-{
-	struct sigaction	 act;
-	char			*ptr;
-
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-
-	act.sa_handler = shm_sighandler;
-	if (sigaction(SIGSEGV, &act, NULL) < 0)
-		fatal("sigaction");
-	if (sigaction(SIGBUS, &act, NULL) < 0)
-		fatal("sigaction");
-
-	/*
-	 * Fill the buffer and check for SIGBUS or SIGSEGV.
-	 */
-	failed = 0;
-	if (setjmp(jb) == 0) {
-		for (ptr = base + offset; ptr < base + offset + size; ptr++)
-			*ptr = 0xff;
-	} else
-		failed = 1;
-
-	act.sa_handler = SIG_DFL;
-	if (sigaction(SIGSEGV, &act, NULL) < 0)
-		fatal("sigaction");
-	if (sigaction(SIGBUS, &act, NULL) < 0)
-		fatal("sigaction");
-
-	if (failed) {
-		errno = ENOMEM;
-		return (1);
-	}
-
-	/*
-	 * Sync the region. This'll hopefully complain if there isn't enough
-	 * disk space.
-	 */
-	if (msync(base + offset, size, MS_SYNC) != 0)
-		return (1);
-
-	return (0);
-}
+#ifdef MAP_NOSYNC
+#define SHM_FLAGS MAP_SHARED|MAP_NOSYNC
+#else
+#define SHM_FLAGS MAP_SHARED
+#endif
 
 /* Expand or reduce shm file to size. */
 int
 shm_expand(struct shm *shm, size_t size)
 {
-	char	c;
+	ssize_t	n;
 
 	if (size == shm->size)
 		return (0);
@@ -108,11 +56,37 @@ shm_expand(struct shm *shm, size_t size)
 	if (size < shm->size)
 		return (ftruncate(shm->fd, size) != 0);
 
-	if (lseek(shm->fd, size, SEEK_SET) == -1)
+	if (lseek(shm->fd, shm->size, SEEK_SET) == -1)
 		return (1);
-	c = '\0';
-	if (write(shm->fd, &c, 1) == -1)
+
+	/*
+	 * Fill the file using write(2) to avoid fragmentation problems on
+	 * FreeBSD and also to detect disk full.
+	 */
+	while (size > sizeof shm_block) {
+		if ((n = write(shm->fd, shm_block, sizeof shm_block)) == -1)
+			return (1);
+		if (n != sizeof shm_block) {
+			errno = EIO;
+			return (1);
+		}
+		size -= sizeof shm_block;
+	}
+	if (size > 0) {
+		if ((n = write(shm->fd, shm_block, size)) == -1)
+		    return (1);
+		if ((size_t) n != size) {
+			errno = EIO;
+			return (1);
+		}
+	}
+
+	/*
+	 * Sync the fd, should hopefully fail if disk full.
+	 */
+	if (fsync(shm->fd) != 0)
 		return (1);
+
 	return (0);
 }
 
@@ -134,18 +108,10 @@ shm_create(struct shm *shm, size_t size)
 	if (shm_expand(shm, size) != 0)
 		goto error;
 
-	shm->data = mmap(NULL, size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, size, SHM_PROT, SHM_FLAGS, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		goto error;
 	madvise(shm->data, size, MADV_SEQUENTIAL);
-
-	if (shm_verify(shm->data, 0, shm->size) != 0) {
-		error = errno;
-		if (munmap(shm->data, shm->size) != 0)
-			fatal("munmap");
-		errno = error;
-		goto error;
-	}
 
 	shm->size = size;
 	return (shm->data);
@@ -187,7 +153,7 @@ shm_reopen(struct shm *shm)
 	if ((shm->fd = open(shm->name, O_RDWR, 0)) < 0)
 		return (NULL);
 
-	shm->data = mmap(NULL, shm->size, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, shm->size, SHM_PROT, SHM_FLAGS, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		return (NULL);
 	madvise(shm->data, shm->size, MADV_SEQUENTIAL);
@@ -223,13 +189,10 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	if (shm_expand(shm, newsize) != 0)
 		return (NULL);
 
-	shm->data = mmap(NULL, newsize, SHM_PROT, MAP_SHARED, shm->fd, 0);
+	shm->data = mmap(NULL, newsize, SHM_PROT, SHM_FLAGS, shm->fd, 0);
 	if (shm->data == MAP_FAILED)
 		return (NULL);
 	madvise(shm->data, newsize, MADV_SEQUENTIAL);
-
-	if (shm_verify(shm->data, shm->size, newsize - shm->size) != 0)
-		return (NULL);
 
 	shm->size = newsize;
 	return (shm->data);
