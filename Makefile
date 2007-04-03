@@ -32,7 +32,9 @@ CC= cc
 INCDIRS+= -I. -I- -I/usr/local/include
 CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE
-CFLAGS+= -pg -DPROFILE
+# Don't use ccache
+CC= /usr/bin/gcc
+CFLAGS+= -pg -DPROFILE -fprofile-arcs -ftest-coverage -O0
 .endif
 CFLAGS+= -g -ggdb -DDEBUG
 #CFLAGS+= -pedantic -std=c99
@@ -91,7 +93,8 @@ DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] fdm-sanitize \
 	   `find examples regress compat -type f -and ! -path '*CVS*'`
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
-	    ${PROG}-*.tar.gz *~ *.ln ${PROG}.core MANUAL index.html
+	    ${PROG}-*.tar.gz *~ *.ln ${PROG}.core MANUAL index.html \
+	    *.bb *.bbg *.da *.gcov
 
 .c.o:
 		${CC} ${CFLAGS} ${INCDIRS} -c ${.IMPSRC} -o ${.TARGET}

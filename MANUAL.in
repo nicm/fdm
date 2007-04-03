@@ -1279,15 +1279,9 @@ further information if it is required.
 
 Two main reasons:
 
-1. I didn't like the existing tools. I'm not going to do my fetchmail rant
-   since getmail's Charles Cazabon has done his own in greater detail here:
+1. I didn't like the existing tools.
 
-	http://pyropus.ca/software/getmail/faq.html#faq-about-why
-
-   I'll also spare you my procmail rant, but suffice to say the syntax is
-   abysmal. getmail and maildrop I was less unhappy with overall, but I was
-   not really comfortable with their configuration file formats. Plus getmail
-   always seemed very slow. And there is reason 2...
+And more importantly:
 
 2. I disliked the fact that as a home user with a relatively simple setup I
    had to have five programs to deal with mail: sendmail, fetchmail, procmail,
