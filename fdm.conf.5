@@ -96,7 +96,8 @@ This sets the maximum number of messages
 will hold simultaneously.
 .Xr fdm 1
 will attempt to process previously queued messages as the next is being
-fetched. Once this limit is reached, no further messages wil be fetched until
+fetched.
+Once this limit is reached, no further messages wil be fetched until
 the number of messages held drops to the
 .Ic queue-low
 value.
@@ -428,7 +429,9 @@ As mail is processed by
 .Xr fdm 1 ,
 it is tagged with a number of name/value pairs.
 Some tags are added automatically, and mail may also be tagged explicitly by
-the user.
+the user using the
+.Ic tag
+action.
 Tags may be inserted in most strings in a similar manner to macros, except tags
 are processed at runtime rather than as the configuration file is parsed.
 A tag's value is inserted by wrapping its name in %[], for example:
@@ -505,11 +508,25 @@ An action's user setting may be overridden in the matching rule.
 The possible values for
 .Ar action
 are listed below.
+If multiple actions are specified they are executed once from top to bottom for
+each user.
 .Bl -tag -width Ds
 .It Ic drop
 Discard the mail.
 .It Ic keep
 Keep the mail, do not remove it from the account.
+.It Xo Ic tag Ar string
+.Op Ic value Ar value
+.Xc
+This tags mail with
+.Ar string ,
+and optionally
+.Ar value ,
+which may be matched using the
+.Ic tagged
+or
+.Ic string
+conditions.
 .It Xo Ic maildir Ar path
 .Xc
 Save the mail to the maildir specified by
@@ -601,7 +618,7 @@ is specified, an mbox-style "From" line is prepended.
 Rules are specified using the
 .Ic match
 keyword.
-It has one of the following basic forms:
+It has the following basic form:
 .Bl -tag -width Ds
 .It Xo Ic match
 .Ar condition
@@ -610,12 +627,6 @@ It has one of the following basic forms:
 .Op Ar users
 .Ar actions
 .Op Ic continue
-.Xc
-.It Xo Ic match
-.Ar condition
-.Op Ic and | Ic or Ar condition ...
-.Op Ar accounts
-.Ic tag Ar string Op Ic value Ar value
 .Xc
 .El
 .Pp
@@ -817,23 +828,8 @@ The
 .Ic not
 keyword may be specified to invert the sense of a condition.
 .Pp
-The first form of the command specifies a number of actions to take when a mail
-matches the rule.
-The second form tags the mail with
-.Ar string ,
-and optionally
-.Ar value ,
-which may be matched using the
-.Ic tagged
-or
-.Ic string
-conditions in later rules.
-A mail may be tagged with any number of different strings by different rules.
-Rules which apply a tag do not count as a match for the purposes of the
-.Ic matched
-or
-.Ic unmatched
-conditions.
+This command specifies a number of actions to take when a mail matches the
+rule.
 .Pp
 The optional
 .Ar users
@@ -842,17 +838,30 @@ argument to the first form has the same syntax as for an
 definition.
 A rule's user list overrides any users given as part of the actions.
 .Pp
-Both the
+The
 .Ar accounts
-and
-.Ar actions
-parts consist either of a single name or a list of names enclosed in braces:
+part consists either of a single name or a list of names enclosed in braces:
 .Bl -tag -width Ds
 .It Xo Ic account Ar name | Ic accounts
 .Li {
 .Ar name ...
 .Li }
 .Xc
+.El
+.Pp
+It is used to limit rules to matching mail within a set of accounts.
+The account names may include shell glob wildcards to match multiple accounts,
+as with the
+.Fl a
+and
+.Fl x
+command line options.
+.Pp
+The
+.Ar actions
+list specifies the actions to perform when the rule matches a mail.
+It is either of a similar form: 
+.Bl -tag -width Ds
 .It Xo Ic action Ar name | Ic actions
 .Li {
 .Ar name ...
@@ -860,18 +869,21 @@ parts consist either of a single name or a list of names enclosed in braces:
 .Xc
 .El
 .Pp
-The
-.Ar accounts
-list is used to limit rules to matching mail within a set of accounts, and the
-.Ar actions
-list specifies the actions to perform when the rule matches a mail.
-The account names may include shell glob wildcards to match multiple accounts,
-as with the
-.Fl a
-and
-.Fl x
-command line options.
-The actions are performed from left to right in the order they are specified in
+Or may specify a number of actions inline (lambda actions):
+.Pp
+.Bl -tag -width Ds
+.It Ic action Ar action
+.It Xo Ic action
+.Li {
+.Ar action ...
+.Li }
+.Xc
+.El
+.Pp
+In the latter case,
+.Ar action
+follows the same form as described in the ACTIONS section.
+The actions are performed from first to last in the order they are specified in
 the rule definition.
 .Pp
 If the

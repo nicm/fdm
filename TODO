@@ -32,4 +32,3 @@
 - cumulative effect of a compound action sucks
 - fetch smallest/largest mails first. best pattern? probably 1 small, then in
   decreasing size order, but with longer queue necessary
-- document lambda actions in man page
