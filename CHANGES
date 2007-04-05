@@ -1,3 +1,8 @@
+04 April 2007
+
+* Set the socket non-blocking in before setting up SSL in connect.c, otherwise
+  SSL_connect might block.
+
 03 April 2007
 
 * Instead of doing complicated things to see if a mmap'd region is okay, just
