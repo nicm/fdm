@@ -50,7 +50,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct expritem	*ei;
 	struct users	*users;
 	u_int		 i;
-	int		 should_free, this, error = MAIL_CONTINUE;
+	int		 should_free, this = -1, error = MAIL_CONTINUE;
 	char		*an, desc[DESCBUFSIZE];
 
 	set_wrapped(m, ' ');
