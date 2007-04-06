@@ -1,3 +1,7 @@
+06 April 2007
+
+* fdm 1.1 released.
+
 04 April 2007
 
 * Set the socket non-blocking in before setting up SSL in connect.c, otherwise
