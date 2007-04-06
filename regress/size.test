@@ -3,96 +3,96 @@
 set maximum-size 0
 @0
 set maximum-size 2147483648
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 2$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 
 set maximum-size 0b
 @0
 set maximum-size 2147483648b
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0B
 @0
 set maximum-size 2147483648B
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 bytes
 @0
 set maximum-size 2147483648 bytes
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 byte
 @0
 set maximum-size 2147483648 byte
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 
 set maximum-size 0K
 @0
 set maximum-size 2097152K
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0k
 @0
 set maximum-size 2097152k
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 kb
 @0
 set maximum-size 2097152 kb
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 KB
 @0
 set maximum-size 2097152 KB
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 kilobytes
 @0
 set maximum-size 2097152 kilobytes
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 kilobyte
 @0
 set maximum-size 2097152 kilobyte
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 
 set maximum-size 0M
 @0
 set maximum-size 2048M
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0m
 @0
 set maximum-size 2048M
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 mb
 @0
 set maximum-size 2048 mb
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 MB
 @0
 set maximum-size 2048 MB
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 megabytes
 @0
 set maximum-size 2048 megabytes
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 megabyte
 @0
 set maximum-size 2048 megabyte
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 
 set maximum-size 0G
 @0
 set maximum-size 2G
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0g
 @0
 set maximum-size 2g
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 gb
 @0
 set maximum-size 2 gb
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 GB
 @0
 set maximum-size 2 GB
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 gigabytes
 @0
 set maximum-size 2 gigabytes
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$
 set maximum-size 0 gigabyte
 @0
 set maximum-size 2 gigabyte
-@1 ^/dev/stdin: maximum size too large: 2147483648 at line 1$
+@1 ^/dev/stdin: maximum size too large: 2147483648 at line .$

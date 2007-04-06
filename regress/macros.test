@@ -4,7 +4,7 @@
 @0 ^added macro "%macro": 0$
 
 %macro = 9223372036854775808
-@1 ^/dev/stdin: number is too large at line 1$
+@1 ^/dev/stdin: number is too large at line .$
 
 %macro = 9223372036854775807
 @0 ^added macro "%macro": 9223372036854775807$
@@ -31,30 +31,30 @@ $macro = "two"
 # UNDEFINED
 
 account $macro stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+@1 ^/dev/stdin: undefined macro: \$macro at line .$
 account %macro stdin
-@1 ^/dev/stdin: syntax error at line 1$
+@1 ^/dev/stdin: syntax error at line .$
 
 set maximum-size %macro
-@1 ^/dev/stdin: undefined macro: %macro at line 1$
+@1 ^/dev/stdin: undefined macro: %macro at line .$
 
 account "${macro}" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+@1 ^/dev/stdin: undefined macro: \$macro at line .$
 account "a${macro}" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+@1 ^/dev/stdin: undefined macro: \$macro at line .$
 account "${macro}b" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+@1 ^/dev/stdin: undefined macro: \$macro at line .$
 account "a${macro}b" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line 1$
+@1 ^/dev/stdin: undefined macro: \$macro at line .$
 
 account "%{macro}" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line 1$
+@1 ^/dev/stdin: undefined macro: %macro at line .$
 account "a%{macro}" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line 1$
+@1 ^/dev/stdin: undefined macro: %macro at line .$
 account "%{macro}b" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line 1$
+@1 ^/dev/stdin: undefined macro: %macro at line .$
 account "a%{macro}b" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line 1$
+@1 ^/dev/stdin: undefined macro: %macro at line .$
 
 # ----------------------------------------------------------------------------
 # DEFINED
@@ -65,7 +65,7 @@ account "a%{macro}b" stdin
 account $macro stdin
 @0 ^added account "one": fetch=stdin$
 account %macro stdin
-@1 ^/dev/stdin: syntax error at line 3$
+@1 ^/dev/stdin: syntax error at line .$
 
 set maximum-size %macro
 @0

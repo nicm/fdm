@@ -4,27 +4,27 @@
 !action "action" drop
 
 match "abc" { match "def" action "action" }
-@- ^added rule 0: nested matches=regexp "abc" in any $
-@- ^added rule 1: actions="action" matches=regexp "def" in any $
+@- ^added rule 0: matches=regexp "abc" in any nested$
+@- ^added rule 1: matches=regexp "def" in any actions="action"$
 @0
 match "abc" accounts { } { match "def" action "action" }
-@1 ^/dev/stdin: syntax error at line 3$
+@1 ^/dev/stdin: syntax error at line .$
 match "abc" accounts { "account" } { match "def" action "action" }
-@- ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
-@- ^added rule 1: actions="action" matches=regexp "def" in any $
+@- ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
+@- ^added rule 1: matches=regexp "def" in any actions="action"$
 @0
 match "abc" account "account" { match "def" action "action" }
-@- ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
-@- ^added rule 1: actions="action" matches=regexp "def" in any $
+@- ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
+@- ^added rule 1: matches=regexp "def" in any actions="action"$
 @0
 
 match "abc" { }
-@0 ^added rule 0: nested matches=regexp "abc" in any $
+@0 ^added rule 0: matches=regexp "abc" in any nested$
 match "abc" accounts { } { }
-@1 ^/dev/stdin: syntax error at line 3$
+@1 ^/dev/stdin: syntax error at line .$
 match "abc" account "account" { }
-@0 ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
+@0 ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
 match "abc" accounts { "account" } { }
-@0 ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
+@0 ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
 match "abc" account "account" { }
-@0 ^added rule 0: accounts="account" nested matches=regexp "abc" in any $
+@0 ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
