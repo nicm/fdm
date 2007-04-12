@@ -68,7 +68,7 @@ privilege separation to minimise the amount of code running as the root user.
 Installing fdm is simple. Download the source tarball, and run:
 
 	$ tar -zxvf fdm-?.?.tar.gz
-	$ cd fdm-?.?.tar.gz
+	$ cd fdm-?.?
 	$ make
 
 Then run 'make install' to install fdm to the default locations under

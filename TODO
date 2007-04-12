@@ -8,7 +8,6 @@
 	rules
 	% tokens
 	maildir
-  backups with imap without refetching: to-cache and in-cache actions.
 - balance man pages/manual
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")

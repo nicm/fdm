@@ -1,3 +1,7 @@
+10 April 2007
+
+* Install into bin rather than sbin when using GNUmakefile.
+
 06 April 2007
 
 * fdm 1.1 released.
