@@ -1,6 +1,6 @@
 10 April 2007
 
-* Install into bin rather than sbin when using GNUmakefile.
+* Install into bin rather than sbin when using GNUmakefile. From Frank Terbeck.
 
 06 April 2007
 

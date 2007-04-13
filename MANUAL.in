@@ -1099,8 +1099,8 @@ The possible options are:
 - maximum-size <size>
 
 This specifies the maximum size of mail that fdm will accept. The default is 32
-MB. Note that fdm may be storing a number of mails, up to the 'queue-high'
-setting (plus one if rewrite is used) for each account, simultaneously so care
+MB. Note that fdm may be storing a number of mails simultaneously, up to the
+'queue-high' setting (plus one if rewrite is used) for each account, so care
 should be taken when increasing this option.
 
 If mail over the maximum size is encountered, fdm will abort with an error,
@@ -1152,7 +1152,7 @@ flag on the command line.
 - lock-types [fcntl] [flock] [dotlock]
 
 These specify the type of locking to use when writing to mboxes. fcntl and
-flock locking is mutually exclusive, but dotlock may be used with either.
+flock locking are mutually exclusive, but dotlock may be used with either.
 Some NFS servers do not support fcntl. The default is flock only. Example:
 
 	set lock-types fcntl dotlock
