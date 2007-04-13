@@ -41,7 +41,7 @@ char 				*read_str(char, int);
 
 /*
  * For include files. Because of yacc read-ahead include works in a weird way:
- * the include var is parsed by lex and causes a buffer switch to the new file
+ * the include var is parsed by lex and causes a buffer switch to the new file,
  * yacc then carries on with this as if it was inline, until EOF is reached
  * and lex calls yywrap() which switches back to the old file. If this seems
  * like a horrible hack to you, that's because it is.
