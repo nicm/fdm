@@ -124,7 +124,7 @@ lint:
 		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}
 
 .depend:	${HDRS}
-		mkdep ${CFLAGS} ${SRCS:M*.c}
+		-mkdep ${CFLAGS} ${SRCS:M*.c}
 
 depend:
 		mkdep ${CFLAGS} ${SRCS:M*.c}
