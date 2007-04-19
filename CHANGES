@@ -1,3 +1,8 @@
+19 April 2007
+
+* Count the number of messages properly when there is no done function (such as
+  for NNTP).
+
 10 April 2007
 
 * Install into bin rather than sbin when using GNUmakefile. From Frank Terbeck.
