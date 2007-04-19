@@ -427,7 +427,6 @@ struct mail_ctx {
 	TAILQ_ENTRY(mail_ctx)		 entry;
 };
 TAILQ_HEAD(mail_queue, mail_ctx);
-extern struct mail_queue mail_queue;
 
 /* An attachment. */
 struct attach {

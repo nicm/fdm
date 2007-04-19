@@ -636,7 +636,7 @@ out:
 	if (n > 0) {
 		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
 		    "(average %.3f)", a->name, n, kept, tim, tim / n);
-		log_debug("%s: spent %.3f seconds waiting", a->name, waited);
+		log_debug("%s: %.3f seconds waiting", a->name, waited);
 		return (error == FETCH_ERROR);
 	}
 
