@@ -42,17 +42,20 @@ void
 cleanup_purge(void)
 {
 	struct cleanent	*cent;
+	int		 saved_errno;
 
 	/*
 	 * This must be signal safe.
 	 */
 
+	saved_errno = errno;
  	TAILQ_FOREACH(cent, &cleanlist, entry) {
 		if (unlink(cent->path) != 0) {
 			write(STDERR_FILENO, "unlink failed\n", 14);
 			_exit(1);
 		}
 	}
+	errno = saved_errno;
 }
 
 void

@@ -53,7 +53,8 @@ struct mail_queue 	matchq;
 struct mail_queue 	deliverq;
 struct mail_queue	doneq;
 
-double			waited = 0.0;
+double			time_polling = 0.0;
+double			time_blocked = 0.0;
 
 int			total = -1; /* total from fetch, -1 for unknown */
 u_int		  	dropped;
@@ -235,7 +236,11 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 		xfree(cause);
 		return (1);
 	}
-	waited += get_time() - tim;
+	tim = get_time() - tim;
+
+	time_polling += tim;
+	if (blocked)
+		time_blocked += tim;
 
 	return (FETCH_AGAIN);
 }
@@ -636,7 +641,8 @@ out:
 	if (n > 0) {
 		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
 		    "(average %.3f)", a->name, n, kept, tim, tim / n);
-		log_debug("%s: %.3f seconds waiting", a->name, waited);
+		log_debug("%s: polled for %.3f seconds (%.3f blocked)",
+		    a->name, time_polling, time_blocked);
 		return (error == FETCH_ERROR);
 	}
 
