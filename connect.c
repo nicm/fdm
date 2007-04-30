@@ -457,8 +457,8 @@ makessl(int fd, int verify, char **cause)
 	}
 
 	/*
-	 * Switch the socket to blocking mode to be sure we have the received
-	 * the certificate. XXX This means our timeout is ignored.
+	 * Switch the socket to blocking mode to be sure we have received the
+	 * certificate. XXX This means our timeout is ignored.
 	 */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
 		fatal("fcntl");
@@ -546,7 +546,7 @@ connectio(struct server *srv, int verify, const char *eol, int timeout,
        /*
 	* Set non-blocking. Normally io_create does this, but it must be
         * done before SSL_set_fd otherwise the SSL won't be non-blocking for
-        * SSL_connect.
+        * SSL_connect. XXX No longer needed.
         */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
 		fatal("fcntl");
