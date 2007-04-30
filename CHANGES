@@ -1,3 +1,7 @@
+30 April 2007
+
+* Option to use PCRE (build with make -DPCRE).
+
 19 April 2007
 
 * Count the number of messages properly when there is no done function (such as

@@ -34,6 +34,10 @@
 #include <stdint.h>
 #include <regex.h>
 
+#ifdef PCRE
+#include <pcre.h>
+#endif
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
@@ -344,7 +348,11 @@ struct strb {
 /* Regexp wrapper structs. */
 struct re {
 	char		*str;
+#ifndef PCRE
 	regex_t		 re;
+#else
+	pcre		*pcre;
+#endif
 	int		 flags;
 };
 
@@ -850,7 +858,6 @@ int			 re_string(struct re *, char *, struct rmlist *,
 			     char **);
 int			 re_block(struct re *, void *, size_t, struct rmlist *,
 			     char **);
-int			 re_simple(struct re *, char *, char **);
 void			 re_free(struct re *);
 
 /* attach.c */

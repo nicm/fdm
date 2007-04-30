@@ -13,7 +13,7 @@ DATE!= date +%Y%m%d-%H%M
 
 SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       command.c fetch-pop3.c fetch-imap.c fetch-stdin.c fetch-nntp.c \
-      fetch-maildir.c re.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
+      fetch-maildir.c pcre.c re.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
       deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-write.c \
       deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
       match-tagged.c match-size.c match-string.c match-matched.c match-age.c \
@@ -45,6 +45,10 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
+.ifdef PCRE
+CFLAGS+= -DPCRE
+LIBS+= -lpcre
+.endif
 .ifdef SHM_SYSV
 CFLAGS+= -DSHM_SYSV
 .else
@@ -85,7 +89,7 @@ LDFLAGS+= -L/usr/local/lib
 .ifdef PROFILE
 LDFLAGS+= -pg
 .endif
-LIBS= -lssl -lcrypto -lz
+LIBS+= -lssl -lcrypto -lz
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
 
@@ -124,10 +128,10 @@ lint:
 		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}
 
 .depend:	${HDRS}
-		-mkdep ${CFLAGS} ${SRCS:M*.c}
+		-mkdep ${CFLAGS} ${INCDIRS} ${SRCS:M*.c}
 
 depend:
-		mkdep ${CFLAGS} ${SRCS:M*.c}
+		mkdep ${CFLAGS} ${INCDIRS} ${SRCS:M*.c}
 
 regress:	${PROG}
 		cd regress && ${MAKE}

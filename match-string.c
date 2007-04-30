@@ -45,7 +45,7 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 	s = replacestr(&data->str, m->tags, m, &m->rml);
 	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.str);
 
-	res = re_simple(&data->re, s, &cause);
+	res = re_string(&data->re, s, NULL, &cause);
 	xfree(s);
 
 	if (res == -1) {

@@ -29,7 +29,7 @@ INSTALLMAN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 
 SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       command.c fetch-pop3.c fetch-imap.c fetch-stdin.c fetch-nntp.c \
-      fetch-maildir.c re.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
+      fetch-maildir.c pcre.c re.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
       deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-write.c \
       deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
       match-tagged.c match-size.c match-string.c match-matched.c match-age.c \
@@ -68,6 +68,10 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
+ifdef PCRE
+DEFS+= -DPCRE
+LIBS+= -lpcre
+endif
 ifdef SHM_SYSV
 DEFS+= -DSHM_SYSV
 else

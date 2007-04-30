@@ -18,18 +18,18 @@
 
 #include <sys/types.h>
 
+#include <pcre.h>
 #include <string.h>
 
 #include "fdm.h"
 
-#ifndef PCRE
+#ifdef PCRE
 
 int
 re_compile(struct re *re, char *s, int flags, char **cause)
 {
-	int	 error;
-	size_t	 len;
-	char	*buf;
+	const char	*error;
+	int		 off;
 
 	if (s == NULL)
 		fatalx("re_compile: null regexp");
@@ -38,17 +38,12 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 		return (0);
 	re->flags = flags;
 
-	flags = REG_EXTENDED|REG_NEWLINE;
-	if (re->flags & RE_NOSUBST)
-		flags |= REG_NOSUB;
+	flags = PCRE_EXTENDED|PCRE_MULTILINE;
 	if (re->flags & RE_IGNCASE)
-		flags |= REG_ICASE;
+		flags |= PCRE_CASELESS;
 
-	if ((error = regcomp(&re->re, s, flags)) != 0) {
-		len = regerror(error, &re->re, NULL, 0);
-		buf = xmalloc(len);
-		regerror(error, &re->re, buf, len);
-		xasprintf(cause, "%s%s", s, buf);
+	if ((re->pcre = pcre_compile(s, flags, &error, &off, NULL)) == NULL) {
+		*cause = xstrdup(error);
 		return (1);
 	}
 
@@ -58,57 +53,14 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 int
 re_string(struct re *re, char *s, struct rmlist *rml, char **cause)
 {
-	int		res;
-	regmatch_t	pm[NPMATCH];
-	u_int		i;
-
-	if (re->flags & RE_NOSUBST) {
-		if (rml != NULL)
-			fatalx("re_string: nosub re but rml != NULL");
-	} else {
-		if (rml == NULL)
-			fatalx("re_string: !nosub re but rml == NULL");
-	}
-
-	if (rml != NULL)
-		memset(rml, 0, sizeof *rml);
-
-	/*
-	 * If the source string is empty, there is no regexp, so just check
-	 * whether or not the target string is also empty.
-	 */
-	if (*re->str == '\0') {
-		if (*s == '\0')
-			return (1);
-		return (0);
-	}
-
-	res = regexec(&re->re, s, NPMATCH, pm, 0);
-	if (res != 0 && res != REG_NOMATCH) {
-		xasprintf(cause, "%s: regexec failed", re->str);
-		return (-1);
-	}
-
-	if (rml != NULL) {
-		for (i = 0; i < NPMATCH; i++) {
-			if (pm[i].rm_eo <= pm[i].rm_so)
-				break;
-			rml->list[i].valid = 1;
-			rml->list[i].so = pm[i].rm_so;
-			rml->list[i].eo = pm[i].rm_eo;
-		}
-		rml->valid = 1;
-	}
-
-	return (res == 0);
+	return (re_block(re, s, strlen(s), rml, cause));
 }
 
 int
 re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
 {
-	int		res;
-	regmatch_t	pm[NPMATCH];
-	u_int		i;
+	int		res, pm[NPMATCH];
+	u_int		i, j;
 
 	if (re->flags & RE_NOSUBST) {
 		if (rml != NULL)
@@ -117,6 +69,8 @@ re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
 		if (rml == NULL)
 			fatalx("re_block: !nosub re but rml == NULL");
 	}
+	if (len > INT_MAX)
+		fatalx("re_block: len too big");
 
 	if (rml != NULL)
 		memset(rml, 0, sizeof *rml);
@@ -128,33 +82,32 @@ re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
 		return (0);
 	}
 
-	pm[0].rm_so = 0;
-	pm[0].rm_eo = len;
-	res = regexec(&re->re, buf, NPMATCH, pm, REG_STARTEND);
-	if (res != 0 && res != REG_NOMATCH) {
+	res = pcre_exec(re->pcre, NULL, buf, len, 0, 0, pm, NPMATCH * 3);
+	if (res < 0 && res != PCRE_ERROR_NOMATCH) {
 		xasprintf(cause, "%s: regexec failed", re->str);
 		return (-1);
 	}
 
 	if (rml != NULL) {
 		for (i = 0; i < NPMATCH; i++) {
-			if (pm[i].rm_eo <= pm[i].rm_so)
+			j = i * 2;
+			if (pm[j + 1] <= pm[j])
 				break;
 			rml->list[i].valid = 1;
-			rml->list[i].so = pm[i].rm_so;
-			rml->list[i].eo = pm[i].rm_eo;
+			rml->list[i].so = pm[j];
+			rml->list[i].eo = pm[j + 1];
 		}
 		rml->valid = 1;
 	}
 
-	return (res == 0);
+	return (res != PCRE_ERROR_NOMATCH);
 }
 
 void
 re_free(struct re *re)
 {
 	xfree(re->str);
-	regfree(&re->re);
+	pcre_free(re->pcre);
 }
 
 #endif
