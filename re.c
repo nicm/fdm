@@ -16,13 +16,13 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef PCRE
+
 #include <sys/types.h>
 
 #include <string.h>
 
 #include "fdm.h"
-
-#ifndef PCRE
 
 int
 re_compile(struct re *re, char *s, int flags, char **cause)

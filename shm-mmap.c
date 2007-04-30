@@ -16,6 +16,8 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifdef SHM_MMAP
+
 #include <sys/types.h>
 #include <sys/mman.h>
 
@@ -25,8 +27,6 @@
 #include <unistd.h>
 
 #include "fdm.h"
-
-#ifdef SHM_MMAP
 
 /*
  * This implements shared memory using mmap'd files in TMPDIR.

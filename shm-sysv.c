@@ -16,6 +16,8 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifdef SHM_SYSV
+
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -24,8 +26,6 @@
 #include <string.h>
 
 #include "fdm.h"
-
-#ifdef SHM_SYSV
 
 void *
 shm_create(struct shm *shm, size_t size)
