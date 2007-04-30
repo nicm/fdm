@@ -275,7 +275,8 @@ io_fill(struct io *io)
 
 	/* move data back to the base of the buffer */
 	if (io->roff > 0) {
-		memmove(io->rbase, io->rbase + io->roff, io->rsize);
+		if (io->rsize > 0)
+			memmove(io->rbase, io->rbase + io->roff, io->rsize);
 		io->roff = 0;
 	}
 
