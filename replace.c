@@ -85,6 +85,8 @@ static const char *aliases[] = {
 	NULL, 		/* Z */
 };
 
+char	*replace(char *, struct strb *, struct mail *, struct rmlist *);
+
 void printflike3
 add_tag(struct strb **tags, const char *key, const char *value, ...)
 {

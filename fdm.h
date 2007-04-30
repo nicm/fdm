@@ -969,8 +969,6 @@ const char 		*find_tag(struct strb *, const char *);
 const char		*match_tag(struct strb *, const char *);
 void			 default_tags(struct strb **, char *, struct account *);
 void			 update_tags(struct strb **);
-char 			*replace(char *, struct strb *, struct mail *,
-			     struct rmlist *);
 char 			*replacestr(struct replstr *, struct strb *,
 			     struct mail *, struct rmlist *);
 char 			*replacepath(struct replpath *, struct strb *,
