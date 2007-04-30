@@ -53,7 +53,6 @@ int	fetch_nntp_save(struct account *);
 
 struct fetch fetch_nntp = {
 	"nntp",
-	{ "nntp", NULL },
 	fetch_nntp_start,
 	fetch_nntp_fill,
 	fetch_nntp_poll,

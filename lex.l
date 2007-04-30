@@ -195,6 +195,7 @@ matched return (TOKMATCHED);
 mbox return (TOKMBOX);
 nntp return (TOKNNTP);
 no-received return (TOKNORECEIVED);
+no-verify return (TOKNOVERIFY);
 none return (TOKNONE);
 not return (TOKNOT);
 or return (TOKOR);

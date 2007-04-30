@@ -311,7 +311,7 @@ io_fill(struct io *io)
 		if (n == 0)
 			return (0);
 		if (n < 0) {
-			switch (SSL_get_error(io->ssl, n)) {
+			switch (n = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
 				/* a repeat is certain (poll on the socket
 				   will still return data ready) so this can
@@ -323,8 +323,7 @@ io_fill(struct io *io)
 			default:
 				if (io->error != NULL)
 					xfree(io->error);
-				xasprintf(&io->error, "io: SSL_read: %s",
-				    SSL_err());
+				io->error = sslerror2(n, "SSL_read");
 				return (-1);
 			}
 		}
@@ -385,7 +384,7 @@ io_push(struct io *io)
 		if (n == 0)
 			return (0);
 		if (n < 0) {
-			switch (SSL_get_error(io->ssl, n)) {
+			switch (n = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
 				io->flags |= IO_NEEDPUSH;
 				break;
@@ -396,8 +395,7 @@ io_push(struct io *io)
 			default:
 				if (io->error != NULL)
 					xfree(io->error);
-				xasprintf(&io->error, "io: SSL_write: %s",
-				    SSL_err());
+				io->error = sslerror2(n, "SSL_write");
 				return (-1);
 			}
 		}

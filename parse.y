@@ -702,7 +702,7 @@ find_netrc(const char *host, char **user, char **pass)
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT
+%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
 %token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
@@ -742,6 +742,10 @@ find_netrc(const char *host, char **user, char **pass)
 		char		*pass;
 		int		 pass_netrc;
 	} userpass;
+	struct {
+		int		 ssl;
+		int		 verify;
+	} servtype;
 }
 
 %token INCLUDE
@@ -756,8 +760,8 @@ find_netrc(const char *host, char **user, char **pass)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled keep poptype imaptype execpipe compress
-%type  <flag> addfrom
+%type  <flag> cont icase not disabled keep execpipe compress addfrom verify
+%type  <flag> poptype imaptype
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc
@@ -786,14 +790,19 @@ cmds: /* empty */
     | cmds INCLUDE
 
 /* Plural/singular combinations. */
+/** ACTIONP */
 actionp: TOKACTION
        | TOKACTIONS
+/** USERP */
 userp: TOKUSER
      | TOKUSERS
+/** ACCOUNTP */
 accountp: TOKACCOUNT
         | TOKACCOUNTS
+/** GROUPP */
 groupp: TOKGROUP
       | TOKGROUPS
+/** MAILDIRP */
 maildirp: TOKMAILDIR
         | TOKMAILDIRS
 
@@ -1630,180 +1639,180 @@ addfrom: TOKADDFROM
 		 $$ = 0;
 	 }
 
-/** ACTION: <action> (struct action) */
+/** ACTITEM: <actitem> (struct actitem *) */
 actitem: TOKPIPE strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_pipe_data	*data;
-		    
+
 		 if (*$2 == '\0')
 			 yyerror("invalid command");
-		 
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_pipe;
-		 
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		 
+
 		 data->cmd.str = $2;
 	 }
        | TOKEXEC strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_pipe_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid command");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_exec;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->cmd.str = $2;
 	 }
        | TOKREWRITE strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_rewrite_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid command");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_rewrite;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->cmd.str = $2;
 	 }
        | TOKWRITE strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_write_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid path");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_write;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
 		 data->path.str = $2;
 	 }
        | TOKAPPEND strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_write_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid path");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_append;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
 		 data->path.str = $2;
 	 }
        | TOKMAILDIR strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_maildir_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid path");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_maildir;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->path.str = $2;
 	 }
        | TOKREMOVEHEADER strv
-/**     [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_remove_header_data *data;
 		 char				*cp;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid header");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_remove_header;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((int) *cp);
 		 data->hdr.str = $2;
 	 }
        | TOKADDHEADER strv strv
-/**     [$2: strv (char *)] [$3: strv (char *)] */
+/**      [$2: strv (char *)] [$3: strv (char *)] */
 	 {
 		 struct deliver_add_header_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid header");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_add_header;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->hdr.str = $2;
 		 data->value.str = $3;
 	 }
 	 | TOKAPPENDSTRING strv
-/**     [$2: strv (char *)] */
+/**        [$2: strv (char *)] */
 	 {
 		 struct deliver_append_string_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid string");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_append_string;
-		
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
 		 data->str.str = $2;
 	 }
        | TOKMBOX strv compress
-/**     [$2: strv (char *)] [$3: compress (int)] */
+/**      [$2: strv (char *)] [$3: compress (int)] */
 	 {
 		 struct deliver_mbox_data	*data;
-		   
+
 		 if (*$2 == '\0')
 			 yyerror("invalid path");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_mbox;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->path.str = $2;
 		 data->compress = $3;
 	 }
        | TOKSMTP server to
-/**     [$2: server (struct  { ... } server)] [$3: to (char *)] */
+/**      [$2: server (struct { ... } server)] [$3: to (char *)] */
 	 {
 		 struct deliver_smtp_data	*data;
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_smtp;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
@@ -1816,53 +1825,55 @@ actitem: TOKPIPE strv
 		 data->to.str = $3;
 	 }
        | TOKSTDOUT addfrom
-/**     [$2: addfrom (int)] */
+/**      [$2: addfrom (int)] */
 	 {
 		 struct deliver_stdout_data	*data;
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_stdout;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->add_from = $2;
 	 }
        | TOKTAG strv
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_tag_data	*data;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_tag;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->key.str = $2;
 		 data->value.str = NULL;
 	 }
        | TOKTAG strv TOKVALUE strv
+/**      [$2: strv (char *)] [$4: strv (char *)] */
 	 {
 		 struct deliver_tag_data	*data;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
-		   
+
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_tag;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
-		   
+
 		 data->key.str = $2;
 		 data->value.str = $4;
 	 }
        | TOKDROP
          {
-		 $$ = xcalloc(1, sizeof *$$);	
+		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_drop;
 	 }
        | TOKKEEP
@@ -1871,7 +1882,9 @@ actitem: TOKPIPE strv
 		 $$->deliver = &deliver_keep;
 	 }
 
+/** ACTLIST: <actlist> (struct actlist *) */
 actlist: actlist actitem
+/**      [$1: actlist (struct actlist *)] [$2: actitem (struct actitem *)] */
 	 {
 		 $$ = $1;
 
@@ -1879,10 +1892,11 @@ actlist: actlist actitem
 		 $2->idx = actidx++;
 	 }
        | actitem
+/**      [$1: actitem (struct actitem *)] */
 	 {
 		 $$ = xmalloc(sizeof *$$);
 		 TAILQ_INIT($$);
-		 
+
 		 TAILQ_INSERT_HEAD($$, $1, entry);
 		 $1->idx = 0;
 
@@ -1892,7 +1906,7 @@ actlist: actlist actitem
 /** DEFACTION */
 defaction: TOKACTION replstrv users actitem
 /**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
-/**        [$4: action (struct action)] */
+/**        [$4: actitem (struct actitem *)] */
 	   {
 		   struct action	*t;
 
@@ -1921,7 +1935,7 @@ defaction: TOKACTION replstrv users actitem
 	   }
 	 | TOKACTION replstrv users '{' actlist '}'
 /**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
-/**        [$4: action (struct action)] */
+/**        [$5: actlist (struct actlist *)] */
 	   {
 		   struct action	*t;
 
@@ -2445,7 +2459,7 @@ expr: expritem
 	      TAILQ_INSERT_HEAD($$, $1, entry);
       }
 
-/** MATCH: <match> (struct { ... } match) */
+/** MATCH: <expr> (struct expr *) */
 match: TOKMATCH expr
 /**    [$2: expr (struct expr *)] */
        {
@@ -2469,19 +2483,19 @@ perform: TOKTAG strv
 		 log_warnx("%s: \"match ... tag ...\" is deprecated, "
 		     "please use \"match ... action tag ... continue\" "
 		     "at line %d", file, yylineno);
-		 
+
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
-		   
+
 		 ti = xcalloc(1, sizeof *$$);
 		 ti->deliver = &deliver_tag;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 ti->data = data;
-		   
+
 		 data->key.str = $2;
 		 data->value.str = NULL;
 
@@ -2496,7 +2510,7 @@ perform: TOKTAG strv
 		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
 		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
 		 t->users = NULL;
-		 t->find_uid = 0; 
+		 t->find_uid = 0;
 		 t->list = xmalloc(sizeof *t->list);
 		 TAILQ_INIT(t->list);
 		 TAILQ_INSERT_HEAD(t->list, ti, entry);
@@ -2518,19 +2532,19 @@ perform: TOKTAG strv
 		 file = curfile == NULL ? conf.conf_file : curfile;
 		 log_warnx("%s: \"match ... tag\" is deprecated, please use "
 		     "\"match ... action tag\" at line %d", file, yylineno);
-		 
+
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
 
 		 if (*$2 == '\0')
 			 yyerror("invalid tag");
-		   
+
 		 ti = xcalloc(1, sizeof *$$);
 		 ti->deliver = &deliver_tag;
-		   
+
 		 data = xcalloc(1, sizeof *data);
 		 ti->data = data;
-		   
+
 		 data->key.str = $2;
 		 data->value.str = $4;
 
@@ -2545,7 +2559,7 @@ perform: TOKTAG strv
 		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
 		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
 		 t->users = NULL;
-		 t->find_uid = 0; 
+		 t->find_uid = 0;
 		 t->list = xmalloc(sizeof *t->list);
 		 TAILQ_INIT(t->list);
 		 TAILQ_INSERT_HEAD(t->list, ti, entry);
@@ -2557,6 +2571,8 @@ perform: TOKTAG strv
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
        | users actionp actitem cont
+/**      [$1: users (struct { ... } users)] */
+/**      [$3: actitem (struct actitem *)] [$4: cont (int)] */
 	 {
 		 struct action	*t;
 
@@ -2571,7 +2587,7 @@ perform: TOKTAG strv
 		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
 		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
 		 t->users = NULL;
-		 t->find_uid = 0; 
+		 t->find_uid = 0;
 		 t->list = xmalloc(sizeof *t->list);
 		 TAILQ_INIT(t->list);
 		 TAILQ_INSERT_HEAD(t->list, $3, entry);
@@ -2583,6 +2599,8 @@ perform: TOKTAG strv
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 	 }
        | users actionp '{' actlist '}' cont
+/**      [$1: users (struct { ... } users)] */
+/**      [$4: actlist (struct actlist *)] [$6: cont (int)] */
 	 {
 		 struct action	*t;
 
@@ -2597,7 +2615,7 @@ perform: TOKTAG strv
 		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
 		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
 		 t->users = NULL;
-		 t->find_uid = 0; 
+		 t->find_uid = 0;
 		 t->list = $4;
 
 		 if (currule == NULL)
@@ -2611,7 +2629,7 @@ perform: TOKTAG strv
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
-		 $$->lambda = NULL;	
+		 $$->lambda = NULL;
 		 $$->actions = $2;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$3;
@@ -2627,7 +2645,7 @@ perform: TOKTAG strv
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->idx = ruleidx++;
-		 $$->lambda = NULL;	
+		 $$->lambda = NULL;
 		 $$->actions = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
@@ -2655,7 +2673,7 @@ close: '}'
 
 /** RULE */
 rule: match accounts perform
-/**   [$1: match (struct { ... } match)] [$2: accounts (struct strings *)] */
+/**   [$1: match (struct expr *)] [$2: accounts (struct strings *)] */
 /**   [$3: perform (struct rule *)] */
       {
 	      $3->accounts = $2;
@@ -2734,24 +2752,36 @@ groups: groupp replstrv
 		$$ = weed_strings($3);
 	}
 
+/** VERIFY: <flag> (int) */
+verify: TOKNOVERIFY
+	{
+		$$ = 0;
+	}
+      | /* empty */
+	{
+		$$ = 1;
+	}
+
 /** POPTYPE: <flag> (int) */
 poptype: TOKPOP3
          {
-		 $$ = FETCHPORT_NORMAL;
+		 $$ = 0;
          }
-       | TOKPOP3S
+       | TOKPOP3S verify
+/**      [$2: verify (int)] */
 	 {
-		 $$ = FETCHPORT_SSL;
+		 $$ = 1;
 	 }
 
 /** IMAPTYPE: <flag> (int) */
 imaptype: TOKIMAP
           {
-		  $$ = FETCHPORT_NORMAL;
+		  $$ = 0;
           }
-        | TOKIMAPS
+        | TOKIMAPS verify
+/**       [$2: verify (int)] */
 	  {
-		  $$ = FETCHPORT_SSL;
+		  $$ = 1;
 	  }
 
 /** USERPASSNETRC: <userpass> (struct { ... } userpass) */
@@ -2822,9 +2852,9 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server userpassnetrc
+fetchtype: poptype server userpassnetrc verify
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
-/**        [$3: userpassnetrc (struct { ... } userpass)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] [$4: verify (int)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2846,16 +2876,20 @@ fetchtype: poptype server userpassnetrc
 		   }
 
 		   data->server.ssl = $1;
+		   data->server.verify = $4;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
+		   else if ($1)
+			   data->server.port = xstrdup("pop3s");
 		   else
-			   data->server.port = xstrdup($$.fetch->ports[$1]);
+			   data->server.port = xstrdup("pop3");
 		   data->server.ai = NULL;
 	   }
-         | imaptype server userpassnetrc folder
+         | imaptype server userpassnetrc folder verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] [$4: folder (char *)] */
+/**        [$5: verify (int)] */
            {
 		   struct fetch_imap_data	*data;
 
@@ -2881,11 +2915,14 @@ fetchtype: poptype server userpassnetrc
 
 		   data->folder = $4 == NULL ? xstrdup("INBOX") : $4;
 		   data->server.ssl = $1;
+		   data->server.verify = $5;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
+		   else if ($1)
+			   data->server.port = xstrdup("imaps");
 		   else
-			   data->server.port = xstrdup($$.fetch->ports[$1]);
+			   data->server.port = xstrdup("imap");
 		   data->server.ai = NULL;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folder
@@ -2952,7 +2989,7 @@ fetchtype: poptype server userpassnetrc
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
 		   else
-			   data->server.port = xstrdup($$.fetch->ports[0]);
+			   data->server.port = xstrdup("nntp");
 		   data->server.ai = NULL;
 	   }
 

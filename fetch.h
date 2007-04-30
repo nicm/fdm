@@ -32,10 +32,6 @@
 struct fetch {
 	const char	*name;
 
-#define FETCHPORT_NORMAL 0
-#define FETCHPORT_SSL 1
-	const char	*ports[2];	/* normal port, ssl port */
-
 	int		 (*start)(struct account *, int *);
 	void		 (*fill)(struct account *, struct io **, u_int *n);
 	int 		 (*poll)(struct account *, u_int *);

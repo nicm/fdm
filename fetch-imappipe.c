@@ -34,7 +34,6 @@ void		 fetch_imappipe_flush(struct account *);
 
 struct fetch fetch_imappipe = {
 	"imappipe",
-	{ NULL, NULL },
 	fetch_imappipe_start,
 	fetch_imappipe_fill,
 	imap_poll,	/* from imap-common.c */

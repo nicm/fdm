@@ -1,5 +1,6 @@
 30 April 2007
 
+* Verify SSL certificates.
 * Option to use PCRE (build with make -DPCRE).
 
 19 April 2007

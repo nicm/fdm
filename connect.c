@@ -39,7 +39,50 @@
 int	httpproxy(struct server *, struct proxy *, struct io *, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
 int	getport(char *);
-SSL    *makessl(int, char **);
+SSL    *makessl(int, int, char **);
+
+char *
+sslerror(const char *fn)
+{
+	char	*cause;
+	
+	xasprintf(&cause,
+	    "%s: %s", fn, ERR_error_string(ERR_get_error(), NULL));
+	return (cause);
+}
+
+char *
+sslerror2(int n, const char *fn)
+{
+	char	*cause;
+	int	 saved_errno;
+
+	saved_errno = errno;
+	switch (n) {
+	case SSL_ERROR_ZERO_RETURN:
+		errno = ECONNRESET;
+		/* FALLTHROUGH */
+	case SSL_ERROR_SYSCALL:
+		xasprintf(&cause, "%s: %s", fn, strerror(saved_errno));
+		return (cause);
+	case SSL_ERROR_WANT_CONNECT:
+		xasprintf(&cause, "%s: want connect", fn);
+		return (cause);
+	case SSL_ERROR_WANT_ACCEPT:
+		xasprintf(&cause, "%s: want accept", fn);
+		return (cause);
+	case SSL_ERROR_WANT_READ:
+		xasprintf(&cause, "%s: want read", fn);
+		return (cause);
+	case SSL_ERROR_WANT_WRITE:
+		xasprintf(&cause, "%s: want write", fn);
+		return (cause);
+	}
+
+	xasprintf(&cause,
+	    "%s: %d: %s", fn, n, ERR_error_string(ERR_get_error(), NULL));
+	return (cause);
+}
 
 struct proxy *
 getproxy(const char *xurl)
@@ -164,7 +207,7 @@ connectproxy(struct server *srv, struct proxy *pr, const char *eol, int timeout,
 	}
 
 	/* if the original request was for SSL, initiate it now */
-	if (srv->ssl && (io->ssl = makessl(io->fd, cause)) == NULL)
+	if (srv->ssl && (io->ssl = makessl(io->fd, srv->verify, cause)) == NULL)
 		goto error;
 
 	io->eol = eol;
@@ -387,39 +430,76 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 #endif /* NO_PROXY */
 
 SSL *
-makessl(int fd, char **cause)
+makessl(int fd, int verify, char **cause)
 {
 	SSL_CTX		*ctx;
 	SSL		*ssl;
-	int		 n;
+	X509		*cert = NULL;
+	char		 buf[256];
+	int	 	 n, mode;
+	long		 r;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
 	ssl = SSL_new(ctx);
 	if (ssl == NULL) {
-		xasprintf(cause, "SSL_new: %s", SSL_err());
-		return (NULL);
+		*cause = sslerror("SSL_new");
+		goto error;
 	}
 
 	if (SSL_set_fd(ssl, fd) != 1) {
-		xasprintf(cause, "SSL_set_fd: %s", SSL_err());
-		return (NULL);
+		*cause = sslerror("SSL_set_fd");
+		goto error;
 	}
+
+	/*
+	 * Switch the socket to blocking mode to be sure we have the received
+	 * the certificate. XXX This means our timeout is ignored.
+	 */
+	if ((mode = fcntl(fd, F_GETFL)) == -1)
+		fatal("fcntl");
+	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
+		fatal("fcntl");
 
 	SSL_set_connect_state(ssl);
 	if ((n = SSL_connect(ssl)) < 1) {
-		switch (SSL_get_error(ssl, n)) {
-		case SSL_ERROR_WANT_READ:
-		case SSL_ERROR_WANT_WRITE:
-			break;
-		default:
-			xasprintf(cause, "SSL_connect: %d: %s", n, SSL_err());
-			return (NULL);
+		*cause = sslerror2(SSL_get_error(ssl, n), "SSL_connect");
+		goto error;
+	}
+
+	/* reset to non-blocking mode */
+	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
+		fatal("fcntl");
+
+	if ((cert = SSL_get_peer_certificate(ssl)) != NULL) {
+		X509_NAME_oneline(X509_get_subject_name(cert), buf, sizeof buf);
+		log_debug2("cert subject: %s", buf);
+		X509_NAME_oneline(X509_get_issuer_name(cert), buf, sizeof buf);
+		log_debug2("cert issuer: %s", buf);
+
+		/* verify certificate if necessary */
+		if (verify && ((r = SSL_get_verify_result(ssl)) != X509_V_OK)) {
+			xasprintf(cause, "certificate verification failed: %s",
+			    X509_verify_cert_error_string(r));
+			goto error;
 		}
+	} else if (verify) {
+		/* no certificate, error if we wanted to verify it */
+		xasprintf(cause, 
+		    "certificate verification failed: no certificate");
+		goto error;
 	}
 
 	return (ssl);
+
+error:
+	if (cert != NULL)
+		X509_free(cert);
+	SSL_CTX_free(ctx);
+	if (ssl != NULL)
+		SSL_free(ssl);
+	return (NULL);
 }
 
 struct io *
@@ -466,17 +546,17 @@ connectio(struct server *srv, const char *eol, int timeout, char **cause)
 	if (!srv->ssl)
 		return (io_create(fd, NULL, eol, timeout));
 
-	/*
-	 * Set non-blocking. Normally io_create does this, but it must be
-	 * done before SSL_set_fd otherwise the SSL won't be non-blocking for
-	 * SSL_connect.
-	 */
+       /*
+	* Set non-blocking. Normally io_create does this, but it must be
+        * done before SSL_set_fd otherwise the SSL won't be non-blocking for
+        * SSL_connect.
+        */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
 		fatal("fcntl");
 	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
 		fatal("fcntl");
 	
-	if ((ssl = makessl(fd, cause)) == NULL) {
+	if ((ssl = makessl(fd, srv->verify, cause)) == NULL) {
 		close(fd);
 		return (NULL);
 	}
