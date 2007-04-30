@@ -54,7 +54,7 @@ attach_visit(struct attach *atr, u_int *n)
 	return (atr);
 }
 
-void
+void printflike2
 attach_log(struct attach *atr, const char *fmt, ...)
 {
 	va_list	 	 ap;
