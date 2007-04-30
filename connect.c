@@ -181,15 +181,15 @@ error:
 }
 
 struct io *
-connectproxy(struct server *srv, struct proxy *pr, const char *eol, int timeout,
-    char **cause)
+connectproxy(struct server *srv, int verify, struct proxy *pr, const char *eol,
+    int timeout, char **cause)
 {
 	struct io	*io;
 
 	if (pr == NULL)
-		return (connectio(srv, eol, timeout, cause));
+		return (connectio(srv, verify, eol, timeout, cause));
 
-	io = connectio(&pr->server, IO_CRLF, timeout, cause);
+	io = connectio(&pr->server, verify, IO_CRLF, timeout, cause);
 	if (io == NULL)
 		return (NULL);
 
@@ -207,8 +207,11 @@ connectproxy(struct server *srv, struct proxy *pr, const char *eol, int timeout,
 	}
 
 	/* if the original request was for SSL, initiate it now */
-	if (srv->ssl && (io->ssl = makessl(io->fd, srv->verify, cause)) == NULL)
-		goto error;
+	if (srv->ssl) {
+		io->ssl = makessl(io->fd, verify && srv->verify, cause);
+		if (io->ssl == NULL)
+			goto error;
+	}
 
 	io->eol = eol;
 	return (io);
@@ -434,8 +437,6 @@ makessl(int fd, int verify, char **cause)
 {
 	SSL_CTX		*ctx;
 	SSL		*ssl;
-	X509		*cert = NULL;
-	char		 buf[256];
 	int	 	 n, mode;
 	long		 r;
 
@@ -474,12 +475,7 @@ makessl(int fd, int verify, char **cause)
 	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
 		fatal("fcntl");
 
-	if ((cert = SSL_get_peer_certificate(ssl)) != NULL) {
-		X509_NAME_oneline(X509_get_subject_name(cert), buf, sizeof buf);
-		log_debug2("cert subject: %s", buf);
-		X509_NAME_oneline(X509_get_issuer_name(cert), buf, sizeof buf);
-		log_debug2("cert issuer: %s", buf);
-
+	if (SSL_get_peer_certificate(ssl) != NULL) {
 		/* verify certificate if necessary */
 		if (verify && ((r = SSL_get_verify_result(ssl)) != X509_V_OK)) {
 			xasprintf(cause, "certificate verification failed: %s",
@@ -496,8 +492,6 @@ makessl(int fd, int verify, char **cause)
 	return (ssl);
 
 error:
-	if (cert != NULL)
-		X509_free(cert);
 	SSL_CTX_free(ctx);
 	if (ssl != NULL)
 		SSL_free(ssl);
@@ -505,7 +499,8 @@ error:
 }
 
 struct io *
-connectio(struct server *srv, const char *eol, int timeout, char **cause)
+connectio(struct server *srv, int verify, const char *eol, int timeout,
+    char **cause)
 {
 	int		 fd = -1, error = 0, mode;
 	struct addrinfo	 hints;
@@ -558,7 +553,7 @@ connectio(struct server *srv, const char *eol, int timeout, char **cause)
 	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
 		fatal("fcntl");
 	
-	if ((ssl = makessl(fd, srv->verify, cause)) == NULL) {
+	if ((ssl = makessl(fd, verify && srv->verify, cause)) == NULL) {
 		close(fd);
 		return (NULL);
 	}

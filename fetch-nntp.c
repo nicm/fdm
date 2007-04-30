@@ -411,8 +411,8 @@ fetch_nntp_start(struct account *a, unused int *total)
 	if (fetch_nntp_load(a) != 0)
 		return (FETCH_ERROR);
 
-	data->io = connectproxy(&data->server,
-	    conf.proxy ,IO_CRLF, conf.timeout, &cause);
+	data->io = connectproxy(&data->server, conf.verify_certs, conf.proxy,
+	    IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);

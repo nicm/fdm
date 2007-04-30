@@ -132,8 +132,8 @@ fetch_imap_start(struct account *a, int *total)
 	if (imap_start(a) != FETCH_SUCCESS)
 		return (FETCH_ERROR);
 
-	data->io = connectproxy(&data->server,
-	    conf.proxy, IO_CRLF, conf.timeout, &cause);
+	data->io = connectproxy(&data->server, conf.verify_certs, conf.proxy,
+	    IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
