@@ -62,15 +62,8 @@ re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
 	int		res, pm[NPMATCH];
 	u_int		i, j;
 
-	if (re->flags & RE_NOSUBST) {
-		if (rml != NULL)
-			fatalx("re_block: nosub re but rml != NULL");
-	} else {
-		if (rml == NULL)
-			fatalx("re_block: !nosub re but rml == NULL");
-	}
 	if (len > INT_MAX)
-		fatalx("re_block: len too big");
+		fatalx("re_block: buffer too big");
 
 	if (rml != NULL)
 		memset(rml, 0, sizeof *rml);

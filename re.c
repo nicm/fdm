@@ -58,49 +58,7 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 int
 re_string(struct re *re, char *s, struct rmlist *rml, char **cause)
 {
-	int		res;
-	regmatch_t	pm[NPMATCH];
-	u_int		i;
-
-	if (re->flags & RE_NOSUBST) {
-		if (rml != NULL)
-			fatalx("re_string: nosub re but rml != NULL");
-	} else {
-		if (rml == NULL)
-			fatalx("re_string: !nosub re but rml == NULL");
-	}
-
-	if (rml != NULL)
-		memset(rml, 0, sizeof *rml);
-
-	/*
-	 * If the source string is empty, there is no regexp, so just check
-	 * whether or not the target string is also empty.
-	 */
-	if (*re->str == '\0') {
-		if (*s == '\0')
-			return (1);
-		return (0);
-	}
-
-	res = regexec(&re->re, s, NPMATCH, pm, 0);
-	if (res != 0 && res != REG_NOMATCH) {
-		xasprintf(cause, "%s: regexec failed", re->str);
-		return (-1);
-	}
-
-	if (rml != NULL) {
-		for (i = 0; i < NPMATCH; i++) {
-			if (pm[i].rm_eo <= pm[i].rm_so)
-				break;
-			rml->list[i].valid = 1;
-			rml->list[i].so = pm[i].rm_so;
-			rml->list[i].eo = pm[i].rm_eo;
-		}
-		rml->valid = 1;
-	}
-
-	return (res == 0);
+	return (re_block(re, s, strlen(s), rml, cause));
 }
 
 int
@@ -109,14 +67,6 @@ re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
 	int		res;
 	regmatch_t	pm[NPMATCH];
 	u_int		i;
-
-	if (re->flags & RE_NOSUBST) {
-		if (rml != NULL)
-			fatalx("re_block: nosub re but rml != NULL");
-	} else {
-		if (rml == NULL)
-			fatalx("re_block: !nosub re but rml == NULL");
-	}
 
 	if (rml != NULL)
 		memset(rml, 0, sizeof *rml);
