@@ -440,8 +440,10 @@ makessl(int fd, int verify, char **cause)
 	long		 r;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
+        SSL_CTX_set_options(ctx, SSL_OP_ALL);
+        SSL_CTX_set_default_verify_paths(ctx);
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-
+	
 	ssl = SSL_new(ctx);
 	if (ssl == NULL) {
 		*cause = sslerror("SSL_new");
