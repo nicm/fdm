@@ -45,7 +45,7 @@ char *
 sslerror(const char *fn)
 {
 	char	*cause;
-	
+
 	xasprintf(&cause,
 	    "%s: %s", fn, ERR_error_string(ERR_get_error(), NULL));
 	return (cause);
@@ -444,7 +444,7 @@ makessl(int fd, int verify, char **cause)
         SSL_CTX_set_options(ctx, SSL_OP_ALL);
         SSL_CTX_set_default_verify_paths(ctx);
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-	
+
 	ssl = SSL_new(ctx);
 	if (ssl == NULL) {
 		*cause = sslerror("SSL_new");
@@ -484,7 +484,7 @@ makessl(int fd, int verify, char **cause)
 		}
 	} else if (verify) {
 		/* no certificate, error if we wanted to verify it */
-		xasprintf(cause, 
+		xasprintf(cause,
 		    "certificate verification failed: no certificate");
 		goto error;
 	}
@@ -552,7 +552,7 @@ connectio(struct server *srv, int verify, const char *eol, int timeout,
 		fatal("fcntl");
 	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
 		fatal("fcntl");
-	
+
 	if ((ssl = makessl(fd, verify && srv->verify, cause)) == NULL) {
 		close(fd);
 		return (NULL);

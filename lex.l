@@ -87,7 +87,7 @@ include[ \t]*\" {
 		strb_create(&parse_tags);
 		default_tags(&parse_tags, NULL, NULL);
 	}
-	
+
 	rp.str = read_str('"', 1);
 	s = replacepath(&rp, parse_tags, NULL, NULL);
 	xfree(rp.str);
@@ -104,7 +104,7 @@ include[ \t]*\' {
 		strb_create(&parse_tags);
 		default_tags(&parse_tags, NULL, NULL);
 	}
-	
+
 	rp.str = read_str('\'', 0);
 	s = replacepath(&rp, parse_tags, NULL, NULL);
 	xfree(rp.str);
@@ -361,7 +361,7 @@ include_start(char *file)
 
 	top = xmalloc(sizeof *top);
 	top->yyin = yyin;
-	top->yylineno = yylineno;	
+	top->yylineno = yylineno;
 	top->yybuffer = YY_CURRENT_BUFFER;
 	top->curfile = curfile;
 	ARRAY_ADD(&filestack, top, struct fileent *);

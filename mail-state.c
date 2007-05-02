@@ -76,7 +76,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		case MATCH_ERROR:
 			return (MAIL_ERROR);
 		case MATCH_TRUE:
-			this = 1; 
+			this = 1;
 			break;
 		case MATCH_FALSE:
 			this = 0;
@@ -85,7 +85,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 			fatalx("child: unexpected response");
 		}
 		apply_result(ei, &mctx->result, this);
-	
+
 		goto next_expritem;
 	}
 
@@ -178,7 +178,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	case MATCH_PARENT:
 		return (MAIL_BLOCKED);
 	case MATCH_TRUE:
-		this = 1; 
+		this = 1;
 		break;
 	case MATCH_FALSE:
 		this = 0;
@@ -237,15 +237,15 @@ skip:
 		return (MAIL_CONTINUE);
 	}
 
-	/* 
+	/*
 	 * Handle lambda actions.
 	 */
 	if (mctx->rule->lambda != NULL) {
 		users = find_delivery_users(mctx, NULL, &should_free);
 
-		fill_delivery_action(mctx, 
+		fill_delivery_action(mctx,
 		    mctx->rule, mctx->rule->lambda, users);
-			
+
 		if (should_free)
 			ARRAY_FREEALL(users);
 		error = MAIL_DELIVER;
@@ -424,9 +424,9 @@ fill_delivery_queue(struct mail_ctx *mctx, struct rule *r)
 		for (j = 0; j < ARRAY_LENGTH(ta); j++) {
 			t = ARRAY_ITEM(ta, j, struct action *);
 			users = find_delivery_users(mctx, t, &should_free);
-			
+
 			fill_delivery_action(mctx, r, t, users);
-			
+
 			if (should_free)
 				ARRAY_FREEALL(users);
 		}
@@ -465,7 +465,7 @@ fill_delivery_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 			dctx->uid = ARRAY_ITEM(users, i, uid_t);
 
 			log_debug3("%s: action %s:%u (%s), uid %lu", a->name,
-			    t->name, ti->idx, ti->deliver->name, 
+			    t->name, ti->idx, ti->deliver->name,
 			    (u_long) dctx->uid);
 			TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
 		}

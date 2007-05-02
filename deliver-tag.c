@@ -75,7 +75,7 @@ deliver_tag_desc(struct actitem *ti, char *buf, size_t len)
 	if (data->value.str == NULL)
 		xsnprintf(buf, len, "tag \"%s\"", data->key.str);
 	else {
-		xsnprintf(buf, len, 
+		xsnprintf(buf, len,
 		    "tag \"%s\" value \"%s\"", data->key.str, data->value.str);
 	}
 }

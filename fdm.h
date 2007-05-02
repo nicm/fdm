@@ -561,7 +561,7 @@ struct actitem {
 	void			*data;
 
 	TAILQ_ENTRY(actitem)	 entry;
-}; 
+};
 
 /* Action list. */
 TAILQ_HEAD(actlist, actitem);
