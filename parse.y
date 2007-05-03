@@ -624,7 +624,7 @@ expand_path(char *path)
 	struct passwd	*pw;
 
 	src = path;
-	while (isspace((int) *src))
+	while (isspace((u_char) *src))
 		src++;
 	if (src[0] != '~')
 		return (NULL);
@@ -1257,7 +1257,7 @@ domains: TOKDOMAIN replstrv
 		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
-			 *cp = tolower((int) *cp);
+			 *cp = tolower((u_char) *cp);
 		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKDOMAINS '{' domainslist '}'
@@ -1277,7 +1277,7 @@ domainslist: domainslist replstrv
 
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
-			     *cp = tolower((int) *cp);
+			     *cp = tolower((u_char) *cp);
 		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | replstrv
@@ -1291,7 +1291,7 @@ domainslist: domainslist replstrv
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
-			     *cp = tolower((int) *cp);
+			     *cp = tolower((u_char) *cp);
 		     ARRAY_ADD($$, $1, char *);
 	     }
 
@@ -1307,7 +1307,7 @@ headers: TOKHEADER replstrv
 		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
-			 *cp = tolower((int) *cp);
+			 *cp = tolower((u_char) *cp);
 		 ARRAY_ADD($$, $2, char *);
 	 }
        | TOKHEADERS '{' headerslist '}'
@@ -1327,7 +1327,7 @@ headerslist: headerslist replstrv
 
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
-			     *cp = tolower((int) *cp);
+			     *cp = tolower((u_char) *cp);
 		     ARRAY_ADD($$, $2, char *);
 	     }
 	   | replstrv
@@ -1341,7 +1341,7 @@ headerslist: headerslist replstrv
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
-			     *cp = tolower((int) *cp);
+			     *cp = tolower((u_char) *cp);
 		     ARRAY_ADD($$, $1, char *);
 	     }
 
@@ -1753,7 +1753,7 @@ actitem: TOKPIPE strv
 		 $$->data = data;
 
 		 for (cp = $2; *cp != '\0'; cp++)
-			 *cp = tolower((int) *cp);
+			 *cp = tolower((u_char) *cp);
 		 data->hdr.str = $2;
 	 }
        | TOKADDHEADER strv strv
@@ -2709,7 +2709,7 @@ groupslist: groupslist replstrv
 		    $$ = $1;
 
 		    for (cp = $2; *cp != '\0'; cp++)
-			    *cp = tolower((int) *cp);
+			    *cp = tolower((u_char) *cp);
 
 		    ARRAY_ADD($$, $2, char *);
 	    }
@@ -2725,7 +2725,7 @@ groupslist: groupslist replstrv
 		    ARRAY_INIT($$);
 
 		    for (cp = $1; *cp != '\0'; cp++)
-			    *cp = tolower((int) *cp);
+			    *cp = tolower((u_char) *cp);
 
 		    ARRAY_ADD($$, $1, char *);
 	    }
@@ -2743,7 +2743,7 @@ groups: groupp replstrv
 		ARRAY_INIT($$);
 
 		for (cp = $2; *cp != '\0'; cp++)
-			*cp = tolower((int) *cp);
+			*cp = tolower((u_char) *cp);
 
 		ARRAY_ADD($$, $2, char *);
 	}

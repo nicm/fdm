@@ -123,7 +123,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	hdr += 13;
 
 	/* skip spaces */
-	while (len > 0 && isspace((int) *hdr)) {
+	while (len > 0 && isspace((u_char) *hdr)) {
 		len--;
 		hdr++;
 	}
@@ -162,7 +162,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	namelen = strlen(name);
 	for (;;) {
 		/* skip spaces and newlines */
-		while (len > 0 && (isspace((int) *hdr) || *hdr == '\n')) {
+		while (len > 0 && (isspace((u_char) *hdr) || *hdr == '\n')) {
 			hdr++;
 			len--;
 		}
