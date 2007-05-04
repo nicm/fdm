@@ -190,6 +190,18 @@ weed_users(struct users *up)
 }
 
 char *
+fmt_replstrs(const char *prefix, struct replstrs *rsp)
+{
+	return (fmt_strings(prefix, (struct strings *) rsp)); /* XXX */
+}
+
+void
+free_replstrs(struct replstrs *rsp)
+{
+	return (free_strings((struct strings *) rsp)); /* XXX */
+}
+
+char *
 fmt_strings(const char *prefix, struct strings *sp)
 {
 	char	*buf, *s;
@@ -390,7 +402,7 @@ print_rule(struct rule *r)
 		log_debug2("added rule %u:%s%s matches=%slambda=%s", r->idx,
 		    sa, su, s, desc);
 	} else if (r->actions != NULL) {
-		ss = fmt_strings(NULL, (struct strings *) r->actions);
+		ss = fmt_replstrs(NULL, r->actions);
 		log_debug2("added rule %u:%s%s matches=%sactions=%s", r->idx,
 		    sa, su, s, ss);
 		xfree(ss);
@@ -421,13 +433,21 @@ print_action(struct action *t)
 void
 make_actlist(struct actlist *tl, char *buf, size_t len)
 {
-	struct actitem	*ti;
-	char		 desc[DESCBUFSIZE];
-	size_t		 off;
+	struct actitem			*ti;
+	struct deliver_action_data	*data;
+	char				 desc[DESCBUFSIZE], *s;
+	size_t		 		 off;
 
 	off = 0;
 	TAILQ_FOREACH(ti, tl, entry) {
-		ti->deliver->desc(ti, desc, sizeof desc);
+		if (ti->deliver != NULL) 
+			ti->deliver->desc(ti, desc, sizeof desc);
+		else {
+			data = ti->data;
+			s = fmt_replstrs(NULL, data->actions);
+			xsnprintf(desc, sizeof desc, "action %s", s);
+			xfree(s);
+		}
 		off += xsnprintf(buf + off, len - off, "%u:%s ", ti->idx, desc);
 		if (off >= len)
 			break;
@@ -494,6 +514,10 @@ free_actitem(struct actitem *ti)
 		xfree(data->server.port);
 		if (data->server.ai != NULL)
 			freeaddrinfo(data->server.ai);
+	} else if (ti->deliver == NULL) {
+		struct deliver_action_data		*data = ti->data;
+		free_replstrs(data->actions);
+		ARRAY_FREEALL(data->actions);
 	}
 	if (ti->data != NULL)
 		xfree(ti->data);
@@ -514,7 +538,7 @@ free_rule(struct rule *r)
 	if (r->users != NULL)
 		ARRAY_FREEALL(r->users);
 	if (r->actions != NULL) {
-		free_strings((struct strings *) r->actions);
+		free_replstrs(r->actions);
 		ARRAY_FREEALL(r->actions);
 	}
 
@@ -1773,7 +1797,7 @@ actitem: TOKPIPE strv
 		 data->hdr.str = $2;
 		 data->value.str = $3;
 	 }
-	 | TOKAPPENDSTRING strv
+       | TOKAPPENDSTRING strv
 /**        [$2: strv (char *)] */
 	 {
 		 struct deliver_append_string_data	*data;
@@ -1872,6 +1896,23 @@ actitem: TOKPIPE strv
 		 data->key.str = $2;
 		 data->value.str = $4;
 	 }
+       | actions
+	 {
+		 struct deliver_action_data	*data;
+
+		 /* 
+		  * This is a special-case, handled when the list of delivery
+		  * targets is resolved rather than by calling a deliver 
+		  * function, so the deliver pointer is NULL. 
+		  */
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = NULL;
+
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+
+		 data->actions = $1;
+ 	 }
        | TOKDROP
          {
 		 $$ = xcalloc(1, sizeof *$$);
@@ -2011,11 +2052,7 @@ accountslist: accountslist replstrv
 	      }
 
 /** ACTIONS: <replstrs> (struct replstrs *) */
-actions: actionp TOKNONE
-	 {
-		 $$ = NULL;
-	 }
-       | actionp strv
+actions: actionp strv
 /**      [$2: strv (char *)] */
 	 {
 		 if (*$2 == '\0')

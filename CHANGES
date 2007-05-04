@@ -1,6 +1,20 @@
 04 May 2007
 
 * "match tag ..." is now not supported.
+* Permit actions to call other actions:
+
+	action "one" ...
+	action "two" ...
+	action "three" {
+		 ...
+		actions { "one" "two" }
+	}
+
+  A maximum of five levels is permitted, spoiling the
+
+	action "x" { action "x" }
+
+  fun.
 
 30 April 2007
 

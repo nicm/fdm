@@ -127,6 +127,11 @@ struct deliver_tag_data {
 	struct replstr	 value;
 };
 
+/* Deliver action data. */
+struct deliver_action_data {
+	struct replstrs	*actions;
+};
+
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;
 

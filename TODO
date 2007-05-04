@@ -31,3 +31,4 @@
 - fetch smallest/largest mails first. best pattern? probably 1 small, then in
   decreasing size order, but with longer queue necessary
 - document set verify-certificates/no-verify (http://cvs.mirbsd.de/src/etc/ssl.certs.shar)
+- document chained actions

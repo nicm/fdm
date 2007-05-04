@@ -29,8 +29,11 @@
 void		apply_result(struct expritem *, int *, int);
 
 struct users   *find_delivery_users(struct mail_ctx *, struct action *, int *);
-int		fill_delivery_queue(struct mail_ctx *, struct rule *);
-void		fill_delivery_action(struct mail_ctx *, struct rule *,
+int		fill_from_strings(struct mail_ctx *, struct rule *,
+		    struct replstrs *);
+int		fill_from_string(struct mail_ctx *, struct rule *, 
+		    struct replstr *);
+int		fill_from_action(struct mail_ctx *, struct rule *,
     		    struct action *, struct users *);
 
 int		start_action(struct mail_ctx *, struct deliver_ctx *);
@@ -40,6 +43,13 @@ int		finish_action(struct deliver_ctx *, struct msg *,
 #define ACTION_DONE 0
 #define ACTION_ERROR 1
 #define ACTION_PARENT 2
+
+/*
+ * Number of chained actions. Limit on recursion with things like:
+ *
+ * 	action "name" { action "name" }
+ */
+u_int	chained;
 
 int
 mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
@@ -243,8 +253,13 @@ skip:
 	if (mctx->rule->lambda != NULL) {
 		users = find_delivery_users(mctx, NULL, &should_free);
 
-		fill_delivery_action(mctx,
-		    mctx->rule, mctx->rule->lambda, users);
+		chained = MAXACTIONCHAIN;
+		if (fill_from_action(mctx, 
+		    mctx->rule, mctx->rule->lambda, users) != 0) {
+			if (should_free)
+				ARRAY_FREEALL(users);
+			return (MAIL_ERROR);
+		}			
 
 		if (should_free)
 			ARRAY_FREEALL(users);
@@ -255,7 +270,9 @@ skip:
 	 * Fill the delivery action queue.
 	 */
 	if (!ARRAY_EMPTY(mctx->rule->actions)) {
-		if (fill_delivery_queue(mctx, mctx->rule) != 0)
+		chained = MAXACTIONCHAIN;
+		if (fill_from_strings(mctx, 
+		    mctx->rule, mctx->rule->actions) != 0)
 			return (MAIL_ERROR);
 		error = MAIL_DELIVER;
 	}
@@ -398,64 +415,94 @@ find_delivery_users(struct mail_ctx *mctx, struct action *t, int *should_free)
 }
 
 int
-fill_delivery_queue(struct mail_ctx *mctx, struct rule *r)
+fill_from_strings(struct mail_ctx *mctx, struct rule *r, struct replstrs *rsa)
 {
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct action		*t;
-	struct actions		*ta;
-	u_int		 	 i, j;
-	char			*s;
-	struct replstr		*rs;
-	struct users		*users;
-	int			 should_free;
+	struct account	*a = mctx->account;
+	u_int		  i;
+	struct replstr	*rs;
 
-	for (i = 0; i < ARRAY_LENGTH(r->actions); i++) {
-		rs = &ARRAY_ITEM(r->actions, i, struct replstr);
-		s = replacestr(rs, m->tags, m, &m->rml);
+	chained--;
+	if (chained == 0) {
+		log_warnx("%s: too many chained actions", a->name);
+		return (1);
+	}
 
-		log_debug2("%s: looking for actions matching: %s", a->name, s);
-		ta = match_actions(s);
-		if (ARRAY_EMPTY(ta))
-			goto empty;
-		xfree(s);
-
-		log_debug2("%s: found %u actions", a->name, ARRAY_LENGTH(ta));
-		for (j = 0; j < ARRAY_LENGTH(ta); j++) {
-			t = ARRAY_ITEM(ta, j, struct action *);
-			users = find_delivery_users(mctx, t, &should_free);
-
-			fill_delivery_action(mctx, r, t, users);
-
-			if (should_free)
-				ARRAY_FREEALL(users);
-		}
-
-		ARRAY_FREEALL(ta);
+	for (i = 0; i < ARRAY_LENGTH(rsa); i++) {
+		rs = &ARRAY_ITEM(rsa, i, struct replstr);
+		if (fill_from_string(mctx, r, rs) != 0)
+			return (1);
 	}
 
 	return (0);
-
-empty:
-	xfree(s);
-	ARRAY_FREEALL(ta);
-	log_warnx("%s: no actions matching: %s (%s)", a->name, s, rs->str);
-	return (1);
-
 }
 
-void
-fill_delivery_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
+int
+fill_from_string(struct mail_ctx *mctx, struct rule *r, struct replstr *rs)
+{
+	struct account	*a = mctx->account;
+	struct mail	*m = mctx->mail;
+	struct action	*t;
+	struct actions	*ta;
+	u_int		 i;
+	char		*s;
+	struct users	*users;
+	int		 should_free;
+
+	s = replacestr(rs, m->tags, m, &m->rml);
+	
+	log_debug2("%s: looking for actions matching: %s", a->name, s);
+	ta = match_actions(s);
+	if (ARRAY_EMPTY(ta))
+		goto empty;
+	xfree(s);
+
+	log_debug2("%s: found %u actions", a->name, ARRAY_LENGTH(ta));
+	for (i = 0; i < ARRAY_LENGTH(ta); i++) {
+		t = ARRAY_ITEM(ta, i, struct action *);
+		users = find_delivery_users(mctx, t, &should_free);
+		
+		if (fill_from_action(mctx, r, t, users) != 0) {
+			if (should_free)
+				ARRAY_FREEALL(users);
+			ARRAY_FREEALL(ta);
+			return (1);
+		}				
+		
+		if (should_free)
+			ARRAY_FREEALL(users);
+	}
+	
+	ARRAY_FREEALL(ta);
+	return (0);
+
+empty:
+	log_warnx("%s: no actions matching: %s (%s)", a->name, s, rs->str);
+	xfree(s);
+	ARRAY_FREEALL(ta);
+	return (1);
+}
+
+int
+fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
     struct users *users)
 {
-	struct account		*a = mctx->account;
-	struct mail		*m = mctx->mail;
-	struct actitem		*ti;
-	struct deliver_ctx	*dctx;
-	u_int			 i;
+	struct account			*a = mctx->account;
+	struct mail			*m = mctx->mail;
+	struct deliver_action_data	*data;
+	struct actitem			*ti;
+	struct deliver_ctx		*dctx;
+	u_int			 	 i;
 
 	for (i = 0; i < ARRAY_LENGTH(users); i++) {
 		TAILQ_FOREACH(ti, t->list, entry) {
+			if (ti->deliver == NULL) {
+				data = ti->data;
+				if (fill_from_strings(mctx, r, 
+				    data->actions) != 0)
+					return (1);
+				continue;
+			}
+
 			dctx = xcalloc(1, sizeof *dctx);
 			dctx->action = t;
 			dctx->actitem = ti;
@@ -470,6 +517,8 @@ fill_delivery_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 			TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
 		}
 	}
+
+	return (0);
 }
 
 int

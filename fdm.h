@@ -50,6 +50,7 @@
 #define DEFMAILQUEUE	2
 #define DEFMAILSIZE	(32 * 1024 * 1024)	/* 32 MB */
 #define MAXMAILSIZE	IO_MAXBUFFERLEN
+#define MAXACTIONCHAIN	5
 #define DEFTIMEOUT	(900 * 1000)
 #define LOCKSLEEPTIME	10000
 #define LOCKRETRIES	1000
@@ -257,13 +258,13 @@ enum fdmop {
  */
 struct replstr {
 	char		*str;
-};
+} __packed;
 ARRAY_DECL(replstrs, struct replstr);
 
 /* Similar to replstr but needs expand_path too. */
 struct replpath {
 	char		*str;
-};
+} __packed;
 
 /* Server description. */
 struct server {
@@ -827,6 +828,8 @@ extern struct strb	*parse_tags;
 extern struct macros	 macros;
 struct users		*weed_users(struct users *);
 struct strings 		*weed_strings(struct strings *);
+void			 free_replstrs(struct replstrs *);
+char 			*fmt_replstrs(const char *, struct replstrs *);
 void			 free_strings(struct strings *);
 char 			*fmt_strings(const char *, struct strings *);
 char 			*fmt_users(const char *, struct users *);
