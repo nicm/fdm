@@ -19,7 +19,7 @@
 30 April 2007
 
 * Optionally verify SSL certificates. This can be turned on with the
-  "verify-certificates"option and disabled per account by appending a
+  "verify-certificates" option and disabled per account by appending a
   "no-verify" flag to the definition.
 * Option to use PCRE (build with make -DPCRE).
 

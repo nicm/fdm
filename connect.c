@@ -55,15 +55,13 @@ char *
 sslerror2(int n, const char *fn)
 {
 	char	*cause;
-	int	 saved_errno;
 
-	saved_errno = errno;
 	switch (n) {
 	case SSL_ERROR_ZERO_RETURN:
 		errno = ECONNRESET;
 		/* FALLTHROUGH */
 	case SSL_ERROR_SYSCALL:
-		xasprintf(&cause, "%s: %s", fn, strerror(saved_errno));
+		xasprintf(&cause, "%s: %s", fn, strerror(errno));
 		return (cause);
 	case SSL_ERROR_WANT_CONNECT:
 		xasprintf(&cause, "%s: want connect", fn);
