@@ -1,3 +1,7 @@
+04 May 2007
+
+* "match tag ..." is now not supported.
+
 30 April 2007
 
 * Optionally verify SSL certificates. This can be turned on with the

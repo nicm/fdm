@@ -24,7 +24,6 @@
 #include "fetch.h"
 
 int	imap_okay(struct account *, char *);
-
 void	imap_free(void *);
 
 void
