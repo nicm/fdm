@@ -38,7 +38,7 @@
 	(a)->num++;							\
 } while (0)
 
-#define ARRAY_SET(a, i, s, c) do {					\
+#define ARRAY_SET(a, i, s) do {					\
 	if (((u_int) (i)) >= (a)->num) {				\
 		log_warnx("ARRAY_SET: bad index: %u, at %s:%d",		\
 		    i, __FILE__, __LINE__);				\
@@ -82,8 +82,8 @@
 
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
-#define ARRAY_LAST(a, c) ARRAY_ITEM(a, (a)->num - 1, c)
-#define ARRAY_ITEM(a, n, c) ((a)->list[n])
+#define ARRAY_LAST(a) ARRAY_ITEM(a, (a)->num - 1)
+#define ARRAY_ITEM(a, n) ((a)->list[n])
 
 #define ARRAY_FREE(a) do {						\
 	if ((a)->list != NULL)						\

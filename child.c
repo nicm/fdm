@@ -93,7 +93,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 
 	if ((child->pid = child_fork()) == 0) {
 		for (i = 0; i < ARRAY_LENGTH(children); i++) {
-			childp = ARRAY_ITEM(children, i, struct child *);
+			childp = ARRAY_ITEM(children, i);
 			io_close(childp->io);
 			io_free(childp->io);
 			xfree(childp);

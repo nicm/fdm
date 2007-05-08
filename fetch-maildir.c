@@ -77,7 +77,7 @@ fetch_maildir_makepaths(struct account *a)
 	ARRAY_INIT(data->paths);
 
 	for (i = 0; i < ARRAY_LENGTH(data->maildirs); i++) {
-		path = ARRAY_ITEM(data->maildirs, i, char *);
+		path = ARRAY_ITEM(data->maildirs, i);
 		if (glob(path, GLOB_BRACE|GLOB_NOCHECK, NULL, &g) != 0) {
 			log_warn("%s: glob(\"%s\")", a->name, path);
 			goto error;
@@ -127,7 +127,7 @@ fetch_maildir_freepaths(struct account *a)
 	u_int			 	 i;
 
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++)
-		xfree(ARRAY_ITEM(data->paths, i, char *));
+		xfree(ARRAY_ITEM(data->paths, i));
 
 	ARRAY_FREEALL(data->paths);
 }
@@ -175,7 +175,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 
 	*n = 0;
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
-		path = ARRAY_ITEM(data->paths, i, char *);
+		path = ARRAY_ITEM(data->paths, i);
 
 		log_debug("%s: trying path: %s", a->name, path);
 		if ((dirp = opendir(path)) == NULL) {
@@ -230,7 +230,7 @@ fetch_maildir_fetch(struct account *a, struct mail *m)
 
 restart:
 	if (data->dirp == NULL) {
-		data->path = ARRAY_ITEM(data->paths, data->index, char *);
+		data->path = ARRAY_ITEM(data->paths, data->index);
 
 		/* make the maildir name for the tag */
 		strlcpy(data->maildir,

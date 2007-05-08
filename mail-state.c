@@ -135,7 +135,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		aa = mctx->rule->accounts;
 		if (aa != NULL && !ARRAY_EMPTY(aa)) {
 			for (i = 0; i < ARRAY_LENGTH(aa); i++) {
-				an = ARRAY_ITEM(aa, i, char *);
+				an = ARRAY_ITEM(aa, i);
 				if (name_match(an, a->name))
 					break;
 			}
@@ -290,7 +290,7 @@ next_rule:
 		if (ARRAY_EMPTY(&mctx->stack))
 			break;
 		log_debug2("%s: exiting nested rules", a->name);
-		mctx->rule = ARRAY_LAST(&mctx->stack, struct rule *);
+		mctx->rule = ARRAY_LAST(&mctx->stack);
 		mctx->rule = TAILQ_NEXT(mctx->rule, entry);
 		ARRAY_TRUNC(&mctx->stack, 1, struct rule *);
 	}
@@ -428,7 +428,7 @@ fill_from_strings(struct mail_ctx *mctx, struct rule *r, struct replstrs *rsa)
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(rsa); i++) {
-		rs = &ARRAY_ITEM(rsa, i, struct replstr);
+		rs = &ARRAY_ITEM(rsa, i);
 		if (fill_from_string(mctx, r, rs) != 0)
 			return (1);
 	}
@@ -458,7 +458,7 @@ fill_from_string(struct mail_ctx *mctx, struct rule *r, struct replstr *rs)
 
 	log_debug2("%s: found %u actions", a->name, ARRAY_LENGTH(ta));
 	for (i = 0; i < ARRAY_LENGTH(ta); i++) {
-		t = ARRAY_ITEM(ta, i, struct action *);
+		t = ARRAY_ITEM(ta, i);
 		users = find_delivery_users(mctx, t, &should_free);
 		
 		if (fill_from_action(mctx, r, t, users) != 0) {
@@ -509,7 +509,7 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 			dctx->account = a;
 			dctx->rule = r;
 			dctx->mail = m;
-			dctx->uid = ARRAY_ITEM(users, i, uid_t);
+			dctx->uid = ARRAY_ITEM(users, i);
 
 			log_debug3("%s: action %s:%u (%s), uid %lu", a->name,
 			    t->name, ti->idx, ti->deliver->name,

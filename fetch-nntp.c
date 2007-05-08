@@ -46,7 +46,7 @@ int	fetch_nntp_parse223(char *, u_int *, char **);
 int	fetch_nntp_load(struct account *);
 int	fetch_nntp_save(struct account *);
 
-#define GET_GROUP(d, i) ARRAY_ITEM(&d->groups, i, struct fetch_nntp_group *)
+#define GET_GROUP(d, i) ARRAY_ITEM(&d->groups, i)
 #define CURRENT_GROUP(d) GET_GROUP(d, d->group)
 #define TOTAL_GROUPS(d) ARRAY_LENGTH(&d->groups)
 #define ADD_GROUP(d, g) ARRAY_ADD(&d->groups, g, struct fetch_nntp_group *)
@@ -399,7 +399,7 @@ fetch_nntp_start(struct account *a, unused int *total)
 	ARRAY_INIT(&data->groups);
 	for (i = 0; i < ARRAY_LENGTH(data->names); i++) {
 		group = xmalloc(sizeof *group);
-		group->name = xstrdup(ARRAY_ITEM(data->names, i, char *));
+		group->name = xstrdup(ARRAY_ITEM(data->names, i));
 		group->id = NULL;
 		group->ignore = 0;
 		ADD_GROUP(data, group);

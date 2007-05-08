@@ -203,7 +203,7 @@ check_incl(char *name)
 		return (1);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.incl); i++) {
-		if (name_match(ARRAY_ITEM(&conf.incl, i, char *), name))
+		if (name_match(ARRAY_ITEM(&conf.incl, i), name))
 			return (1);
 	}
 
@@ -219,7 +219,7 @@ check_excl(char *name)
 		return (0);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.excl); i++) {
-		if (name_match(ARRAY_ITEM(&conf.excl, i, char *), name))
+		if (name_match(ARRAY_ITEM(&conf.excl, i), name))
 			return (1);
 	}
 
@@ -734,7 +734,7 @@ main(int argc, char **argv)
 		/* fill the io list */
 		ios = xrealloc(ios, ARRAY_LENGTH(&children), sizeof **ios);
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-			child = ARRAY_ITEM(&children, i, struct child *);
+			child = ARRAY_ITEM(&children, i);
 			ios[i] = child->io;
 		}
 
@@ -750,7 +750,7 @@ main(int argc, char **argv)
 		while (!ARRAY_EMPTY(&children)) {
 			/* check all children for pending privsep messages */
 			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-				child = ARRAY_ITEM(&children, i,struct child *);
+				child = ARRAY_ITEM(&children, i);
 				if (privsep_check(child->io))
 					break;
 			}
@@ -802,7 +802,7 @@ main(int argc, char **argv)
 
 	/* free the dead children */
 	for (i = 0; i < ARRAY_LENGTH(&dead_children); i++) {
-		child = ARRAY_ITEM(&dead_children, i, struct child *);
+		child = ARRAY_ITEM(&dead_children, i);
 		if (child->data != NULL)
 			xfree(child->data);
 		xfree(child);
@@ -823,7 +823,7 @@ main(int argc, char **argv)
 
 		/* kill the children */
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-			child = ARRAY_ITEM(&children, i,struct child *);
+			child = ARRAY_ITEM(&children, i);
 			kill(child->pid, SIGTERM);
 
 			io_close(child->io);

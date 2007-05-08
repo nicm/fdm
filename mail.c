@@ -466,10 +466,10 @@ find_users(struct mail *m)
 	ARRAY_INIT(users);
 
 	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		if (*ARRAY_ITEM(conf.headers, i, char *) == '\0')
+		if (*ARRAY_ITEM(conf.headers, i) == '\0')
 			continue;
 
-		hdr = find_header(m, ARRAY_ITEM(conf.headers, i, char *),
+		hdr = find_header(m, ARRAY_ITEM(conf.headers, i),
 		    &len, 1);
 		if (hdr == NULL || len == 0)
 			continue;
@@ -487,7 +487,7 @@ find_users(struct mail *m)
 
 			dptr = ((char *) memchr(ptr, '@', alen)) + 1;
 			for (j = 0; j < ARRAY_LENGTH(conf.domains); j++) {
-				dom = ARRAY_ITEM(conf.domains, j, char *);
+				dom = ARRAY_ITEM(conf.domains, j);
 				if (fnmatch(dom, dptr, FNM_CASEFOLD) != 0)
 					continue;
 				*--dptr = '\0';
@@ -660,5 +660,5 @@ set_wrapped(struct mail *m, char ch)
 	m->wrapchar = ch;
 
 	for (i = 0; i < ARRAY_LENGTH(&m->wrapped); i++)
-		m->data[ARRAY_ITEM(&m->wrapped, i, size_t)] = ch;
+		m->data[ARRAY_ITEM(&m->wrapped, i)] = ch;
 }

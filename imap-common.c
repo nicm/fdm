@@ -272,7 +272,7 @@ restart:
 			return (FETCH_ERROR);
 
 		for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
-			if (ARRAY_ITEM(&data->kept, i, u_int) == data->uid) {
+			if (ARRAY_ITEM(&data->kept, i) == data->uid) {
 				/* had this message before and kept, so skip */
 				data->state = IMAP_START;
 				break;
