@@ -26,7 +26,7 @@
 		size_t	 space;						\
 	}
 
-#define ARRAY_ITEM(a, n) ((a)->list[n])
+#define ARRAY_ITEM(a, i) ((a)->list[i])
 #define ARRAY_ITEMSIZE(a) (sizeof *(a)->list)
 
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
@@ -41,12 +41,6 @@
 	(a)->space = 0;							\
 } while (0)
 
-#define ARRAY_ADD(a, s) do {						\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, ARRAY_ITEMSIZE(a)); \
-	(a)->list[(a)->num] = s;					\
-	(a)->num++;							\
-} while (0)
-
 #define ARRAY_SET(a, i, s) do {						\
 	if (((u_int) (i)) >= (a)->num) {				\
 		log_warnx("ARRAY_SET: bad index: %u, at %s:%d",		\
@@ -56,6 +50,11 @@
 	(a)->list[i] = s;						\
 } while (0)
 
+#define ARRAY_ADD(a, s) do {						\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, ARRAY_ITEMSIZE(a)); \
+	(a)->list[(a)->num] = s;					\
+	(a)->num++;							\
+} while (0)
 #define ARRAY_REMOVE(a, i) do {						\
 	if (((u_int) (i)) >= (a)->num) {				\
 		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
@@ -75,7 +74,6 @@
 	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + n, ARRAY_ITEMSIZE(a)); \
 	(a)->num += n;							\
 } while (0)
-
 #define ARRAY_TRUNC(a, n) do {						\
 	if ((a)->num > n)						\
 		(a)->num -= n;				       		\
