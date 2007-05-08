@@ -41,6 +41,8 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#include "array.h"
+
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
 #define SYSCONFFILE	"/etc/fdm.conf"
@@ -101,74 +103,6 @@ extern char	*__progname;
 	(m & S_IRUSR ? 4 : 0) + (m & S_IWUSR ? 2 : 0) + (m & S_IXUSR ? 1 : 0), \
     	(m & S_IRGRP ? 4 : 0) +	(m & S_IWGRP ? 2 : 0) +	(m & S_IXGRP ? 1 : 0), \
 	(m & S_IROTH ? 4 : 0) +	(m & S_IWOTH ? 2 : 0) + (m & S_IXOTH ? 1 : 0)
-
-/* Array macros. */
-#define ARRAY_DECL(n, c)						\
-	struct n {							\
-		c	*list;						\
-		u_int	 num;						\
-		size_t	 space;						\
-	}
-#define ARRAY_INIT(a) do {						\
-	(a)->num = 0;							\
-	(a)->list = NULL;		 				\
-	(a)->space = 0;							\
-} while (0)
-#define ARRAY_ADD(a, s, c) do {						\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, sizeof (c));	\
-	((c *) (a)->list)[(a)->num] = s;				\
-	(a)->num++;							\
-} while (0)
-#define ARRAY_SET(a, i, s, c) do {					\
-	if (((u_int) (i)) >= (a)->num) {				\
-		log_warnx("ARRAY_SET: bad index: %u, at %s:%d",		\
-		    i, __FILE__, __LINE__);				\
-		exit(1);						\
-	}								\
-	((c *) (a)->list)[i] = s;					\
-} while (0)
-#define ARRAY_REMOVE(a, i, c) do {					\
-	if (((u_int) (i)) >= (a)->num) {				\
-		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
-		    i, __FILE__, __LINE__);				\
-		exit(1);						\
-	}								\
-	if (i < (a)->num - 1) {						\
-		c 	*aptr = ((c *) (a)->list) + i;			\
-		memmove(aptr, aptr + 1, (sizeof (c)) * ((a)->num - (i) - 1)); \
-	}								\
-	(a)->num--;							\
-        if ((a)->num == 0)						\
-		ARRAY_FREE(a);						\
-} while (0)
-#define ARRAY_EXPAND(a, n, c) do {					\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + n, sizeof (c));	\
-	(a)->num += n;							\
-} while (0)
-#define ARRAY_TRUNC(a, n, c) do {					\
-	if ((a)->num > n)						\
-		(a)->num -= n;				       		\
-	else								\
-		ARRAY_FREE(a);						\
-} while (0)
-#define ARRAY_CONCAT(a, b, c) do {					\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + (b)->num, sizeof (c)); \
-	memcpy((a)->list + (a)->num, (b)->list, (b)->num * (sizeof (c)));     \
-	(a)->num += (b)->num;						\
-} while (0)
-#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
-#define ARRAY_LENGTH(a) ((a)->num)
-#define ARRAY_LAST(a, c) ARRAY_ITEM(a, (a)->num - 1, c)
-#define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
-#define ARRAY_FREE(a) do {						\
-	if ((a)->list != NULL)						\
-		xfree((a)->list);					\
-	ARRAY_INIT(a);							\
-} while (0)
-#define ARRAY_FREEALL(a) do {						\
-	ARRAY_FREE(a);							\
-	xfree(a);							\
-} while (0)
 
 /* Definition to shut gcc up about unused arguments in a few cases. */
 #define unused __attribute__ ((unused))
