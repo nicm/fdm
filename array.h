@@ -34,7 +34,7 @@
 
 #define ARRAY_ADD(a, s, c) do {						\
 	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, sizeof (c));	\
-	((c *) (a)->list)[(a)->num] = s;				\
+	(a)->list[(a)->num] = s;					\
 	(a)->num++;							\
 } while (0)
 
@@ -44,7 +44,7 @@
 		    i, __FILE__, __LINE__);				\
 		exit(1);						\
 	}								\
-	((c *) (a)->list)[i] = s;					\
+	(a)->list[i] = s;						\
 } while (0)
 
 #define ARRAY_REMOVE(a, i, c) do {					\
@@ -54,7 +54,7 @@
 		exit(1);						\
 	}								\
 	if (i < (a)->num - 1) {						\
-		c 	*aptr = ((c *) (a)->list) + i;			\
+		c 	*aptr = (a)->list + i;				\
 		memmove(aptr, aptr + 1, (sizeof (c)) * ((a)->num - (i) - 1)); \
 	}								\
 	(a)->num--;							\
@@ -83,7 +83,7 @@
 #define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
 #define ARRAY_LENGTH(a) ((a)->num)
 #define ARRAY_LAST(a, c) ARRAY_ITEM(a, (a)->num - 1, c)
-#define ARRAY_ITEM(a, n, c) (((c *) (a)->list)[n])
+#define ARRAY_ITEM(a, n, c) ((a)->list[n])
 
 #define ARRAY_FREE(a) do {						\
 	if ((a)->list != NULL)						\
