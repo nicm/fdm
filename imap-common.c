@@ -401,7 +401,7 @@ imap_done(struct account *a, struct mail *m)
 	char			*line;
 
 	if (m->decision == DECISION_KEEP) {
-		ARRAY_ADD(&data->kept, aux->uid, u_int);
+		ARRAY_ADD(&data->kept, aux->uid);
 		return (FETCH_SUCCESS);
 	}
 

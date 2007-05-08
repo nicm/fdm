@@ -117,7 +117,7 @@ free_strings(struct strings *sp)
 	u_int	i;
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
-		xfree(ARRAY_ITEM(sp, i, char *));
+		xfree(ARRAY_ITEM(sp, i));
 	}
 	ARRAY_FREE(sp);
 }
@@ -132,25 +132,25 @@ weed_strings(struct strings *sp)
 		return (sp);
 
 	for (i = 0; i < ARRAY_LENGTH(sp) - 1; i++) {
-		s = ARRAY_ITEM(sp, i, char *);
+		s = ARRAY_ITEM(sp, i);
 		if (s == NULL)
 			continue;
 
 		for (j = i + 1; j < ARRAY_LENGTH(sp); j++) {
-			if (ARRAY_ITEM(sp, j, char *) == NULL)
+			if (ARRAY_ITEM(sp, j) == NULL)
 				continue;
 
-			if (strcmp(s, ARRAY_ITEM(sp, j, char *)) == 0) {
-				xfree(ARRAY_ITEM(sp, j, char *));
-				ARRAY_ITEM(sp, j, char *) = NULL;
+			if (strcmp(s, ARRAY_ITEM(sp, j)) == 0) {
+				xfree(ARRAY_ITEM(sp, j));
+				ARRAY_ITEM(sp, j) = NULL;
 			}
 		}
 	}
 
 	i = 0;
 	while (i < ARRAY_LENGTH(sp)) {
-		if (ARRAY_ITEM(sp, i, char *) == NULL)
-			ARRAY_REMOVE(sp, i, char *);
+		if (ARRAY_ITEM(sp, i) == NULL)
+			ARRAY_REMOVE(sp, i);
 		else
 			i++;
 	}
@@ -168,20 +168,20 @@ weed_users(struct users *up)
 		return (up);
 
 	for (i = 0; i < ARRAY_LENGTH(up) - 1; i++) {
-		uid = ARRAY_ITEM(up, i, uid_t);
+		uid = ARRAY_ITEM(up, i);
 		if (uid == NOUSR)
 			continue;
 
 		for (j = i + 1; j < ARRAY_LENGTH(up); j++) {
-			if (ARRAY_ITEM(up, j, uid_t) == uid)
-				ARRAY_ITEM(up, j, uid_t) = NOUSR;
+			if (ARRAY_ITEM(up, j) == uid)
+				ARRAY_ITEM(up, j) = NOUSR;
 		}
 	}
 
 	i = 0;
 	while (i < ARRAY_LENGTH(up)) {
-		if (ARRAY_ITEM(up, i, uid_t) == NOUSR)
-			ARRAY_REMOVE(up, i, uid_t);
+		if (ARRAY_ITEM(up, i) == NOUSR)
+			ARRAY_REMOVE(up, i);
 		else
 			i++;
 	}
@@ -215,7 +215,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 		return (xstrdup(""));
 	}
 	if (ARRAY_LENGTH(sp) == 1) {
-		s = ARRAY_ITEM(sp, 0, char *);
+		s = ARRAY_FIRST(sp);
 		if (prefix != NULL)
 			xasprintf(&buf, "%s\"%s\"", prefix, s);
 		else
@@ -232,7 +232,7 @@ fmt_strings(const char *prefix, struct strings *sp)
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
-		s = ARRAY_ITEM(sp, i, char *);
+		s = ARRAY_ITEM(sp, i);
 		slen = strlen(s);
 
 		ENSURE_FOR(buf, len, off, slen + 4);
@@ -261,7 +261,7 @@ fmt_users(const char *prefix, struct users *up)
 		return (xstrdup(""));
 	}
 	if (ARRAY_LENGTH(up) == 1) {
-		uid = ARRAY_ITEM(up, 0, uid_t);
+		uid = ARRAY_FIRST(up);
 		if (prefix != NULL)
 			xasprintf(&buf, "%s%lu", prefix, (u_long) uid);
 		else
@@ -278,7 +278,7 @@ fmt_users(const char *prefix, struct users *up)
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(up); i++) {
-		uid = ARRAY_ITEM(up, i, uid_t);
+		uid = ARRAY_ITEM(up, i);
 		uidlen = xsnprintf(NULL, 0, "%lu", (u_long) uid);
 
 		ENSURE_FOR(buf, len, off, uidlen + 2);
@@ -340,7 +340,7 @@ match_actions(char *name)
 
 	TAILQ_FOREACH(t, &conf.actions, entry) {
 		if (name_match(name, t->name))
-			ARRAY_ADD(ta, t, struct action *);
+			ARRAY_ADD(ta, t);
 	}
 
 	return (ta);
@@ -1122,7 +1122,7 @@ set: TOKSET TOKMAXSIZE size
 
 	     if (conf.domains != NULL) {
 		     for (i = 0; i < ARRAY_LENGTH(conf.domains); i++)
-			     xfree(ARRAY_ITEM(conf.domains, i, void *));
+			     xfree(ARRAY_ITEM(conf.domains, i));
 		     ARRAY_FREE(conf.domains);
 		     xfree(conf.domains);
 	     }
@@ -1136,7 +1136,7 @@ set: TOKSET TOKMAXSIZE size
 
 	     if (conf.headers != NULL) {
 		     for (i = 0; i < ARRAY_LENGTH(conf.headers); i++)
-			     xfree(ARRAY_ITEM(conf.headers, i, void *));
+			     xfree(ARRAY_ITEM(conf.headers, i));
 		     ARRAY_FREE(conf.headers);
 		     xfree(conf.headers);
 	     }
@@ -1282,7 +1282,7 @@ domains: TOKDOMAIN replstrv
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((u_char) *cp);
-		 ARRAY_ADD($$, $2, char *);
+		 ARRAY_ADD($$, $2);
 	 }
        | TOKDOMAINS '{' domainslist '}'
 /**      [$3: domainslist (struct strings *)] */
@@ -1302,7 +1302,7 @@ domainslist: domainslist replstrv
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((u_char) *cp);
-		     ARRAY_ADD($$, $2, char *);
+		     ARRAY_ADD($$, $2);
 	     }
 	   | replstrv
 /**          [$1: replstrv (char *)] */
@@ -1316,7 +1316,7 @@ domainslist: domainslist replstrv
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((u_char) *cp);
-		     ARRAY_ADD($$, $1, char *);
+		     ARRAY_ADD($$, $1);
 	     }
 
 /** HEADERS: <strings> (struct strings *) */
@@ -1332,7 +1332,7 @@ headers: TOKHEADER replstrv
 		 ARRAY_INIT($$);
 		 for (cp = $2; *cp != '\0'; cp++)
 			 *cp = tolower((u_char) *cp);
-		 ARRAY_ADD($$, $2, char *);
+		 ARRAY_ADD($$, $2);
 	 }
        | TOKHEADERS '{' headerslist '}'
 /**      [$3: headerslist (struct strings *)] */
@@ -1352,7 +1352,7 @@ headerslist: headerslist replstrv
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
 			     *cp = tolower((u_char) *cp);
-		     ARRAY_ADD($$, $2, char *);
+		     ARRAY_ADD($$, $2);
 	     }
 	   | replstrv
 /**          [$1: replstrv (char *)] */
@@ -1366,7 +1366,7 @@ headerslist: headerslist replstrv
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((u_char) *cp);
-		     ARRAY_ADD($$, $1, char *);
+		     ARRAY_ADD($$, $1);
 	     }
 
 /** MAILDIRSLIST: <strings> (struct strings *) */
@@ -1377,7 +1377,7 @@ maildirslist: maildirslist replpathv
 			   yyerror("invalid maildir");
 
 		   $$ = $1;
-		   ARRAY_ADD($$, $2, char *);
+		   ARRAY_ADD($$, $2);
 	   }
 	 | replpathv
 /**        [$1: replpathv (char *)] */
@@ -1387,7 +1387,7 @@ maildirslist: maildirslist replpathv
 
 		   $$ = xmalloc(sizeof *$$);
 		   ARRAY_INIT($$);
-		   ARRAY_ADD($$, $1, char *);
+		   ARRAY_ADD($$, $1);
 	   }
 
 /** MAILDIRS: <strings> (struct strings *) */
@@ -1399,7 +1399,7 @@ maildirs: maildirp replpathv
 
 		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
-		  ARRAY_ADD($$, $2, char *);
+		  ARRAY_ADD($$, $2);
 	  }
         | maildirp '{' maildirslist '}'
 /**       [$3: maildirslist (struct strings *)] */
@@ -1527,7 +1527,7 @@ users: /* empty */
        {
 	       $$.users = xmalloc(sizeof *$$.users);
 	       ARRAY_INIT($$.users);
-	       ARRAY_ADD($$.users, $2, uid_t);
+	       ARRAY_ADD($$.users, $2);
 	       $$.find_uid = 0;
        }
      | userp '{' userslist '}'
@@ -1543,14 +1543,14 @@ userslist: userslist uid
 /**        [$1: userslist (struct { ... } users)] [$2: uid (uid_t)] */
 	   {
 		   $$ = $1;
-		   ARRAY_ADD($$.users, $2, uid_t);
+		   ARRAY_ADD($$.users, $2);
 	   }
 	 | uid
 /**        [$1: uid (uid_t)] */
 	   {
 		   $$.users = xmalloc(sizeof *$$.users);
 		   ARRAY_INIT($$.users);
-		   ARRAY_ADD($$.users, $1, uid_t);
+		   ARRAY_ADD($$.users, $1);
 	   }
 
 /** ICASE: <flag> (int) */
@@ -2018,7 +2018,7 @@ accounts: /* empty */
 
 		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
-		  ARRAY_ADD($$, $2, char *);
+		  ARRAY_ADD($$, $2);
 	  }
 	| accountp '{' accountslist '}'
 /**       [$3: accountslist (struct strings *)] */
@@ -2036,7 +2036,7 @@ accountslist: accountslist replstrv
 			      yyerror("no matching accounts: %s", $2);
 
 		      $$ = $1;
-		      ARRAY_ADD($$, $2, char *);
+		      ARRAY_ADD($$, $2);
 	      }
 	    | replstrv
 /**           [$1: replstrv (char *)] */
@@ -2048,7 +2048,7 @@ accountslist: accountslist replstrv
 
 		      $$ = xmalloc(sizeof *$$);
 		      ARRAY_INIT($$);
-		      ARRAY_ADD($$, $1, char *);
+		      ARRAY_ADD($$, $1);
 	      }
 
 /** ACTIONS: <replstrs> (struct replstrs *) */
@@ -2060,8 +2060,8 @@ actions: actionp strv
 
 		 $$ = xmalloc(sizeof *$$);
 		 ARRAY_INIT($$);
-		 ARRAY_EXPAND($$, 1, struct replstr);
-		 ARRAY_LAST($$, struct replstr).str = $2;
+		 ARRAY_EXPAND($$, 1);
+		 ARRAY_LAST($$).str = $2;
 	 }
        | actionp '{' actionslist '}'
 /**      [$3: actionslist (struct replstrs *)] */
@@ -2077,8 +2077,8 @@ actionslist: actionslist strv
 			     yyerror("invalid action name");
 
 		     $$ = $1;
-		     ARRAY_EXPAND($$, 1, struct replstr);
-		     ARRAY_LAST($$, struct replstr).str = $2;
+		     ARRAY_EXPAND($$, 1);
+		     ARRAY_LAST($$).str = $2;
 	     }
 	   | strv
 /**          [$1: strv (char *)] */
@@ -2088,8 +2088,8 @@ actionslist: actionslist strv
 
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
-		     ARRAY_EXPAND($$, 1, struct replstr);
-		     ARRAY_LAST($$, struct replstr).str = $1;
+		     ARRAY_EXPAND($$, 1);
+		     ARRAY_LAST($$).str = $1;
 	     }
 
 /** CONT: <flag> (int) */
@@ -2608,7 +2608,7 @@ perform: TOKTAG strv
 		 else
 			 TAILQ_INSERT_TAIL(&currule->rules, $$, entry);
 
-		 ARRAY_ADD(&rulestack, currule, struct rule *);
+		 ARRAY_ADD(&rulestack, currule);
 		 currule = $$;
 	 }
 
@@ -2618,8 +2618,8 @@ close: '}'
 	       if (currule == NULL)
 		       yyerror("missing {");
 
-	       currule = ARRAY_LAST(&rulestack, struct rule *);
-	       ARRAY_TRUNC(&rulestack, 1, struct rule *);
+	       currule = ARRAY_LAST(&rulestack);
+	       ARRAY_TRUNC(&rulestack, 1);
        }
 
 /** RULE */
@@ -2661,7 +2661,7 @@ groupslist: groupslist replstrv
 		    for (cp = $2; *cp != '\0'; cp++)
 			    *cp = tolower((u_char) *cp);
 
-		    ARRAY_ADD($$, $2, char *);
+		    ARRAY_ADD($$, $2);
 	    }
 	  | replstrv
 /**         [$1: replstrv (char *)] */
@@ -2677,7 +2677,7 @@ groupslist: groupslist replstrv
 		    for (cp = $1; *cp != '\0'; cp++)
 			    *cp = tolower((u_char) *cp);
 
-		    ARRAY_ADD($$, $1, char *);
+		    ARRAY_ADD($$, $1);
 	    }
 
 /** GROUPS: <strings> (struct strings *) */
@@ -2695,7 +2695,7 @@ groups: groupp replstrv
 		for (cp = $2; *cp != '\0'; cp++)
 			*cp = tolower((u_char) *cp);
 
-		ARRAY_ADD($$, $2, char *);
+		ARRAY_ADD($$, $2);
 	}
       | groupp '{' groupslist '}'
 /**     [$3: groupslist (struct strings *)] */
@@ -2929,7 +2929,7 @@ fetchtype: poptype server userpassnetrc verify
 		   data->names = $3;
 
 		   if (ARRAY_LENGTH($3) == 1)
-			   group = ARRAY_ITEM($3, 0, char *);
+			   group = ARRAY_FIRST($3);
 		   else
 			   group = NULL;
 		   data->path = $5;

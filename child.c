@@ -127,7 +127,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 	}
 	close(fds[1]);
 
-	ARRAY_ADD(children, child, struct child *);
+	ARRAY_ADD(children, child);
 	return (child);
 }
 

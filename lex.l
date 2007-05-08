@@ -364,7 +364,7 @@ include_start(char *file)
 	top->yylineno = yylineno;
 	top->yybuffer = YY_CURRENT_BUFFER;
 	top->curfile = curfile;
-	ARRAY_ADD(&filestack, top, struct fileent *);
+	ARRAY_ADD(&filestack, top);
 
 	yyin = fopen(file, "r");
 	if (yyin == NULL) {
@@ -397,8 +397,7 @@ include_finish(void)
 	log_debug2("finished file %s", curfile);
 	yy_delete_buffer(YY_CURRENT_BUFFER);
 
-	top = ARRAY_LAST(&filestack, struct fileent *);
-
+	top = ARRAY_LAST(&filestack);
 	yyin = top->yyin;
 	yylineno = top->yylineno;
 	yy_switch_to_buffer(top->yybuffer);
@@ -407,7 +406,7 @@ include_finish(void)
 	curfile = top->curfile;
 
 	xfree(top);
-	ARRAY_TRUNC(&filestack, 1, struct fileent *);
+	ARRAY_TRUNC(&filestack, 1);
 
 	return (0);
 }

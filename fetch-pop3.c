@@ -414,7 +414,7 @@ fetch_pop3_done(struct account *a, struct mail *m)
 	struct fetch_pop3_mail	*aux = m->auxdata;
 
 	if (m->decision == DECISION_KEEP) {
-		ARRAY_ADD(&data->kept, xstrdup(aux->uid), char *);
+		ARRAY_ADD(&data->kept, xstrdup(aux->uid));
 		return (FETCH_SUCCESS);
 	}
 

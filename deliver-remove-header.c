@@ -80,7 +80,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 				ARRAY_SET(&m->wrapped, i, wrap - len);
 				i++;
 			} else if (wrap >= off)
-				ARRAY_REMOVE(&m->wrapped, i, size_t);
+				ARRAY_REMOVE(&m->wrapped, i);
 			else
 				i++;
 		}

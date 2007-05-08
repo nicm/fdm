@@ -1,3 +1,8 @@
+08 May 2007
+
+* Couple of fixes for stupid things in ARRAY_* macros, one of which was hiding
+  a minor bug. Don't know what I was thinking when I wrote them.
+
 04 May 2007
 
 * "match tag ..." is now not supported.

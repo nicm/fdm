@@ -314,7 +314,7 @@ main(int argc, char **argv)
         while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:?")) != EOF) {
                 switch (opt) {
 		case 'a':
-			ARRAY_ADD(&conf.incl, xstrdup(optarg), char *);
+			ARRAY_ADD(&conf.incl, xstrdup(optarg));
 			break;
 		case 'D':
 			if (*optarg != '$' && *optarg != '%') {
@@ -383,7 +383,7 @@ main(int argc, char **argv)
 			conf.quiet = 1;
 			break;
 		case 'x':
-			ARRAY_ADD(&conf.excl, xstrdup(optarg), char *);
+			ARRAY_ADD(&conf.excl, xstrdup(optarg));
 			break;
                 case '?':
                 default:
@@ -515,8 +515,8 @@ main(int argc, char **argv)
 	if (conf.headers == NULL) {
 		conf.headers = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.headers);
-		ARRAY_ADD(conf.headers, xstrdup("to"), char *);
-		ARRAY_ADD(conf.headers, xstrdup("cc"), char *);
+		ARRAY_ADD(conf.headers, xstrdup("to"));
+		ARRAY_ADD(conf.headers, xstrdup("cc"));
 	}
 	strs = fmt_strings(NULL, conf.headers);
 	log_debug2("headers are: %s", strs);
@@ -524,14 +524,14 @@ main(int argc, char **argv)
 	if (conf.domains == NULL) {
 		conf.domains = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.domains);
-		ARRAY_ADD(conf.domains, xstrdup(conf.info.host), char *);
+		ARRAY_ADD(conf.domains, xstrdup(conf.info.host));
 		if (conf.info.fqdn != NULL) {
 			ptr = xstrdup(conf.info.fqdn);
-			ARRAY_ADD(conf.domains, ptr, char *);
+			ARRAY_ADD(conf.domains, ptr);
 		}
 		if (conf.info.addr != NULL) {
 			ptr = xstrdup(conf.info.addr);
-			ARRAY_ADD(conf.domains, ptr, char *);
+			ARRAY_ADD(conf.domains, ptr);
 		}
 	}
 	strs = fmt_strings(NULL, conf.domains);
@@ -794,8 +794,8 @@ main(int argc, char **argv)
 			io_free(child->io);
 			child->io = NULL;
 
-			ARRAY_REMOVE(&children, i, struct child *);
-			ARRAY_ADD(&dead_children, child, struct child *);
+			ARRAY_REMOVE(&children, i);
+			ARRAY_ADD(&dead_children, child);
 		}
 	}
 	xfree(ios);

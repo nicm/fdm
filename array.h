@@ -26,14 +26,23 @@
 		size_t	 space;						\
 	}
 
+#define ARRAY_ITEM(a, n) ((a)->list[n])
+#define ARRAY_ITEMSIZE(a) (sizeof *(a)->list)
+
+#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
+#define ARRAY_LENGTH(a) ((a)->num)
+
+#define ARRAY_FIRST(a) ARRAY_ITEM(a, 0)
+#define ARRAY_LAST(a) ARRAY_ITEM(a, (a)->num - 1)
+
 #define ARRAY_INIT(a) do {						\
 	(a)->num = 0;							\
 	(a)->list = NULL;		 				\
 	(a)->space = 0;							\
 } while (0)
 
-#define ARRAY_ADD(a, s, c) do {						\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, sizeof (c));	\
+#define ARRAY_ADD(a, s) do {						\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, ARRAY_ITEMSIZE(a)); \
 	(a)->list[(a)->num] = s;					\
 	(a)->num++;							\
 } while (0)
@@ -47,43 +56,39 @@
 	(a)->list[i] = s;						\
 } while (0)
 
-#define ARRAY_REMOVE(a, i, c) do {					\
+#define ARRAY_REMOVE(a, i) do {						\
 	if (((u_int) (i)) >= (a)->num) {				\
 		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
 		    i, __FILE__, __LINE__);				\
 		exit(1);						\
 	}								\
 	if (i < (a)->num - 1) {						\
-		c 	*aptr = (a)->list + i;				\
-		memmove(aptr, aptr + 1, (sizeof (c)) * ((a)->num - (i) - 1)); \
+		memmove((a)->list + (i), (a)->list + (i) + 1, 		\
+		    ARRAY_ITEMSIZE(a) * ((a)->num - (i) - 1)); 		\
 	}								\
 	(a)->num--;							\
         if ((a)->num == 0)						\
 		ARRAY_FREE(a);						\
 } while (0)
 
-#define ARRAY_EXPAND(a, n, c) do {					\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + n, sizeof (c));	\
+#define ARRAY_EXPAND(a, n) do {						\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + n, ARRAY_ITEMSIZE(a)); \
 	(a)->num += n;							\
 } while (0)
 
-#define ARRAY_TRUNC(a, n, c) do {					\
+#define ARRAY_TRUNC(a, n) do {						\
 	if ((a)->num > n)						\
 		(a)->num -= n;				       		\
 	else								\
 		ARRAY_FREE(a);						\
 } while (0)
 
-#define ARRAY_CONCAT(a, b, c) do {					\
-	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + (b)->num, sizeof (c)); \
-	memcpy((a)->list + (a)->num, (b)->list, (b)->num * (sizeof (c)));     \
+#define ARRAY_CONCAT(a, b) do {						\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + (b)->num, 	\
+	    ARRAY_ITEMSIZE(a)); 					\
+	memcpy((a)->list + (a)->num, (b)->list, (b)->num * ARRAY_ITEMSIZE(a)) \
 	(a)->num += (b)->num;						\
 } while (0)
-
-#define ARRAY_EMPTY(a) ((a) == NULL || (a)->num == 0)
-#define ARRAY_LENGTH(a) ((a)->num)
-#define ARRAY_LAST(a) ARRAY_ITEM(a, (a)->num - 1)
-#define ARRAY_ITEM(a, n) ((a)->list[n])
 
 #define ARRAY_FREE(a) do {						\
 	if ((a)->list != NULL)						\

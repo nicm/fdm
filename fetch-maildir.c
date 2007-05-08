@@ -87,7 +87,7 @@ fetch_maildir_makepaths(struct account *a)
 			fatalx("negative or zero number of paths");
 		for (j = 0; j < (u_int) g.gl_pathc; j++) {
 			xasprintf(&path, "%s/cur", g.gl_pathv[j]);
-			ARRAY_ADD(data->paths, path, char *);
+			ARRAY_ADD(data->paths, path);
 			if (stat(path, &sb) != 0) {
 				log_warn("%s: %s", a->name, path);
 				goto error;
@@ -99,7 +99,7 @@ fetch_maildir_makepaths(struct account *a)
 			}
 
 			xasprintf(&path, "%s/new", g.gl_pathv[j]);
-			ARRAY_ADD(data->paths, path, char *);
+			ARRAY_ADD(data->paths, path);
 			if (stat(path, &sb) != 0) {
 				log_warn("%s", path);
 				goto error;

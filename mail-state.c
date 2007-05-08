@@ -238,7 +238,7 @@ skip:
 		 * Stack the current rule (we are at the end of it so the
 		 * the expritem must be NULL already).
 		 */
-		ARRAY_ADD(&mctx->stack, mctx->rule, struct rule *);
+		ARRAY_ADD(&mctx->stack, mctx->rule);
 
 		/*
 		 * Continue with the first rule of the nested list.
@@ -292,7 +292,7 @@ next_rule:
 		log_debug2("%s: exiting nested rules", a->name);
 		mctx->rule = ARRAY_LAST(&mctx->stack);
 		mctx->rule = TAILQ_NEXT(mctx->rule, entry);
-		ARRAY_TRUNC(&mctx->stack, 1, struct rule *);
+		ARRAY_TRUNC(&mctx->stack, 1);
 	}
 
 	return (error);
@@ -408,7 +408,7 @@ find_delivery_users(struct mail_ctx *mctx, struct action *t, int *should_free)
 		*should_free = 1;
 		users = xmalloc(sizeof *users);
 		ARRAY_INIT(users);
-		ARRAY_ADD(users, conf.def_user, uid_t);
+		ARRAY_ADD(users, conf.def_user);
 	}
 
 	return (users);
