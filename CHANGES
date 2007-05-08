@@ -15,11 +15,9 @@
 		actions { "one" "two" }
 	}
 
-  A maximum of five levels is permitted, spoiling the
+  A maximum of five levels is permitted, spoiling the fun of:
 
 	action "x" { action "x" }
-
-  fun.
 
 30 April 2007
 

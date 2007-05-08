@@ -24,7 +24,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       parent-deliver.c mail-state.c netrc.c shm-mmap.c shm-sysv.c \
       deliver-tag.c \
       parse.y lex.l
-HDRS= fdm.h fetch.h match.h deliver.h
+HDRS= fdm.h array.h fetch.h match.h deliver.h
 
 LEX= lex
 YACC= yacc -d
