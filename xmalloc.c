@@ -195,7 +195,8 @@ xvsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
 }
 
 /*
- * Some system modify the path in place. This function avoids that.
+ * Some system modify the path in place. This function and xbasename below
+ * avoid that by using a temporary buffer.
  */
 char *
 xdirname(const char *src)
@@ -206,9 +207,6 @@ xdirname(const char *src)
 	return (dirname(dst));
 }
 
-/*
- * Some system modify the path in place. This function avoids that.
- */
 char *
 xbasename(const char *src)
 {
