@@ -45,34 +45,6 @@ buffer_destroy(struct buffer *b)
 	xfree(b);
 }
 
-/* Get buffer space used. */
-size_t
-buffer_used(struct buffer *b)
-{
-	return (b->size);
-}
-
-/* Get buffer space free. */
-size_t
-buffer_free(struct buffer *b)
-{
-	return (b->allocated - b->offset - b->size);
-}
-
-/* Get pointer to start of data. */
-u_char *
-buffer_start(struct buffer *b)
-{
-	return (b->base + b->offset);
-}
-
-/* Get pointer to end of data. */
-u_char *
-buffer_end(struct buffer *b)
-{
-	return (b->base + b->offset + b->size);
-}
-
 /* Empty a buffer. */
 void
 buffer_clear(struct buffer *b)
@@ -85,7 +57,7 @@ buffer_clear(struct buffer *b)
 void
 buffer_ensure(struct buffer *b, size_t size)
 {
-	if (buffer_free(b) >= size)
+	if (BUFFER_FREE(b) >= size)
 		return;
 
 	if (b->offset > 0) {
@@ -117,7 +89,7 @@ void
 buffer_copyin(struct buffer *b, const void *data, size_t size)
 {
 	buffer_ensure(b, size);
-	memcpy(buffer_end(b), data, size);
+	memcpy(BUFFER_IN(b), data, size);
 	buffer_added(b, size);
 }
 
@@ -125,6 +97,6 @@ buffer_copyin(struct buffer *b, const void *data, size_t size)
 void
 buffer_copyout(struct buffer *b, void *data, size_t size)
 {
-	memcpy(data, buffer_start(b), size);
+	memcpy(data, BUFFER_OUT(b), size);
 	buffer_removed(b, size);
 }

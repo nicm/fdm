@@ -628,6 +628,12 @@ struct conf {
 };
 extern struct conf		 conf;
 
+/* Buffer macros. */
+#define BUFFER_USED(b) ((b)->size)
+#define BUFFER_FREE(b) ((b)->allocated - (b)->offset - (b)->size)
+#define BUFFER_IN(b) ((b)->base + (b)->offset + (b)->size)
+#define BUFFER_OUT(b) ((b)->base + (b)->offset)
+
 /* Buffer structure. */
 struct buffer {
 	u_char		*base;		/* buffer start */
@@ -660,8 +666,8 @@ struct buffer {
 /* IO macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
 #define IO_CLOSED(io) ((io)->flags & IOF_CLOSED)
-#define IO_RDSIZE(io) (buffer_used((io)->rd))
-#define IO_WRSIZE(io) (buffer_used((io)->wr))
+#define IO_RDSIZE(io) (BUFFER_USED((io)->rd))
+#define IO_WRSIZE(io) (BUFFER_USED((io)->wr))
 
 /* IO structure. */
 struct io {
@@ -912,10 +918,6 @@ char 			*replacepath(struct replpath *, struct strb *,
 /* buffer.c */
 struct buffer 		*buffer_create(size_t);
 void			 buffer_destroy(struct buffer *);
-size_t			 buffer_used(struct buffer *);
-size_t			 buffer_free(struct buffer *);
-u_char 			*buffer_start(struct buffer *);
-u_char 			*buffer_end(struct buffer *);
 void			 buffer_clear(struct buffer *);
 void			 buffer_ensure(struct buffer *, size_t);
 void			 buffer_added(struct buffer *, size_t);

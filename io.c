@@ -155,7 +155,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		pfd->events = 0;
 		if (io->rd != NULL)
 			pfd->events |= POLLIN;
-		if (io->wr != NULL && (buffer_used(io->wr) != 0 ||
+		if (io->wr != NULL && (BUFFER_USED(io->wr) != 0 ||
 		    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH)) != 0))
 			pfd->events |= POLLOUT;
 	}
@@ -284,7 +284,7 @@ io_fill(struct io *io)
 
 	/* Attempt to read as much as the buffer has available. */
 	if (io->ssl == NULL) {
-		n = read(io->fd, buffer_end(io->rd), buffer_free(io->rd));
+		n = read(io->fd, BUFFER_IN(io->rd), BUFFER_FREE(io->rd));
 		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -294,7 +294,7 @@ io_fill(struct io *io)
 			return (-1);
 		}
 	} else {
-		n = SSL_read(io->ssl, buffer_end(io->rd), buffer_free(io->rd));
+		n = SSL_read(io->ssl, BUFFER_IN(io->rd), BUFFER_FREE(io->rd));
 		if (n == 0)
 			return (0);
 		if (n < 0) {
@@ -326,7 +326,7 @@ io_fill(struct io *io)
 		/* Copy out the duplicate fd. Errors are just ignored. */
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "< ", 2);
-			write(io->dup_fd, buffer_end(io->rd), n);
+			write(io->dup_fd, BUFFER_IN(io->rd), n);
 		}
 
 		/* Adjust the buffer size. */
@@ -354,12 +354,12 @@ io_push(struct io *io)
 #endif
 
 	/* If nothing to write, return. */
-	if (buffer_used(io->wr) == 0)
+	if (BUFFER_USED(io->wr) == 0)
 		return (1);
 
 	/* Write as much as possible. */
 	if (io->ssl == NULL) {
-		n = write(io->fd, buffer_start(io->wr), buffer_used(io->wr));
+		n = write(io->fd, BUFFER_OUT(io->wr), BUFFER_USED(io->wr));
 		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -369,7 +369,7 @@ io_push(struct io *io)
 			return (-1);
 		}
 	} else {
-		n = SSL_write(io->ssl, buffer_start(io->wr), buffer_used(io->wr));
+		n = SSL_write(io->ssl, BUFFER_OUT(io->wr), BUFFER_USED(io->wr));
 		if (n == 0)
 			return (0);
 		if (n < 0) {
@@ -400,7 +400,7 @@ io_push(struct io *io)
 		/* Copy out the duplicate fd. */
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "> ", 2);
-			write(io->dup_fd, buffer_start(io->wr), n);
+			write(io->dup_fd, BUFFER_OUT(io->wr), n);
 		}
 
 		/* Adjust the buffer size. */
@@ -426,7 +426,7 @@ io_read(struct io *io, size_t len)
 	if (io->error != NULL)
 		return (NULL);
 
-	if (buffer_used(io->rd) < len)
+	if (BUFFER_USED(io->rd) < len)
 		return (NULL);
 
 	buf = xmalloc(len);
@@ -442,7 +442,7 @@ io_read2(struct io *io, void *buf, size_t len)
 	if (io->error != NULL)
 		return (1);
 
-	if (buffer_used(io->rd) < len)
+	if (BUFFER_USED(io->rd) < len)
 		return (NULL);
 
 	buffer_copyout(io->rd, buf, len);
@@ -482,14 +482,14 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	log_debug3("io_readline2: in: off=%zu used=%zu", io->roff, io->rsize);
 #endif
 
-	maxlen = buffer_used(io->rd);
+	maxlen = BUFFER_USED(io->rd);
 	if (maxlen > IO_MAXLINELEN)
 		maxlen = IO_MAXLINELEN;
 	eollen = strlen(io->eol);
-	if (buffer_used(io->rd) < eollen)
+	if (BUFFER_USED(io->rd) < eollen)
 		return (NULL);
 
-	base = ptr = buffer_start(io->rd);
+	base = ptr = BUFFER_OUT(io->rd);
 	for (;;) {
 		/* Find the first character in the EOL string. */
 		ptr = memchr(ptr, *io->eol, maxlen - (ptr - base));
@@ -525,7 +525,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			 */
 			if (!IO_CLOSED(io))
 				return (NULL);
-			size = buffer_used(io->rd);
+			size = BUFFER_USED(io->rd);
 
 			ENSURE_FOR(*buf, *len, size, 1);
 			buffer_copyout(io->rd, *buf, size);
@@ -601,7 +601,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		va_end(aq);
 
 		buffer_ensure(io->wr, n + 1);
- 		xvsnprintf(buffer_end(io->wr), n + 1, fmt, ap);
+ 		xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
 		buffer_added(io->wr, n);
 	}
 	io_write(io, io->eol, strlen(io->eol));
@@ -643,7 +643,7 @@ io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
 int
 io_flush(struct io *io, char **cause)
 {
-	while (buffer_used(io->wr) != 0) {
+	while (BUFFER_USED(io->wr) != 0) {
 		if (io_poll(io, cause) != 1)
 			return (-1);
 	}
@@ -655,7 +655,7 @@ io_flush(struct io *io, char **cause)
 int
 io_wait(struct io *io, size_t len, char **cause)
 {
-	while (buffer_used(io->rd) < len) {
+	while (BUFFER_USED(io->rd) < len) {
 		if (io_poll(io, cause) != 1)
 			return (-1);
 	}
@@ -667,7 +667,7 @@ io_wait(struct io *io, size_t len, char **cause)
 int
 io_update(struct io *io, char **cause)
 {
-	if (buffer_used(io->wr) < IO_FLUSHSIZE)
+	if (BUFFER_USED(io->wr) < IO_FLUSHSIZE)
 		return (1);
 
 	return (io_poll(io, cause));
