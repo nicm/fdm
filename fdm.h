@@ -104,7 +104,7 @@ extern char	*__progname;
     	(m & S_IRGRP ? 4 : 0) +	(m & S_IWGRP ? 2 : 0) +	(m & S_IXGRP ? 1 : 0), \
 	(m & S_IROTH ? 4 : 0) +	(m & S_IWOTH ? 2 : 0) + (m & S_IXOTH ? 1 : 0)
 
-/* Definition to shut gcc up about unused arguments in a few cases. */
+/* Definition to shut gcc up about unused arguments. */
 #define unused __attribute__ ((unused))
 
 /* Attribute to make gcc check printf-like arguments. */
@@ -859,7 +859,6 @@ void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);
 int			 mail_resize(struct mail *, size_t);
 char 			*rfc822_time(time_t, char *, size_t);
-int printflike3		 printpath(char *, size_t, const char *, ...);
 int			 openlock(const char *, u_int, int, mode_t);
 void			 closelock(int, const char *, u_int);
 int			 checkperms(const char *, const char *, int *);
@@ -959,6 +958,7 @@ int printflike2	 xxasprintf(char **, const char *, ...);
 int		 xxvasprintf(char **, const char *, va_list);
 int printflike3	 xsnprintf(char *, size_t, const char *, ...);
 int		 xvsnprintf(char *, size_t, const char *, va_list);
+int printflike3	 printpath(char *, size_t, const char *, ...);
 char 		*xdirname(const char *);
 char 		*xbasename(const char *);
 
