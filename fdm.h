@@ -630,17 +630,17 @@ extern struct conf		 conf;
 
 /* Buffer macros. */
 #define BUFFER_USED(b) ((b)->size)
-#define BUFFER_FREE(b) ((b)->allocated - (b)->offset - (b)->size)
-#define BUFFER_IN(b) ((b)->base + (b)->offset + (b)->size)
-#define BUFFER_OUT(b) ((b)->base + (b)->offset)
+#define BUFFER_FREE(b) ((b)->space - (b)->off - (b)->size)
+#define BUFFER_IN(b) ((b)->base + (b)->off + (b)->size)
+#define BUFFER_OUT(b) ((b)->base + (b)->off)
 
 /* Buffer structure. */
 struct buffer {
 	u_char		*base;		/* buffer start */
-	size_t		 allocated;	/* total size of buffer */
+	size_t		 space;		/* total size of buffer */
 
 	size_t		 size;		/* size of data in buffer */
-	size_t		 offset;	/* offset of data in buffer */
+	size_t		 off;		/* offset of data in buffer */
 };
 
 /* Limits at which to fail. */

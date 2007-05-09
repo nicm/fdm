@@ -32,7 +32,7 @@ buffer_create(size_t size)
 	memset(b, 0, sizeof *b);
 
 	b->base = xmalloc(size);
-	b->allocated = size;
+	b->space = size;
 
 	return (b);
 }
@@ -50,7 +50,7 @@ void
 buffer_clear(struct buffer *b)
 {
 	b->size = 0;
-	b->offset = 0;
+	b->off = 0;
 }
 
 /* Ensure free space for size in buffer. */
@@ -60,13 +60,13 @@ buffer_ensure(struct buffer *b, size_t size)
 	if (BUFFER_FREE(b) >= size)
 		return;
 
-	if (b->offset > 0) {
+	if (b->off > 0) {
 		if (b->size > 0)
-			memmove(b->base, b->base + b->offset, b->size);
-		b->offset = 0;
+			memmove(b->base, b->base + b->off, b->size);
+		b->off = 0;
 	}
 
-	ENSURE_FOR(b->base, b->allocated, b->size, size);
+	ENSURE_FOR(b->base, b->space, b->size, size);
 }
 
 /* Adjust buffer after data appended. */
@@ -81,7 +81,7 @@ void
 buffer_removed(struct buffer *b, size_t size)
 {
 	b->size -= size;
-	b->offset += size;
+	b->off += size;
 }
 
 /* Copy data into a buffer. */
