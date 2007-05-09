@@ -28,8 +28,7 @@ buffer_create(size_t size)
 {
 	struct buffer	*b;
 
-	b = xmalloc(sizeof *b);
-	memset(b, 0, sizeof *b);
+	b = xcalloc(1, sizeof *b);
 
 	b->base = xmalloc(size);
 	b->space = size;

@@ -33,12 +33,14 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 {
 	struct cmd	*cmd;
 	int	 	 fd_in[2], fd_out[2], fd_err[2];
-	ssize_t		 n;
 
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
 	cmd->flags = flags;
 	cmd->timeout = timeout;
+
+	cmd->buf = buf;
+	cmd->len = len;
 
 	fd_in[0] = fd_in[1] = -1;
 	fd_out[0] = fd_out[1] = -1;
@@ -113,30 +115,6 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 	/* Create ios. */
 	if (fd_in[1] != -1) {
 		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, conf.timeout);
-		if (buf != NULL && len > 0) {
-			/* 
-			 * Bypass the buffering and write directly to avoid
-			 * copying the whole buffer.
-			 */
-			while (len > 0) {
-				switch (n = write(fd_in[1], buf, len)) {
-				case 0:
-					errno = EPIPE;
-					/* FALLTHROUGH */
-				case -1:
-					if (errno == EINTR || errno == EAGAIN)
-						continue;
-					xasprintf(cause,
-					    "write: %s", strerror(errno));
-					goto error;
-				default:
-					buf += n;
-					len -= n;
-					break;
-				}
-
-			}
-		}
 		io_writeonly(cmd->io_in);
 	} else
 		cmd->io_in = NULL;
@@ -180,6 +158,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 {
 	struct io	*io, *ios[3];
 	size_t		 len;
+	ssize_t		 n;
 
 	/* Retrieve a line if possible. */
 	if (err != NULL)
@@ -213,12 +192,35 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		}
 	}
 
-	/* Close stdin if it is done. */
-	if (cmd->flags & CMD_ONCE && cmd->io_in != NULL &&
-	    (IO_WRSIZE(cmd->io_in) == 0 || cmd->pid == -1)) {
-		io_close(cmd->io_in);
-		io_free(cmd->io_in);
-		cmd->io_in = NULL;
+	/*
+	 * Handle fixed buffer. We can't just write everything in cmd_start
+	 * as the child may block waiting for us to read. So, write as much
+	 * as possible here while still polling the others. If CMD_ONCE is set
+	 * the stdin io is closed when the buffer is done.
+	 */
+	if (cmd->buf != NULL && cmd->len > 0) {
+		switch (n = write(cmd->io_in->fd, cmd->buf, cmd->len)) {
+		case 0:
+			errno = EPIPE;
+		case -1:
+			if (errno != EINTR && errno != EAGAIN)
+				cmd->len = 0;
+			break;
+		default: 
+			cmd->buf += n;
+			cmd->len -= n;
+			break;
+		}
+		if (cmd->len == 0) {
+			cmd->buf = NULL;
+
+			/* Close the io. */
+			if (cmd->flags & CMD_ONCE) {
+				io_close(cmd->io_in);
+				io_free(cmd->io_in);
+				cmd->io_in = NULL;
+			}
+		}
 	}
 
 	/* If anything is open, try and poll it. */

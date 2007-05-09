@@ -704,6 +704,9 @@ struct cmd {
 	int		 flags;
 	int		 timeout;
 
+	char		*buf;
+	size_t		 len;
+
 	struct io	*io_in;
 	struct io	*io_out;
 	struct io	*io_err;
