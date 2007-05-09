@@ -573,7 +573,6 @@ struct rule {
 
 /* Configuration settings. */
 struct conf {
-	int			 quiet;
 	int 			 debug;
 	int			 syslog;
 
@@ -937,6 +936,7 @@ int			 io_wait(struct io *, size_t, char **);
 /* log.c */
 void			 vlog(FILE *, int, const char *, va_list);
 void			 log_init(int);
+void			 log_syslog(int);
 void printflike1	 log_warn(const char *, ...);
 void printflike1	 log_warnx(const char *, ...);
 void printflike1	 log_info(const char *, ...);

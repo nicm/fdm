@@ -34,6 +34,7 @@
 #include "fdm.h"
 
 int	debug;
+int	tosyslog;
 
 void	logit(int, const char *, ...);
 
@@ -42,10 +43,14 @@ log_init(int n_debug)
 {
 	debug = n_debug;
 
-	if (!debug)
-		openlog(__progname, LOG_PID | LOG_NDELAY, LOG_MAIL);
-
 	tzset();
+}
+
+void
+log_syslog(int facility)
+{
+ 	tosyslog = 1;
+	openlog(__progname, LOG_PID | LOG_NDELAY, facility);
 }
 
 void printflike2
@@ -63,7 +68,7 @@ vlog(FILE *f, int pri, const char *fmt, va_list ap)
 {
 	char	*nfmt;
 
-	if (debug) {
+	if (!tosyslog) {
 		/* best effort in out of mem situations */
 		if (asprintf(&nfmt, "%s\n", fmt) == -1) {
 			vfprintf(f, fmt, ap);
@@ -117,12 +122,11 @@ log_info(const char *emsg, ...)
 {
 	va_list	ap;
 
-	if (conf.quiet)
-		return;
-
-	va_start(ap, emsg);
-	vlog(stdout, LOG_INFO, emsg, ap);
-	va_end(ap);
+	if (debug > -1) {
+		va_start(ap, emsg);
+		vlog(stdout, LOG_INFO, emsg, ap);
+		va_end(ap);
+	}
 }
 
 void printflike1
@@ -130,7 +134,7 @@ log_debug(const char *emsg, ...)
 {
 	va_list	ap;
 
-	if (conf.debug > 0) {
+	if (debug > 0) {
 		va_start(ap, emsg);
 		vlog(stderr, LOG_DEBUG, emsg, ap);
 		va_end(ap);
@@ -142,7 +146,7 @@ log_debug2(const char *emsg, ...)
 {
 	va_list	ap;
 
-	if (conf.debug > 1) {
+	if (debug > 1) {
 		va_start(ap, emsg);
 		vlog(stderr, LOG_DEBUG, emsg, ap);
 		va_end(ap);
@@ -154,7 +158,7 @@ log_debug3(const char *emsg, ...)
 {
 	va_list	ap;
 
-	if (conf.debug > 2) {
+	if (debug > 2) {
 		va_start(ap, emsg);
 		vlog(stderr, LOG_DEBUG, emsg, ap);
 		va_end(ap);
@@ -167,7 +171,7 @@ fatal(const char *emsg)
 	if (emsg == NULL)
 		logit(LOG_CRIT, "fatal: %s", strerror(errno));
 	else
-		if (errno)
+		if (errno != 0)
 			logit(LOG_CRIT, "fatal: %s: %s", emsg, strerror(errno));
 		else
 			logit(LOG_CRIT, "fatal: %s", emsg);
