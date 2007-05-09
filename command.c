@@ -33,6 +33,7 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 {
 	struct cmd	*cmd;
 	int	 	 fd_in[2], fd_out[2], fd_err[2];
+	ssize_t		 n;
 
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
@@ -43,7 +44,7 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 	fd_out[0] = fd_out[1] = -1;
 	fd_err[0] = fd_err[1] = -1;
 
-	/* open child's stdin */
+	/* Open child's stdin. */
 	if (flags & CMD_IN) {
 		if (pipe(fd_in) != 0) {
 			xasprintf(cause, "pipe: %s", strerror(errno));
@@ -57,7 +58,7 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 		}
 	}
 
-	/* open child's stdout */
+	/* Open child's stdout. */
 	if (flags & CMD_OUT) {
 		if (pipe(fd_out) != 0) {
 			xasprintf(cause, "pipe: %s", strerror(errno));
@@ -71,19 +72,19 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 		}
 	}
 
-	/* open child's stderr */
+	/* Open child's stderr. */
 	if (pipe(fd_err) != 0) {
 		xasprintf(cause, "pipe: %s", strerror(errno));
 		goto error;
 	}
 
-	/* fork the child */
+	/* Fork the child. */
 	switch (cmd->pid = fork()) {
 	case -1:
 		xasprintf(cause, "fork: %s", strerror(errno));
 		goto error;
 	case 0:
-		/* child */
+		/* Child. */
 		if (fd_in[1] != -1)
 			close(fd_in[1]);
 		if (fd_out[0] != -1)
@@ -101,7 +102,7 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 		fatal("execl");
 	}
 
-	/* parent */
+	/* Parent. */
 	close(fd_in[0]);
 	fd_in[0] = -1;
 	close(fd_out[1]);
@@ -109,24 +110,44 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 	close(fd_err[1]);
 	fd_err[1] = -1;
 
-	/* create ios */
+	/* Create ios. */
 	if (fd_in[1] != -1) {
 		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, conf.timeout);
 		if (buf != NULL && len > 0) {
-			/* write the buffer directly, without copying */
-			io_writefixed(cmd->io_in, buf, len);
+			/* 
+			 * Bypass the buffering and write directly to avoid
+			 * copying the whole buffer.
+			 */
+			while (len > 0) {
+				switch (n = write(fd_in[1], buf, len)) {
+				case 0:
+					errno = EPIPE;
+					/* FALLTHROUGH */
+				case -1:
+					if (errno == EINTR || errno == EAGAIN)
+						continue;
+					xasprintf(cause,
+					    "write: %s", strerror(errno));
+					goto error;
+				default:
+					buf += n;
+					len -= n;
+					break;
+				}
+
+			}
 		}
-		cmd->io_in->flags &= ~IO_RD;
+		io_writeonly(cmd->io_in);
 	} else
 		cmd->io_in = NULL;
 	if (fd_out[0] != -1) {
 		cmd->io_out = io_create(fd_out[0], NULL, IO_LF, conf.timeout);
-		cmd->io_out->flags &= ~IO_WR;
+		io_readonly(cmd->io_out);
 	} else
 		cmd->io_out = NULL;
 	if (fd_err[0] != -1) {
 		cmd->io_err = io_create(fd_err[0], NULL, IO_LF, conf.timeout);
-		cmd->io_err->flags &= ~IO_WR;
+		io_readonly(cmd->io_err);
 	} else
 		cmd->io_err = NULL;
 
@@ -160,7 +181,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 	struct io	*io, *ios[3];
 	size_t		 len;
 
-	/* retrieve a line if possible */
+	/* Retrieve a line if possible. */
 	if (err != NULL)
 		*err = NULL;
 	if (out != NULL)
@@ -171,7 +192,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		else
 			*err = io_readline(cmd->io_err);
 		if (*err != NULL) {
-			/* strip CR if the line is terminated by one */
+			/* Strip CR if the line is terminated by one. */
 			len = strlen(*err);
 			if (len > 0 && (*err)[len - 1] == '\r')
 				(*err)[len - 1] = '\0';
@@ -184,7 +205,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		else
 			*out = io_readline(cmd->io_out);
 		if (*out != NULL) {
-			/* strip CR if the line is terminated by one */
+			/* Strip CR if the line is terminated by one. */
 			len = strlen(*out);
 			if (len > 0 && (*out)[len - 1] == '\r')
 				(*out)[len - 1] = '\0';
@@ -192,7 +213,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		}
 	}
 
-	/* close stdin if it is done */
+	/* Close stdin if it is done. */
 	if (cmd->flags & CMD_ONCE && cmd->io_in != NULL &&
 	    (IO_WRSIZE(cmd->io_in) == 0 || cmd->pid == -1)) {
 		io_close(cmd->io_in);
@@ -200,7 +221,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		cmd->io_in = NULL;
 	}
 
-	/* if anything is open, try and poll it */
+	/* If anything is open, try and poll it. */
 	if (cmd->io_in != NULL || cmd->io_out != NULL || cmd->io_err != NULL) {
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
@@ -211,7 +232,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 				return (0);
 			return (1);
 		case 0:
-			/* if the closed io is empty, free it */
+			/* If the closed io is empty, free it. */
 			if (io == cmd->io_out && IO_RDSIZE(cmd->io_out) == 0) {
 				io_close(cmd->io_out);
 				io_free(cmd->io_out);
@@ -226,7 +247,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		}
 	}
 
-	/* check if the child is still alive */
+	/* Check if the child is still alive. */
 	if (cmd->pid != -1) {
 		switch (waitpid(cmd->pid, &cmd->status, WNOHANG)) {
 		case -1:
@@ -238,13 +259,15 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 			break;
 		default:
 			cmd->pid = -1;
-			/* do at least one poll before finishing */
+			/* Do at least one poll before finishing. */
 			return (0);
 		}
 	}
 
-	/* if the child isn't dead, or there is data left in the buffers,
-	   return with 0 now to get called again */
+	/* 
+	 * If the child isn't dead, or there is data left in the buffers,
+	 * return with 0 now to get called again.
+	 */
 	if (cmd->pid != -1)
 		return (0);
 	if (cmd->io_out != NULL && IO_RDSIZE(cmd->io_out) > 0)
@@ -252,7 +275,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 	if (cmd->io_err != NULL && IO_RDSIZE(cmd->io_err) > 0)
 		return (0);
 
-	/* child is dead, everything is empty. sort out what to return */
+	/* Child is dead, everything is empty. Sort out what to return. */
 	if (WIFSIGNALED(cmd->status)) {
 		xasprintf(cause, "child got signal: %d", WTERMSIG(cmd->status));
 		return (1);

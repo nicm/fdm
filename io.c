@@ -50,25 +50,18 @@ io_create(int fd, SSL *ssl, const char *eol, int timeout)
 	io->ssl = ssl;
 	io->dup_fd = -1;
 
-	/* set non-blocking */
+	/* Set non-blocking. */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
 		fatal("fcntl");
 	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
 		fatal("fcntl");
 
-	io->flags = IO_RD|IO_WR;
+	io->flags = 0;
 	io->closed = 0;
 	io->error = NULL;
 
-	io->rspace = IO_BLOCKSIZE;
-	io->rbase = xmalloc(io->rspace);
-	io->rsize = 0;
-	io->roff = 0;
-
-	io->wspace = IO_BLOCKSIZE;
-	io->wbase = xmalloc(io->wspace);
-	io->wsize = 0;
-	io->woff = 0;
+	io->rd = buffer_create(IO_BLOCKSIZE);
+	io->wr = buffer_create(IO_BLOCKSIZE);
 
 	io->lbuf = NULL;
 	io->llen = 0;
@@ -79,6 +72,22 @@ io_create(int fd, SSL *ssl, const char *eol, int timeout)
 	return (io);
 }
 
+/* Mark io as read only. */
+void
+io_readonly(struct io *io)
+{
+	buffer_destroy(io->wr);
+	io->wr = NULL;
+}
+
+/* Mark io as write only. */
+void
+io_writeonly(struct io *io)
+{
+	buffer_destroy(io->rd);
+	io->rd = NULL;
+}
+
 /* Free a struct io. */
 void
 io_free(struct io *io)
@@ -87,9 +96,10 @@ io_free(struct io *io)
 		xfree(io->lbuf);
 	if (io->error != NULL)
 		xfree(io->error);
-	xfree(io->rbase);
-	if ((io->flags & IO_FIXED) == 0)
-		xfree(io->wbase);
+	if (io->rd != NULL)
+		buffer_destroy(io->rd);
+	if (io->wr != NULL)
+		buffer_destroy(io->wr);
 	xfree(io);
 }
 
@@ -104,16 +114,6 @@ io_close(struct io *io)
 	close(io->fd);
 }
 
-/* Poll if there is lots of data to write. */
-int
-io_update(struct io *io, char **cause)
-{
-	if (io->wsize < IO_FLUSHSIZE)
-		return (1);
-
-	return (io_poll(io, cause));
-}
-
 /* Poll multiple IOs. */
 int
 io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
@@ -126,7 +126,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 	if (n > IO_POLLFDS)
 		fatalx("io: too many fds");
 
-	/* check all the ios */
+	/* Check all the ios. */
 	for (i = 0; i < n; i++) {
 		io = *rio = ios[i];
 		if (io == NULL)
@@ -140,7 +140,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 			return (0);
 	}
 
-	/* create the poll structure */
+	/* Create the poll structure. */
 	memset(pfds, 0, sizeof pfds);
 	j = 0;
 	for (i = 0; i < n; i++) {
@@ -154,14 +154,14 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		else
 			pfd->fd = io->fd;
 		pfd->events = 0;
-		if (io->flags & IO_RD)
+		if (io->rd != NULL)
 			pfd->events |= POLLIN;
-		if (io->flags & IO_WR && (io->wsize > 0 ||
+		if (io->wr != NULL && (buffer_used(io->wr) != 0 ||
 		    (io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0))
 			pfd->events |= POLLOUT;
 	}
 
-	/* do the poll */
+	/* Do the poll. */
 	error = poll(pfds, j, timeout);
 	if (error == 0 || error == -1) {
 		if (error == 0 && timeout == 0) {
@@ -178,7 +178,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		return (-1);
 	}
 
-	/* and check all the ios */
+	/* And check all the ios. */
 	j = 0;
 	for (i = 0; i < n; i++) {
 		io = *rio = ios[i];
@@ -187,27 +187,34 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		pfd = &pfds[j];
 		j++;
 
-		/* close on POLLERR or POLLNVAL hard */
+		/* Close on POLLERR or POLLNVAL hard. */
 		if (pfd->revents & (POLLERR|POLLNVAL)) {
 			io->closed = 1;
 			continue;
 		}
-		/* close on POLLHUP but only if there is nothing to read */
+		/* Close on POLLHUP but only if there is nothing to read. */
 		if (pfd->revents & POLLHUP && (pfd->revents & POLLIN) == 0) {
 			io->closed = 1;
 			continue;
 		}
 
-		if ((io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0) {
-			/* if a repeated read/write is necessary, the socket
-			   must be ready for both reading and writing */
-			if (pfd->revents & POLLOUT && pfd->revents & POLLIN) {
-				if (io->flags & IO_NEEDFILL) {
-					if ((error = io_fill(io)) != 1)
-						goto error;
-				}
+		if ((io->flags & (IO_NEEDPUSH|IO_NEEDFILL)) != 0) {
+			/* 
+			 * If a repeated read/write is necessary, the socket
+			 * must be ready for both reading and writing
+			 */
+			if (pfd->revents & (POLLOUT|POLLIN)) {
 				if (io->flags & IO_NEEDPUSH) {
 					switch (io_push(io)) {
+					case 0:
+						io->closed = 1;
+						continue;
+					case -1:
+						goto error;
+					}
+				}
+				if (io->flags & IO_NEEDFILL) {
+					switch (io_fill(io)) {
 					case 0:
 						io->closed = 1;
 						continue;
@@ -219,8 +226,8 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 			continue;
 		}
 
-		/* otherwise try to read and write */
-		if (pfd->revents & POLLOUT) {
+		/* Otherwise try to read and write. */
+		if (io->wr != NULL && pfd->revents & POLLOUT) {
 			switch (io_push(io)) {
 			case 0:
 				io->closed = 1;
@@ -229,7 +236,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 				goto error;
 			}
 		}
-		if (pfd->revents & POLLIN) {
+		if (io->rd != NULL && pfd->revents & POLLIN) {
 			switch (io_fill(io)) {
 			case 0:
 				io->closed = 1;
@@ -257,13 +264,13 @@ io_poll(struct io *io, char **cause)
 	int		 timeout;
 
 	timeout = io->timeout;
-	if (io->flags & IO_NOWAIT)
-		timeout = 0;
 	return (io_polln(&io, 1, &rio, timeout, cause));
 }
 
-/* Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,
-   a la read(2). */
+/* 
+ * Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,
+ * a la read(2).
+ */
 int
 io_fill(struct io *io)
 {
@@ -273,30 +280,12 @@ io_fill(struct io *io)
  	log_debug3("io_fill: in");
 #endif
 
-	/* move data back to the base of the buffer */
-	if (io->roff > 0) {
-		if (io->rsize > 0)
-			memmove(io->rbase, io->rbase + io->roff, io->rsize);
-		io->roff = 0;
-	}
+	/* Ensure there is at least some minimum space in the buffer. */
+	buffer_ensure(io->rd, IO_BLOCKSIZE);
 
-	/* ensure there is enough space */
-	if (io->rspace - io->rsize < IO_BLOCKSIZE) {
-		io->rspace += IO_BLOCKSIZE;
-		if (io->rspace > IO_MAXBUFFERLEN) {
-			if (io->error != NULL)
-				xfree(io->error);
-			io->error = xstrdup("io: maximum buffer length "
-			    "exceeded");
-			return (-1);
-		}
-		io->rbase = xrealloc(io->rbase, 1, io->rspace);
-	}
-
-	/* attempt to read a block */
+	/* Attempt to read as much as the buffer has available. */
 	if (io->ssl == NULL) {
-		n = read(io->fd, io->rbase + io->roff + io->rsize,
-		    IO_BLOCKSIZE);
+		n = read(io->fd, buffer_end(io->rd), buffer_free(io->rd));
 		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -306,16 +295,17 @@ io_fill(struct io *io)
 			return (-1);
 		}
 	} else {
-		n = SSL_read(io->ssl, io->rbase + io->roff + io->rsize,
-		    IO_BLOCKSIZE);
+		n = SSL_read(io->ssl, buffer_end(io->rd), buffer_free(io->rd));
 		if (n == 0)
 			return (0);
 		if (n < 0) {
 			switch (n = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
-				/* a repeat is certain (poll on the socket
-				   will still return data ready) so this can
-				   be ignored */
+				/* 
+				 * A repeat is certain (poll on the socket
+				 * will still return data ready) so this can
+				 * be ignored.
+				 */
 				break;
 			case SSL_ERROR_WANT_WRITE:
 				io->flags |= IO_NEEDFILL;
@@ -334,16 +324,16 @@ io_fill(struct io *io)
 		log_debug3("io_fill: read %zd bytes", n);
 #endif
 
-		/* copy out the duplicate fd. errors are irrelevent for this */
+		/* Copy out the duplicate fd. Errors are just ignored. */
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "< ", 2);
-			write(io->dup_fd, io->rbase + io->rsize, n);
+			write(io->dup_fd, buffer_end(io->rd), n);
 		}
 
-		/* increase the fill marker */
-		io->rsize += n;
+		/* Adjust the buffer size. */
+		buffer_added(io->rd, n);
 
-		/* reset the need flags */
+		/* Reset the need flags. */
 		io->flags &= ~IO_NEEDFILL;
 	}
 
@@ -364,13 +354,13 @@ io_push(struct io *io)
  	log_debug3("io_push: in");
 #endif
 
-	/* if nothing to write, return */
-	if (io->wsize == 0)
+	/* If nothing to write, return. */
+	if (buffer_used(io->wr) == 0)
 		return (1);
 
-	/* write as much as possible */
+	/* Write as much as possible. */
 	if (io->ssl == NULL) {
-		n = write(io->fd, io->wbase + io->woff, io->wsize);
+		n = write(io->fd, buffer_start(io->wr), buffer_used(io->wr));
 		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -380,7 +370,7 @@ io_push(struct io *io)
 			return (-1);
 		}
 	} else {
-		n = SSL_write(io->ssl, io->wbase + io->woff, io->wsize);
+		n = SSL_write(io->ssl, buffer_start(io->wr), buffer_used(io->wr));
 		if (n == 0)
 			return (0);
 		if (n < 0) {
@@ -389,8 +379,10 @@ io_push(struct io *io)
 				io->flags |= IO_NEEDPUSH;
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				/* a repeat is certain (io->wsize is still != 0)
-				   so this can be ignored */
+				/* 
+				 * A repeat is certain (io->wsize is still != 0)
+				 * so this can be ignored 
+				 */
 				break;
 			default:
 				if (io->error != NULL)
@@ -406,21 +398,16 @@ io_push(struct io *io)
 		log_debug3("io_push: wrote %zd bytes", n);
 #endif
 
-		/* copy out the duplicate fd */
+		/* Copy out the duplicate fd. */
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "> ", 2);
-			write(io->dup_fd, io->wbase + io->woff, n);
+			write(io->dup_fd, buffer_start(io->wr), n);
 		}
 
-		io->woff += n;
-		io->wsize -= n;
-		if ((io->flags & IO_FIXED) == 0 && io->woff > IO_BLOCKSIZE) {
-			/* move the unwritten data down */
-			memmove(io->wbase, io->wbase + io->woff, io->wsize);
-			io->woff = 0;
-		}
+		/* Adjust the buffer size. */
+		buffer_removed(io->wr, n);
 
-		/* reset the need flags */
+		/* Reset the need flags. */
 		io->flags &= ~IO_NEEDPUSH;
 	}
 
@@ -437,20 +424,14 @@ io_read(struct io *io, size_t len)
 {
 	void	*buf;
 
-	if ((io->flags & IO_RD) == 0)
-		fatalx("io: read when flag unset");
-
 	if (io->error != NULL)
 		return (NULL);
 
-	if (io->rsize < len)
+	if (buffer_used(io->rd) < len)
 		return (NULL);
 
 	buf = xmalloc(len);
-	memcpy(buf, io->rbase + io->roff, len);
-
-	io->rsize -= len;
-	io->roff += len;
+	buffer_copyout(io->rd, buf, len);
 
 	return (buf);
 }
@@ -459,57 +440,25 @@ io_read(struct io *io, size_t len)
 int
 io_read2(struct io *io, void *buf, size_t len)
 {
-	if ((io->flags & IO_RD) == 0)
-		fatalx("io: read when flag unset");
-
 	if (io->error != NULL)
 		return (1);
 
-	if (io->rsize < len)
-		return (1);
+	if (buffer_used(io->rd) < len)
+		return (NULL);
 
-	memcpy(buf, io->rbase + io->roff, len);
-
-	io->rsize -= len;
-	io->roff += len;
+	buffer_copyout(io->rd, buf, len);
 
 	return (0);
-}
-
-/* Replace the write buffer with the specified one. */
-void
-io_writefixed(struct io *io, void *buf, size_t len)
-{
-	if ((io->flags & IO_WR) == 0)
-		fatalx("io: write when flag unset");
-
-	xfree(io->wbase);
-	io->wbase = buf;
-	io->wspace = 0;
-	io->wsize = len;
-	io->woff = 0;
-	io->flags |= IO_FIXED;
 }
 
 /* Write a block to the io write buffer. */
 void
 io_write(struct io *io, const void *buf, size_t len)
 {
-	if ((io->flags & IO_WR) == 0)
-		fatalx("io: write when flag unset");
-
 	if (io->error != NULL)
 		return;
 
-	if (io->flags & IO_FIXED)
-		fatalx("io: attempt to write to fixed buffer");
-
-	if (len != 0) {
-		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, len);
-
-		memcpy(io->wbase + io->woff + io->wsize, buf, len);
-		io->wsize += len;
-	}
+	buffer_copyin(io->wr, buf, len);
 
 #ifdef IO_DEBUG
 	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", len, io->wsize,
@@ -517,16 +466,15 @@ io_write(struct io *io, const void *buf, size_t len)
 #endif
 }
 
-/* Return a line from the read buffer. EOL is stripped and the string
-   returned is zero-terminated. */
+/*
+ * Return a line from the read buffer. EOL is stripped and the string
+ * returned is zero-terminated. 
+ */
 char *
 io_readline2(struct io *io, char **buf, size_t *len)
 {
-	char	*ptr;
-	size_t	 off, maxlen, eollen;
-
-	if ((io->flags & IO_RD) == 0)
-		fatalx("io: read when flag unset");
+	char	*ptr, *base;
+	size_t	 size, maxlen, eollen;
 
 	if (io->error != NULL)
 		return (NULL);
@@ -535,63 +483,68 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	log_debug3("io_readline2: in: off=%zu used=%zu", io->roff, io->rsize);
 #endif
 
-	maxlen = io->rsize > IO_MAXLINELEN ? IO_MAXLINELEN : io->rsize;
+	maxlen = buffer_used(io->rd);
+	if (maxlen > IO_MAXLINELEN)
+		maxlen = IO_MAXLINELEN;
 	eollen = strlen(io->eol);
-
-	if (io->rsize < eollen)
+	if (buffer_used(io->rd) < eollen)
 		return (NULL);
 
-	ptr = io->rbase + io->roff;
+	base = ptr = buffer_start(io->rd);
 	for (;;) {
-		/* find the first EOL character */
-		ptr = memchr(ptr, *io->eol, io->rsize - (ptr - io->rbase -
-		    io->roff));
+		/* Find the first character in the EOL string. */
+		ptr = memchr(ptr, *io->eol, maxlen - (ptr - base));
 
 		if (ptr != NULL) {
-			off = (ptr - io->rbase) - io->roff;
-
-			if (off + eollen > maxlen) {
-				/* if there isn't enough space for the rest of
-				   the EOL, this isn't it */
+			/* Found. Is there enough space for the rest? */
+			if (ptr - base + eollen > maxlen) {
+				/*
+				 * No, this isn't it. Set ptr to NULL to handle
+				 * as not found.
+				 */
 				ptr = NULL;
 			} else if (strncmp(ptr, io->eol, eollen) == 0) {
-				/* the strings match, so this is it */
+				/* This is an EOL. */
+				size = ptr - base;
 				break;
 			}
 		}
 		if (ptr == NULL) {
-			/* not found within the length searched. if that was
-			   the maximum, it is an error */
-			if (io->rsize > IO_MAXLINELEN) {
+			/*
+			 * Not found within the length searched. If that was
+			 * the maximum length, this is an error. 
+			 */
+			if (maxlen == IO_MAXLINELEN) {
 				if (io->error != NULL)
 					xfree(io->error);
-				io->error = xstrdup("io: maximum line length "
-				    "exceeded");
+				io->error =
+				    xstrdup("io: maximum line length exceeded");
 				return (NULL);
 			}
-			/* if the socket has closed, just return the rest */
-			if (io->closed) {
-				ENSURE_FOR(*buf, *len, io->rsize, 1);
-				memcpy(*buf, io->rbase + io->roff, io->rsize);
-				(*buf)[io->rsize] = '\0';
-				io->roff += io->rsize;
-				io->rsize = 0;
-				return (*buf);
-			}
-			return (NULL);
+			/* 
+			 * If the socket has closed, just return all the data.
+			 */
+			if (!io->closed)
+				return (NULL);
+			size = buffer_used(io->rd);
+
+			ENSURE_FOR(*buf, *len, size, 1);
+			buffer_copyout(io->rd, *buf, size);
+			(*buf)[size] = '\0';
+			return (*buf);
 		}
 
+		/* Start again from the next character. */
 		ptr++;
 	}
 
-	/* copy the line */
-	ENSURE_FOR(*buf, *len, off, 1);
-	memcpy(*buf, io->rbase + io->roff, off);
-	(*buf)[off] = '\0';
+	/* Copy the line and remove it from the buffer. */
+	ENSURE_FOR(*buf, *len, size, 1);
+	buffer_copyout(io->rd, *buf, size);
+	(*buf)[size] = '\0';
 
-	/* adjust the buffer positions */
-	io->roff += off + eollen;
-	io->rsize -= off + eollen;
+	/* Discard the EOL from the buffer. */
+	buffer_removed(io->rd, eollen);
 
 #ifdef IO_DEBUG
 	log_debug3("io_readline2: out: off=%zu used=%zu", io->roff, io->rsize);
@@ -640,24 +593,17 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	int	 n;
 	va_list	 aq;
 
-	if ((io->flags & IO_WR) == 0)
-		fatalx("io: write when flag unset");
-
 	if (io->error != NULL)
 		return;
-
-	if (io->flags & IO_FIXED)
-		fatalx("io: attempt to write to fixed buffer");
 
 	if (fmt != NULL) {
 		va_copy(aq, ap);
 		n = xvsnprintf(NULL, 0, fmt, aq);
 		va_end(aq);
 
-		ENSURE_FOR(io->wbase, io->wspace, io->wsize + io->woff, n + 1);
-
- 		xvsnprintf(io->wbase + io->woff + io->wsize, n + 1, fmt, ap);
-		io->wsize += n;
+		buffer_ensure(io->wr, n + 1);
+ 		xvsnprintf(buffer_end(io->wr), n + 1, fmt, ap);
+		buffer_added(io->wr, n);
 	}
 	io_write(io, io->eol, strlen(io->eol));
 }
@@ -698,19 +644,11 @@ io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
 int
 io_flush(struct io *io, char **cause)
 {
-	int	flags;
-
-	flags = io->flags;
-	io->flags &= ~IO_NOWAIT;
-
-	while (io->wsize > 0) {
-		if (io_poll(io, cause) != 1) {
-			io->flags = flags;
+	while (buffer_used(io->wr) != 0) {
+		if (io_poll(io, cause) != 1)
 			return (-1);
-		}
 	}
 
-	io->flags = flags;
 	return (0);
 }
 
@@ -718,18 +656,20 @@ io_flush(struct io *io, char **cause)
 int
 io_wait(struct io *io, size_t len, char **cause)
 {
-	int	flags;
-
-	flags = io->flags;
-	io->flags &= ~IO_NOWAIT;
-
-	while (io->rsize < len) {
-		if (io_poll(io, cause) != 1) {
-			io->flags = flags;
+	while (buffer_used(io->rd) < len) {
+		if (io_poll(io, cause) != 1)
 			return (-1);
-		}
 	}
 
-	io->flags = flags;
 	return (0);
+}
+
+/* Poll if there is lots of data to write. */
+int
+io_update(struct io *io, char **cause)
+{
+	if (buffer_used(io->wr) < IO_FLUSHSIZE)
+		return (1);
+
+	return (io_poll(io, cause));
 }

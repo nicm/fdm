@@ -50,8 +50,8 @@
 #define SYSLOCKFILE	"/var/run/fdm.lock"
 #define MAXQUEUEVALUE	50
 #define DEFMAILQUEUE	2
-#define DEFMAILSIZE	(32 * 1024 * 1024)	/* 32 MB */
-#define MAXMAILSIZE	IO_MAXBUFFERLEN
+#define DEFMAILSIZE	(32 * 1024 * 1024)		/* 32 MB */
+#define MAXMAILSIZE	(1 * 1024 * 1024 * 1024)	/*  1 GB */
 #define MAXACTIONCHAIN	5
 #define DEFTIMEOUT	(900 * 1000)
 #define LOCKSLEEPTIME	10000
@@ -628,9 +628,17 @@ struct conf {
 };
 extern struct conf		 conf;
 
+/* Buffer structure. */
+struct buffer {
+	u_char		*base;		/* buffer start */
+	size_t		 allocated;	/* total size of buffer */
+
+	size_t		 size;		/* size of data in buffer */
+	size_t		 offset;	/* offset of data in buffer */
+};
+
 /* Limits at which to fail. */
 #define IO_MAXLINELEN (1024 * 1024) 		/* 1 MB */
-#define IO_MAXBUFFERLEN (1024 * 1024 * 1024) 	/* 1 GB */
 
 /* IO line endings. */
 #define IO_CRLF "\r\n"
@@ -651,8 +659,8 @@ extern struct conf		 conf;
 
 /* IO buffer size macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
-#define IO_RDSIZE(io) ((io)->rsize)
-#define IO_WRSIZE(io) ((io)->wsize)
+#define IO_RDSIZE(io) (buffer_used((io)->rd))
+#define IO_WRSIZE(io) (buffer_used((io)->wr))
 
 /* IO structure. */
 struct io {
@@ -664,22 +672,11 @@ struct io {
 	char		*error;
 
 	int		 flags;
-#define IO_RD 0x1
-#define IO_WR 0x2
-#define IO_NEEDFILL 0x4
-#define IO_NEEDPUSH 0x8
-#define IO_FIXED 0x10			/* fixed write buffer */
-#define IO_NOWAIT 0x20			/* don't block on poll */
+#define IO_NEEDFILL 0x1
+#define IO_NEEDPUSH 0x2
 
-	char		*rbase;		/* buffer start */
-	size_t		 rspace;	/* total size of buffer */
-	size_t		 rsize;		/* amount of data available */
-	size_t		 roff;		/* base of data in buffer */
-
-	char		*wbase;		/* buffer start */
-	size_t		 wspace;	/* total size of buffer */
-	size_t		 wsize;		/* size of data currently in buffer */
-	size_t		 woff;
+	struct buffer	*rd;
+	struct buffer	*wr;
 
 	char		*lbuf;		/* line buffer */
 	size_t		 llen;		/* line buffer size */
@@ -911,27 +908,42 @@ char 			*replacestr(struct replstr *, struct strb *,
 char 			*replacepath(struct replpath *, struct strb *,
     			     struct mail *, struct rmlist *);
 
+/* buffer.c */
+struct buffer 		*buffer_create(size_t);
+void			 buffer_destroy(struct buffer *);
+size_t			 buffer_used(struct buffer *);
+size_t			 buffer_free(struct buffer *);
+u_char 			*buffer_start(struct buffer *);
+u_char 			*buffer_end(struct buffer *);
+void			 buffer_clear(struct buffer *);
+void			 buffer_ensure(struct buffer *, size_t);
+void			 buffer_added(struct buffer *, size_t);
+void			 buffer_removed(struct buffer *, size_t);
+void			 buffer_copyin(struct buffer *, const void *, size_t);
+void			 buffer_copyout(struct buffer *, void *, size_t);
+
 /* io.c */
 struct io		*io_create(int, SSL *, const char *, int);
+void			 io_readonly(struct io *);
+void			 io_writeonly(struct io *);
 void			 io_free(struct io *);
 void			 io_close(struct io *);
-int			 io_update(struct io *, char **);
 int			 io_polln(struct io **, u_int, struct io **, int,
 			     char **);
 int			 io_poll(struct io *, char **);
 int			 io_read2(struct io *, void *, size_t);
 void 			*io_read(struct io *, size_t);
-void			 io_writefixed(struct io *, void *, size_t);
 void			 io_write(struct io *, const void *, size_t);
 char 			*io_readline2(struct io *, char **, size_t *);
 char 			*io_readline(struct io *);
 void printflike2	 io_writeline(struct io *, const char *, ...);
 void			 io_vwriteline(struct io *, const char *, va_list);
-int			 io_pollline(struct io *, char **, char **);
 int			 io_pollline2(struct io *, char **, char **, size_t *,
 			     char **);
+int			 io_pollline(struct io *, char **, char **);
 int			 io_flush(struct io *, char **);
 int			 io_wait(struct io *, size_t, char **);
+int			 io_update(struct io *, char **);
 
 /* log.c */
 void			 vlog(FILE *, int, const char *, va_list);
