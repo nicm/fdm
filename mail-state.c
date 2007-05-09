@@ -537,7 +537,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	    (u_long) dctx->uid);
 	add_tag(&m->tags, "action", "%s", t->name);
 
-	/* just deliver now for in-child delivery */
+	/* Just deliver now for in-child delivery. */
 	if (ti->deliver->type == DELIVER_INCHILD) {
 		if (ti->deliver->deliver(dctx, ti) != DELIVER_SUCCESS)
 			return (ACTION_ERROR);
@@ -592,10 +592,10 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 	log_debug2("%s: message %u, received modified mail: size %zu, body %zd",
 	    a->name, m->idx, m->size, m->body);
 
-	/* trim from line */
+	/* Trim from line. */
 	trim_from(m);
 
-	/* and recreate the wrapped array */
+	/* Recreate the wrapped array. */
 	lines = fill_wrapped(m);
 	log_debug2("%s: found %u wrapped lines", a->name, lines);
 
