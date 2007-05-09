@@ -301,9 +301,9 @@ io_fill(struct io *io)
 			switch (n = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
 				/* 
-				 * A repeat is certain (poll on the socket
-				 * will still return data ready) so this can
-				 * be ignored.
+				 * A repeat is certain (poll on the socket will
+				 * still return data ready) so this can be
+				 * ignored.
 				 */
 				break;
 			case SSL_ERROR_WANT_WRITE:
@@ -379,8 +379,8 @@ io_push(struct io *io)
 				break;
 			case SSL_ERROR_WANT_WRITE:
 				/* 
-				 * A repeat is certain (io->wsize is still != 0)
-				 * so this can be ignored 
+				 * A repeat is certain (io->wsize is still !=
+				 * 0) so this can be ignored
 				 */
 				break;
 			default:
@@ -466,8 +466,8 @@ io_write(struct io *io, const void *buf, size_t len)
 }
 
 /*
- * Return a line from the read buffer. EOL is stripped and the string
- * returned is zero-terminated. 
+ * Return a line from the read buffer. EOL is stripped and the string returned
+ * is zero-terminated.
  */
 char *
 io_readline2(struct io *io, char **buf, size_t *len)
@@ -511,7 +511,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 		if (ptr == NULL) {
 			/*
 			 * Not found within the length searched. If that was
-			 * the maximum length, this is an error. 
+			 * the maximum length, this is an error.
 			 */
 			if (maxlen == IO_MAXLINELEN) {
 				if (io->error != NULL)
