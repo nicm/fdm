@@ -57,7 +57,6 @@ io_create(int fd, SSL *ssl, const char *eol, int timeout)
 		fatal("fcntl");
 
 	io->flags = 0;
-	io->closed = 0;
 	io->error = NULL;
 
 	io->rd = buffer_create(IO_BLOCKSIZE);
@@ -136,7 +135,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 				*cause = xstrdup(io->error);
 			return (-1);
 		}
-		if (io->closed)
+		if (IO_CLOSED(io))
 			return (0);
 	}
 
@@ -157,7 +156,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		if (io->rd != NULL)
 			pfd->events |= POLLIN;
 		if (io->wr != NULL && (buffer_used(io->wr) != 0 ||
-		    (io->flags & (IO_NEEDFILL|IO_NEEDPUSH)) != 0))
+		    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH)) != 0))
 			pfd->events |= POLLOUT;
 	}
 
@@ -189,34 +188,34 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 
 		/* Close on POLLERR or POLLNVAL hard. */
 		if (pfd->revents & (POLLERR|POLLNVAL)) {
-			io->closed = 1;
+			io->flags |= IOF_CLOSED;
 			continue;
 		}
 		/* Close on POLLHUP but only if there is nothing to read. */
 		if (pfd->revents & POLLHUP && (pfd->revents & POLLIN) == 0) {
-			io->closed = 1;
+			io->flags |= IOF_CLOSED;
 			continue;
 		}
 
-		if ((io->flags & (IO_NEEDPUSH|IO_NEEDFILL)) != 0) {
+		if ((io->flags & (IOF_NEEDPUSH|IOF_NEEDFILL)) != 0) {
 			/* 
 			 * If a repeated read/write is necessary, the socket
 			 * must be ready for both reading and writing
 			 */
 			if (pfd->revents & (POLLOUT|POLLIN)) {
-				if (io->flags & IO_NEEDPUSH) {
+				if (io->flags & IOF_NEEDPUSH) {
 					switch (io_push(io)) {
 					case 0:
-						io->closed = 1;
+						io->flags |= IOF_CLOSED;
 						continue;
 					case -1:
 						goto error;
 					}
 				}
-				if (io->flags & IO_NEEDFILL) {
+				if (io->flags & IOF_NEEDFILL) {
 					switch (io_fill(io)) {
 					case 0:
-						io->closed = 1;
+						io->flags |= IOF_CLOSED;
 						continue;
 					case -1:
 						goto error;
@@ -230,7 +229,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		if (io->wr != NULL && pfd->revents & POLLOUT) {
 			switch (io_push(io)) {
 			case 0:
-				io->closed = 1;
+				io->flags |= IOF_CLOSED;
 				continue;
 			case -1:
 				goto error;
@@ -239,7 +238,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		if (io->rd != NULL && pfd->revents & POLLIN) {
 			switch (io_fill(io)) {
 			case 0:
-				io->closed = 1;
+				io->flags |= IOF_CLOSED;
 				continue;
 			case -1:
 				goto error;
@@ -308,7 +307,7 @@ io_fill(struct io *io)
 				 */
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				io->flags |= IO_NEEDFILL;
+				io->flags |= IOF_NEEDFILL;
 				break;
 			default:
 				if (io->error != NULL)
@@ -334,7 +333,7 @@ io_fill(struct io *io)
 		buffer_added(io->rd, n);
 
 		/* Reset the need flags. */
-		io->flags &= ~IO_NEEDFILL;
+		io->flags &= ~IOF_NEEDFILL;
 	}
 
 #ifdef IO_DEBUG
@@ -376,7 +375,7 @@ io_push(struct io *io)
 		if (n < 0) {
 			switch (n = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
-				io->flags |= IO_NEEDPUSH;
+				io->flags |= IOF_NEEDPUSH;
 				break;
 			case SSL_ERROR_WANT_WRITE:
 				/* 
@@ -408,7 +407,7 @@ io_push(struct io *io)
 		buffer_removed(io->wr, n);
 
 		/* Reset the need flags. */
-		io->flags &= ~IO_NEEDPUSH;
+		io->flags &= ~IOF_NEEDPUSH;
 	}
 
 #ifdef IO_DEBUG
@@ -524,7 +523,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			/* 
 			 * If the socket has closed, just return all the data.
 			 */
-			if (!io->closed)
+			if (!IO_CLOSED(io))
 				return (NULL);
 			size = buffer_used(io->rd);
 
