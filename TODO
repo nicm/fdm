@@ -32,3 +32,5 @@
   decreasing size order, but with longer queue necessary
 - document set verify-certificates/no-verify (http://cvs.mirbsd.de/src/etc/ssl.certs.shar)
 - document chained actions
+- there are way too many constant returns values and other weirdness. make it
+  consistent in some way (closed=1, success=0, error=-1)

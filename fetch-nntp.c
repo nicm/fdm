@@ -357,6 +357,14 @@ fetch_nntp_save(struct account *a)
 		    group->name, group->last, strlen(group->id), group->id);
 	}
 
+	if (fflush(f) != 0) {
+		log_warn("%s: fflush", a->name);
+		goto error;
+	}
+	if (fsync(fileno(f)) != 0) {
+		log_warn("%s: fsync", a->name);
+		goto error;
+	}		
 	if (fclose(f) != 0) {
 		log_warn("%s: fclose", a->name);
 		f = NULL;
