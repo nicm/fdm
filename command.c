@@ -39,8 +39,13 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 	cmd->flags = flags;
 	cmd->timeout = timeout;
 
-	cmd->buf = buf;
-	cmd->len = len;
+	if (buf != NULL && len != 0 && flags & CMD_IN) {
+		cmd->buf = buf;
+		cmd->len = len;
+	} else {
+		cmd->buf = NULL;
+		cmd->len = 0;
+	}
 
 	fd_in[0] = fd_in[1] = -1;
 	fd_out[0] = fd_out[1] = -1;
@@ -198,7 +203,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 	 * as possible here while still polling the others. If CMD_ONCE is set
 	 * the stdin io is closed when the buffer is done.
 	 */
-	if (cmd->buf != NULL && cmd->len > 0) {
+	if (cmd->buf != NULL && cmd->len != 0) {
 		switch (n = write(cmd->io_in->fd, cmd->buf, cmd->len)) {
 		case 0:
 			errno = EPIPE;
