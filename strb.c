@@ -111,7 +111,7 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	sbep = strb_address(sb, key);
 	if (sbep == NULL) {
 		if (sb->ent_used > sb->ent_max) {
-			/* allocate some more */
+			/* Allocate some more entries. */
 			n = sb->ent_max;
 
 			size = STRB_SIZE(sb);

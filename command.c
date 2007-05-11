@@ -208,9 +208,10 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		case 0:
 			errno = EPIPE;
 		case -1:
-			if (errno != EINTR && errno != EAGAIN)
-				cmd->len = 0;
-			break;
+			if (errno == EINTR || errno == EAGAIN) 
+				break;
+			xasprintf(cause, "short write: %s", strerror(errno));
+			return (1);
 		default: 
 			cmd->buf += n;
 			cmd->len -= n;

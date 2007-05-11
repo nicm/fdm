@@ -226,7 +226,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 		if (rio == pio)
 			fatalx("child: parent socket closed");
 		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (1);
+		return (FETCH_ERROR);
 	case -1:
 		if (rio == pio)
 			fatalx("child: parent socket error");
@@ -234,7 +234,7 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 			break;
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (1);
+		return (FETCH_ERROR);
 	}
 	tim = get_time() - tim;
 

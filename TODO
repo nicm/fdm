@@ -34,3 +34,5 @@
 - document chained actions
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
+- the mixed metaphor connect-etc-are-linear, fetch-is-state-machine in fetch-*
+  is a bad idea

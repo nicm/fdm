@@ -1,3 +1,12 @@
+10 May 2007
+
+* Fix typo in manual and use DESTDIR in *akefile, from Frank Terbeck as a result
+  of Debian package creation.
+
+09 May 2007
+
+* Code tidying in io.c and command.c.
+
 08 May 2007
 
 * Couple of fixes for stupid things in ARRAY_* macros, one of which was hiding

@@ -152,14 +152,14 @@ manual:
 		awk -f makemanual.awk MANUAL.in > MANUAL
 
 install:	all
-		${INSTALLBIN} ${PROG} ${PREFIX}/bin/${PROG}
-		${INSTALLMAN} ${PROG}.1 ${PREFIX}/man/man1/
-		${INSTALLMAN} ${PROG}.conf.5 ${PREFIX}/man/man5/
+		${INSTALLBIN} ${PROG} ${DESTDIR}${PREFIX}/bin/${PROG}
+		${INSTALLMAN} ${PROG}.1 ${DESTDIR}${PREFIX}/man/man1/
+		${INSTALLMAN} ${PROG}.conf.5 ${DESTDIR}${PREFIX}/man/man5/
 
 uninstall:
-		rm -f ${PREFIX}/bin/${PROG}
-		rm -f ${PREFIX}/man/man1/${PROG}.1
-		rm -f ${PREFIX}/man/man5/${PROG}.conf.5
+		rm -f ${DESTDIR}${PREFIX}/bin/${PROG}
+		rm -f ${DESTDIR}${PREFIX}/man/man1/${PROG}.1
+		rm -f ${DESTDIR}${PREFIX}/man/man5/${PROG}.conf.5
 
 clean:
 		rm -f ${CLEANFILES}

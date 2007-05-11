@@ -51,7 +51,7 @@ fdm ============================================================================
 
 ### Introduction
 
-fdm is a program to fetch mail and deliver it in various ways depending on as
+fdm is a program to fetch mail and deliver it in various ways depending on a
 user-supplied ruleset. Mail may be fetched from stdin, IMAP or POP3 servers, or
 from local maildirs, and filtered based on whether it matches a regexp, its
 size or age, or the output of a shell command. It can be rewritten by an
