@@ -318,7 +318,8 @@ io_fill(struct io *io)
 		}
 	}
 
-	if (n != -1) {
+	/* Test for > 0 since SSL_read can return any -ve on error. */
+	if (n > 0) {
 #ifdef IO_DEBUG
 		log_debug3("io_fill: read %zd bytes", n);
 #endif
@@ -392,7 +393,8 @@ io_push(struct io *io)
 		}
 	}
 
-	if (n != -1) {
+	/* Test for > 0 since SSL_write can return any -ve on error. */
+	if (n > 0) {
 #ifdef IO_DEBUG
 		log_debug3("io_push: wrote %zd bytes", n);
 #endif
