@@ -14,8 +14,8 @@
 - attach get name from content-disposition
 - ifdef/endif directives in config file, change -D to not require a value
 - loops? how? is this even worth it?
-- get only read/unread mail (IMAP only, probably) (read-only, unread-only) flags
-  to account line
+- get only read/unread mail (IMAP only, probably) (read-only, unread-only)
+  flags to account line
 - handle multiple header instances when looking for users (other places?)
 - fnmatch in find_header (don't forget ':')
 - add some of the other non-useless stuff reformail can do, if any
@@ -30,9 +30,11 @@
 - cumulative effect of a compound action sucks
 - fetch smallest/largest mails first. best pattern? probably 1 small, then in
   decreasing size order, but with longer queue necessary
-- document set verify-certificates/no-verify (http://cvs.mirbsd.de/src/etc/ssl.certs.shar)
-- document chained actions
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
 - the mixed metaphor connect-etc-are-linear, fetch-is-state-machine in fetch-*
   is a bad idea
+- document set verify-certificates/no-verify
+	(http://cvs.mirbsd.de/src/etc/ssl.certs.shar)
+- document chained actions
+- document PCRE
