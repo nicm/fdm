@@ -16,13 +16,10 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef SHM_MMAP
-
 #include <sys/types.h>
 #include <sys/mman.h>
 
 #include <fcntl.h>
-#include <setjmp.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -197,5 +194,3 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	shm->size = newsize;
 	return (shm->data);
 }
-
-#endif /* SHM_MMAP */

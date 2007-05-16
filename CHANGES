@@ -1,3 +1,7 @@
+16 May 2007
+
+* SHM_SYSV is no more.
+
 14 May 2007
 
 * Made PCRE ungreedy by default, although I'm not convinced this isn't 

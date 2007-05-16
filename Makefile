@@ -21,8 +21,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       cleanup.c imap-common.c fetch-imappipe.c deliver-remove-header.c \
       deliver-stdout.c deliver-append-string.c strb.c deliver-add-header.c \
       deliver-exec.c child-fetch.c parent-fetch.c child-deliver.c \
-      parent-deliver.c mail-state.c netrc.c shm-mmap.c shm-sysv.c \
-      deliver-tag.c buffer.c \
+      parent-deliver.c mail-state.c netrc.c shm-mmap.c deliver-tag.c buffer.c \
       parse.y lex.l
 HDRS= fdm.h array.h fetch.h match.h deliver.h
 
@@ -48,11 +47,6 @@ CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 .ifdef PCRE
 CFLAGS+= -DPCRE
 LIBS+= -lpcre
-.endif
-.ifdef SHM_SYSV
-CFLAGS+= -DSHM_SYSV
-.else
-CFLAGS+= -DSHM_MMAP
 .endif
 
 # OS X
