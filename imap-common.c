@@ -27,6 +27,7 @@ int	imap_putln(struct account *, const char *, ...);
 int	imap_getln(struct account *, int, char **);
 int	imap_pollln(struct account *, int, char **);
 
+int	imap_parse(struct account *, int, char *);
 int	imap_tag(char *);
 int	imap_okay(struct account *, char *);
 void	imap_free(void *);
@@ -49,59 +50,40 @@ int
 imap_getln(struct account *a, int type, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
- 	int			 n, tag;
+ 	int			 n;
 
 	if ((n = data->getln(a, line)) != 0)
 		return (n);
-
-	if (type == IMAP_RAW)
-		return (0);
-	tag = imap_tag(*line);
-	switch (type) {
-	case IMAP_TAGGED:
-		if (tag == IMAP_TAG_NONE)
-			return (1);
-		if (tag == IMAP_TAG_CONTINUE)
-			goto invalid;
-		if (tag != data->tag)
-			goto invalid;
-		break;
-	case IMAP_UNTAGGED:
-		if (tag != IMAP_TAG_NONE)
-			goto invalid;
-		break;
-	case IMAP_CONTINUE:
-		if (tag == IMAP_TAG_NONE)
-			return (1);
-		if (tag != IMAP_TAG_CONTINUE)
-			goto invalid;
-		break;
-	}
-
-	return (0);
-
-invalid:
-	log_warnx("%s: unexpected data: %s", a->name, *line);
-	return (-1);
+	return (imap_parse(a, type, *line));
 }
 
 int
 imap_pollln(struct account *a, int type, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
+	int			 n;
+
+	do {
+		if (data->pollln(a, line) != 0)
+			return (-1);
+	} while ((n = imap_parse(a, type, *line)) == 1);
+
+	return (n);
+}
+
+int
+imap_parse(struct account *a, int type, char *line)
+{
+	struct fetch_imap_data	*data = a->data;
 	int			 tag;
-
-restart:
-	if (data->pollln(a, line) != 0)
-		return (-1);
-
+	
 	if (type == IMAP_RAW)
 		return (0);
-	tag = imap_tag(*line);
+	tag = imap_tag(line);
 	switch (type) {
 	case IMAP_TAGGED:
 		if (tag == IMAP_TAG_NONE)
- 			goto restart;
+			return (1);
 		if (tag == IMAP_TAG_CONTINUE)
 			goto invalid;
 		if (tag != data->tag)
@@ -113,7 +95,7 @@ restart:
 		break;
 	case IMAP_CONTINUE:
 		if (tag == IMAP_TAG_NONE)
- 			goto restart;
+			return (1);
 		if (tag != IMAP_TAG_CONTINUE)
 			goto invalid;
 		break;
@@ -122,7 +104,7 @@ restart:
 	return (0);
 
 invalid:
-	log_warnx("%s: unexpected data: %s", a->name, *line);
+	log_warnx("%s: unexpected data: %s", a->name, line);
 	return (-1);
 }
 
