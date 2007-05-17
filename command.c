@@ -27,6 +27,7 @@
 
 #include "fdm.h"
 
+/* Start a command. */
 struct cmd *
 cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
     char **cause)
@@ -157,6 +158,10 @@ error:
 	return (NULL);
 }
 
+/*
+ * Poll a command. Returns -1 on error, 0 if output is found, or the child's
+ * return code + 1 if it has exited.
+ */
 int
 cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
     char **cause)
@@ -211,7 +216,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 			if (errno == EINTR || errno == EAGAIN) 
 				break;
 			xasprintf(cause, "short write: %s", strerror(errno));
-			return (1);
+			return (-1);
 		default: 
 			cmd->buf += n;
 			cmd->len -= n;
@@ -238,7 +243,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		case -1:
 			if (errno == EAGAIN)
 				return (0);
-			return (1);
+			return (-1);
 		case 0:
 			/* If the closed io is empty, free it. */
 			if (io == cmd->io_out && IO_RDSIZE(cmd->io_out) == 0) {
@@ -262,7 +267,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 			if (errno == ECHILD)
 				break;
 			xasprintf(cause, "waitpid: %s", strerror(errno));
-			return (1);
+			return (-1);
 		case 0:
 			break;
 		default:
@@ -286,14 +291,14 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 	/* Child is dead, everything is empty. Sort out what to return. */
 	if (WIFSIGNALED(cmd->status)) {
 		xasprintf(cause, "child got signal: %d", WTERMSIG(cmd->status));
-		return (1);
+		return (-1);
 	}
 	if (!WIFEXITED(cmd->status)) {
 		xasprintf(cause, "child didn't exit normally");
-		return (1);
+		return (-1);
 	}
 	cmd->status = WEXITSTATUS(cmd->status);
-	return (-1 - cmd->status);
+	return (1 + cmd->status);
 }
 
 void

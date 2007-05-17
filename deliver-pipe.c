@@ -93,21 +93,19 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 
 	do {
 		status = cmd_poll(cmd, NULL, &err, &lbuf, &llen, &cause);
-		if (status > 0) {
+		if (status == -1) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			xfree(cause);
 			xfree(lbuf);
 			goto error;
 		}
-       		if (status == 0) {
-			if (err != NULL)
+       		if (status == 0 && err != NULL)
 				log_warnx("%s: %s: %s", a->name, s, err);
-		}
-	} while (status >= 0);
+	} while (status == 0);
+	status--;
 
 	xfree(lbuf);
 
-	status = -1 - status;
 	if (status != 0) {
 		log_warnx("%s: %s: command returned %d", a->name, s, status);
 		goto error;

@@ -23,14 +23,15 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 	 fetch_imap_start(struct account *, int *);
-void	         fetch_imap_fill(struct account *, struct io **, u_int *);
-int	 	 fetch_imap_finish(struct account *, int);
-void		 fetch_imap_desc(struct account *, char *, size_t);
+int	 fetch_imap_start(struct account *, int *);
+void	 fetch_imap_fill(struct account *, struct io **, u_int *);
+int	 fetch_imap_finish(struct account *, int);
+void	 fetch_imap_desc(struct account *, char *, size_t);
 
-int printflike2	 fetch_imap_putln(struct account *, const char *, ...);
-int		 fetch_imap_getln(struct account *, int, char **, int);
-void		 fetch_imap_flush(struct account *);
+int	 fetch_imap_putln(struct account *, const char *, va_list);
+int	 fetch_imap_getln(struct account *, char **);
+int	 fetch_imap_pollln(struct account *, char **);
+void	 fetch_imap_flush(struct account *);
 
 struct fetch fetch_imap = {
 	"imap",
@@ -44,75 +45,45 @@ struct fetch fetch_imap = {
 	fetch_imap_desc
 };
 
-int printflike2
-fetch_imap_putln(struct account *a, const char *fmt, ...)
+int
+fetch_imap_putln(struct account *a, const char *fmt, va_list ap)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	va_list	ap;
-
-	va_start(ap, fmt);
 	io_vwriteline(data->io, fmt, ap);
-	va_end(ap);
 
 	return (0);
 }
 
 int
-fetch_imap_getln(struct account *a, int type, char **line, int block)
+fetch_imap_getln(struct account *a, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
-	char		       **lbuf = &data->lbuf;
-	size_t			*llen = &data->llen;
+
+	if ((*line = io_readline2(data->io, &data->lbuf, &data->llen)) == NULL)
+		return (1);
+	return (0);
+}
+
+int
+fetch_imap_pollln(struct account *a, char **line)
+{
+	struct fetch_imap_data	*data = a->data;
 	char			*cause;
-	int			 tag;
+ 	int			 n;
 
-restart:
-	if (!block) {
-		*line = io_readline2(data->io, &data->lbuf, &data->llen);
-		if (*line == NULL)
-			return (1);
-	} else {
-		switch (io_pollline2(data->io, line, lbuf, llen, &cause)) {
-		case 0:
-			log_warnx("%s: connection unexpectedly closed",a->name);
-			return (-1);
-		case -1:
-			log_warnx("%s: %s", a->name, cause);
-			xfree(cause);
-			return (-1);
-		}
-	}
-
-	if (type == IMAP_RAW)
-		return (0);
-	tag = imap_tag(*line);
-	switch (type) {
-	case IMAP_TAGGED:
-		if (tag == IMAP_TAG_NONE)
-			goto restart;
-		if (tag == IMAP_TAG_CONTINUE)
-			goto invalid;
-		if (tag != data->tag)
-			goto invalid;
-		break;
-	case IMAP_UNTAGGED:
-		if (tag != IMAP_TAG_NONE)
-			goto invalid;
-		break;
-	case IMAP_CONTINUE:
-		if (tag == IMAP_TAG_NONE)
-			goto restart;
-		if (tag != IMAP_TAG_CONTINUE)
-			goto invalid;
-		break;
+	n = io_pollline2(data->io, line, &data->lbuf, &data->llen, &cause);
+	switch (n) {
+	case 0:
+		log_warnx("%s: connection unexpectedly closed", a->name);
+		return (-1);
+	case -1:
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (-1);
 	}
 
 	return (0);
-
-invalid:
-	log_warnx("%s: unexpected data: %s", a->name, *line);
-	return (-1);
 }
 
 void
@@ -144,6 +115,7 @@ fetch_imap_start(struct account *a, int *total)
 
 	data->getln = fetch_imap_getln;
 	data->putln = fetch_imap_putln;
+	data->pollln = fetch_imap_pollln;
 	data->flush = fetch_imap_flush;
 	data->src = data->server.host;
 

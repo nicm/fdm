@@ -165,20 +165,20 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	do {
+	for (;;) {
 		/* stop early if looking for regexp only */
 		if (found && cmddata->ret == -1) {
 			log_debug3("%s: %s: found. stopping early", a->name, s);
-			status = -1;
+			status = 1;
 			break;
 		}
 
 		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
-		if (status > 0) {
+		if (status == -1) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			goto error;
 		}
-       		if (status < 0)
+       		if (status != 0)
 			break;
 		if (err != NULL)
 			log_warnx("%s: %s: %s", a->name, s, err);
@@ -205,8 +205,8 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 			add_tag(&m->tags, tag, "%.*s", (int) (rml.list[i].eo -
 			    rml.list[i].so), out + rml.list[i].so);
 		}
-	} while (status >= 0);
-	status = -1 - status;
+	}
+	status--;
 
 	log_debug2("%s: %s: returned %d, found %d", a->name, s, status, found);
 

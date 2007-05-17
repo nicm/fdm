@@ -193,8 +193,9 @@ struct fetch_imap_data {
 	size_t		 llen;
 	char		*lbuf;
 
-	int		 (*getln)(struct account *a, int, char **, int);
-	int		 (*putln)(struct account *a, const char *, ...);
+	int		 (*pollln)(struct account *a, char **);
+	int		 (*getln)(struct account *a, char **);
+	int		 (*putln)(struct account *a, const char *, va_list);
 	void		 (*flush)(struct account *a);
 };
 
@@ -222,7 +223,6 @@ extern struct fetch 	 fetch_imap;
 extern struct fetch 	 fetch_imappipe;
 
 /* imap-common.c */
-int			 imap_tag(char *);
 int			 imap_start(struct account *);
 int			 imap_finish(struct account *);
 int			 imap_login(struct account *);

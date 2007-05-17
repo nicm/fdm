@@ -23,8 +23,108 @@
 #include "fdm.h"
 #include "fetch.h"
 
+int	imap_putln(struct account *, const char *, ...);
+int	imap_getln(struct account *, int, char **);
+int	imap_pollln(struct account *, int, char **);
+
+int	imap_tag(char *);
 int	imap_okay(struct account *, char *);
 void	imap_free(void *);
+
+int
+imap_putln(struct account *a, const char *fmt, ...)
+{
+	struct fetch_imap_data	*data = a->data;
+	va_list			 ap;
+	int			 n;
+
+	va_start(ap, fmt);
+	n = data->putln(a, fmt, ap);
+	va_end(ap);
+
+	return (n);
+}
+
+int
+imap_getln(struct account *a, int type, char **line)
+{
+	struct fetch_imap_data	*data = a->data;
+ 	int			 n, tag;
+
+	if ((n = data->getln(a, line)) != 0)
+		return (n);
+
+	if (type == IMAP_RAW)
+		return (0);
+	tag = imap_tag(*line);
+	switch (type) {
+	case IMAP_TAGGED:
+		if (tag == IMAP_TAG_NONE)
+			return (1);
+		if (tag == IMAP_TAG_CONTINUE)
+			goto invalid;
+		if (tag != data->tag)
+			goto invalid;
+		break;
+	case IMAP_UNTAGGED:
+		if (tag != IMAP_TAG_NONE)
+			goto invalid;
+		break;
+	case IMAP_CONTINUE:
+		if (tag == IMAP_TAG_NONE)
+			return (1);
+		if (tag != IMAP_TAG_CONTINUE)
+			goto invalid;
+		break;
+	}
+
+	return (0);
+
+invalid:
+	log_warnx("%s: unexpected data: %s", a->name, *line);
+	return (-1);
+}
+
+int
+imap_pollln(struct account *a, int type, char **line)
+{
+	struct fetch_imap_data	*data = a->data;
+	int			 tag;
+
+restart:
+	if (data->pollln(a, line) != 0)
+		return (-1);
+
+	if (type == IMAP_RAW)
+		return (0);
+	tag = imap_tag(*line);
+	switch (type) {
+	case IMAP_TAGGED:
+		if (tag == IMAP_TAG_NONE)
+ 			goto restart;
+		if (tag == IMAP_TAG_CONTINUE)
+			goto invalid;
+		if (tag != data->tag)
+			goto invalid;
+		break;
+	case IMAP_UNTAGGED:
+		if (tag != IMAP_TAG_NONE)
+			goto invalid;
+		break;
+	case IMAP_CONTINUE:
+		if (tag == IMAP_TAG_NONE)
+ 			goto restart;
+		if (tag != IMAP_TAG_CONTINUE)
+			goto invalid;
+		break;
+	}
+
+	return (0);
+
+invalid:
+	log_warnx("%s: unexpected data: %s", a->name, *line);
+	return (-1);
+}
 
 void
 imap_free(void *ptr)
@@ -104,7 +204,7 @@ imap_login(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if (data->getln(a, IMAP_UNTAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_UNTAGGED, &line) != 0)
 		return (1);
 	if (strncmp(line, "* PREAUTH", 9) == 0)
 		return (0);
@@ -114,18 +214,18 @@ imap_login(struct account *a)
 		return (1);
 	}
 
-	if (data->putln(a, "%u LOGIN {%zu}", ++data->tag,
+	if (imap_putln(a, "%u LOGIN {%zu}", ++data->tag, 
 	    strlen(data->user)) != 0)
 		return (1);
-	if (data->getln(a, IMAP_CONTINUE, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_CONTINUE, &line) != 0)
 		return (1);
-	if (data->putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
+	if (imap_putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
 		return (1);
-	if (data->getln(a, IMAP_CONTINUE, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_CONTINUE, &line) != 0)
 		return (1);
-	if (data->putln(a, "%s", data->pass) != 0)
+	if (imap_putln(a, "%s", data->pass) != 0)
 		return (1);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_TAGGED, &line) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -139,13 +239,13 @@ imap_select(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if (data->putln(a, "%u SELECT %s", ++data->tag, data->folder) != 0)
+	if (imap_putln(a, "%u SELECT %s", ++data->tag, data->folder) != 0)
 		return (1);
 	do {
-		if (data->getln(a, IMAP_UNTAGGED, &line, 1) != 0)
+		if (imap_pollln(a, IMAP_UNTAGGED, &line) != 0)
 			return (1);
 	} while (sscanf(line, "* %u EXISTS", &data->num) != 1);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_TAGGED, &line) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -161,9 +261,9 @@ imap_close(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if (data->putln(a, "%u CLOSE", ++data->tag) != 0)
+	if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 		return (1);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_TAGGED, &line) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -177,9 +277,9 @@ imap_logout(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if (data->putln(a, "%u LOGOUT", ++data->tag) != 0)
+	if (imap_putln(a, "%u LOGOUT", ++data->tag) != 0)
 		return (1);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_TAGGED, &line) != 0)
 		return (1);
 	if (!imap_okay(a, line))
 		return (1);
@@ -192,7 +292,7 @@ imap_abort(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	data->putln(a, "%u LOGOUT", ++data->tag);
+	imap_putln(a, "%u LOGOUT", ++data->tag);
 	data->flush(a);
 }
 
@@ -213,7 +313,7 @@ imap_fetch(struct account *a, struct mail *m)
 	struct fetch_imap_mail	*aux = m->auxdata;
 	char			*line, *ptr;
 	u_int	 		 n, i;
-	int			 error, type;
+	int			 type;
 	size_t			 len;
 
 restart:
@@ -235,8 +335,7 @@ restart:
 		break;
 	}
 	if (type != -1) {
-		error = data->getln(a, type, &line, 0);
-		switch (error) {
+		switch (imap_getln(a, type, &line)) {
 		case -1:
 			return (FETCH_ERROR);
 		case 1:
@@ -251,7 +350,7 @@ restart:
 			return (FETCH_COMPLETE);
 
 		/* find and save the uid */
-		if (data->putln(a,
+		if (imap_putln(a,
 		    "%u FETCH %u UID", ++data->tag, data->cur) != 0)
 			return (FETCH_ERROR);
 		data->state = IMAP_UID1;
@@ -278,7 +377,7 @@ restart:
 				break;
 			}
 		}
-		if (data->putln(a,
+		if (imap_putln(a,
 		    "%u FETCH %u BODY[]", ++data->tag, data->cur) != 0)
 			return (FETCH_ERROR);
 		data->state = IMAP_FETCH;
@@ -405,10 +504,10 @@ imap_done(struct account *a, struct mail *m)
 		return (FETCH_SUCCESS);
 	}
 
-	if (data->putln(a,
+	if (imap_putln(a,
 	    "%u STORE %u +FLAGS \\Deleted", ++data->tag, aux->idx) != 0)
 		return (FETCH_ERROR);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_TAGGED, &line) != 0)
 		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);
@@ -422,9 +521,9 @@ imap_purge(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	if (data->putln(a, "%u EXPUNGE", ++data->tag) != 0)
+	if (imap_putln(a, "%u EXPUNGE", ++data->tag) != 0)
 		return (FETCH_ERROR);
-	if (data->getln(a, IMAP_TAGGED, &line, 1) != 0)
+	if (imap_pollln(a, IMAP_TAGGED, &line) != 0)
 		return (FETCH_ERROR);
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);

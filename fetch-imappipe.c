@@ -28,8 +28,9 @@ void	 	 fetch_imappipe_fill(struct account *, struct io **, u_int *n);
 int	 	 fetch_imappipe_finish(struct account *, int);
 void		 fetch_imappipe_desc(struct account *, char *, size_t);
 
-int printflike2	 fetch_imappipe_putln(struct account *, const char *, ...);
-int		 fetch_imappipe_getln(struct account *, int, char **, int);
+int		 fetch_imappipe_putln(struct account *, const char *, va_list);
+int		 fetch_imappipe_getln(struct account *, char **);
+int		 fetch_imappipe_pollln(struct account *, char **);
 void		 fetch_imappipe_flush(struct account *);
 
 struct fetch fetch_imappipe = {
@@ -44,38 +45,29 @@ struct fetch fetch_imappipe = {
 	fetch_imappipe_desc,
 };
 
-int printflike2
-fetch_imappipe_putln(struct account *a, const char *fmt, ...)
+int
+fetch_imappipe_putln(struct account *a, const char *fmt, va_list ap)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	va_list	ap;
-
-	va_start(ap, fmt);
 	io_vwriteline(data->cmd->io_in, fmt, ap);
-	va_end(ap);
 
 	return (0);
 }
 
 int
-fetch_imappipe_getln(struct account *a, int type, char **line, int block)
+fetch_imappipe_getln(struct account *a, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
-	char		       **lbuf = &data->lbuf;
-	size_t			*llen = &data->llen;
 	char			*out, *err, *cause;
-	int			 tag;
+	int			 n;
 
-	data->cmd->timeout = conf.timeout;
-	if (!block)
-		data->cmd->timeout = 0;
-
-restart:
-	switch (cmd_poll(data->cmd, &out, &err, lbuf, llen, &cause)) {
+	data->cmd->timeout = 0;
+	n = cmd_poll(data->cmd, &out, &err, &data->lbuf, &data->llen, &cause);
+	switch (n) {
 	case 0:
 		break;
-	case 1:
+	case -1:
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (-1);
@@ -84,44 +76,46 @@ restart:
 		return (-1);
 	}
 
-	if (err != NULL)
+	if (err != NULL) {
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
-	if (out == NULL) {
-		if (!block)
-			return (1);
-		goto restart;
+		xfree(err);
 	}
+	if (out == NULL)
+		return (1);
 	*line = out;
-
-	if (type == IMAP_RAW)
-		return (0);
-	tag = imap_tag(out);
-	switch (type) {
-	case IMAP_TAGGED:
-		if (tag == IMAP_TAG_NONE)
-			goto restart;
-		if (tag == IMAP_TAG_CONTINUE)
-			goto invalid;
-		if (tag != data->tag)
-			goto invalid;
-		break;
-	case IMAP_UNTAGGED:
-		if (tag != IMAP_TAG_NONE)
-			goto invalid;
-		break;
-	case IMAP_CONTINUE:
-		if (tag == IMAP_TAG_NONE)
-			goto restart;
-		if (tag != IMAP_TAG_CONTINUE)
-			goto invalid;
-		break;
-	}
-
 	return (0);
+}
 
-invalid:
-	log_warnx("%s: unexpected data: %s", a->name, out);
-	return (-1);
+int
+fetch_imappipe_pollln(struct account *a, char **line)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*out, *err, *cause;
+ 	int			 n;
+
+restart:
+	data->cmd->timeout = conf.timeout;
+	n = cmd_poll(data->cmd, &out, &err, &data->lbuf, &data->llen, &cause);
+	switch (n) {
+	case 0:
+		break;
+	case -1:
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (-1);
+	default:
+		log_warnx("%s: connection unexpectedly closed", a->name);
+		return (-1);
+	}
+	
+	if (err != NULL) {
+		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
+		xfree(err);
+	}
+	if (out == NULL)
+		goto restart;
+	*line = out;
+	return (0);
 }
 
 void
@@ -155,6 +149,7 @@ fetch_imappipe_start(struct account *a, int *total)
 
 	data->getln = fetch_imappipe_getln;
 	data->putln = fetch_imappipe_putln;
+	data->pollln = fetch_imappipe_pollln;
 	data->flush = fetch_imappipe_flush;
 	data->src = NULL;
 
