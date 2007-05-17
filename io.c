@@ -120,7 +120,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 	struct io	*io;
 	struct pollfd    pfds[IO_POLLFDS], *pfd;
 	int		 error;
-	u_int		 i, j;
+	u_int		 i;
 
 	if (n > IO_POLLFDS)
 		fatalx("io: too many fds");
@@ -141,13 +141,15 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 
 	/* Create the poll structure. */
 	memset(pfds, 0, sizeof pfds);
-	j = 0;
 	for (i = 0; i < n; i++) {
+ 		pfd = &pfds[i];
+
 		io = *rio = ios[i];
-		if (io == NULL)
+		if (io == NULL) {
+			pfd->fd = -1;
 			continue;
-		pfd = &pfds[j];
-		j++;
+		}
+
 		if (io->ssl != NULL)
 			pfd->fd = SSL_get_fd(io->ssl);
 		else
@@ -161,7 +163,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 	}
 
 	/* Do the poll. */
-	error = poll(pfds, j, timeout);
+	error = poll(pfds, n, timeout);
 	if (error == 0 || error == -1) {
 		if (error == 0 && timeout == 0) {
 			errno = EAGAIN;
@@ -178,13 +180,12 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 	}
 
 	/* And check all the ios. */
-	j = 0;
 	for (i = 0; i < n; i++) {
+		pfd = &pfds[i];
+
 		io = *rio = ios[i];
 		if (io == NULL)
 			continue;
-		pfd = &pfds[j];
-		j++;
 
 		/* Close on POLLERR or POLLNVAL hard. */
 		if (pfd->revents & (POLLERR|POLLNVAL)) {
