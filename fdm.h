@@ -917,8 +917,8 @@ void			 buffer_clear(struct buffer *);
 void			 buffer_ensure(struct buffer *, size_t);
 void			 buffer_added(struct buffer *, size_t);
 void			 buffer_removed(struct buffer *, size_t);
-void			 buffer_copyin(struct buffer *, const void *, size_t);
-void			 buffer_copyout(struct buffer *, void *, size_t);
+void			 buffer_write(struct buffer *, const void *, size_t);
+void			 buffer_read(struct buffer *, void *, size_t);
 
 /* io.c */
 struct io		*io_create(int, SSL *, const char *, int);

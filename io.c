@@ -432,7 +432,7 @@ io_read(struct io *io, size_t len)
 		return (NULL);
 
 	buf = xmalloc(len);
-	buffer_copyout(io->rd, buf, len);
+	buffer_read(io->rd, buf, len);
 
 	return (buf);
 }
@@ -442,12 +442,12 @@ int
 io_read2(struct io *io, void *buf, size_t len)
 {
 	if (io->error != NULL)
-		return (1);
+		return (-1);
 
 	if (BUFFER_USED(io->rd) < len)
-		return (NULL);
+		return (-1);
 
-	buffer_copyout(io->rd, buf, len);
+	buffer_read(io->rd, buf, len);
 
 	return (0);
 }
@@ -459,7 +459,7 @@ io_write(struct io *io, const void *buf, size_t len)
 	if (io->error != NULL)
 		return;
 
-	buffer_copyin(io->wr, buf, len);
+	buffer_write(io->wr, buf, len);
 
 #ifdef IO_DEBUG
 	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", len, io->wsize,
@@ -530,7 +530,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			size = BUFFER_USED(io->rd);
 
 			ENSURE_FOR(*buf, *len, size, 1);
-			buffer_copyout(io->rd, *buf, size);
+			buffer_read(io->rd, *buf, size);
 			(*buf)[size] = '\0';
 			return (*buf);
 		}
@@ -541,7 +541,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 
 	/* Copy the line and remove it from the buffer. */
 	ENSURE_FOR(*buf, *len, size, 1);
-	buffer_copyout(io->rd, *buf, size);
+	buffer_read(io->rd, *buf, size);
 	(*buf)[size] = '\0';
 
 	/* Discard the EOL from the buffer. */
