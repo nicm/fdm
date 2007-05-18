@@ -248,17 +248,4 @@ int			 imap_fetch(struct account *, struct mail *);
 int			 imap_purge(struct account *);
 int			 imap_done(struct account *, struct mail *);
 
-/* mail-callback.c */
-void			 transform_mail(struct account *, struct fetch_ctx *,
-    			     struct mail *);
-int			 enqueue_mail(struct account *, struct fetch_ctx *,
-			     struct mail *);
-int			 empty_mail(struct account *, struct fetch_ctx *,
-			     struct mail *);
-int			 oversize_mail(struct account *, struct fetch_ctx *,
-			     struct mail *);
-struct mail 		*done_mail(struct account *, struct fetch_ctx *);
-void			 dequeue_mail(struct account *, struct fetch_ctx *);
-int		  	 can_purge(struct account *, struct fetch_ctx *);
-
 #endif

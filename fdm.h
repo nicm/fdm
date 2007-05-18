@@ -43,6 +43,9 @@
 
 #include "array.h"
 
+/* Forward declarations. */
+struct fetch_ctx; 	/* fetch.h */
+
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
 #define SYSCONFFILE	"/etc/fdm.conf"
@@ -825,6 +828,19 @@ struct child 		*child_start(struct children *, uid_t,
 /* child-fetch.c */
 int			 child_fetch(struct child *, struct io *);
 void			 fetch_free1(struct mail_ctx *);
+
+/* mail-callback.c */
+void			 transform_mail(struct account *, struct fetch_ctx *,
+    			     struct mail *);
+int			 enqueue_mail(struct account *, struct fetch_ctx *,
+			     struct mail *);
+int			 empty_mail(struct account *, struct fetch_ctx *,
+			     struct mail *);
+int			 oversize_mail(struct account *, struct fetch_ctx *,
+			     struct mail *);
+struct mail 		*done_mail(struct account *, struct fetch_ctx *);
+void			 dequeue_mail(struct account *, struct fetch_ctx *);
+int		  	 can_purge(struct account *, struct fetch_ctx *);
 
 /* child-deliver.c */
 int			 child_deliver(struct child *, struct io *);
