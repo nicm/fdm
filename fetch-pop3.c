@@ -486,7 +486,7 @@ fetch_pop3_list(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_BLOCK);
 }
 
-/* UIDL state. */
+/* UIDL state. Get and save the UID. */
 int
 fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
 {
@@ -624,7 +624,8 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	/* Accept size with either CRLF or just LF line endings. */
-	if (m->size + data->lines != data->size && m->size != data->size) {
+	if (!data->flushing &&
+	    m->size + data->lines != data->size && m->size != data->size) {
 		log_warnx("%s: server lied about message size: expected %zu, "
 		    "got %zu (%u lines)", a->name, data->size, m->size +
 		    data->lines, data->lines);
