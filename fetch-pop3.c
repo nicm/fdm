@@ -33,7 +33,7 @@ u_int	fetch_pop3_total(struct account *);
 int	fetch_pop3_completed(struct account *);
 int	fetch_pop3_closed(struct account *);
 int	fetch_pop3_fetch(struct account *, struct fetch_ctx *);
-int	fetch_pop3_poll(struct account *, struct fetch_ctx *);
+int	fetch_pop3_poll(struct account *, u_int *);
 int	fetch_pop3_purge(struct account *);
 int	fetch_pop3_close(struct account *);
 int	fetch_pop3_disconnect(struct account *);
@@ -197,20 +197,43 @@ fetch_pop3_fetch(struct account *a, struct fetch_ctx *fctx)
 
 /* Poll for mail. */
 int
-fetch_pop3_poll(struct account *a, struct fetch_ctx *fctx)
+fetch_pop3_poll(struct account *a, u_int *total)
 {
 	struct fetch_pop3_data	*data = a->data;
+	struct io		*rio;
+	char			*cause;
+	int		 	 timeout;
 
-	/*
-	 * Polling just forces completion after the number of mails is read but
-	 * before any are actually fetched.
-	 */
-	if (data->state == fetch_pop3_next && !fetch_pop3_completed(a)) {
-		data->cur = data->num + 1;	/* XXX ugh */
-		return (FETCH_AGAIN);
+	for (;;) {
+		if (data->state == fetch_pop3_next)
+			break;
+		
+		timeout = 0;
+		switch (fetch_pop3_fetch(a, NULL)) {
+		case FETCH_ERROR:
+			return (-1);
+		case FETCH_BLOCK:
+			timeout = conf.timeout;
+			break;
+		case FETCH_HOLD:
+			continue;
+		}
+
+		switch (io_polln(&data->io, 1, &rio, timeout, &cause)) {
+		case 0:
+			log_warnx("%s: connection closed", a->name);
+			return (-1);
+		case -1:
+			if (errno == EAGAIN)
+				break;
+			log_warnx("%s: %s", a->name, cause);
+			xfree(cause);
+			return (-1);
+		}
 	}
 
-	return (data->state(a, fctx));
+	*total = data->total;
+	return (0);
 }
 
 /* Purge deleted mail. */

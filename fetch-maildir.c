@@ -34,6 +34,7 @@
 int	fetch_maildir_connect(struct account *);
 int	fetch_maildir_completed(struct account *);
 int	fetch_maildir_fetch(struct account *, struct fetch_ctx *);
+int	fetch_maildir_poll(struct account *, u_int *);
 int	fetch_maildir_disconnect(struct account *);
 void	fetch_maildir_desc(struct account *, char *, size_t);
 
@@ -54,7 +55,7 @@ struct fetch fetch_maildir = {
 	fetch_maildir_completed,
 	NULL,
 	fetch_maildir_fetch,
-	NULL,
+	fetch_maildir_poll,
 	NULL,
 	NULL,
 	fetch_maildir_disconnect,
@@ -191,6 +192,62 @@ fetch_maildir_fetch(struct account *a, struct fetch_ctx *fctx)
 	return (data->state(a, fctx));
 }
 
+/* Poll for maildir total. */
+int
+fetch_maildir_poll(struct account *a, u_int *n)
+{
+	struct fetch_maildir_data	*data = a->data;
+	u_int				 i;
+	char				*path, entry[MAXPATHLEN];
+	DIR				*dirp;
+	struct dirent			*dp;
+	struct stat			 sb;
+
+	*n = 0;
+	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
+		path = ARRAY_ITEM(data->paths, i);
+
+		log_debug("%s: trying path: %s", a->name, path);
+		if ((dirp = opendir(path)) == NULL) {
+			log_warn("%s: %s: opendir", a->name, path);
+			return (-1);
+		}
+
+		while ((dp = readdir(dirp)) != NULL) {
+			if (dp->d_type == DT_REG) {
+				(*n)++;
+				continue;
+			}
+			if (dp->d_type != DT_UNKNOWN)
+				continue;
+
+			if (printpath(entry, sizeof entry, "%s/%s", path,
+			    dp->d_name) != 0) {
+				log_warn("%s: %s: printpath", a->name, path);
+				closedir(dirp);
+				return (-1);
+			}
+
+			if (stat(entry, &sb) != 0) {
+				log_warn("%s: %s: stat", a->name, entry);
+				closedir(dirp);
+				return (-1);
+			}
+			if (!S_ISREG(sb.st_mode))
+				continue;
+
+			(*n)++;
+		}
+
+		if (closedir(dirp) != 0) {
+			log_warn("%s: %s: closedir", a->name, path);
+			return (-1);
+		}
+	}
+
+	return (0);
+}
+
 /* Next state. Move to next path. */
 int
 fetch_maildir_next(struct account *a, struct fetch_ctx *fctx)
@@ -218,7 +275,7 @@ fetch_maildir_next(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* Open state. Open path. */
+/* Open state. */
 int
 fetch_maildir_open(struct account *a, unused struct fetch_ctx *fctx)
 {

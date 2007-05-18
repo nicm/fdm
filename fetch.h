@@ -52,7 +52,7 @@ struct fetch {
 	int		 (*completed)(struct account *); 
 	int		 (*closed)(struct account *);
 	int	 	 (*fetch)(struct account *, struct fetch_ctx *);
-	int	 	 (*poll)(struct account *, struct fetch_ctx *);
+	int	 	 (*poll)(struct account *, u_int *);
 	int		 (*purge)(struct account *);
 	int		 (*close)(struct account *);
 	int		 (*disconnect)(struct account *);
