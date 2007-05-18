@@ -33,8 +33,8 @@
 #include "fetch.h"
 #include "match.h"
 
-int	poll_account(struct io *, struct account *);
-int	fetch_account(struct io *, struct account *, double);
+int	poll_account(struct account *, struct fetch_ctx *);
+int	fetch_account(struct account *, struct fetch_ctx *, double);
 
 int	fetch_match(struct account *, struct fetch_ctx *, struct msg *, 
 	    struct msgbuf *);
@@ -52,6 +52,7 @@ child_fetch(struct child *child, struct io *io)
 	struct child_fetch_data	*data = child->data;
 	enum fdmop 		 op = data->op;
 	struct account 		*a = data->account;
+	struct fetch_ctx	 fctx;
 	struct msg	 	 msg;
 	int			 error = 1;
 	double			 tim;
@@ -80,14 +81,22 @@ child_fetch(struct child *child, struct io *io)
 		}
 	}
 
+	/* Initialise queues and counters. */ 
+	memset(&fctx, 0, sizeof fctx);
+	TAILQ_INIT(&fctx.matchq);
+ 	TAILQ_INIT(&fctx.deliverq);
+ 	TAILQ_INIT(&fctx.doneq);
+	fctx.queued = fctx.dropped = fctx.kept = 0;
+	fctx.io = io;
+
 	/* Process fetch or poll. */
 	log_debug2("%s: started processing", a->name);
 	switch (op) {
 	case FDMOP_POLL:
-		error = poll_account(io, a);
+		error = poll_account(a, &fctx);
 		break;
 	case FDMOP_FETCH:
-		error = fetch_account(io, a, tim);
+		error = fetch_account(a, &fctx, tim);
 		break;
 	default:
 		fatalx("child: unexpected command");
@@ -122,7 +131,7 @@ out:
 }
 
 int
-poll_account(unused struct io *io, struct account *a)
+poll_account(struct account *a, struct fetch_ctx *fctx)
 {
 	struct io	*rio, *iop[IO_POLLFDS];
 	char		*cause;
@@ -148,7 +157,7 @@ poll_account(unused struct io *io, struct account *a)
 		}
 
 		timeout = 0;
-		switch (a->fetch->poll(a)) {
+		switch (a->fetch->poll(a, fctx)) {
 		case FETCH_ERROR:
 			goto error;
 		case FETCH_BLOCK:
@@ -380,32 +389,24 @@ fetch_free(unused struct account *a, struct fetch_ctx *fctx)
 }
 
 int
-fetch_account(struct io *io, struct account *a, double tim)
+fetch_account(struct account *a, struct fetch_ctx *fctx, double tim)
 {
 	struct msg	 msg, *msgp;
 	struct msgbuf	 msgbuf;
-	struct fetch_ctx fctx;
 	int		 error;
 	u_int		 n, last;
 
 	log_debug2("%s: fetching", a->name);
 
-	/* Initialise queues and counters. */
- 	TAILQ_INIT(&fctx.matchq);
- 	TAILQ_INIT(&fctx.deliverq);
- 	TAILQ_INIT(&fctx.doneq);
-	fctx.queued = fctx.dropped = fctx.kept = 0;
-	fctx.io = io;
-
 	last = 0;
 	error = FETCH_AGAIN;
 	while (error != FETCH_COMPLETE) {
-		fctx.blocked = 0;
+		fctx->blocked = 0;
 
 		/* Check for new privsep messages. */
 		msgp = NULL;
-		if (privsep_check(io)) {
-			if (privsep_recv(io, &msg, &msgbuf) != 0)
+		if (privsep_check(fctx->io)) {
+			if (privsep_recv(fctx->io, &msg, &msgbuf) != 0)
 				fatalx("child: privsep_recv error");
 			log_debug3("%s: got message type %d, id %u", a->name,
 			    msg.type, msg.id);
@@ -413,28 +414,28 @@ fetch_account(struct io *io, struct account *a, double tim)
 		}
 
 		/* Match a mail. */
-		if (fetch_match(a, &fctx, msgp, &msgbuf) != 0) {
+		if (fetch_match(a, fctx, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
 		}
 		
 		/* Deliver a mail. */
-		if (fetch_deliver(a, &fctx, msgp, &msgbuf) != 0) {
+		if (fetch_deliver(a, fctx, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
 		}
 			
 		/* Poll for new mails or privsep messages. */
-		log_debug3("%s: queued %u; blocked=%d", a->name, fctx.queued,
-		    fctx.blocked);
-		if ((error = fetch_poll(a, &fctx)) == FETCH_ERROR)
+		log_debug3("%s: queued %u; blocked=%d", a->name, fctx->queued,
+		    fctx->blocked);
+		if ((error = fetch_poll(a, fctx)) == FETCH_ERROR)
 			break;
 			
 		/* Purge if necessary. */
 		if (conf.purge_after == 0 || a->fetch->purge == NULL)
 			continue;
 
-		n = fctx.dropped + fctx.kept;
+		n = fctx->dropped + fctx->kept;
 		if (n != last && n % conf.purge_after == 0) {
 			last = n;
 
@@ -449,14 +450,14 @@ fetch_account(struct io *io, struct account *a, double tim)
 	/* Report error and free queues. */
 	if (error == FETCH_ERROR) {
 		log_warnx("%s: fetching error. aborted", a->name);
-		fetch_free(a, &fctx);
+		fetch_free(a, fctx);
 	}
 
 	tim = get_time() - tim;
-	n = fctx.dropped + fctx.kept;
+	n = fctx->dropped + fctx->kept;
 	if (n > 0) {
 		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
-		    "(average %.3f)", a->name, n, fctx.kept, tim, tim / n);
+		    "(average %.3f)", a->name, n, fctx->kept, tim, tim / n);
 		log_debug("%s: polled for %.3f seconds (%.3f blocked)",
 		    a->name, time_polling, time_blocked);
 		return (error == FETCH_ERROR);
