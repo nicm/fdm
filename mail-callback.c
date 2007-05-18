@@ -21,9 +21,7 @@
 #include "fdm.h"
 #include "fetch.h"
 
-/*
- * Transform a mail in some obvious ways.
- */
+/* Transform a mail in some obvious ways. */
 void
 transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 {
@@ -115,9 +113,7 @@ enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 	return (0);
 }
 
-/*
- * Handle an empty mail.
- */
+/* Handle an empty mail. */
 int
 empty_mail(struct account *a, unused struct fetch_ctx *fctx,
     unused struct mail *m)
@@ -127,9 +123,7 @@ empty_mail(struct account *a, unused struct fetch_ctx *fctx,
 	return (-1);
 }
 
-/*
- * Handle an oversize mail. Callback from fetch code.
- */
+/* Handle an oversize mail. */
 int
 oversize_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 {
