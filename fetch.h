@@ -20,25 +20,42 @@
 #define FETCH_H
 
 /* Fetch return codes. */
-#define FETCH_SUCCESS 0
-#define FETCH_ERROR 1
-#define FETCH_OVERSIZE 2
-#define FETCH_EMPTY 3
-#define FETCH_COMPLETE 4
-#define FETCH_AGAIN 5
-#define FETCH_NONE 6
+#define FETCH_ERROR 0
+#define FETCH_COMPLETE 1
+#define FETCH_AGAIN 2		/* may poll but must not block */
+#define FETCH_BLOCK 3		/* may block if necessary */
+#define FETCH_HOLD 4		/* don't need to poll at all */
+
+/* Fetch context. */
+struct fetch_ctx {
+	struct mail_queue 	 matchq;
+	struct mail_queue 	 deliverq;
+	struct mail_queue	 doneq;
+
+	u_int		  	 dropped;
+	u_int		  	 kept;
+
+	u_int			 queued;  /* number of mails queued */
+	int			 blocked; /* blocked for parent */
+	int	 		 holding; /* holding fetch until queues drop */
+
+	struct io	        *io;
+};
 
 /* Fetch functions. */
 struct fetch {
 	const char	*name;
 
-	int		 (*start)(struct account *, int *);
+ 	int		 (*connect)(struct account *);
 	void		 (*fill)(struct account *, struct io **, u_int *n);
-	int 		 (*poll)(struct account *, u_int *);
-	int	 	 (*fetch)(struct account *, struct mail *);
+ 	u_int		 (*total)(struct account *);
+	int		 (*completed)(struct account *); 
+	int		 (*closed)(struct account *);
+	int	 	 (*fetch)(struct account *, struct fetch_ctx *fctx);
+	int	 	 (*poll)(struct account *);
 	int		 (*purge)(struct account *);
-	int		 (*done)(struct account *, struct mail *);
-	int		 (*finish)(struct account *, int);
+	int		 (*close)(struct account *);
+	int		 (*disconnect)(struct account *);
 	void		 (*desc)(struct account *, char *, size_t);
 };
 
@@ -49,10 +66,10 @@ struct fetch_maildir_data {
 	struct strings	*paths;
 	u_int		 index;
 
+	int 	         (*state)(struct account *, struct fetch_ctx *); 
+
 	DIR		*dirp;
 	char		*path;
-	char		 entry[MAXPATHLEN];
-	char		 maildir[MAXPATHLEN];
 };
 
 struct fetch_maildir_mail {
@@ -79,12 +96,10 @@ struct fetch_nntp_data {
 	u_int		 group;
 	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
-	enum {
-		NNTP_START,
-		NNTP_NEXT,
-		NNTP_ARTICLE,
-		NNTP_LINE,
-	} state;
+	int 	         (*state)(struct account *, struct fetch_ctx *); 
+	int		 close;
+
+	struct mail	*mail;
 	int		 flushing;
 	int		 bodylines;
 	u_int		 lines;
@@ -99,6 +114,7 @@ struct fetch_nntp_data {
 /* Fetch stdin data. */
 struct fetch_stdin_data {
 	int		 complete;
+
 	int		 bodylines;
 	u_int		 lines;
 
@@ -112,22 +128,18 @@ struct fetch_stdin_data {
 struct fetch_pop3_data {
 	char		*user;
 	char		*pass;
-
 	struct server	 server;
 
 	u_int		 cur;
 	u_int		 num;
+	u_int		 total;	
 
-	char		*uid;
+	int 	         (*state)(struct account *, struct fetch_ctx *); 
 	struct strings	 kept;
+	int		 purge;
+	int		 close;
 
-	enum {
-		POP3_START,
-		POP3_LIST,
-		POP3_UIDL,
-		POP3_RETR,
-		POP3_LINE
-	} state;
+	struct mail	*mail;
 	int		 flushing;
 	int		 bodylines;
 	u_int		 lines;
@@ -235,5 +247,18 @@ int			 imap_poll(struct account *, u_int *);
 int			 imap_fetch(struct account *, struct mail *);
 int			 imap_purge(struct account *);
 int			 imap_done(struct account *, struct mail *);
+
+/* mail-callback.c */
+void			 transform_mail(struct account *, struct fetch_ctx *,
+    			     struct mail *);
+int			 enqueue_mail(struct account *, struct fetch_ctx *,
+			     struct mail *);
+int			 empty_mail(struct account *, struct fetch_ctx *,
+			     struct mail *);
+int			 oversize_mail(struct account *, struct fetch_ctx *,
+			     struct mail *);
+struct mail 		*done_mail(struct account *, struct fetch_ctx *);
+void			 dequeue_mail(struct account *, struct fetch_ctx *);
+int		  	 can_purge(struct account *, struct fetch_ctx *);
 
 #endif

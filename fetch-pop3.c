@@ -27,33 +27,51 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_pop3_start(struct account *, int *);
+int	fetch_pop3_connect(struct account *);
 void	fetch_pop3_fill(struct account *, struct io **, u_int *);
-int	fetch_pop3_finish(struct account *, int);
-int	fetch_pop3_poll(struct account *, u_int *);
-int	fetch_pop3_fetch(struct account *, struct mail *);
+u_int	fetch_pop3_total(struct account *);
+int	fetch_pop3_completed(struct account *);
+int	fetch_pop3_closed(struct account *);
+int	fetch_pop3_fetch(struct account *, struct fetch_ctx *);
+int	fetch_pop3_poll(struct account *);
 int	fetch_pop3_purge(struct account *);
-int	fetch_pop3_done(struct account *, struct mail *);
+int	fetch_pop3_close(struct account *);
+int	fetch_pop3_disconnect(struct account *);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
+int	fetch_pop3_reconnect(struct account *);
+
 void	fetch_pop3_free(void *);
+int	fetch_pop3_okay(const char *);
 
-int	fetch_pop3_connect(struct account *);
-int	fetch_pop3_disconnect(struct account *, int);
+int	fetch_pop3_bad(struct account *, const char *);
+int	fetch_pop3_invalid(struct account *, const char *);
 
-int	fetch_pop3_line(struct account *, char **);
-int	fetch_pop3_okay(char *);
-char   *fetch_pop3_check(struct account *);
+int	fetch_pop3_connected(struct account *, struct fetch_ctx *);
+int	fetch_pop3_user(struct account *, struct fetch_ctx *);
+int	fetch_pop3_stat(struct account *, struct fetch_ctx *);
+int	fetch_pop3_first(struct account *, struct fetch_ctx *);
+int	fetch_pop3_next(struct account *, struct fetch_ctx *);
+int	fetch_pop3_purged(struct account *, struct fetch_ctx *);
+int	fetch_pop3_delete(struct account *, struct fetch_ctx *);
+int	fetch_pop3_list(struct account *, struct fetch_ctx *);
+int	fetch_pop3_uidl(struct account *, struct fetch_ctx *);
+int	fetch_pop3_retr(struct account *, struct fetch_ctx *);
+int	fetch_pop3_line(struct account *, struct fetch_ctx *);
+int	fetch_pop3_quit(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_pop3 = {
 	"pop3",
-	fetch_pop3_start,
+	fetch_pop3_connect,
 	fetch_pop3_fill,
-	fetch_pop3_poll,
+	fetch_pop3_total,
+	fetch_pop3_completed,
+	fetch_pop3_closed,
 	fetch_pop3_fetch,
+	fetch_pop3_poll,
 	fetch_pop3_purge,
-	fetch_pop3_done,
-	fetch_pop3_finish,
+	fetch_pop3_close,
+	fetch_pop3_disconnect,
 	fetch_pop3_desc
 };
 
@@ -62,74 +80,53 @@ fetch_pop3_free(void *ptr)
 {
 	struct fetch_pop3_mail	*aux = ptr;
 
-	xfree(aux->uid);
+	if (aux->uid != NULL)
+		xfree(aux->uid);
 	xfree(aux);
 }
 
 int
-fetch_pop3_line(struct account *a, char **line)
+fetch_pop3_okay(const char *line)
+{
+	return (strncmp(line, "+OK", 3) == 0);
+}
+
+/* Connect to POP3 server. */
+int
+fetch_pop3_connect(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
-	struct io		*io = data->io;
-	char			*cause;
 
-	switch (io_pollline2(io, line, &data->lbuf, &data->llen, &cause)) {
-	case 0:
-		log_warnx("%s: connection unexpectedly closed", a->name);
-		return (1);
-	case -1:
-		if (errno == EAGAIN)
-			return (1);
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (1);
-	}
-
-	return (0);
-}
-
-int
-fetch_pop3_okay(char *line)
-{
-	if (strncmp(line, "+OK", 3) != 0)
-		return (0);
-	return (1);
-}
-
-char *
-fetch_pop3_check(struct account *a)
-{
-	char			*line;
-
-	if (fetch_pop3_line(a, &line) != 0)
-		return (NULL);
-
-	if (!fetch_pop3_okay(line)) {
-		log_warnx("%s: unexpected data: %s", a->name, line);
-		return (NULL);
-	}
-
-	return (line);
-}
-
-int
-fetch_pop3_start(struct account *a, int *total)
-{
-	struct fetch_pop3_data	*data = a->data;
-	int			 error;
-
-	ARRAY_INIT(&data->kept);
+ 	ARRAY_INIT(&data->kept);
 
 	data->llen = IO_LINESIZE;
 	data->lbuf = xmalloc(data->llen);
 
-	data->state = POP3_START;
-
-	if ((error = fetch_pop3_connect(a)) != FETCH_ERROR)
-		*total = data->num;
-	return (error);
+	return (fetch_pop3_reconnect(a));
 }
 
+/* Reconnect to POP3 server. */
+int
+fetch_pop3_reconnect(struct account *a)
+{ 
+	struct fetch_pop3_data	*data = a->data;
+	char			*cause;
+
+	data->io = connectproxy(&data->server, conf.verify_certs, conf.proxy,
+	    IO_CRLF, conf.timeout, &cause);
+	if (data->io == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (-1);
+	}
+	if (conf.debug > 3 && !conf.syslog)
+		data->io->dup_fd = STDOUT_FILENO;
+
+	data->state = fetch_pop3_connected;
+	return (0);
+}
+
+/* Fill io array. */
 void
 fetch_pop3_fill(struct account *a, struct io **iop, u_int *n)
 {
@@ -138,17 +135,47 @@ fetch_pop3_fill(struct account *a, struct io **iop, u_int *n)
 	iop[(*n)++] = data->io;
 }
 
+/* Return total mails available. */
+u_int
+fetch_pop3_total(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	return (data->total);
+}
+
+/* Return if fetch is complete. */
 int
-fetch_pop3_finish(struct account *a, int aborted)
+fetch_pop3_completed(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	return (data->cur > data->num);
+}
+
+/* Return if fetch is closed. */
+int
+fetch_pop3_closed(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+	
+	return (data->close && data->io == NULL);
+}
+
+/* Clean up and disconnect from server. */
+int
+fetch_pop3_disconnect(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 	u_int			 i;
 
-	if (data->io != NULL)
-		fetch_pop3_disconnect(a, aborted);
+	if (data->mail != NULL)
+		mail_destroy(data->mail);
 
-	if (data->uid != NULL)
-		xfree(data->uid);
+	if (data->io != NULL) {
+		io_close(data->io);
+		io_free(data->io);
+	}
 
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++)
 		xfree(ARRAY_ITEM(&data->kept, i));
@@ -156,219 +183,435 @@ fetch_pop3_finish(struct account *a, int aborted)
 
 	xfree(data->lbuf);
 
-	return (FETCH_SUCCESS);
+	return (0);
 }
 
+/* Fetch mail. */
 int
-fetch_pop3_connect(struct account *a)
-{
-	struct fetch_pop3_data	*data = a->data;
-	char			*line, *cause;
-
-	data->io = connectproxy(&data->server, conf.verify_certs, conf.proxy,
-	    IO_CRLF, conf.timeout, &cause);
-	if (data->io == NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (FETCH_ERROR);
-	}
-	if (conf.debug > 3 && !conf.syslog)
-		data->io->dup_fd = STDOUT_FILENO;
-
-	if (fetch_pop3_check(a) == NULL)
-		return (FETCH_ERROR);
-
-	/* log the user in */
-	io_writeline(data->io, "USER %s", data->user);
-	if (fetch_pop3_check(a) == NULL)
-		return (FETCH_ERROR);
-	io_writeline(data->io, "PASS %s", data->pass);
-	if (fetch_pop3_check(a) == NULL)
-		return (FETCH_ERROR);
-
-	/* find the number of messages */
-	io_writeline(data->io, "STAT");
-	if ((line = fetch_pop3_check(a)) == NULL)
-		return (FETCH_ERROR);
-	if (sscanf(line, "+OK %u %*u", &data->num) != 1) {
- 		log_warnx("%s: invalid response: %s", a->name, line);
-		return (FETCH_ERROR);
-	}
-
-	data->cur = 0;
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_pop3_disconnect(struct account *a, int aborted)
+fetch_pop3_fetch(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 
-	io_writeline(data->io, "QUIT");
-	if (!aborted && fetch_pop3_check(a) == NULL)
-		goto error;
+	return (data->state(a, fctx));
+}
 
-	io_close(data->io);
-	io_free(data->io);
+/* Poll for mail. */
+int
+fetch_pop3_poll(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
 
-	return (FETCH_SUCCESS);
+	/*
+	 * Polling just forces completion after the number of mails is read but
+	 * before any are actually fetched.
+	 */
+	if (data->state == fetch_pop3_next && !fetch_pop3_completed(a)) {
+		data->cur = data->num + 1;	/* XXX ugh */
+		return (FETCH_AGAIN);
+	}
 
-error:
-	io_close(data->io);
-	io_free(data->io);
+	return (data->state(a, NULL));
+}
 
+/* Purge deleted mail. */
+int
+fetch_pop3_purge(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	data->purge = 1;
+
+	return (0);
+}
+
+/* Close down connection. */
+int
+fetch_pop3_close(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	data->close = 1;
+
+	return (0);
+}
+
+int
+fetch_pop3_bad(struct account *a, const char *line)
+{
+	log_warnx("%s: unexpected data: %s", a->name, line);
 	return (FETCH_ERROR);
 }
 
 int
-fetch_pop3_poll(struct account *a, u_int *n)
+fetch_pop3_invalid(struct account *a, const char *line)
 {
-	struct fetch_pop3_data	*data = a->data;
-
-	*n = data->num;
-
-	return (FETCH_SUCCESS);
+	log_warnx("%s: invalid response: %s", a->name, line);
+	return (FETCH_ERROR);
 }
 
+/* Connected state: wait for initial +OK line from server. */
 int
-fetch_pop3_fetch(struct account *a, struct mail *m)
+fetch_pop3_connected(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	io_writeline(data->io, "USER %s", data->user);
+	data->state = fetch_pop3_user;
+	return (FETCH_BLOCK);
+}
+
+/* USER state. */
+int
+fetch_pop3_user(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	io_writeline(data->io, "PASS %s", data->pass);
+	data->state = fetch_pop3_stat;
+	return (FETCH_BLOCK);
+}
+
+/* STAT state. */
+int
+fetch_pop3_stat(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	io_writeline(data->io, "STAT");
+	data->state = fetch_pop3_first;
+	return (FETCH_BLOCK);
+}
+
+/* First state. Wait for +OK then switch to get first mail. */
+int
+fetch_pop3_first(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	if (sscanf(line, "+OK %u %*u", &data->num) != 1)
+		return (fetch_pop3_invalid(a, line));
+	data->cur = 0;
+
+	/* Save total in case we purge and get a new data->num. */
+	if (data->total == 0)
+		data->total = data->num;
+
+	data->state = fetch_pop3_next;
+	return (FETCH_AGAIN);
+}
+
+/* 
+ * Next state. This is the transition state between mails so deleting/purging
+ * is done here if possible. This is also where the fetch code idles when
+ * no more mails are available, waiting for them to be moved on to the done
+ * queue. This must be moved to via FETCH_AGAIN to avoid blocking waiting for
+ * a line from the server that will never come.
+ */
+int
+fetch_pop3_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct fetch_pop3_mail	*aux;
-	char			*line, *uid;
-	size_t			 len;
-	u_int			 n, i;
+	struct mail		*m;
 
-restart:
-	line = NULL;
-	if (data->state != POP3_START) {
-		line = io_readline2(data->io, &data->lbuf, &data->llen);
-		if (line == NULL)
-			return (FETCH_AGAIN);
+	/* Delete mail if any to be deleted. */
+	while ((m = done_mail(a, fctx)) != NULL) {
+		aux = m->auxdata;
+		if (m->decision == DECISION_KEEP) {
+			ARRAY_ADD(&data->kept, xstrdup(aux->uid));
+			dequeue_mail(a, fctx);
+		} else {
+			io_writeline(data->io, "DELE %u", aux->idx);
+			data->state = fetch_pop3_delete;
+			return (FETCH_BLOCK);
+		}
 	}
 
-	switch (data->state) {
-	case POP3_START:
+	/* Need to purge and reconnect. */
+	if (data->purge) {
+		/*
+		 * Keep looping through this state until the caller reckons
+		 * we are ready to purge.
+		 */
+		if (!can_purge(a, fctx))
+			return (FETCH_HOLD);
+
+		io_writeline(data->io, "QUIT");
+		data->state = fetch_pop3_purged;
+		return (FETCH_BLOCK);
+	}	
+
+	/* Close down connection nicely if asked. */
+	if (data->close) {
+		io_writeline(data->io, "QUIT");
+		data->state = fetch_pop3_quit;
+		return (FETCH_BLOCK);
+	}
+
+	/* Move to the next mail if possible. */
+	if (!fetch_pop3_completed(a))
 		data->cur++;
-		if (data->cur > data->num)
-			return (FETCH_COMPLETE);
-		io_writeline(data->io, "LIST %u", data->cur);
-		data->state = POP3_LIST;
-		break;
-	case POP3_LIST:
-		if (!fetch_pop3_okay(line))
-			goto bad;
-		if (sscanf(line, "+OK %*u %zu", &data->size) != 1) {
-			log_warnx("%s: invalid response: %s", a->name, line);
+	if (fetch_pop3_completed(a))
+		return (FETCH_HOLD);
+
+	/*
+	 * Create a new mail, unless one was left by previously kept mail that
+	 * can be reused.
+	 */
+	if (data->mail == NULL) {
+		m = data->mail = xcalloc(1, sizeof *data->mail);
+		m->shm.fd = -1;
+	}
+
+	/* List the next mail. */
+	io_writeline(data->io, "LIST %u", data->cur);
+	data->state = fetch_pop3_list;
+	return (FETCH_BLOCK);
+}
+
+/* Purge state. */
+int
+fetch_pop3_purged(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	data->purge = 0;
+		
+	io_close(data->io);
+	io_free(data->io);
+	if (fetch_pop3_reconnect(a) != 0)
+		return (FETCH_ERROR);
+
+	data->state = fetch_pop3_connected;
+	return (FETCH_BLOCK);
+}
+
+/* Delete state. Wait for +OK then dequeue the mail. */
+int
+fetch_pop3_delete(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	dequeue_mail(a, fctx);
+
+	data->state = fetch_pop3_next;
+	return (FETCH_AGAIN);
+}
+
+/* LIST state. */
+int
+fetch_pop3_list(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	struct mail		*m = data->mail;
+	struct fetch_pop3_mail	*aux;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	if (sscanf(line, "+OK %*u %zu", &data->size) != 1)
+		return (fetch_pop3_invalid(a, line));
+	m->size = data->size;
+
+	/* Fill in local data. */
+	aux = xcalloc(1, sizeof *aux);
+	aux->idx = data->cur;
+	m->auxdata = aux;
+	m->auxfree = fetch_pop3_free;
+
+	/* Deal with empty and oversize mails. */
+	if (data->size == 0) {
+		if (empty_mail(a, fctx, m) != 0)
 			return (FETCH_ERROR);
-		}
-		if (data->size == 0)
-			return (FETCH_EMPTY);
-		if (data->size > conf.max_size) {
-			m->size = data->size;
-			return (FETCH_OVERSIZE);
-		}
-		io_writeline(data->io, "UIDL %u", data->cur);
-		data->state = POP3_UIDL;
-		break;
-	case POP3_UIDL:
-		if (!fetch_pop3_okay(line))
-			goto bad;
-		if (sscanf(line, "+OK %u ", &n) != 1)
-			goto bad;
-		if (n != data->cur) {
-			log_warnx("%s: unexpected message number: got %u, "
-			    "expected %u", a->name, n, data->cur);
+		data->mail = NULL;
+		data->state = fetch_pop3_next;
+		return (FETCH_AGAIN);
+	}
+	if (data->size > conf.max_size) {
+		if (oversize_mail(a, fctx, m) != 0)
 			return (FETCH_ERROR);
+		data->mail = NULL;
+		data->state = fetch_pop3_next;
+		return (FETCH_AGAIN);
+	}
+
+	io_writeline(data->io, "UIDL %u", data->cur);
+	data->state = fetch_pop3_uidl;
+	return (FETCH_BLOCK);
+}
+
+/* UIDL state. */
+int
+fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	struct mail		*m = data->mail;
+ 	struct fetch_pop3_mail	*aux = m->auxdata;
+	char			*line;
+	u_int			 n, i;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	if (sscanf(line, "+OK %u ", &n) != 1)
+		return (fetch_pop3_bad(a, line));
+	if (n != data->cur) {
+		log_warnx("%s: unexpected message number", a->name);
+		return (FETCH_ERROR);
+	}
+	
+	line = strchr(line, ' ');
+	if (line == NULL)
+		return (fetch_pop3_bad(a, line));
+	line = strchr(line + 1, ' ');
+	if (line == NULL)
+		return (fetch_pop3_bad(a, line));
+
+	aux->uid = xstrdup(line);
+	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
+		if (strcmp(aux->uid, ARRAY_ITEM(&data->kept, i)) == 0) {
+			/*
+			 * Seen this message before and kept it, so skip it
+			 * this time.
+			 */
+			data->state = fetch_pop3_next;
+			return (FETCH_AGAIN);
 		}
-		line = strchr(line, ' ');
+	}
+
+	io_writeline(data->io, "RETR %u", data->cur);
+	data->state = fetch_pop3_retr;
+	return (FETCH_BLOCK);
+}
+
+/* RETR state. */
+int
+fetch_pop3_retr(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	struct mail		*m = data->mail;
+	char			*line;
+
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	/* Open the mail. */
+	if (mail_open(m, IO_ROUND(data->size)) != 0) {
+		log_warn("%s: failed to create mail", a->name);
+		return (FETCH_ERROR);
+	}
+	m->size = 0;
+
+	data->flushing = 0;
+	data->lines = 0;
+	data->bodylines = -1;
+	
+	data->state = fetch_pop3_line;
+	return (FETCH_BLOCK);
+}
+
+/* Line state. */
+int
+fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	struct mail		*m = data->mail;
+	struct fetch_pop3_mail	*aux = m->auxdata;
+	char			*line;
+	size_t			 len;
+
+	for (;;) {
+		line = io_readline2(data->io, &data->lbuf, &data->llen);
 		if (line == NULL)
-			goto bad;
-		line++;
-		line = strchr(line, ' ');
-		if (line == NULL)
-			goto bad;
- 		if (data->uid != NULL)
-			xfree(data->uid);
-		data->uid = xstrdup(line);
-		for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
-			uid = ARRAY_ITEM(&data->kept, i);
-			if (strcmp(data->uid, uid) == 0) {
-				/*
-				 * Seen this message before and kept it, so
-				 * skip it this time.
-				 */
-				data->state = POP3_START;
-				break;
-			}
-		}
-		io_writeline(data->io, "RETR %u", data->cur);
-		data->state = POP3_RETR;
-		break;
-	case POP3_RETR:
-		if (!fetch_pop3_okay(line))
-			goto bad;
-		if (mail_open(m, IO_ROUND(data->size)) != 0) {
-			log_warn("%s: failed to create mail", a->name);
-			return (FETCH_ERROR);
-		}
-		m->size = 0;
+			return (FETCH_BLOCK);
 
-		aux = xmalloc(sizeof *aux);
-		aux->idx = data->cur;
-		aux->uid = data->uid;
-		data->uid = NULL;
-		m->auxdata = aux;
-		m->auxfree = fetch_pop3_free;
-
-		default_tags(&m->tags, data->server.host, a);
-		add_tag(&m->tags, "server", "%s", data->server.host);
-		add_tag(&m->tags, "port", "%s", data->server.port);
-		add_tag(&m->tags, "server_uid", "%s", data->uid);
-
-		data->flushing = 0;
-		data->lines = 0;
-		data->bodylines = -1;
-
-		data->state = POP3_LINE;
-		break;
-	case POP3_LINE:
 		if (line[0] == '.' && line[1] == '.')
 			line++;
 		else if (line[0] == '.')
-			goto complete;
-
+			break;
+		
 		len = strlen(line);
 		if (len == 0 && m->body == -1) {
 			m->body = m->size + 1;
 			data->bodylines = 0;
 		}
-
+		
 		if (!data->flushing) {
 			if (mail_resize(m, m->size + len + 1) != 0) {
 				log_warn("%s: failed to resize mail", a->name);
 				return (FETCH_ERROR);
 			}
-
+			
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			m->data[m->size + len] = '\n';
 		}
-
+		
 		data->lines++;
 		if (data->bodylines != -1)
 			data->bodylines++;
 		m->size += len + 1;
 		if (m->size + data->lines > conf.max_size)
 			data->flushing = 1;
-		break;
 	}
 
-	goto restart;
-
-complete:
-	data->state = POP3_START;
+	/* Tag mail. */
+	default_tags(&m->tags, data->server.host, a);
+	add_tag(&m->tags, "server", "%s", data->server.host);
+	add_tag(&m->tags, "port", "%s", data->server.port);
+	add_tag(&m->tags, "server_uid", "%s", aux->uid);
 
 	add_tag(&m->tags, "lines", "%u", data->lines);
 	if (data->bodylines == -1) {
@@ -376,52 +619,58 @@ complete:
 		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
 	} else {
 		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines -
-		    data->bodylines);
+		add_tag(&m->tags, 
+		    "header_lines", "%d", data->lines - data->bodylines);
 	}
 
-	/*
-	 * Accept size with either CRLF or just LF line endings.
-	 */
+	/* Accept size with either CRLF or just LF line endings. */
 	if (m->size + data->lines != data->size && m->size != data->size) {
 		log_warnx("%s: server lied about message size: expected %zu, "
 		    "got %zu (%u lines)", a->name, data->size, m->size +
 		    data->lines, data->lines);
 	}
 
-	if (data->flushing)
-		return (FETCH_OVERSIZE);
+	if (data->flushing) {
+		if (oversize_mail(a, fctx, m) != 0)
+			return (FETCH_ERROR);
+		data->mail = NULL;
+		data->state = fetch_pop3_next;
+		return (FETCH_AGAIN);
+	}
+	transform_mail(a, fctx, m);
+	if (m->size == 0) {
+		if (empty_mail(a, fctx, m) != 0)
+			return (FETCH_ERROR);
+		data->mail = NULL;
+		data->state = fetch_pop3_next;
+		return (FETCH_AGAIN);
+	}
+	enqueue_mail(a, fctx, m);
+	data->mail = NULL;
 
-	return (FETCH_SUCCESS);
-
-bad:
-	log_warnx("%s: unexpected data: %s", a->name, line);
-	return (FETCH_ERROR);
+	data->state = fetch_pop3_next;
+	return (FETCH_AGAIN);
 }
 
+/* QUIT state. */
 int
-fetch_pop3_purge(struct account *a)
-{
-	if (fetch_pop3_disconnect(a, 0) != 0)
-		return (FETCH_ERROR);
-	return (fetch_pop3_connect(a));
-}
-
-int
-fetch_pop3_done(struct account *a, struct mail *m)
+fetch_pop3_quit(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
-	struct fetch_pop3_mail	*aux = m->auxdata;
+	char			*line;
 
-	if (m->decision == DECISION_KEEP) {
-		ARRAY_ADD(&data->kept, xstrdup(aux->uid));
-		return (FETCH_SUCCESS);
-	}
+	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
 
-	io_writeline(data->io, "DELE %u", aux->idx);
-	if (fetch_pop3_check(a) == NULL)
-		return (FETCH_ERROR);
-	return (FETCH_SUCCESS);
+	io_close(data->io);
+	io_free(data->io);
+	data->io = NULL;
+
+	data->state = fetch_pop3_next;
+	return (FETCH_AGAIN);
 }
 
 void

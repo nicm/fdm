@@ -36,29 +36,15 @@
 int	poll_account(struct io *, struct account *);
 int	fetch_account(struct io *, struct account *, double);
 
-int	fetch_drain(void);
-int	fetch_done(struct mail_ctx *);
-int	fetch_match(struct account *, int *, u_int *, struct msg *,
+int	fetch_match(struct account *, struct fetch_ctx *, struct msg *, 
 	    struct msgbuf *);
-int	fetch_deliver(struct account *, int *, struct msg *, struct msgbuf *);
-int	fetch_poll(struct account *, struct io *, struct mail_ctx *,
-	    int, u_int);
-int	fetch_get(struct account *, struct mail_ctx *, struct io *, u_int *);
-int	fetch_flush(struct account *, struct io *, u_int *);
-int	fetch_transform(struct account *, struct mail *);
-void	fetch_free1(struct mail_ctx *);
-void	fetch_free(void);
+int	fetch_deliver(struct account *, struct fetch_ctx *, struct msg *,
+	    struct msgbuf *);
+int	fetch_poll(struct account *, struct fetch_ctx *);
+void	fetch_free(struct account *, struct fetch_ctx *);
 
-struct mail_queue 	matchq;
-struct mail_queue 	deliverq;
-struct mail_queue	doneq;
-
-double			time_polling = 0.0;
-double			time_blocked = 0.0;
-
-int			total = -1; /* total from fetch, -1 for unknown */
-u_int		  	dropped;
-u_int		  	kept;
+double	time_polling = 0.0;
+double	time_blocked = 0.0;
 
 int
 child_fetch(struct child *child, struct io *io)
@@ -84,25 +70,17 @@ child_fetch(struct child *child, struct io *io)
 	fill_info(NULL);
 	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
 	    conf.info.home);
-
-	if (op == FDMOP_POLL && a->fetch->poll == NULL) {
-		log_warnx("%s: polling not supported", a->name);
-		goto out;
-	} else if (op == FDMOP_FETCH && a->fetch->fetch == NULL) {
-		log_warnx("%s: fetching not supported", a->name);
-		goto out;
-	}
 	tim = get_time();
 
-	/* start fetch */
-	if (a->fetch->start != NULL) {
-		if (a->fetch->start(a, &total) != FETCH_SUCCESS) {
-			log_warnx("%s: start error. aborting", a->name);
+	/* Start fetch. */
+	if (a->fetch->connect != NULL) {
+		if (a->fetch->connect(a) != 0) {
+			log_warnx("%s: connect error. aborting", a->name);
 			goto out;
 		}
 	}
 
-	/* process fetch */
+	/* Process fetch or poll. */
 	log_debug2("%s: started processing", a->name);
 	switch (op) {
 	case FDMOP_POLL:
@@ -117,9 +95,9 @@ child_fetch(struct child *child, struct io *io)
 	log_debug2("%s: finished processing. exiting", a->name);
 
 out:
-	/* finish fetch */
-	if (a->fetch->finish != NULL) {
-		if (a->fetch->finish(a, error) != FETCH_SUCCESS)
+	/* Finish fetch. */
+	if (a->fetch->disconnect != NULL) {
+		if (a->fetch->disconnect(a) != 0)
 			error = 1;
 	}
 
@@ -146,26 +124,70 @@ out:
 int
 poll_account(unused struct io *io, struct account *a)
 {
-	u_int	n;
+	struct io	*rio, *iop[IO_POLLFDS];
+	char		*cause;
+	u_int		 n;
+	int		 timeout;
 
-	/* XXX use total? */
-	log_debug2("%s: polling", a->name);
-
-	if (a->fetch->poll(a, &n) == FETCH_ERROR) {
-		log_warnx("%s: polling error. aborted", a->name);
-		return (1);
+	if (a->fetch->poll == NULL) {
+		log_warnx("%s: polling not supported", a->name);
+		goto error;
 	}
 
-	log_info("%s: %u messages found", a->name, n);
+	log_debug2("%s: polling", a->name);
 
+	for (;;) {
+		if (a->fetch->closed != NULL && a->fetch->close != NULL) {
+			if (a->fetch->closed(a))
+				break;
+			if (a->fetch->completed(a) && a->fetch->close(a) != 0)
+				goto error;
+		} else {
+			if (a->fetch->completed(a))
+				break;
+		}
+
+		timeout = 0;
+		switch (a->fetch->poll(a)) {
+		case FETCH_ERROR:
+			goto error;
+		case FETCH_BLOCK:
+			timeout = conf.timeout;
+			break;
+		case FETCH_HOLD:
+			continue;
+		}
+
+		n = 0;
+		if (a->fetch->fill != NULL)
+			a->fetch->fill(a, iop, &n);
+		if (n == 0)
+			continue;
+
+		switch (io_polln(iop, n, &rio, timeout, &cause)) {
+		case 0:
+			log_warnx("%s: connection closed", a->name);
+			goto error;
+		case -1:
+			if (errno == EAGAIN)
+				break;
+			log_warnx("%s: %s", a->name, cause);
+			xfree(cause);
+			goto error;
+		}
+	}
+	
+	log_info("%s: %u messages found", a->name, a->fetch->total(a));
 	return (0);
+
+error:
+	log_warnx("%s: polling error. aborted", a->name);
+	return (-1);
 }
 
 int
-fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
-    int blocked, u_int queued)
+fetch_poll(struct account *a, struct fetch_ctx *fctx)
 {
-	static int	 holding;	/* holding fetch until queues drop */
 	struct io	*rio, *iop[IO_POLLFDS];
 	char		*cause;
 	u_int		 n;
@@ -173,65 +195,79 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 	double		 tim;
 
 	n = 1;
-	iop[0] = pio;
+	iop[0] = fctx->io;
 
 	/*
-	 * If the queue is empty and the fetch finished, must be all done.
+	 * If the queues are empty and the fetch finished and closed, must be
+	 * all done.
 	 */
-	if (queued == 0 && mctx == NULL)
-		return (FETCH_COMPLETE);
+	if (fctx->queued == 0 && TAILQ_EMPTY(&fctx->doneq)) {
+		/*
+		 * If close/closed functions exist, call them after completion,
+		 * otherwise just go by what the complete function says.
+		 */
+		if (a->fetch->closed != NULL && a->fetch->close != NULL) {
+			if (a->fetch->closed(a))
+				return (FETCH_COMPLETE);
+			if (a->fetch->completed(a) && a->fetch->close(a) != 0)
+				return (FETCH_ERROR);
+		} else {
+			if (a->fetch->completed(a))
+				return (FETCH_COMPLETE);
+		}
+	}
 
 	/*
 	 * Update the holding flag.
 	 */
-	if (queued >= (u_int) conf.queue_high)
-		holding = 1;
-	if (queued <= (u_int) conf.queue_low)
-		holding = 0;
+	if (fctx->queued >= (u_int) conf.queue_high)
+		fctx->holding = 1;
+	if (fctx->queued <= (u_int) conf.queue_low)
+		fctx->holding = 0;
 
 	/*
-	 * If not finished, try to get a mail.
+	 * If not holding, try to get a mail.
 	 */
-	if (mctx != NULL && !holding) {
-		if ((error = a->fetch->fetch(a, mctx->mail)) != FETCH_AGAIN)
-			return (error);
-	}
+	error = FETCH_HOLD;
+	if (!fctx->holding && (error = a->fetch->fetch(a, fctx)) == FETCH_ERROR)
+		return (error);
 
 	/*
-	 * If the fetch itself not finished, fill in its io list.
+	 * If the fetch isn't holding for queue changes, fill in its io list.
 	 */
-	if (mctx != NULL && a->fetch->fill != NULL)
+	if (error != FETCH_HOLD && a->fetch->fill != NULL)
 		a->fetch->fill(a, iop, &n);
 
 	/*
-	 * If that didn't add any fds, and we're not blocked for the parent
-	 * then skip the poll entirely and tell the caller not to loop to
-	 * us again immediately.
+	 * If that didn't add any fds and we're not blocked for the parent then
+	 * skip the poll entirely and tell the caller not to loop to us again
+	 * immediately.
 	 */
-	if (n == 1 && !blocked)
-		return (FETCH_NONE);
+	if (n == 1 && !fctx->blocked)
+		return (FETCH_AGAIN);
 
 	/*
-	 * If the queues are empty, or blocked waiting for the parent, then
-	 * let poll block.
+	 * If the queues are empty, or blocked waiting for the parent, and
+	 * the fetch lets us block, then let poll block.
 	 */
 	timeout = 0;
-	if (blocked || queued == 0)
+	if (error != FETCH_AGAIN && (fctx->blocked || fctx->queued == 0))
 		timeout = conf.timeout;
 
-	log_debug3("%s: polling %u fds, timeout=%d", a->name, n, timeout);
+	log_debug3("%s: polling %u fds, timeout=%d, error=%d",
+	    a->name, n, timeout, error);
 	tim = get_time();
 	switch (io_polln(iop, n, &rio, timeout, &cause)) {
 	case 0:
-		if (rio == pio)
+		if (rio == fctx->io)
 			fatalx("child: parent socket closed");
-		log_warnx("%s: connection unexpectedly closed", a->name);
+		log_warnx("%s: connection closed", a->name);
 		return (FETCH_ERROR);
 	case -1:
-		if (rio == pio)
-			fatalx("child: parent socket error");
 		if (errno == EAGAIN)
 			break;
+		if (rio == fctx->io)
+			fatalx("child: parent socket error");
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (FETCH_ERROR);
@@ -239,86 +275,37 @@ fetch_poll(struct account *a, struct io *pio, struct mail_ctx *mctx,
 	tim = get_time() - tim;
 
 	time_polling += tim;
-	if (blocked)
+	if (fctx->blocked)
 		time_blocked += tim;
 
 	return (FETCH_AGAIN);
 }
 
 int
-fetch_done(struct mail_ctx *mctx)
-{
-	struct account	*a = mctx->account;
-	struct mail	*m = mctx->mail;
-
-	if (a->fetch->done == NULL) {
-		kept++;
-		return (0);
-	}
-
-	if (conf.keep_all || a->keep)
-		m->decision = DECISION_KEEP;
-	switch (m->decision) {
-	case DECISION_DROP:
-		dropped++;
-		log_debug("%s: deleting message %u", a->name, m->idx);
-		break;
-	case DECISION_KEEP:
-		kept++;
-		log_debug("%s: keeping message %u", a->name, m->idx);
-		break;
-	default:
-		fatalx("invalid decision");
-	}
-
-	if (a->fetch->done(a, m) != FETCH_SUCCESS)
-		return (1);
-
-	return (0);
-}
-
-int
-fetch_drain(void)
-{
-	struct mail_ctx	*mctx;
-
-	while (!TAILQ_EMPTY(&doneq)) {
-		mctx = TAILQ_FIRST(&doneq);
-		if (fetch_done(mctx) != 0)
-			return (1);
-
-		TAILQ_REMOVE(&doneq, mctx, entry);
-		fetch_free1(mctx);
-	}
-
-	return (0);
-}
-
-int
-fetch_match(struct account *a, int *blocked, u_int *queued, struct msg *msg,
+fetch_match(struct account *a, struct fetch_ctx *fctx, struct msg *msg, 
     struct msgbuf *msgbuf)
 {
 	struct mail_ctx	*mctx;
 
-	if (TAILQ_EMPTY(&matchq))
+	if (TAILQ_EMPTY(&fctx->matchq))
 		return (0);
 
-	mctx = TAILQ_FIRST(&matchq);
+	mctx = TAILQ_FIRST(&fctx->matchq);
 	log_debug3("%s: trying (match) message %u", a->name, mctx->mail->idx);
 	switch (mail_match(mctx, msg, msgbuf)) {
 	case MAIL_ERROR:
 		return (1);
 	case MAIL_DELIVER:
-		TAILQ_REMOVE(&matchq, mctx, entry);
-		TAILQ_INSERT_TAIL(&deliverq, mctx, entry);
+		TAILQ_REMOVE(&fctx->matchq, mctx, entry);
+		TAILQ_INSERT_TAIL(&fctx->deliverq, mctx, entry);
 		break;
 	case MAIL_DONE:
-		TAILQ_REMOVE(&matchq, mctx, entry);
-		TAILQ_INSERT_TAIL(&doneq, mctx, entry);
-		(*queued)--;
+		TAILQ_REMOVE(&fctx->matchq, mctx, entry);
+		TAILQ_INSERT_TAIL(&fctx->doneq, mctx, entry);
+		fctx->queued--;
 		break;
 	case MAIL_BLOCKED:
-		*blocked = 1;
+		fctx->blocked = 1;
 		break;
 	}
 
@@ -326,101 +313,29 @@ fetch_match(struct account *a, int *blocked, u_int *queued, struct msg *msg,
 }
 
 int
-fetch_deliver(struct account *a, int *blocked, struct msg *msg,
+fetch_deliver(struct account *a, struct fetch_ctx *fctx, struct msg *msg,
     struct msgbuf *msgbuf)
 {
 	struct mail_ctx	*mctx;
 
-	if (TAILQ_EMPTY(&deliverq))
+	if (TAILQ_EMPTY(&fctx->deliverq))
 		return (0);
 
-	mctx = TAILQ_FIRST(&deliverq);
+	mctx = TAILQ_FIRST(&fctx->deliverq);
 	log_debug3("%s: trying (deliver) message %u", a->name, mctx->mail->idx);
 	switch (mail_deliver(mctx, msg, msgbuf)) {
 	case MAIL_ERROR:
 		return (1);
 	case MAIL_MATCH:
-		TAILQ_REMOVE(&deliverq, mctx, entry);
-		TAILQ_INSERT_TAIL(&matchq, mctx, entry);
+		TAILQ_REMOVE(&fctx->deliverq, mctx, entry);
+		TAILQ_INSERT_TAIL(&fctx->matchq, mctx, entry);
 		break;
 	case MAIL_BLOCKED:
-		*blocked = 1;
+		fctx->blocked = 1;
 		break;
 	}
 
 	return (0);
-}
-
-int
-fetch_flush(struct account *a, struct io *pio, u_int *queued)
-{
-	int	error;
-
-	error = FETCH_AGAIN;
-	while (error != FETCH_COMPLETE) {
-		error = fetch_get(a, NULL, pio, queued);
-		if (error == FETCH_ERROR)
-			return (1);
-
-		if (fetch_drain() != 0)
-			return (1);
-	}
-
-	return (0);
-}
-
-int
-fetch_get(struct account *a, struct mail_ctx *mctx, struct io *pio,
-    u_int *queued)
-{
-	struct msg	 msg, *msgp;
-	struct msgbuf	 msgbuf;
-	int		 error, blocked;
-
-	error = FETCH_AGAIN;
-	msgp = NULL;
-	while (error == FETCH_AGAIN) {
-		blocked = 0;
-
-		/*
-		 * Match a mail.
-		 */
-		if (fetch_match(a, &blocked, queued, msgp, &msgbuf) != 0) {
-			error = FETCH_ERROR;
-			break;
-		}
-
-		/*
-		 * Deliver a mail.
-		 */
-		if (fetch_deliver(a, &blocked, msgp, &msgbuf) != 0) {
-			error = FETCH_ERROR;
-			break;
-		}
-
-		/*
-		 * Poll for new mails.
-		 */
-		log_debug3("%s: queued %u; blocked=%d", a->name, *queued,
-		    blocked);
-		error = fetch_poll(a, pio, mctx, blocked, *queued);
-		if (error == FETCH_ERROR || error == FETCH_COMPLETE)
-			break;
-
-		/*
-		 * Check for new privsep messages.
-		 */
-		msgp = NULL;
-		if (!privsep_check(pio))
-			continue;
-		if (privsep_recv(pio, &msg, &msgbuf) != 0)
-			fatalx("child: privsep_recv error");
-		log_debug3("%s: got message type %d, id %u", a->name,
-		    msg.type, msg.id);
-		msgp = &msg;
-	}
-
-	return (error);
 }
 
 void
@@ -441,206 +356,107 @@ fetch_free1(struct mail_ctx *mctx)
 }
 
 void
-fetch_free(void)
+fetch_free(unused struct account *a, struct fetch_ctx *fctx)
 {
 	struct mail_ctx	*mctx;
 
-	while (!TAILQ_EMPTY(&matchq)) {
-		mctx = TAILQ_FIRST(&matchq);
-		TAILQ_REMOVE(&matchq, mctx, entry);
+	while (!TAILQ_EMPTY(&fctx->matchq)) {
+		mctx = TAILQ_FIRST(&fctx->matchq);
+		TAILQ_REMOVE(&fctx->matchq, mctx, entry);
 		fetch_free1(mctx);
 	}
 
-	while (!TAILQ_EMPTY(&deliverq)) {
-		mctx = TAILQ_FIRST(&deliverq);
-		TAILQ_REMOVE(&deliverq, mctx, entry);
+	while (!TAILQ_EMPTY(&fctx->deliverq)) {
+		mctx = TAILQ_FIRST(&fctx->deliverq);
+		TAILQ_REMOVE(&fctx->deliverq, mctx, entry);
 		fetch_free1(mctx);
 	}
 
-	while (!TAILQ_EMPTY(&doneq)) {
-		mctx = TAILQ_FIRST(&doneq);
-		TAILQ_REMOVE(&doneq, mctx, entry);
+	while (!TAILQ_EMPTY(&fctx->doneq)) {
+		mctx = TAILQ_FIRST(&fctx->doneq);
+		TAILQ_REMOVE(&fctx->doneq, mctx, entry);
 		fetch_free1(mctx);
 	}
 }
 
 int
-fetch_account(struct io *pio, struct account *a, double tim)
+fetch_account(struct io *io, struct account *a, double tim)
 {
-	struct mail	*m;
- 	struct mail_ctx	*mctx;
-	u_int	 	 n, queued;
+	struct msg	 msg, *msgp;
+	struct msgbuf	 msgbuf;
+	struct fetch_ctx fctx;
 	int		 error;
+	u_int		 n, last;
 
 	log_debug2("%s: fetching", a->name);
-	if (total != -1)
-		log_debug("%s: %d messages found", a->name, total);
 
- 	TAILQ_INIT(&matchq);
- 	TAILQ_INIT(&deliverq);
- 	TAILQ_INIT(&doneq);
+	/* Initialise queues and counters. */
+ 	TAILQ_INIT(&fctx.matchq);
+ 	TAILQ_INIT(&fctx.deliverq);
+ 	TAILQ_INIT(&fctx.doneq);
+	fctx.queued = fctx.dropped = fctx.kept = 0;
+	fctx.io = io;
 
-	mctx = NULL;
-	m = NULL;
-	n = queued = dropped = kept = 0;
-	for (;;) {
-		/*
-		 * If the last context was queued (mail received successfully),
-		 * make a new one.
-		 */
-		if (mctx == NULL) {
-			m = xcalloc(1, sizeof *m);
-			m->body = -1;
-			m->decision = DECISION_DROP;
-			m->idx = ++a->idx;
-			m->tim = get_time();
+	last = 0;
+	error = FETCH_AGAIN;
+	while (error != FETCH_COMPLETE) {
+		fctx.blocked = 0;
 
-			mctx = xcalloc(1, sizeof *mctx);
-			mctx->account = a;
-			mctx->mail = m;
-			mctx->msgid = 0;
-			mctx->done = 0;
-
-			mctx->matched = 0;
-
-			mctx->account = a;
-			mctx->io = pio;
-
-			mctx->rule = TAILQ_FIRST(&conf.rules);
-			TAILQ_INIT(&mctx->dqueue);
-			ARRAY_INIT(&mctx->stack);
+		/* Check for new privsep messages. */
+		msgp = NULL;
+		if (privsep_check(io)) {
+			if (privsep_recv(io, &msg, &msgbuf) != 0)
+				fatalx("child: privsep_recv error");
+			log_debug3("%s: got message type %d, id %u", a->name,
+			    msg.type, msg.id);
+			msgp = &msg;
 		}
 
-		/*
-		 * Try to get a mail.
-		 */
-		error = fetch_get(a, mctx, pio, &queued);
-		if (error == FETCH_ERROR || error == FETCH_COMPLETE)
-			goto out;
-
-		/*
-		 * Trim "From " line.
-		 */
-		if (error == FETCH_SUCCESS) {
-			trim_from(m);
-			if (m->size == 0)
-				error = FETCH_EMPTY;
-		}
-
-		/*
-		 * And handle the return code.
-		 */
-		switch (error) {
-		case FETCH_EMPTY:
-			log_warnx("%s: empty message", a->name);
+		/* Match a mail. */
+		if (fetch_match(a, &fctx, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
-			goto out;
-		case FETCH_OVERSIZE:
-			log_warnx("%s: message too big: %zu bytes (limit %zu)",
-			    a->name, m->size, conf.max_size);
-			if (conf.del_big) {
-				/*
-				 * Queue on the done queue and destroy the
-				 * mail file.
-				 */
-				TAILQ_INSERT_TAIL(&doneq, mctx, entry);
-				shm_destroy(&mctx->mail->shm);
-
-				/*
-				 * Set error to success to allocate a new
-				 * context at the start of the loop.
-				 */
-				mctx = NULL;
-				break;
-			}
-			error = FETCH_ERROR;
-			goto out;
-		case FETCH_SUCCESS:
-			/*
-			 * Got a mail: modify it and queue it.
-			 */
-			if (total != -1) {
-				log_debug("%s: got message %u of %d in "
-				    "%.3f seconds: size %zu, body %zd", a->name,
-				    m->idx, total, get_time() - m->tim, m->size,
-				    m->body);
-			} else {
-				log_debug("%s: got message %u in %.3f "
-				    "seconds: size %zu, body %zd", a->name,
-				    m->idx, get_time() - m->tim, m->size,
-				    m->body);
-			}
-			fetch_transform(a, m);
-			TAILQ_INSERT_TAIL(&matchq, mctx, entry);
-			mctx = NULL;
-			queued++;
 			break;
 		}
-
-		/*
-		 * Empty the done queue. Can get here either from FETCH_SUCCESS
-		 * or FETCH_NONE.
-		 */
-		if (fetch_drain() != 0) {
+		
+		/* Deliver a mail. */
+		if (fetch_deliver(a, &fctx, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
-			goto out;
+			break;
 		}
-
-		/*
-		 * Purge if necessary.
-		 */
+			
+		/* Poll for new mails or privsep messages. */
+		log_debug3("%s: queued %u; blocked=%d", a->name, fctx.queued,
+		    fctx.blocked);
+		if ((error = fetch_poll(a, &fctx)) == FETCH_ERROR)
+			break;
+			
+		/* Purge if necessary. */
 		if (conf.purge_after == 0 || a->fetch->purge == NULL)
 			continue;
 
-		n++;
-		if (n >= conf.purge_after) {
-			log_debug("%s: got %u mails, purging", a->name, n);
-			n = 0;
+		n = fctx.dropped + fctx.kept;
+		if (n != last && n % conf.purge_after == 0) {
+			last = n;
 
-			/*
-			 * Must empty queues before purge to make sure things
-			 * like POP3 indexing don't get ballsed up.
-			 */
-			if (fetch_flush(a, pio, &queued) != 0)
+			log_debug("%s: purging after %u mails", a->name, n);
+			if (a->fetch->purge(a) != 0) {
+				error = FETCH_ERROR;
 				break;
-			if (a->fetch->purge(a) != FETCH_SUCCESS)
-				break;
+			}
 		}
 	}
 
-out:
-	if (mctx != NULL) {
-		mail_destroy(m);
-		xfree(m);
-
-		xfree(mctx);
-	}
-
-	/*
-	 * Flush the queues if not an error.
-	 */
-	if (error != FETCH_ERROR) {
-		if (fetch_flush(a, pio, &queued) != 0)
-			error = FETCH_ERROR;
-	}
-	if (error != FETCH_ERROR) {
-		if (fetch_drain() != 0)
-			error = FETCH_ERROR;
-	}
-
-	/*
-	 * Report error and free queues.
-	 */
+	/* Report error and free queues. */
 	if (error == FETCH_ERROR) {
 		log_warnx("%s: fetching error. aborted", a->name);
-		fetch_free();
+		fetch_free(a, &fctx);
 	}
 
 	tim = get_time() - tim;
-	n = dropped + kept;
+	n = fctx.dropped + fctx.kept;
 	if (n > 0) {
 		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
-		    "(average %.3f)", a->name, n, kept, tim, tim / n);
+		    "(average %.3f)", a->name, n, fctx.kept, tim, tim / n);
 		log_debug("%s: polled for %.3f seconds (%.3f blocked)",
 		    a->name, time_polling, time_blocked);
 		return (error == FETCH_ERROR);
@@ -648,49 +464,4 @@ out:
 
 	log_info("%s: %u messages processed in %.3f seconds", a->name, n, tim);
 	return (error == FETCH_ERROR);
-}
-
-int
-fetch_transform(struct account *a, struct mail *m)
-{
-	char	*hdr, rtm[64], *rnm;
-	u_int	 lines;
-	size_t	 len;
-	int	 error;
-
-	hdr = find_header(m, "message-id", &len, 1);
-	if (hdr == NULL || len == 0 || len > INT_MAX)
-		log_debug2("%s: message-id not found", a->name);
-	else {
-		log_debug2("%s: message-id is: %.*s", a->name, (int) len, hdr);
-		add_tag(&m->tags, "message_id", "%.*s", (int) len, hdr);
-	}
-
-	/*
-	 * Insert received header.
-	 *
-	 * No header line must exceed 998 bytes. Limiting the user-supplied
-	 * stuff to 900 bytes gives plenty of space for the other stuff, and if
-	 * it gets truncated, who cares?
-	 */
-	if (!conf.no_received) {
-		error = 1;
-		if (rfc822_time(time(NULL), rtm, sizeof rtm) != NULL) {
-			rnm = conf.info.fqdn;
-			if (rnm == NULL)
-				rnm = conf.info.host;
-
-			error = insert_header(m, "received", "Received: by "
-			    "%.450s (%s " BUILD ", account \"%.450s\");\n\t%s",
-			    rnm, __progname, a->name, rtm);
-		}
-		if (error != 0)
-			log_debug3("%s: couldn't add received header", a->name);
-	}
-
-	/* fill wrapped line list */
-	lines = fill_wrapped(m);
-	log_debug2("%s: found %u wrapped lines", a->name, lines);
-
-	return (FETCH_SUCCESS);
 }

@@ -124,6 +124,9 @@ error:
 void
 shm_destroy(struct shm *shm)
 {
+	if (*shm->name == '\0')
+		return;
+
 	shm_close(shm);
 
 	if (unlink(shm->name) != 0)
@@ -135,6 +138,9 @@ shm_destroy(struct shm *shm)
 void
 shm_close(struct shm *shm)
 {
+	if (shm->fd == -1)
+		return;
+
 	if (munmap(shm->data, shm->size) != 0)
 		fatal("munmap");
 	shm->data = NULL;

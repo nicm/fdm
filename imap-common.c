@@ -23,6 +23,10 @@
 #include "fdm.h"
 #include "fetch.h"
 
+#define FETCH_OVERSIZE 500
+#define FETCH_EMPTY 501
+#define FETCH_SUCCESS 502
+
 int	imap_putln(struct account *, const char *, ...);
 int	imap_getln(struct account *, int, char **);
 int	imap_pollln(struct account *, int, char **);

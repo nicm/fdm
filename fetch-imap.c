@@ -23,6 +23,10 @@
 #include "fdm.h"
 #include "fetch.h"
 
+#define FETCH_OVERSIZE 500
+#define FETCH_EMPTY 501
+#define FETCH_SUCCESS 502
+
 int	 fetch_imap_start(struct account *, int *);
 void	 fetch_imap_fill(struct account *, struct io **, u_int *);
 int	 fetch_imap_finish(struct account *, int);

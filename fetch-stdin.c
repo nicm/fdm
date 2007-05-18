@@ -28,27 +28,29 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_stdin_start(struct account *, int *);
-void	 fetch_stdin_fill(struct account *, struct io **, u_int *);
-int	 fetch_stdin_finish(struct account *, int);
-int	 fetch_stdin_fetch(struct account *, struct mail *);
-int	 fetch_stdin_done(struct account *, struct mail *);
+int	 fetch_stdin_connect(struct account *);
+int	 fetch_stdin_completed(struct account *);
+int	 fetch_stdin_fetch(struct account *, struct fetch_ctx *fctx);
+int	 fetch_stdin_disconnect(struct account *);
 void	 fetch_stdin_desc(struct account *, char *, size_t);
 
 struct fetch fetch_stdin = {
 	"stdin",
-	fetch_stdin_start,
-	fetch_stdin_fill,
+	fetch_stdin_connect,
+	NULL,
+	NULL,
+	fetch_stdin_completed,
 	NULL,
 	fetch_stdin_fetch,
 	NULL,
-	fetch_stdin_done,
-	fetch_stdin_finish,
+	NULL,
+	NULL,
+	fetch_stdin_disconnect,
 	fetch_stdin_desc
 };
 
 int
-fetch_stdin_start(struct account *a, unused int *total)
+fetch_stdin_connect(struct account *a)
 {
 	struct fetch_stdin_data	*data = a->data;
 
@@ -57,38 +59,38 @@ fetch_stdin_start(struct account *a, unused int *total)
 
 	if (isatty(STDIN_FILENO)) {
 		log_warnx("%s: stdin is a tty. ignoring", a->name);
-		return (FETCH_ERROR);
+		return (-1);
 	}
 
 	if (fcntl(STDIN_FILENO, F_GETFL) == -1) {
 		if (errno != EBADF)
 			fatal("fcntl");
 		log_warnx("%s: stdin is invalid", a->name);
-		return (FETCH_ERROR);
+		return (-1);
 	}
 
 	data->io = io_create(STDIN_FILENO, NULL, IO_LF, conf.timeout);
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
-	data->complete = 0;
-
 	data->lines = 0;
 	data->bodylines = -1;
 
-	return (FETCH_SUCCESS);
-}
+	data->complete = 0;
 
-void
-fetch_stdin_fill(struct account *a, struct io **iop, u_int *n)
-{
-	struct fetch_stdin_data	*data = a->data;
-
-	iop[(*n)++] = data->io;
+	return (0);
 }
 
 int
-fetch_stdin_finish(struct account *a, unused int aborted)
+fetch_stdin_completed(struct account *a)
+{
+	struct fetch_stdin_data	*data = a->data;
+
+	return (data->complete);
+}
+
+int
+fetch_stdin_disconnect(struct account *a)
 {
 	struct fetch_stdin_data	*data = a->data;
 
@@ -99,101 +101,86 @@ fetch_stdin_finish(struct account *a, unused int aborted)
 
 	xfree(data->lbuf);
 
-	return (FETCH_SUCCESS);
+	return (0);
 }
 
 int
-fetch_stdin_done(struct account *a, struct mail *m)
+fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_stdin_data	*data = a->data;
-	char		        *line;
-
-	if (m->decision == DECISION_KEEP)
-		return (FETCH_SUCCESS);
-
-	while (io_pollline2(data->io,
-	    &line, &data->lbuf, &data->llen, NULL) == 1)
-		;
-
-	return (FETCH_SUCCESS);
-}
-
-int
-fetch_stdin_fetch(struct account *a, struct mail *m)
-{
-	struct fetch_stdin_data	*data = a->data;
+	struct mail		*m;
 	int		 	 error;
 	char			*line, *cause;
 	size_t			 len;
 
-	if (data->complete)
-		return (FETCH_COMPLETE);
+	/* Flush deleted once complete. */  
+	if (data->complete) {
+		while (done_mail(a, fctx) != NULL)
+			dequeue_mail(a, fctx);
+		return (FETCH_HOLD);
+	}
 
-	if (m->data == NULL) {
-		if (mail_open(m, IO_BLOCKSIZE) != 0) {
-			log_warn("%s: failed to create mail", a->name);
+	/* Initialise the mail. */
+	m = xcalloc(1, sizeof *m);
+	if (mail_open(m, IO_BLOCKSIZE) != 0) {
+		log_warn("%s: failed to create mail", a->name);
+		return (FETCH_ERROR);
+	}
+	m->size = 0;
+
+	m->auxdata = NULL;
+	m->auxfree = NULL;
+	
+	/* Add default tags. */
+	default_tags(&m->tags, NULL, a);
+
+	for (;;) {
+		/* 
+		 * There can only be one mail on stdin so reentrancy is
+		 * irrelevent. This is a good thing since we want to check for
+		 * close which means end of mail.
+		 */
+		error = io_pollline2(data->io, 
+		    &line, &data->lbuf, &data->llen, &cause);
+		if (error == 0) {
+			/* Normal close is fine. */
+			break;
+		} else if (error == -1) {
+			if (errno == EAGAIN)
+				continue;
+			log_warnx("%s: %s", a->name, cause);
+			xfree(cause);
 			return (FETCH_ERROR);
 		}
-		m->size = 0;
 
-		m->auxdata = NULL;
-		m->auxfree = NULL;
-
-		default_tags(&m->tags, NULL, a);
+		len = strlen(line);
+		if (len == 0 && m->body == -1) {
+			m->body = m->size + 1;
+			data->bodylines = 0;
+		}
+		data->lines++;
+		if (data->bodylines != -1)
+			data->bodylines++;
+		
+		if (mail_resize(m, m->size + len + 1) != 0) {
+			log_warn("%s: failed to resize mail", a->name);
+			return (FETCH_ERROR);
+		}
+		if (len > 0)
+			memcpy(m->data + m->size, line, len);
+		
+		/* Append an LF. */
+		m->data[m->size + len] = '\n';
+		m->size += len + 1;
+		
+		if (m->size > conf.max_size) {
+			oversize_mail(a, fctx, m);
+			data->complete = 1;
+			return (FETCH_HOLD);
+		}
 	}
 
-restart:
-	/*
-	 * There can only ever be one mail on stdin, so the normal reentrancy
-	 * becomes irrelevent. Which is good since we need to detect when the
-	 * fd is closed.
-	 */
-	error = io_pollline2(data->io, &line, &data->lbuf, &data->llen, &cause);
-	switch (error) {
-	case 0:
-		/* normal close (error == 0) is fine */
-		goto complete;
-	case -1:
-		if (errno == EAGAIN)
-			return (FETCH_AGAIN);
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (FETCH_ERROR);
-	}
-
-	len = strlen(line);
-	if (len == 0 && m->body == -1) {
-		m->body = m->size + 1;
-		data->bodylines = 0;
-	}
-	data->lines++;
-	if (data->bodylines != -1)
-		data->bodylines++;
-
-	if (mail_resize(m, m->size + len + 1) != 0) {
-		log_warn("%s: failed to resize mail", a->name);
-		return (FETCH_ERROR);
-	}
-	if (len > 0)
-		memcpy(m->data + m->size, line, len);
-
-	/* append an LF */
-	m->data[m->size + len] = '\n';
-	m->size += len + 1;
-
-	if (m->size > conf.max_size) {
-		data->complete = 1;
-		return (FETCH_OVERSIZE);
-	}
-
-	goto restart;
-
-complete:
- 	data->complete = 1;
-
-	if (m->size == 0)
-		return (FETCH_EMPTY);
-
+	/* Tag mail. */
 	add_tag(&m->tags, "lines", "%u", data->lines);
 	if (data->bodylines == -1) {
 		add_tag(&m->tags, "body_lines", "0");
@@ -204,7 +191,17 @@ complete:
 		    data->bodylines);
 	}
 
-	return (FETCH_SUCCESS);
+	transform_mail(a, fctx, m);
+	if (m->size == 0) {
+		if (empty_mail(a, fctx, m) != 0)
+			return (FETCH_ERROR);
+		data->complete = 1;
+		return (FETCH_HOLD);
+	}
+	enqueue_mail(a, fctx, m);
+
+	data->complete = 1;
+	return (FETCH_HOLD);
 }
 
 void
