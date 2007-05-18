@@ -36,7 +36,7 @@ int	fetch_pop3_fetch(struct account *, struct fetch_ctx *);
 int	fetch_pop3_poll(struct account *, u_int *);
 int	fetch_pop3_purge(struct account *);
 int	fetch_pop3_close(struct account *);
-int	fetch_pop3_disconnect(struct account *);
+int	fetch_pop3_disconnect(struct account *, int);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
 int	fetch_pop3_reconnect(struct account *);
@@ -164,7 +164,7 @@ fetch_pop3_closed(struct account *a)
 
 /* Clean up and disconnect from server. */
 int
-fetch_pop3_disconnect(struct account *a)
+fetch_pop3_disconnect(struct account *a, unused int aborted)
 {
 	struct fetch_pop3_data	*data = a->data;
 	u_int			 i;
@@ -205,9 +205,6 @@ fetch_pop3_poll(struct account *a, u_int *total)
 	int		 	 timeout;
 
 	for (;;) {
-		if (data->state == fetch_pop3_next)
-			break;
-		
 		timeout = 0;
 		switch (fetch_pop3_fetch(a, NULL)) {
 		case FETCH_ERROR:
@@ -217,6 +214,13 @@ fetch_pop3_poll(struct account *a, u_int *total)
 			break;
 		case FETCH_HOLD:
 			continue;
+		}
+
+		if (data->io == NULL)
+			break;
+		if (data->state == fetch_pop3_next) {
+			io_writeline(data->io, "QUIT");
+			data->state = fetch_pop3_quit;
 		}
 
 		switch (io_polln(&data->io, 1, &rio, timeout, &cause)) {

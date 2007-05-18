@@ -31,7 +31,7 @@
 int	 fetch_stdin_connect(struct account *);
 int	 fetch_stdin_completed(struct account *);
 int	 fetch_stdin_fetch(struct account *, struct fetch_ctx *fctx);
-int	 fetch_stdin_disconnect(struct account *);
+int	 fetch_stdin_disconnect(struct account *, int);
 void	 fetch_stdin_desc(struct account *, char *, size_t);
 
 struct fetch fetch_stdin = {
@@ -90,7 +90,7 @@ fetch_stdin_completed(struct account *a)
 }
 
 int
-fetch_stdin_disconnect(struct account *a)
+fetch_stdin_disconnect(struct account *a, unused int aborted)
 {
 	struct fetch_stdin_data	*data = a->data;
 

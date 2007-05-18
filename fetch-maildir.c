@@ -35,7 +35,7 @@ int	fetch_maildir_connect(struct account *);
 int	fetch_maildir_completed(struct account *);
 int	fetch_maildir_fetch(struct account *, struct fetch_ctx *);
 int	fetch_maildir_poll(struct account *, u_int *);
-int	fetch_maildir_disconnect(struct account *);
+int	fetch_maildir_disconnect(struct account *, int);
 void	fetch_maildir_desc(struct account *, char *, size_t);
 
 void	fetch_maildir_free(void *);
@@ -169,7 +169,7 @@ fetch_maildir_completed(struct account *a)
 
 /* Clean up and free data. */
 int
-fetch_maildir_disconnect(struct account *a)
+fetch_maildir_disconnect(struct account *a, unused int aborted)
 {
 	struct fetch_maildir_data	*data = a->data;
 

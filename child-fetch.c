@@ -99,7 +99,7 @@ child_fetch(struct child *child, struct io *io)
 out:
 	/* Finish fetch. */
 	if (a->fetch->disconnect != NULL) {
-		if (a->fetch->disconnect(a) != 0)
+		if (a->fetch->disconnect(a, error) != 0)
 			error = 1;
 	}
 

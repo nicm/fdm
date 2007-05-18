@@ -185,7 +185,7 @@ xmalloc_report(const char *hdr)
  	XMALLOC_PRINT("%s: %ld: mallocs=%u, reallocs=%u, frees=%u", hdr,
 	    pid, xmalloc_ctx.mallocs, xmalloc_ctx.reallocs, xmalloc_ctx.frees);
 
-	xmalloc_callreport(hdr);
+	/* xmalloc_callreport(hdr); */
 
  	if (xmalloc_ctx.allocated == xmalloc_ctx.freed)
  		return;

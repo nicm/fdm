@@ -55,7 +55,7 @@ struct fetch {
 	int	 	 (*poll)(struct account *, u_int *);
 	int		 (*purge)(struct account *);
 	int		 (*close)(struct account *);
-	int		 (*disconnect)(struct account *);
+	int		 (*disconnect)(struct account *, int);
 	void		 (*desc)(struct account *, char *, size_t);
 };
 
