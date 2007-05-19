@@ -112,8 +112,8 @@ fetch_pop3_reconnect(struct account *a)
 	struct fetch_pop3_data	*data = a->data;
 	char			*cause;
 
-	data->io = connectproxy(&data->server, conf.verify_certs, conf.proxy,
-	    IO_CRLF, conf.timeout, &cause);
+	data->io = connectproxy(&data->server,
+	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
