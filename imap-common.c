@@ -23,19 +23,17 @@
 #include "fdm.h"
 #include "fetch.h"
 
-#define FETCH_OVERSIZE 500
-#define FETCH_EMPTY 501
-#define FETCH_SUCCESS 502
-
 int	imap_putln(struct account *, const char *, ...);
 int	imap_getln(struct account *, int, char **);
-int	imap_pollln(struct account *, int, char **);
 
+void	imap_free(void *);
+int	imap_okay(struct account *, char *);
 int	imap_parse(struct account *, int, char *);
 int	imap_tag(char *);
-int	imap_okay(struct account *, char *);
-void	imap_free(void *);
 
+int	imap_connected(struct account *, unused struct fetch_ctx *);
+
+/* Put line to server. */
 int
 imap_putln(struct account *a, const char *fmt, ...)
 {
@@ -50,6 +48,7 @@ imap_putln(struct account *a, const char *fmt, ...)
 	return (n);
 }
 
+/* Get line from server. */
 int
 imap_getln(struct account *a, int type, char **line)
 {
@@ -61,20 +60,29 @@ imap_getln(struct account *a, int type, char **line)
 	return (imap_parse(a, type, *line));
 }
 
-int
-imap_pollln(struct account *a, int type, char **line)
+/* Free auxiliary data. */
+void
+imap_free(void *ptr)
 {
-	struct fetch_imap_data	*data = a->data;
-	int			 n;
-
-	do {
-		if (data->pollln(a, line) != 0)
-			return (-1);
-	} while ((n = imap_parse(a, type, *line)) == 1);
-
-	return (n);
+	xfree(ptr);
 }
 
+/* Check for okay from server. */
+int
+imap_okay(struct account *a, char *line)
+{
+	char	*ptr;
+
+	ptr = strchr(line, ' ');
+	if (ptr == NULL || strncmp(ptr + 1, "OK ", 3) != 0) {
+		log_warnx("%s: unexpected data: %s", a->name, line);
+		return (0);
+	}
+
+	return (1);
+}
+
+/* Parse line based on type. */
 int
 imap_parse(struct account *a, int type, char *line)
 {
@@ -112,12 +120,7 @@ invalid:
 	return (-1);
 }
 
-void
-imap_free(void *ptr)
-{
-	xfree(ptr);
-}
-
+/* Parse IMAP tag  */
 int
 imap_tag(char *line)
 {
@@ -142,24 +145,13 @@ imap_tag(char *line)
 	return (tag);
 }
 
+/* Set up on connect. */
 int
-imap_okay(struct account *a, char *line)
-{
-	char	*ptr;
-
-	ptr = strchr(line, ' ');
-	if (ptr == NULL || strncmp(ptr + 1, "OK ", 3) != 0) {
-		log_warnx("%s: unexpected data: %s", a->name, line);
-		return (0);
-	}
-
-	return (1);
-}
-
-int
-imap_start(struct account *a)
+imap_connect(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
+
+	fatalx("XXX IMAP is currently broken");
 
 	ARRAY_INIT(&data->kept);
 
@@ -167,13 +159,41 @@ imap_start(struct account *a)
 	data->lbuf = xmalloc(data->llen);
 
 	data->tag = 0;
-	data->state = IMAP_START;
 
-	return (FETCH_SUCCESS);
+	data->state = imap_connected;
+	return (0);
 }
 
+/* Return total mails available. */
+u_int
+imap_total(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	return (data->total);
+}
+
+/* Return if fetch is complete. */
 int
-imap_finish(struct account *a)
+imap_completed(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	return (data->cur > data->num);
+}
+
+/* Return if fetch is closed. */
+int
+imap_closed(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+
+	return (data->close && data->io == NULL);
+}
+
+/* Clean up on disconnect. */
+int
+imap_disconnect(struct account *a, unused int aborted)
 {
 	struct fetch_imap_data	*data = a->data;
 
@@ -181,9 +201,47 @@ imap_finish(struct account *a)
 
 	xfree(data->lbuf);
 
-	return (FETCH_SUCCESS);
+	return (0);
 }
 
+/* Fetch mail. */
+int
+imap_fetch(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	return (data->state(a, fctx));
+}
+
+/* Purge deleted mail. */
+int
+imap_purge(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	data->purge = 1;
+
+	return (0);
+}
+
+/* Close down connection. */
+int
+imap_close(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	data->close = 1;
+
+	return (0);
+}
+
+/* Connected state: wait for initial line from server. */
+int
+imap_connected(struct account *a, unused struct fetch_ctx *fctx)
+{
+}
+
+#if 0
 int
 imap_login(struct account *a)
 {
@@ -335,7 +393,6 @@ restart:
 		if (data->cur > data->num)
 			return (FETCH_COMPLETE);
 
-		/* find and save the uid */
 		if (imap_putln(a,
 		    "%u FETCH %u UID", ++data->tag, data->cur) != 0)
 			return (FETCH_ERROR);
@@ -519,3 +576,4 @@ imap_purge(struct account *a)
 
 	return (FETCH_SUCCESS);
 }
+#endif

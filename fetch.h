@@ -169,46 +169,38 @@ struct fetch_pop3_mail {
 
 /* Fetch imap data. */
 struct fetch_imap_data {
-	struct server	 server;
-	char		*pipecmd;
-
-	struct io	*io;
-	struct cmd	*cmd;
-
 	char		*user;
 	char		*pass;
 	char		*folder;
+	struct server	 server;
+	char		*pipecmd;
 
 	int		 tag;
 	u_int		 cur;
 	u_int		 num;
+	u_int		 total;
 
+	int 	         (*state)(struct account *, struct fetch_ctx *);
 	u_int	 	 uid;
 	ARRAY_DECL(, u_int) kept;
+	int		 purge;
+	int		 close;
 
-	enum {
-		IMAP_START,
-		IMAP_UID1,
-		IMAP_UID2,
-		IMAP_FETCH,
-		IMAP_LINE,
-		IMAP_END1,
-		IMAP_END2
-	} state;
+	struct mail	*mail;
 	int		 flushing;
 	int		 bodylines;
 	u_int		 lines;
 	size_t		 size;
 
-	char		*src;
-
 	size_t		 llen;
 	char		*lbuf;
 
-	int		 (*pollln)(struct account *a, char **);
+	char		*src;
 	int		 (*getln)(struct account *a, char **);
 	int		 (*putln)(struct account *a, const char *, va_list);
-	void		 (*flush)(struct account *a);
+
+	struct io	*io;
+	struct cmd	*cmd;
 };
 
 struct fetch_imap_mail {
@@ -233,19 +225,5 @@ extern struct fetch 	 fetch_imap;
 
 /* fetch-imappipe.c */
 extern struct fetch 	 fetch_imappipe;
-
-/* imap-common.c */
-int			 imap_start(struct account *);
-int			 imap_finish(struct account *);
-int			 imap_login(struct account *);
-int			 imap_select(struct account *);
-int			 imap_close(struct account *);
-int			 imap_logout(struct account *);
-void			 imap_abort(struct account *);
-int			 imap_uid(struct account *);
-int			 imap_poll(struct account *, u_int *);
-int			 imap_fetch(struct account *, struct mail *);
-int			 imap_purge(struct account *);
-int			 imap_done(struct account *, struct mail *);
 
 #endif

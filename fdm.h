@@ -895,6 +895,16 @@ void			 set_wrapped(struct mail *, char);
 int	mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
 int	mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
+/* imap-common.c */
+int			 imap_connect(struct account *);
+u_int			 imap_total(struct account *);
+int			 imap_completed(struct account *);
+int			 imap_closed(struct account *);
+int			 imap_fetch(struct account *, struct fetch_ctx *);
+int			 imap_purge(struct account *);
+int			 imap_close(struct account *);
+int			 imap_disconnect(struct account *, int);
+
 /* cleanup.c */
 void			 cleanup_check(void);
 void			 cleanup_flush(void);
