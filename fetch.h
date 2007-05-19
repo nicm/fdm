@@ -49,7 +49,7 @@ struct fetch {
  	int		 (*connect)(struct account *);
 	void		 (*fill)(struct account *, struct io **, u_int *n);
  	u_int		 (*total)(struct account *);
-	int		 (*completed)(struct account *); 
+	int		 (*completed)(struct account *);
 	int		 (*closed)(struct account *);
 	int	 	 (*fetch)(struct account *, struct fetch_ctx *);
 	int	 	 (*poll)(struct account *, u_int *);
@@ -66,7 +66,7 @@ struct fetch_maildir_data {
 	struct strings	*paths;
 	u_int		 index;
 
-	int 	         (*state)(struct account *, struct fetch_ctx *); 
+	int 	         (*state)(struct account *, struct fetch_ctx *);
 
 	DIR		*dirp;
 	char		*path;
@@ -96,7 +96,7 @@ struct fetch_nntp_data {
 	u_int		 group;
 	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
-	int 	         (*state)(struct account *, struct fetch_ctx *); 
+	int 	         (*state)(struct account *, struct fetch_ctx *);
 	int		 close;
 
 	struct mail	*mail;
@@ -132,9 +132,9 @@ struct fetch_pop3_data {
 
 	u_int		 cur;
 	u_int		 num;
-	u_int		 total;	
+	u_int		 total;
 
-	int 	         (*state)(struct account *, struct fetch_ctx *); 
+	int 	         (*state)(struct account *, struct fetch_ctx *);
 	struct strings	 kept;
 	int		 purge;
 	int		 close;

@@ -440,7 +440,7 @@ make_actlist(struct actlist *tl, char *buf, size_t len)
 
 	off = 0;
 	TAILQ_FOREACH(ti, tl, entry) {
-		if (ti->deliver != NULL) 
+		if (ti->deliver != NULL)
 			ti->deliver->desc(ti, desc, sizeof desc);
 		else {
 			data = ti->data;
@@ -1900,10 +1900,10 @@ actitem: TOKPIPE strv
 	 {
 		 struct deliver_action_data	*data;
 
-		 /* 
+		 /*
 		  * This is a special-case, handled when the list of delivery
-		  * targets is resolved rather than by calling a deliver 
-		  * function, so the deliver pointer is NULL. 
+		  * targets is resolved rather than by calling a deliver
+		  * function, so the deliver pointer is NULL.
 		  */
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = NULL;

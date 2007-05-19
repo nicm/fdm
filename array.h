@@ -42,11 +42,8 @@
 } while (0)
 
 #define ARRAY_SET(a, i, s) do {						\
-	if (((u_int) (i)) >= (a)->num) {				\
-		log_warnx("ARRAY_SET: bad index: %u, at %s:%d",		\
-		    i, __FILE__, __LINE__);				\
-		exit(1);						\
-	}								\
+	if (((u_int) (i)) >= (a)->num)					\
+		abort();						\
 	(a)->list[i] = s;						\
 } while (0)
 
@@ -56,11 +53,8 @@
 	(a)->num++;							\
 } while (0)
 #define ARRAY_REMOVE(a, i) do {						\
-	if (((u_int) (i)) >= (a)->num) {				\
-		log_warnx("ARRAY_REMOVE: bad index: %u, at %s:%d",	\
-		    i, __FILE__, __LINE__);				\
-		exit(1);						\
-	}								\
+	if (((u_int) (i)) >= (a)->num)					\
+		abort();						\
 	if (i < (a)->num - 1) {						\
 		memmove((a)->list + (i), (a)->list + (i) + 1, 		\
 		    ARRAY_ITEMSIZE(a) * ((a)->num - (i) - 1)); 		\

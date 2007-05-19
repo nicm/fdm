@@ -199,7 +199,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		}
 
 		if ((io->flags & (IOF_NEEDPUSH|IOF_NEEDFILL)) != 0) {
-			/* 
+			/*
 			 * If a repeated read/write is necessary, the socket
 			 * must be ready for both reading and writing
 			 */
@@ -267,7 +267,7 @@ io_poll(struct io *io, char **cause)
 	return (io_polln(&io, 1, &rio, timeout, cause));
 }
 
-/* 
+/*
  * Fill read buffer. Returns 0 for closed, -1 for error, 1 for success,
  * a la read(2).
  */
@@ -301,7 +301,7 @@ io_fill(struct io *io)
 		if (n < 0) {
 			switch (n = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
-				/* 
+				/*
 				 * A repeat is certain (poll on the socket will
 				 * still return data ready) so this can be
 				 * ignored.
@@ -380,7 +380,7 @@ io_push(struct io *io)
 				io->flags |= IOF_NEEDPUSH;
 				break;
 			case SSL_ERROR_WANT_WRITE:
-				/* 
+				/*
 				 * A repeat is certain (io->wsize is still !=
 				 * 0) so this can be ignored
 				 */
@@ -523,7 +523,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 				    xstrdup("io: maximum line length exceeded");
 				return (NULL);
 			}
-			/* 
+			/*
 			 * If the socket has closed, just return all the data.
 			 */
 			if (!IO_CLOSED(io))

@@ -4,7 +4,7 @@
 
 14 May 2007
 
-* Made PCRE ungreedy by default, although I'm not convinced this isn't 
+* Made PCRE ungreedy by default, although I'm not convinced this isn't
   counterintuitive for the Perl folks.
 
 10 May 2007
@@ -120,7 +120,7 @@
   file is actually writable before using it. Otherwise if there is insufficient
   disk space we risk getting an unexpected SIGBUS later when trying to use it.
 * When sending delivery done messages, check that the child process isn't dead
-  before trying to talk to it. 
+  before trying to talk to it.
 
 25 March 2007
 
@@ -135,7 +135,7 @@
 
 22 March 2007
 
-* Return total number of mails from start function if possible and print 
+* Return total number of mails from start function if possible and print
   "X of Y" when reporting mail fetches with -v.
 
 21 March 2007
@@ -199,7 +199,7 @@
 
 07 March 2007
 
-* Handle POLLHUP properly in io.c: if it is set and POLLIN isn't set, the 
+* Handle POLLHUP properly in io.c: if it is set and POLLIN isn't set, the
   fd has closed. This makes stdin delivery work properly on Linux 2.4.
 
 06 March 2007
@@ -280,7 +280,7 @@
 
 05 February 2007
 
-* Made options be printed with -v. 
+* Made options be printed with -v.
 
 27 January 2007
 
@@ -300,7 +300,7 @@
 * Added a basic Received header with local host and fdm version, may be disabled
   with the new set no-received option.
 * Free mmap'd region before mmap'ing it again in shm_realloc, otherwise the
-  actual disk space isn't freed. This affected previous versions too but 
+  actual disk space isn't freed. This affected previous versions too but
   the mail was very rarely reallocated, now that the header is added it is.
 * Changed all the descriptions to static buffers and audited use of snprintf.
 

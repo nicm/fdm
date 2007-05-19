@@ -270,7 +270,7 @@ fetch_maildir_next(struct account *a, struct fetch_ctx *fctx)
 		data->index++;
 	if (fetch_maildir_completed(a))
 		return (FETCH_HOLD);
-	
+
 	data->state = fetch_maildir_open;
 	return (FETCH_AGAIN);
 }
@@ -331,7 +331,7 @@ restart:
 		data->state = fetch_maildir_next;
 		return (FETCH_AGAIN);
 	}
-	
+
 	if (printpath(name,
 	    sizeof name, "%s/%s", data->path, dp->d_name) != 0) {
 		log_warn("%s: %s: printpath", a->name, data->path);

@@ -113,7 +113,7 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 	char			*line, *cause;
 	size_t			 len;
 
-	/* Flush deleted once complete. */  
+	/* Flush deleted once complete. */
 	if (data->complete) {
 		while (done_mail(a, fctx) != NULL)
 			dequeue_mail(a, fctx);
@@ -130,17 +130,17 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 
 	m->auxdata = NULL;
 	m->auxfree = NULL;
-	
+
 	/* Add default tags. */
 	default_tags(&m->tags, NULL, a);
 
 	for (;;) {
-		/* 
+		/*
 		 * There can only be one mail on stdin so reentrancy is
 		 * irrelevent. This is a good thing since we want to check for
 		 * close which means end of mail.
 		 */
-		error = io_pollline2(data->io, 
+		error = io_pollline2(data->io,
 		    &line, &data->lbuf, &data->llen, &cause);
 		if (error == 0) {
 			/* Normal close is fine. */
@@ -161,18 +161,18 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 		data->lines++;
 		if (data->bodylines != -1)
 			data->bodylines++;
-		
+
 		if (mail_resize(m, m->size + len + 1) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}
 		if (len > 0)
 			memcpy(m->data + m->size, line, len);
-		
+
 		/* Append an LF. */
 		m->data[m->size + len] = '\n';
 		m->size += len + 1;
-		
+
 		if (m->size > conf.max_size) {
 			oversize_mail(a, fctx, m);
 			data->complete = 1;

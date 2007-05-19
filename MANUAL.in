@@ -167,7 +167,7 @@ The configuration file has the following general rules:
   or indented as preferred.
 - Lists are usually specified as 'singular item' or 'plural { item item }', for
   example: 'user "nicholas"', 'users { "nicholas" "bob" }'. The singular/plural
-  distinction is not required, it is recommended only to aid readability: 
+  distinction is not required, it is recommended only to aid readability:
   'user { "nicholas "bob" }' is also accepted.
 - Regexps are specified as normal strings without additional adornment other
   than the "s (not wrapped in /s). All regexps are extended regexps and

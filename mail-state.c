@@ -31,7 +31,7 @@ void		apply_result(struct expritem *, int *, int);
 struct users   *find_delivery_users(struct mail_ctx *, struct action *, int *);
 int		fill_from_strings(struct mail_ctx *, struct rule *,
 		    struct replstrs *);
-int		fill_from_string(struct mail_ctx *, struct rule *, 
+int		fill_from_string(struct mail_ctx *, struct rule *,
 		    struct replstr *);
 int		fill_from_action(struct mail_ctx *, struct rule *,
     		    struct action *, struct users *);
@@ -254,12 +254,12 @@ skip:
 		users = find_delivery_users(mctx, NULL, &should_free);
 
 		chained = MAXACTIONCHAIN;
-		if (fill_from_action(mctx, 
+		if (fill_from_action(mctx,
 		    mctx->rule, mctx->rule->lambda, users) != 0) {
 			if (should_free)
 				ARRAY_FREEALL(users);
 			return (MAIL_ERROR);
-		}			
+		}
 
 		if (should_free)
 			ARRAY_FREEALL(users);
@@ -271,7 +271,7 @@ skip:
 	 */
 	if (!ARRAY_EMPTY(mctx->rule->actions)) {
 		chained = MAXACTIONCHAIN;
-		if (fill_from_strings(mctx, 
+		if (fill_from_strings(mctx,
 		    mctx->rule, mctx->rule->actions) != 0)
 			return (MAIL_ERROR);
 		error = MAIL_DELIVER;
@@ -449,7 +449,7 @@ fill_from_string(struct mail_ctx *mctx, struct rule *r, struct replstr *rs)
 	int		 should_free;
 
 	s = replacestr(rs, m->tags, m, &m->rml);
-	
+
 	log_debug2("%s: looking for actions matching: %s", a->name, s);
 	ta = match_actions(s);
 	if (ARRAY_EMPTY(ta))
@@ -460,18 +460,18 @@ fill_from_string(struct mail_ctx *mctx, struct rule *r, struct replstr *rs)
 	for (i = 0; i < ARRAY_LENGTH(ta); i++) {
 		t = ARRAY_ITEM(ta, i);
 		users = find_delivery_users(mctx, t, &should_free);
-		
+
 		if (fill_from_action(mctx, r, t, users) != 0) {
 			if (should_free)
 				ARRAY_FREEALL(users);
 			ARRAY_FREEALL(ta);
 			return (1);
-		}				
-		
+		}
+
 		if (should_free)
 			ARRAY_FREEALL(users);
 	}
-	
+
 	ARRAY_FREEALL(ta);
 	return (0);
 
@@ -497,7 +497,7 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 		TAILQ_FOREACH(ti, t->list, entry) {
 			if (ti->deliver == NULL) {
 				data = ti->data;
-				if (fill_from_strings(mctx, r, 
+				if (fill_from_strings(mctx, r,
 				    data->actions) != 0)
 					return (1);
 				continue;

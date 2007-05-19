@@ -213,11 +213,11 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		case 0:
 			errno = EPIPE;
 		case -1:
-			if (errno == EINTR || errno == EAGAIN) 
+			if (errno == EINTR || errno == EAGAIN)
 				break;
 			xasprintf(cause, "short write: %s", strerror(errno));
 			return (-1);
-		default: 
+		default:
 			cmd->buf += n;
 			cmd->len -= n;
 			break;
@@ -277,7 +277,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		}
 	}
 
-	/* 
+	/*
 	 * If the child isn't dead, or there is data left in the buffers,
 	 * return with 0 now to get called again.
 	 */

@@ -97,7 +97,7 @@ fetch_nntp_code(char *line)
 	return (n);
 }
 
-/* 
+/*
  * Check the line is one of a list of codes. Returns 1 for ignore, 0 for
  * valid, -1 for error.
  */
@@ -295,7 +295,7 @@ fetch_nntp_save(struct account *a)
 	if (fsync(fileno(f)) != 0) {
 		log_warn("%s: fsync", a->name);
 		goto error;
-	}		
+	}
 	if (fclose(f) != 0) {
 		log_warn("%s: fclose", a->name);
 		f = NULL;
@@ -404,7 +404,7 @@ int
 fetch_nntp_closed(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
-	
+
 	return (data->close && data->io == NULL);
 }
 
@@ -530,7 +530,7 @@ fetch_nntp_switch(struct account *a, unused struct fetch_ctx *fctx)
 		data->state = fetch_nntp_quit;
 		return (FETCH_BLOCK);
 	}
-	
+
 	/* Find the next group. */
 	do {
 		if (!fetch_nntp_completed(a))
@@ -541,7 +541,7 @@ fetch_nntp_switch(struct account *a, unused struct fetch_ctx *fctx)
 
 	/* Hold if complete. */
 	if (fetch_nntp_completed(a))
-		return (FETCH_HOLD); 
+		return (FETCH_HOLD);
 
 	data->state = fetch_nntp_group;
 	return (FETCH_AGAIN);
@@ -557,7 +557,7 @@ fetch_nntp_group(struct account *a, unused struct fetch_ctx *fctx)
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 	log_debug("%s: fetching group: %s", a->name, group->name);
-	
+
 	io_writeline(data->io, "GROUP %s", group->name);
 	data->state = fetch_nntp_stat;
 	return (FETCH_BLOCK);
@@ -570,7 +570,7 @@ fetch_nntp_stat(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	char			*line;
-	u_int			 n; 
+	u_int			 n;
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
@@ -611,7 +611,7 @@ fetch_nntp_wait(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	char			*line, *id;
-	u_int			 n; 
+	u_int			 n;
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
@@ -652,8 +652,8 @@ fetch_nntp_next(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_nntp_group	*group;
 	struct mail		*m;
 	char			*line, *id;
-	u_int			 n; 
-	int			 code; 
+	u_int			 n;
+	int			 code;
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
@@ -701,7 +701,7 @@ fetch_nntp_article(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_nntp_data	*data = a->data;
 	struct mail		*m;
 	char			*line;
-	int			 code; 
+	int			 code;
 
 	line = io_readline2(data->io, &data->lbuf, &data->llen);
 	if (line == NULL)

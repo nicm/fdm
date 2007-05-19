@@ -111,7 +111,7 @@ restart:
 		log_warnx("%s: connection unexpectedly closed", a->name);
 		return (-1);
 	}
-	
+
 	if (err != NULL) {
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
 		xfree(err);

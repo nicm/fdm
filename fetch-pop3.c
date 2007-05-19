@@ -108,7 +108,7 @@ fetch_pop3_connect(struct account *a)
 /* Reconnect to POP3 server. */
 int
 fetch_pop3_reconnect(struct account *a)
-{ 
+{
 	struct fetch_pop3_data	*data = a->data;
 	char			*cause;
 
@@ -158,7 +158,7 @@ int
 fetch_pop3_closed(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
-	
+
 	return (data->close && data->io == NULL);
 }
 
@@ -355,7 +355,7 @@ fetch_pop3_first(struct account *a, unused struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* 
+/*
  * Next state. This is the transition state between mails so deleting/purging
  * is done here if possible. This is also where the fetch code idles when
  * no more mails are available, waiting for them to be moved on to the done
@@ -394,7 +394,7 @@ fetch_pop3_next(struct account *a, struct fetch_ctx *fctx)
 		io_writeline(data->io, "QUIT");
 		data->state = fetch_pop3_purged;
 		return (FETCH_BLOCK);
-	}	
+	}
 
 	/* Close down connection nicely if asked. */
 	if (data->close) {
@@ -438,7 +438,7 @@ fetch_pop3_purged(struct account *a, unused struct fetch_ctx *fctx)
 		return (fetch_pop3_bad(a, line));
 
 	data->purge = 0;
-		
+
 	io_close(data->io);
 	io_free(data->io);
 	if (fetch_pop3_reconnect(a) != 0)
@@ -535,7 +535,7 @@ fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
 		log_warnx("%s: unexpected message number", a->name);
 		return (FETCH_ERROR);
 	}
-	
+
 	line = strchr(line, ' ');
 	if (line == NULL)
 		return (fetch_pop3_bad(a, line));
@@ -584,7 +584,7 @@ fetch_pop3_retr(struct account *a, unused struct fetch_ctx *fctx)
 	data->flushing = 0;
 	data->lines = 0;
 	data->bodylines = -1;
-	
+
 	data->state = fetch_pop3_line;
 	return (FETCH_BLOCK);
 }
@@ -608,24 +608,24 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 			line++;
 		else if (line[0] == '.')
 			break;
-		
+
 		len = strlen(line);
 		if (len == 0 && m->body == -1) {
 			m->body = m->size + 1;
 			data->bodylines = 0;
 		}
-		
+
 		if (!data->flushing) {
 			if (mail_resize(m, m->size + len + 1) != 0) {
 				log_warn("%s: failed to resize mail", a->name);
 				return (FETCH_ERROR);
 			}
-			
+
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			m->data[m->size + len] = '\n';
 		}
-		
+
 		data->lines++;
 		if (data->bodylines != -1)
 			data->bodylines++;
@@ -646,7 +646,7 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
 	} else {
 		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, 
+		add_tag(&m->tags,
 		    "header_lines", "%d", data->lines - data->bodylines);
 	}
 
