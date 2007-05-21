@@ -23,14 +23,15 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_imap_connect(struct account *);
-void	 fetch_imap_fill(struct account *, struct io **, u_int *);
-int	 fetch_imap_disconnect(struct account *, int);
-void	 fetch_imap_desc(struct account *, char *, size_t);
+int	fetch_imap_connect(struct account *);
+void	fetch_imap_fill(struct account *, struct io **, u_int *);
+int	fetch_imap_disconnect(struct account *, int);
+void	fetch_imap_desc(struct account *, char *, size_t);
 
-int	 fetch_imap_putln(struct account *, const char *, va_list);
-int	 fetch_imap_getln(struct account *, char **);
-void	 fetch_imap_flush(struct account *);
+int	fetch_imap_putln(struct account *, const char *, va_list);
+int	fetch_imap_getln(struct account *, char **);
+int	fetch_imap_closed(struct account *);
+void	fetch_imap_close(struct account *);
 
 struct fetch fetch_imap = {
 	"imap",
@@ -40,7 +41,7 @@ struct fetch fetch_imap = {
 	imap_completed,	/* from imap-common.c */
 	imap_closed,	/* from imap-common.c */
 	imap_fetch,	/* from imap-common.c */
-	NULL, /* XXX poll */
+	imap_poll,	/* from imap-common.c */
 	imap_purge,	/* from imap-common.c */
 	imap_close,	/* from imap-common.c */
 	fetch_imap_disconnect,
@@ -64,9 +65,28 @@ fetch_imap_getln(struct account *a, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	if ((*line = io_readline2(data->io, &data->lbuf, &data->llen)) == NULL)
-		return (-1);
+	*line = io_readline2(data->io, &data->lbuf, &data->llen);
 	return (0);
+}
+
+/* Return if connection is closed. */
+int
+fetch_imap_closed(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	return (data->io == NULL);
+}
+
+/* Close connection. */
+void
+fetch_imap_close(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	io_close(data->io);
+	io_free(data->io);
+	data->io = NULL;
 }
 
 /* Connect to server and set up callback functions. */
@@ -88,6 +108,8 @@ fetch_imap_connect(struct account *a)
 
 	data->getln = fetch_imap_getln;
 	data->putln = fetch_imap_putln;
+	data->closed = fetch_imap_closed;
+	data->close = fetch_imap_close;
 	data->src = data->server.host;
 
 	return (imap_connect(a));

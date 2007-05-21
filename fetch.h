@@ -97,7 +97,7 @@ struct fetch_nntp_data {
 	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
 	int 	         (*state)(struct account *, struct fetch_ctx *);
-	int		 close;
+	int		 closef;
 
 	struct mail	*mail;
 	int		 flushing;
@@ -136,8 +136,8 @@ struct fetch_pop3_data {
 
 	int 	         (*state)(struct account *, struct fetch_ctx *);
 	struct strings	 kept;
-	int		 purge;
-	int		 close;
+	int		 purgef;
+	int		 closef;
 
 	struct mail	*mail;
 	int		 flushing;
@@ -165,6 +165,7 @@ struct fetch_pop3_mail {
 #define IMAP_TAGGED 0
 #define IMAP_CONTINUE 1
 #define IMAP_UNTAGGED 2
+#define IMAP_RAW 3
 
 /* Fetch imap data. */
 struct fetch_imap_data {
@@ -182,8 +183,8 @@ struct fetch_imap_data {
 	int 	         (*state)(struct account *, struct fetch_ctx *);
 	u_int	 	 uid;
 	ARRAY_DECL(, u_int) kept;
-	int		 purge;
-	int		 close;
+	int		 purgef;
+	int		 closef;
 
 	struct mail	*mail;
 	int		 flushing;
@@ -195,8 +196,10 @@ struct fetch_imap_data {
 	char		*lbuf;
 
 	char		*src;
-	int		 (*getln)(struct account *a, char **);
-	int		 (*putln)(struct account *a, const char *, va_list);
+	int		 (*getln)(struct account *, char **);
+	int		 (*putln)(struct account *, const char *, va_list);
+	int		 (*closed)(struct account *);
+	void		 (*close)(struct account *);
 
 	struct io	*io;
 	struct cmd	*cmd;

@@ -30,6 +30,8 @@ void	fetch_imappipe_desc(struct account *, char *, size_t);
 
 int	fetch_imappipe_putln(struct account *, const char *, va_list);
 int	fetch_imappipe_getln(struct account *, char **);
+int	fetch_imappipe_closed(struct account *);
+void	fetch_imappipe_close(struct account *);
 
 struct fetch fetch_imappipe = {
 	"imappipe",
@@ -39,7 +41,7 @@ struct fetch fetch_imappipe = {
 	imap_completed,	/* from imap-common.c */
 	imap_closed,	/* from imap-common.c */
 	imap_fetch,	/* from imap-common.c */
-	NULL, /* XXX poll */
+	imap_poll,	/* from imap-common.c */
 	imap_purge,	/* from imap-common.c */
 	imap_close,	/* from imap-common.c */
 	fetch_imappipe_disconnect,
@@ -83,10 +85,27 @@ fetch_imappipe_getln(struct account *a, char **line)
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
 		xfree(err);
 	}
-	if (out == NULL)
-		return (1);
 	*line = out;
 	return (0);
+}
+
+/* Return if connection is closed. */
+int
+fetch_imappipe_closed(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	return (data->cmd == NULL);
+}
+
+/* Close connection. */
+void
+fetch_imappipe_close(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	cmd_free(data->cmd);
+	data->cmd = NULL;
 }
 
 /* Connect to server and set up callback functions. */
@@ -110,6 +129,8 @@ fetch_imappipe_connect(struct account *a)
 
 	data->getln = fetch_imappipe_getln;
 	data->putln = fetch_imappipe_putln;
+	data->closed = fetch_imappipe_closed;
+	data->close = fetch_imappipe_close;
 	data->src = NULL;
 
 	return (imap_connect(a));

@@ -901,6 +901,7 @@ u_int			 imap_total(struct account *);
 int			 imap_completed(struct account *);
 int			 imap_closed(struct account *);
 int			 imap_fetch(struct account *, struct fetch_ctx *);
+int			 imap_poll(struct account *, u_int *);
 int			 imap_purge(struct account *);
 int			 imap_close(struct account *);
 int			 imap_disconnect(struct account *, int);

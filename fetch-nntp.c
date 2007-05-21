@@ -40,7 +40,7 @@ int	fetch_nntp_disconnect(struct account *, int);
 void	fetch_nntp_desc(struct account *, char *, size_t);
 
 int	fetch_nntp_code(char *);
-int	fetch_nntp_check(struct account *, char *, int *, u_int, ...);
+int	fetch_nntp_check(struct account *, char **, int *, u_int, ...);
 int	fetch_nntp_parse223(char *, u_int *, char **);
 
 int	fetch_nntp_load(struct account *);
@@ -98,26 +98,31 @@ fetch_nntp_code(char *line)
 }
 
 /*
- * Check the line is one of a list of codes. Returns 1 for ignore, 0 for
- * valid, -1 for error.
+ * Retrieve a line and check the line is one of a list of codes. Returns 0
+ * for success, -1 for error, or a NULL line when more data is needed. 1xx
+ * codes are completely ignored.
  */
 int
-fetch_nntp_check(struct account *a, char *line, int *codep, u_int n, ...)
+fetch_nntp_check(struct account *a, char **line, int *codep, u_int n, ...)
 {
-	va_list	 ap;
-	u_int	 i;
-	int	 code;
+	struct fetch_nntp_data	*data = a->data;
+	va_list			 ap;
+	u_int			 i;
+	int			 code;
 
 	if (codep == NULL)
 		codep = &code;
 
-	*codep = fetch_nntp_code(line);
-	if (*codep == -1)
-		goto error;
-	/* Ignore 1xx codes. */
-	if (*codep >= 100 && *codep <= 199)
-		return (1);
-
+	do {
+		*line = io_readline2(data->io, &data->lbuf, &data->llen);
+		if (*line == NULL)
+			return (0);
+		
+		*codep = fetch_nntp_code(*line);
+		if (*codep == -1)
+			goto error;
+	} while (*codep >= 100 && *codep <= 199);
+	
 	va_start(ap, n);
 	for (i = n; i > 0; i--) {
 		if (*codep == va_arg(ap, int))
@@ -130,7 +135,7 @@ fetch_nntp_check(struct account *a, char *line, int *codep, u_int n, ...)
 	return (0);
 
 error:
-	log_warnx("%s: unexpected data: %s", a->name, line);
+	log_warnx("%s: unexpected data: %s", a->name, *line);
 	return (-1);
 }
 
@@ -405,7 +410,7 @@ fetch_nntp_closed(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 
-	return (data->close && data->io == NULL);
+	return (data->closef && data->io == NULL);
 }
 
 /* Clean up and disconnect. */
@@ -456,7 +461,7 @@ fetch_nntp_close(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 
-	data->close = 1;
+	data->closef = 1;
 
 	return (0);
 }
@@ -495,15 +500,10 @@ fetch_nntp_connected(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_nntp_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (fetch_nntp_check(a, &line, NULL, 1, 200) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (fetch_nntp_check(a, line, NULL, 1, 200)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	data->state = fetch_nntp_group;
 	return (FETCH_AGAIN);
@@ -525,7 +525,7 @@ fetch_nntp_switch(struct account *a, unused struct fetch_ctx *fctx)
 		dequeue_mail(a, fctx);
 
 	/* Close if requested. */
-	if (data->close) {
+	if (data->closef) {
 		io_writeline(data->io, "QUIT");
 		data->state = fetch_nntp_quit;
 		return (FETCH_BLOCK);
@@ -574,15 +574,10 @@ fetch_nntp_stat(struct account *a, unused struct fetch_ctx *fctx)
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (fetch_nntp_check(a, &line, NULL, 1, 211) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (fetch_nntp_check(a, line, NULL, 1, 211)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	if (sscanf(line, "211 %u %*u %u", &group->size, &n) != 2)
 		return (fetch_nntp_invalid(a, line));
@@ -615,15 +610,10 @@ fetch_nntp_wait(struct account *a, unused struct fetch_ctx *fctx)
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (fetch_nntp_check(a, &line, NULL, 1, 223) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (fetch_nntp_check(a, line, NULL, 1, 223)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	if (fetch_nntp_parse223(line, &n, &id) != 0)
 		return (fetch_nntp_invalid(a, line));
@@ -661,15 +651,10 @@ fetch_nntp_next(struct account *a, unused struct fetch_ctx *fctx)
 	while ((m = done_mail(a, fctx)) != NULL)
 		dequeue_mail(a, fctx);
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (fetch_nntp_check(a, &line, &code, 2, 223, 421) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (fetch_nntp_check(a, line, &code, 2, 223, 421)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	if (code == 421) {
 		/* Finished this group. Switch to the next. */
@@ -703,15 +688,10 @@ fetch_nntp_article(struct account *a, unused struct fetch_ctx *fctx)
 	char			*line;
 	int			 code;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (fetch_nntp_check(a, &line, &code, 2, 220, 423, 430) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (fetch_nntp_check(a, line, &code, 2, 220, 423, 430)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	if (code == 423 || code == 430)
 		return (FETCH_AGAIN);
@@ -731,7 +711,7 @@ fetch_nntp_article(struct account *a, unused struct fetch_ctx *fctx)
 	data->bodylines = -1;
 
 	data->state = fetch_nntp_line;
-	return (FETCH_BLOCK);
+	return (FETCH_AGAIN);
 }
 
 /* Line state. */
@@ -829,15 +809,10 @@ fetch_nntp_quit(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_nntp_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (fetch_nntp_check(a, &line, NULL, 1, 205) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (fetch_nntp_check(a, line, NULL, 1, 205)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	io_close(data->io);
 	io_free(data->io);

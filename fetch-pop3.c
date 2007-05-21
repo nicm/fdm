@@ -159,7 +159,7 @@ fetch_pop3_closed(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 
-	return (data->close && data->io == NULL);
+	return (data->closef && data->io == NULL);
 }
 
 /* Clean up and disconnect from server. */
@@ -246,7 +246,7 @@ fetch_pop3_purge(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 
-	data->purge = 1;
+	data->purgef = 1;
 
 	return (0);
 }
@@ -257,7 +257,7 @@ fetch_pop3_close(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 
-	data->close = 1;
+	data->closef = 1;
 
 	return (0);
 }
@@ -383,7 +383,7 @@ fetch_pop3_next(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	/* Need to purge and reconnect. */
-	if (data->purge) {
+	if (data->purgef) {
 		/*
 		 * Keep looping through this state until the caller reckons
 		 * we are ready to purge.
@@ -397,7 +397,7 @@ fetch_pop3_next(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	/* Close down connection nicely if asked. */
-	if (data->close) {
+	if (data->closef) {
 		io_writeline(data->io, "QUIT");
 		data->state = fetch_pop3_quit;
 		return (FETCH_BLOCK);
@@ -437,7 +437,7 @@ fetch_pop3_purged(struct account *a, unused struct fetch_ctx *fctx)
 	if (!fetch_pop3_okay(line))
 		return (fetch_pop3_bad(a, line));
 
-	data->purge = 0;
+	data->purgef = 0;
 
 	io_close(data->io);
 	io_free(data->io);

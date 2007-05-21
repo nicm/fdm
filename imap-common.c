@@ -68,16 +68,23 @@ imap_putln(struct account *a, const char *fmt, ...)
 	return (n);
 }
 
-/* Get line from server. */
+/*
+ * Get line from server.  Returns -1 on error, 0 on success, a NULL line when
+ * out of data.
+ */
 int
 imap_getln(struct account *a, int type, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
  	int			 n;
 
-	if ((n = data->getln(a, line)) != 0)
-		return (n);
-	return (imap_parse(a, type, *line));
+	do {
+		if (data->getln(a, line) != 0)
+			return (-1); 
+		if (*line == NULL)
+			return (0);
+	} while ((n = imap_parse(a, type, *line)) == 1);
+	return (n);
 }
 
 /* Free auxiliary data. */
@@ -102,12 +109,18 @@ imap_okay(struct account *a, char *line)
 	return (1);
 }
 
-/* Parse line based on type. */
+/*
+ * Parse line based on type. Returns -1 on error, 0 on success, 1 to ignore
+ * this line.
+ */
 int
 imap_parse(struct account *a, int type, char *line)
 {
 	struct fetch_imap_data	*data = a->data;
 	int			 tag;
+
+	if (type == IMAP_RAW)
+		return (0);
 
 	tag = imap_tag(line);
 	switch (type) {
@@ -204,7 +217,7 @@ imap_closed(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	return (data->close && data->io == NULL);
+	return (data->close && data->closed(a));
 }
 
 /* Clean up on disconnect. */
@@ -229,13 +242,62 @@ imap_fetch(struct account *a, struct fetch_ctx *fctx)
 	return (data->state(a, fctx));
 }
 
+/* Poll for mail. */
+int
+imap_poll(struct account *a, u_int *total)
+{
+	struct fetch_imap_data	*data = a->data;
+	struct io		*rio, *iop[IO_POLLFDS];
+	char			*cause;
+	u_int		 	 n;
+	int		 	 timeout;
+
+	for (;;) {
+		timeout = 0;
+		switch (imap_fetch(a, NULL)) {
+		case FETCH_ERROR:
+			return (-1);
+		case FETCH_BLOCK:
+			timeout = conf.timeout;
+			break;
+		case FETCH_HOLD:
+			continue;
+		}
+
+		if (data->closed(a))
+			break;
+		if (data->state == imap_next) {
+			if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
+				return (-1);
+			data->state = imap_quit1;
+		}
+
+		n = 0;
+		a->fetch->fill(a, iop, &n);
+		switch (io_polln(iop, n, &rio, timeout, &cause)) {
+		case 0:
+			log_warnx("%s: connection closed", a->name);
+			return (-1);
+		case -1:
+			if (errno == EAGAIN)
+				break;
+			log_warnx("%s: %s", a->name, cause);
+			xfree(cause);
+			return (-1);
+		}
+	}
+
+	*total = data->total;
+	return (0);
+}
+
 /* Purge deleted mail. */
 int
 imap_purge(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	data->purge = 1;
+	data->purgef = 1;
 
 	return (0);
 }
@@ -246,7 +308,7 @@ imap_close(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	data->close = 1;
+	data->closef = 1;
 
 	return (0);
 }
@@ -272,15 +334,10 @@ imap_connected(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_UNTAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_UNTAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 
 	if (strncmp(line, "* PREAUTH", 9) == 0) {
 		data->state = imap_select1;
@@ -305,15 +362,10 @@ imap_login(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_CONTINUE, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_CONTINUE, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 	
 	if (imap_putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
 		return (FETCH_ERROR);
@@ -328,16 +380,11 @@ imap_user(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_CONTINUE, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_CONTINUE, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-		
+
 	if (imap_putln(a, "%s", data->pass) != 0)
 		return (FETCH_ERROR);
 	data->state = imap_pass;
@@ -351,16 +398,10 @@ imap_pass(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-	
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 
@@ -388,15 +429,10 @@ imap_select2(struct account *a, unused struct fetch_ctx *fctx)
 	char			*line;
 
 	for (;;) {
-		line = io_readline2(data->io, &data->lbuf, &data->llen);
+		if (imap_getln(a, IMAP_UNTAGGED, &line) != 0)
+			return (FETCH_ERROR);
 		if (line == NULL)
 			return (FETCH_BLOCK);
-		switch (imap_parse(a, IMAP_UNTAGGED, line)) {
-		case -1:
-			return (FETCH_ERROR);
-		case 1:
-			return (FETCH_AGAIN);
-		}
 		
 		if (sscanf(line, "* %u EXISTS", &data->num) == 1)
 			break;
@@ -417,16 +453,10 @@ imap_select3(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-	
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 
@@ -461,7 +491,7 @@ imap_next(struct account *a, unused struct fetch_ctx *fctx)
 	}
 
 	/* Need to purge. */
-	if (data->purge) {
+	if (data->purgef) {
 		/*
 		 * Keep looping through this state until the caller reckons
 		 * we are ready to purge.
@@ -513,15 +543,10 @@ imap_uid1(struct account *a, unused struct fetch_ctx *fctx)
 	char			*line;
 	u_int			 n;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_UNTAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_UNTAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 	
 	if (sscanf(line, "* %u FETCH (UID %u)", &n, &data->uid) != 2)
 		return (imap_invalid(a, line));
@@ -540,16 +565,10 @@ imap_uid2(struct account *a, unused struct fetch_ctx *fctx)
 	char			*line;
 	u_int			 i;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-		
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 	
@@ -577,15 +596,10 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 	char			*line, *ptr;
 	u_int			 n;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_UNTAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_UNTAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
 	
 	if (sscanf(line, "* %u FETCH (", &n) != 1)
 		return (imap_invalid(a, line));
@@ -648,7 +662,8 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 	size_t			 len;
 
 	for (;;) {
-		line = io_readline2(data->io, &data->lbuf, &data->llen);
+		if (imap_getln(a, IMAP_RAW, &line) != 0)
+			return (FETCH_ERROR);
 		if (line == NULL)
 			return (FETCH_BLOCK);
 		
@@ -689,7 +704,8 @@ imap_done1(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_RAW, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
@@ -708,16 +724,10 @@ imap_done2(struct account *a, struct fetch_ctx *fctx)
 	struct mail		*m = data->mail;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-		
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);
 
@@ -750,16 +760,10 @@ imap_delete(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-	
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 
@@ -776,16 +780,10 @@ imap_expunge(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-	
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 
@@ -800,16 +798,10 @@ imap_quit1(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-	
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 
@@ -826,22 +818,14 @@ imap_quit2(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
-	line = io_readline2(data->io, &data->lbuf, &data->llen);
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	switch (imap_parse(a, IMAP_TAGGED, line)) {
-	case -1:
-		return (FETCH_ERROR);
-	case 1:
-		return (FETCH_AGAIN);
-	}
-	
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
 
-	io_close(data->io);
-	io_free(data->io);
-	data->io = NULL;
+	data->close(a);
 
 	data->state = imap_next;
 	return (FETCH_AGAIN);
