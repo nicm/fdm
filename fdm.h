@@ -676,6 +676,7 @@ struct io {
 #define IOF_NEEDFILL 0x1
 #define IOF_NEEDPUSH 0x2
 #define IOF_CLOSED 0x4
+#define IOF_MUSTWR 0x8
 
 	struct buffer	*rd;
 	struct buffer	*wr;

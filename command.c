@@ -122,6 +122,8 @@ cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
 	if (fd_in[1] != -1) {
 		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, conf.timeout);
 		io_writeonly(cmd->io_in);
+ 		if (cmd->len != 0)
+			cmd->io_in->flags |= IOF_MUSTWR;
 	} else
 		cmd->io_in = NULL;
 	if (fd_out[0] != -1) {
@@ -146,7 +148,7 @@ error:
 	if (fd_in[1] != -1)
 		close(fd_in[1]);
 	if (fd_out[0] != -1)
-		  close(fd_out[0]);
+		close(fd_out[0]);
 	if (fd_out[1] != -1)
 		close(fd_out[1]);
 	if (fd_err[0] != -1)
@@ -208,14 +210,24 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 	 * as possible here while still polling the others. If CMD_ONCE is set
 	 * the stdin io is closed when the buffer is done.
 	 */
-	if (cmd->buf != NULL && cmd->len != 0) {
+	if (cmd->len != 0) {
 		switch (n = write(cmd->io_in->fd, cmd->buf, cmd->len)) {
 		case 0:
 			errno = EPIPE;
+			/* FALLTHROUGH */
 		case -1:
 			if (errno == EINTR || errno == EAGAIN)
 				break;
-			xasprintf(cause, "short write: %s", strerror(errno));
+			/* 
+			 * Ignore closed input (rely on child returning non-
+			 * zero on error) unless CMD_ONCE is clear (it will
+			 * be needed later).
+			 */
+			if (errno == EPIPE && cmd->flags & CMD_ONCE) {
+				cmd->len = 0;
+				break;
+			}
+			xasprintf(cause, "write: %s", strerror(errno));
 			return (-1);
 		default:
 			cmd->buf += n;
@@ -223,14 +235,12 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 			break;
 		}
 		if (cmd->len == 0) {
-			cmd->buf = NULL;
-
-			/* Close the io. */
 			if (cmd->flags & CMD_ONCE) {
 				io_close(cmd->io_in);
 				io_free(cmd->io_in);
 				cmd->io_in = NULL;
-			}
+			} else
+				cmd->io_in->flags &= ~IOF_MUSTWR;
 		}
 	}
 
@@ -275,6 +285,16 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 			/* Do at least one poll before finishing. */
 			return (0);
 		}
+	}
+
+ 	/* 
+	 * A closed input is an error, unless writing once or the child has
+	 * died.
+	 */
+	if (cmd->io_in != NULL && IO_CLOSED(cmd->io_in) &&
+	    cmd->pid != -1 && !(cmd->flags & CMD_ONCE)) {
+		xasprintf(cause, "%s", strerror(EPIPE));
+		return (1);
 	}
 
 	/*

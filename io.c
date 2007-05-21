@@ -158,7 +158,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 		if (io->rd != NULL)
 			pfd->events |= POLLIN;
 		if (io->wr != NULL && (BUFFER_USED(io->wr) != 0 ||
-		    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH)) != 0))
+		    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH|IOF_MUSTWR)) != 0))
 			pfd->events |= POLLOUT;
 	}
 
