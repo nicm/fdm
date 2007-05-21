@@ -531,11 +531,9 @@ fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
 
 	if (sscanf(line, "+OK %u ", &n) != 1)
 		return (fetch_pop3_bad(a, line));
-	if (n != data->cur) {
-		log_warnx("%s: unexpected message number", a->name);
-		return (FETCH_ERROR);
-	}
-
+	if (n != data->cur)
+		return (fetch_pop3_bad(a, line));
+	
 	line = strchr(line, ' ');
 	if (line == NULL)
 		return (fetch_pop3_bad(a, line));

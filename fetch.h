@@ -165,7 +165,6 @@ struct fetch_pop3_mail {
 #define IMAP_TAGGED 0
 #define IMAP_CONTINUE 1
 #define IMAP_UNTAGGED 2
-#define IMAP_RAW 3
 
 /* Fetch imap data. */
 struct fetch_imap_data {
