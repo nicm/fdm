@@ -115,6 +115,9 @@ fetch_imappipe_connect(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
 
+	if (imap_connect(a) != 0)
+		return (-1);
+
 	data->cmd = 
 	    cmd_start(data->pipecmd, CMD_IN|CMD_OUT, 0, NULL, 0, &cause);
 	if (data->cmd == NULL) {
@@ -133,7 +136,7 @@ fetch_imappipe_connect(struct account *a)
 	data->close = fetch_imappipe_close;
 	data->src = NULL;
 
-	return (imap_connect(a));
+	return (0);
 }
 
 /* Fill io list. */

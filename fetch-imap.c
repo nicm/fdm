@@ -96,6 +96,9 @@ fetch_imap_connect(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 	char			*cause;
 
+	if (imap_connect(a) != 0)
+		return (-1);
+
 	data->io = connectproxy(&data->server,
 	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
@@ -112,7 +115,7 @@ fetch_imap_connect(struct account *a)
 	data->close = fetch_imap_close;
 	data->src = data->server.host;
 
-	return (imap_connect(a));
+	return (0);
 }
 
 /* Fill io list. */
