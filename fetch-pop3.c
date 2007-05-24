@@ -584,7 +584,7 @@ fetch_pop3_retr(struct account *a, unused struct fetch_ctx *fctx)
 	data->bodylines = -1;
 
 	data->state = fetch_pop3_line;
-	return (FETCH_BLOCK);
+	return (FETCH_AGAIN);
 }
 
 /* Line state. */
