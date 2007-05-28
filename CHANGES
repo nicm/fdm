@@ -1,11 +1,13 @@
+21 May 2007
+
+* New layout for most of the fetch code. Now pretty much everything is done
+  using a state machine for each fetch type rather than a mixture of linear
+  code and state machine. Mail is now enqueued/dequeued using callbacks rather
+  than returning status codes.
+
 16 May 2007
 
 * SHM_SYSV is no more.
-
-14 May 2007
-
-* Made PCRE ungreedy by default, although I'm not convinced this isn't
-  counterintuitive for the Perl folks.
 
 10 May 2007
 

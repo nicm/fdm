@@ -38,7 +38,7 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 		return (0);
 	re->flags = flags;
 
-	flags = PCRE_MULTILINE|PCRE_UNGREEDY;
+	flags = PCRE_MULTILINE;
 	if (re->flags & RE_IGNCASE)
 		flags |= PCRE_CASELESS;
 

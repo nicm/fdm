@@ -39,4 +39,5 @@
 	(http://cvs.mirbsd.de/src/etc/ssl.certs.shar)
 - document chained actions
 - document PCRE
-- redo maildir/nntp polling
+- reconsider built-in cache (for duplicates, killfiles, IMAP syncing). what
+  about expiry/limits? special "fdm create" command line?
