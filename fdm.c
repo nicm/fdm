@@ -800,7 +800,8 @@ main(int argc, char **argv)
 			ARRAY_ADD(&dead_children, child);
 		}
 	}
-	xfree(ios);
+	if (ios != NULL)
+		xfree(ios);
 
 	/* free the dead children */
 	for (i = 0; i < ARRAY_LENGTH(&dead_children); i++) {
