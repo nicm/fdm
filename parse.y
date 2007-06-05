@@ -1798,7 +1798,7 @@ actitem: TOKPIPE strv
 		 data->value.str = $3;
 	 }
        | TOKAPPENDSTRING strv
-/**        [$2: strv (char *)] */
+/**      [$2: strv (char *)] */
 	 {
 		 struct deliver_append_string_data	*data;
 
@@ -1897,6 +1897,7 @@ actitem: TOKPIPE strv
 		 data->value.str = $4;
 	 }
        | actions
+/**      [$1: actions (struct replstrs *)] */
 	 {
 		 struct deliver_action_data	*data;
 
