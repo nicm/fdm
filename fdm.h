@@ -170,7 +170,7 @@ struct macro {
 	} type;
 	int			 fixed;
 
-	TAILQ_ENTRY(macro)	entry;
+	TAILQ_ENTRY(macro)	 entry;
 };
 TAILQ_HEAD(macros, macro);
 

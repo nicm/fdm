@@ -524,7 +524,7 @@ main(int argc, char **argv)
 	log_debug2("headers are: %s", strs);
 	xfree(strs);
 	if (conf.domains == NULL) {
-		conf.domains = xmalloc(sizeof *conf.headers);
+		conf.domains = xmalloc(sizeof *conf.domains);
 		ARRAY_INIT(conf.domains);
 		ARRAY_ADD(conf.domains, xstrdup(conf.info.host));
 		if (conf.info.fqdn != NULL) {
