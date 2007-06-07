@@ -155,6 +155,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	 * having written a partial mail. So, block SIGTERM until we're
 	 * done.
 	 */
+	sigemptyset(&set); 
  	sigaddset(&set, SIGTERM);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
 		fatal("sigprocmask");
