@@ -182,10 +182,11 @@ restart:
 	cleanup_register(src);
 
 	xfd = fd;
-	if (conf.file_group != NOGRP &&
-	    fchown(fd, (uid_t) -1, conf.file_group) == -1) {
-		log_warn("%s: %s: fchown", a->name, path);
-		goto error;
+	if (conf.file_group != NOGRP) {
+		if (fchown(fd, (uid_t) -1, conf.file_group) == -1) {
+			log_warn("%s: %s: fchown", a->name, path);
+			goto error;
+		}
 	}
 
 	/* write the message */

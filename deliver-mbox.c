@@ -111,8 +111,8 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 	n = 0;
 	do {
-		fd = openlock(path, conf.lock_types, O_CREAT|O_WRONLY|O_APPEND,
-		    FILEMODE);
+		fd = openlock(path, 
+		    conf.lock_types, O_CREAT|O_WRONLY|O_APPEND, FILEMODE);
 		if (fd < 0) {
 			if (errno == EAGAIN) {
 				usleep(LOCKSLEEPTIME);
@@ -130,7 +130,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		}
 	} while (fd < 0);
 	if (!exists && conf.file_group != NOGRP) {
-		if (fchown(fd, -1, conf.file_group) == -1) {
+		if (fchown(fd, (uid_t) -1, conf.file_group) == -1) {
 			log_warn("%s: %s: fchown", a->name, path);
 			goto out;
 		}
