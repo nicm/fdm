@@ -151,7 +151,7 @@ fill_info(const char *home)
 }
 
 void
-fill_fqdn(char *host, char **fqdn, char **addr)
+fill_fqdn(const char *host, char **fqdn, char **addr)
 {
 	char			 ni[NI_MAXHOST];
 	struct addrinfo		*ai;
@@ -196,7 +196,7 @@ dropto(uid_t uid)
 }
 
 int
-check_incl(char *name)
+check_incl(const char *name)
 {
 	u_int	i;
 
@@ -212,7 +212,7 @@ check_incl(char *name)
 }
 
 int
-check_excl(char *name)
+check_excl(const char *name)
 {
 	u_int	i;
 

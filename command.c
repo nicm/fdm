@@ -29,7 +29,7 @@
 
 /* Start a command. */
 struct cmd *
-cmd_start(const char *s, int flags, int timeout, char *buf, size_t len,
+cmd_start(const char *s, int flags, int timeout, const char *buf, size_t len,
     char **cause)
 {
 	struct cmd	*cmd;

@@ -122,7 +122,7 @@ match_tag(struct strb *tags, const char *pattern)
 }
 
 void
-default_tags(struct strb **tags, char *src, struct account *a)
+default_tags(struct strb **tags, const char *src, struct account *a)
 {
 	struct tm	*tm;
 	time_t		 t;

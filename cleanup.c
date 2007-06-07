@@ -80,7 +80,7 @@ cleanup_flush(void)
 }
 
 void
-cleanup_register(char *path)
+cleanup_register(const char *path)
 {
 	sigset_t	 set, oset;
 	struct cleanent	*cent;
@@ -103,7 +103,7 @@ cleanup_register(char *path)
 }
 
 void
-cleanup_deregister(char *path)
+cleanup_deregister(const char *path)
 {
 	sigset_t	 set, oset;
 	struct cleanent	*cent;

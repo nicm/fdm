@@ -72,8 +72,8 @@ void				 find_netrc(const char *, char **, char **);
 __dead printflike1 void
 yyerror(const char *fmt, ...)
 {
-	va_list	 ap;
-	char	*s, *file;
+	va_list	ap;
+	char   *s, *file;
 
 	file = curfile == NULL ? conf.conf_file : curfile;
 	xasprintf(&s, "%s: %s at line %d", file, fmt, yylineno);
@@ -330,7 +330,7 @@ find_action(char *name)
 }
 
 struct actions *
-match_actions(char *name)
+match_actions(const char *name)
 {
 	struct action	*t;
 	struct actions	*ta;
@@ -347,7 +347,7 @@ match_actions(char *name)
 }
 
 struct macro *
-find_macro(char *name)
+find_macro(const char *name)
 {
 	struct macro	*macro;
 
@@ -642,9 +642,10 @@ free_account(struct account *a)
 }
 
 char *
-expand_path(char *path)
+expand_path(const char *path)
 {
-	char		*src, *ptr;
+	const char	*src;
+	char		*ptr;
 	struct passwd	*pw;
 
 	src = path;

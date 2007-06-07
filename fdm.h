@@ -700,7 +700,7 @@ struct cmd {
 	int		 flags;
 	int		 timeout;
 
-	char		*buf;
+	const char	*buf;
 	size_t		 len;
 
 	struct io	*io_in;
@@ -769,12 +769,12 @@ char 			*fmt_replstrs(const char *, struct replstrs *);
 void			 free_strings(struct strings *);
 char 			*fmt_strings(const char *, struct strings *);
 char 			*fmt_users(const char *, struct users *);
-struct macro		*find_macro(char *);
-struct actions		*match_actions(char *);
+struct macro		*find_macro(const char *);
+struct actions		*match_actions(const char *);
 void			 free_action(struct action *);
 void			 free_rule(struct rule *);
 void			 free_account(struct account *);
-char			*expand_path(char *);
+char			*expand_path(const char *);
 
 /* netrc.c */
 FILE 			*netrc_open(const char *, char **);
@@ -784,18 +784,18 @@ int			 netrc_lookup(FILE *, const char *, char **, char **);
 /* fdm.c */
 double			 get_time(void);
 int			 dropto(uid_t);
-int			 check_incl(char *);
-int		         check_excl(char *);
+int			 check_incl(const char *);
+int		         check_excl(const char *);
 int			 use_account(struct account *, char **);
 void			 fill_info(const char *);
-void			 fill_fqdn(char *, char **, char **);
+void			 fill_fqdn(const char *, char **, char **);
 
 /* re.c */
-int			 re_compile(struct re *, char *, int, char **);
-int			 re_string(struct re *, char *, struct rmlist *,
+int			 re_compile(struct re *, const char *, int, char **);
+int			 re_string(struct re *, const char *, struct rmlist *,
 			     char **);
-int			 re_block(struct re *, void *, size_t, struct rmlist *,
-			     char **);
+int			 re_block(struct re *, const void *, size_t,
+			     struct rmlist *, char **);
 void			 re_free(struct re *);
 
 /* attach.c */
@@ -812,7 +812,7 @@ int			 privsep_recv(struct io *, struct msg *,
 			     struct msgbuf *);
 
 /* command.c */
-struct cmd 		*cmd_start(const char *, int, int, char *, size_t,
+struct cmd 		*cmd_start(const char *, int, int, const char *, size_t,
 			     char **);
 int			 cmd_poll(struct cmd *, char **, char **, char **,
 			     size_t *, char **);
@@ -860,7 +860,7 @@ int			 parent_deliver(struct child *, struct msg *,
 
 /* connect.c */
 char 			*sslerror(const char *);
-char 			*sslerror2(int, const char *);
+char			*sslerror2(int, const char *);
 struct proxy 		*getproxy(const char *);
 struct io 		*connectproxy(struct server *, int, struct proxy *,
 			     const char *, int, char **);
@@ -874,7 +874,7 @@ int			 mail_receive(struct mail *, struct msg *, int);
 void			 mail_close(struct mail *);
 void			 mail_destroy(struct mail *);
 int			 mail_resize(struct mail *, size_t);
-char 			*rfc822_time(time_t, char *, size_t);
+char	 		*rfc822_time(time_t, char *, size_t);
 int			 openlock(const char *, u_int, int, mode_t);
 void			 closelock(int, const char *, u_int);
 int			 checkperms(const char *, const char *, int *);
@@ -883,8 +883,8 @@ void			 line_next(struct mail *, char **, size_t *);
 int printflike3		 insert_header(struct mail *, const char *,
 			     const char *, ...);
 int			 remove_header(struct mail *, const char *);
-char 			*find_header(struct mail *, const char *, size_t *,
-			     int);
+char			*find_header(struct mail *, const char *, size_t *,
+    			     int);
 struct users		*find_users(struct mail *);
 char			*find_address(char *, size_t, size_t *);
 void			 trim_from(struct mail *);
@@ -911,8 +911,8 @@ int			 imap_disconnect(struct account *, int);
 void			 cleanup_check(void);
 void			 cleanup_flush(void);
 void			 cleanup_purge(void);
-void			 cleanup_register(char *);
-void			 cleanup_deregister(char *);
+void			 cleanup_register(const char *);
+void			 cleanup_deregister(const char *);
 
 /* strb.c */
 void		 	 strb_create(struct strb **);
@@ -932,7 +932,8 @@ void printflike3	 add_tag(struct strb **, const char *, const char *,
 			     ...);
 const char 		*find_tag(struct strb *, const char *);
 const char		*match_tag(struct strb *, const char *);
-void			 default_tags(struct strb **, char *, struct account *);
+void			 default_tags(struct strb **, const char *,
+    			     struct account *);
 void			 update_tags(struct strb **);
 char 			*replacestr(struct replstr *, struct strb *,
 			     struct mail *, struct rmlist *);
