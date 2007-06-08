@@ -36,11 +36,12 @@
 
 #include "fdm.h"
 
-#ifndef	NO_PROXY
 int	sslverify(struct server *, SSL *, char **);
+#ifndef	NO_PROXY
+int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
-int	getport(char *);
+#endif
 SSL    *makessl(struct server *, int, int, char **);
 
 char *
@@ -165,6 +166,7 @@ getaddrs(const char *host, char **fqdn, char **addr)
 		*fqdn = xstrdup(ni);
 }
 
+#ifndef NO_PROXY
 struct proxy *
 getproxy(const char *xurl)
 {
@@ -310,7 +312,7 @@ getport(char *port)
 	int	         n;
 	const char	*errstr;
 
-	sv = getservbyname(port, NULL);
+	sv = getservbyname(port, "tcp");
 	if (sv == NULL) {
 		n = strtonum(port, 1, UINT16_MAX, &errstr);
 		if (errstr != NULL) {
