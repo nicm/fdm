@@ -17,7 +17,6 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
@@ -30,7 +29,6 @@
 #include <limits.h>
 #include <paths.h>
 #include <pwd.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +123,7 @@ fill_info(const char *home)
 			fatal("gethostname");
 		conf.info.host = xstrdup(host);
 
-		fill_fqdn(host, &conf.info.fqdn, &conf.info.addr);
+		getaddrs(host, &conf.info.fqdn, &conf.info.addr);
 	}
 
 	if (home != NULL && *home != '\0')
@@ -148,26 +146,6 @@ fill_info(const char *home)
 		conf.info.user = xstrdup(conf.info.uid);
 		log_warnx("can't find name for user %lu", (u_long) uid);
 	}
-}
-
-void
-fill_fqdn(const char *host, char **fqdn, char **addr)
-{
-	char			 ni[NI_MAXHOST];
-	struct addrinfo		*ai;
-
-	*fqdn = *addr = NULL;
-
-	if (getaddrinfo(host, NULL, NULL, &ai) != 0)
-		return;
-
-	if (getnameinfo(ai->ai_addr,
-	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NUMERICHOST) == 0)
-		xasprintf(addr, "[%s]", ni);
-
-	if (getnameinfo(ai->ai_addr,
-	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NAMEREQD) == 0)
-		*fqdn = xstrdup(ni);
 }
 
 int

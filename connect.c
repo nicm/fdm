@@ -22,6 +22,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <limits.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -36,10 +37,11 @@
 #include "fdm.h"
 
 #ifndef	NO_PROXY
+int	sslverify(struct server *, SSL *, char **);
 int	httpproxy(struct server *, struct proxy *, struct io *, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
 int	getport(char *);
-SSL    *makessl(int, int, char **);
+SSL    *makessl(struct server *, int, int, char **);
 
 char *
 sslerror(const char *fn)
@@ -82,6 +84,87 @@ sslerror2(int n, const char *fn)
 	return (cause);
 }
 
+int
+sslverify(struct server *srv, SSL *ssl, char **cause)
+{
+	X509	*x509;
+	int	 error;
+	char	*fqdn, name[256], *ptr, *ptr2;
+
+	if ((x509 = SSL_get_peer_certificate(ssl)) == NULL) {
+		/* No certificate, error since we wanted to verify it. */
+		xasprintf(cause, 
+		    "certificate verification failed: no certificate");
+		return (-1);
+	}
+
+	/* Verify certificate. */
+	if ((error = SSL_get_verify_result(ssl)) != X509_V_OK) {
+		xasprintf(cause, "certificate verification failed: %s",
+		    X509_verify_cert_error_string(error));
+		return (-1);
+	}
+
+	/* Get certificate name. */
+	X509_NAME_oneline(X509_get_subject_name(x509), name, sizeof name);
+
+	/* Check for CN field. */
+	if ((ptr = strstr(name, "/CN=")) == NULL) {
+		xasprintf(cause, "certificate verification failed: CN missing");
+		return (-1);
+	}
+
+	/* Verify CN field. */
+	getaddrs(srv->host, &fqdn, NULL);
+	do {
+		ptr += 4;
+		
+		ptr2 = strchr(ptr, '/');
+		if (ptr2 != NULL)
+			*ptr2 = '\0';
+
+		/* Compare against both given host and FQDN. */
+		if (fnmatch(ptr, srv->host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
+		    fnmatch(ptr, fqdn, FNM_NOESCAPE|FNM_CASEFOLD) == 0)
+			break;
+
+		if (ptr2 != NULL)
+			*ptr2 = '/';
+	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
+	xfree(fqdn);
+
+	/* Valid CN. */
+	if (ptr != NULL)
+		return (0);
+
+	/* No valid CN. */
+	xasprintf(cause, "certificate verification failed: no matching CN");
+	return (-1);	
+}
+
+void
+getaddrs(const char *host, char **fqdn, char **addr)
+{
+	char			 ni[NI_MAXHOST];
+	struct addrinfo		*ai;
+
+	if (fqdn != NULL)
+		*fqdn = NULL;
+	if (addr != NULL)
+		*addr = NULL;
+
+	if (getaddrinfo(host, NULL, NULL, &ai) != 0)
+		return;
+
+	if (addr != NULL && getnameinfo(ai->ai_addr,
+	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NUMERICHOST) == 0)
+		xasprintf(addr, "[%s]", ni);
+
+	if (fqdn != NULL && getnameinfo(ai->ai_addr,
+	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NAMEREQD) == 0)
+		*fqdn = xstrdup(ni);
+}
+
 struct proxy *
 getproxy(const char *xurl)
 {
@@ -100,10 +183,10 @@ getproxy(const char *xurl)
 		{ NULL,	        0,	      0, NULL }
 	};
 
-	/* copy the url so we can mangle it */
+	/* Copy the url so we can mangle it. */
 	saved = url = xstrdup(xurl);
 
-	/* find proxy */
+	/* Find proxy. */
 	for (proxyent = proxylist; proxyent->proto != NULL; proxyent++) {
 		if (strncmp(url, proxyent->proto, strlen(proxyent->proto)) == 0)
 			break;
@@ -117,14 +200,14 @@ getproxy(const char *xurl)
 	pr->server.ssl = proxyent->ssl;
 	pr->server.port = xstrdup(proxyent->port);
 
-	/* strip trailing '/' characters */
+	/* Strip trailing '/' characters. */
 	ptr = url + strlen(url) - 1;
 	while (ptr >= url && *ptr == '/')
 		*ptr-- = '\0';
 	if (*url == '\0')
 		goto error;
 
-	/* look for a user/pass */
+	/* Look for a user/pass. */
 	if ((end = strchr(url, '@')) != NULL) {
 		ptr = strchr(url, ':');
 		if (ptr == NULL || ptr >= end)
@@ -140,7 +223,7 @@ getproxy(const char *xurl)
 		url = end;
 	}
 
-	/* extract port if available */
+	/* Extract port if available. */
 	if ((ptr = strchr(url, ':')) != NULL) {
 		xfree(pr->server.port);
 		pr->server.port = NULL;
@@ -151,7 +234,7 @@ getproxy(const char *xurl)
 		pr->server.port = xstrdup(ptr);
 	}
 
-	/* and fill in the host */
+	/* And fill in the host. */
 	if (*url == '\0')
 		goto error;
 	pr->server.host = xstrdup(url);
@@ -204,9 +287,9 @@ connectproxy(struct server *srv, int verify, struct proxy *pr, const char *eol,
 		fatalx("unknown proxy type");
 	}
 
-	/* if the original request was for SSL, initiate it now */
+	/* If the original request was for SSL, initiate it now. */
 	if (srv->ssl) {
-		io->ssl = makessl(io->fd, verify && srv->verify, cause);
+		io->ssl = makessl(srv, io->fd, verify && srv->verify, cause);
 		if (io->ssl == NULL)
 			goto error;
 	}
@@ -253,7 +336,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		return (1);
 	}
 
-	/* method selection */
+	/* Method selection. */
 	auth = pr->user != NULL && pr->pass != NULL;
 	buf[0] = 5;
 	buf[1] = auth ? 2 : 1;
@@ -272,7 +355,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		return (1);
 	}
 
-	/* user/pass negotiation */
+	/* User/pass negotiation. */
 	if (buf[1] == 2) {
 		ptr = buf;
 		*ptr++ = 5;
@@ -307,7 +390,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		}
 	}
 
-	/* connect request */
+	/* Connect request. */
 	ptr = buf;
 	*ptr++ = 5;
 	*ptr++ = 1; /* 1 = connect */
@@ -325,7 +408,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	*ptr++ = port & 0xff;
 	io_write(io, buf, ptr - buf);
 
-	/* connect response */
+	/* Connect response. */
 	if (io_wait(io, 5, cause) != 0)
 		return (1);
 	io_read2(io, buf, 5);
@@ -365,7 +448,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		return (1);
 	}
 
-	/* flush the rest */
+	/* Flush the rest. */
 	switch (buf[3]) {
 	case 1: /* IPv4 */
 		len = 5;
@@ -431,12 +514,11 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 #endif /* NO_PROXY */
 
 SSL *
-makessl(int fd, int verify, char **cause)
+makessl(struct server *srv, int fd, int verify, char **cause)
 {
 	SSL_CTX		*ctx;
 	SSL		*ssl;
 	int	 	 n, mode;
-	long		 r;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
         SSL_CTX_set_options(ctx, SSL_OP_ALL);
@@ -469,23 +551,13 @@ makessl(int fd, int verify, char **cause)
 		goto error;
 	}
 
-	/* reset to non-blocking mode */
+	/* Reset to non-blocking mode. */
 	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
 		fatal("fcntl");
 
-	if (SSL_get_peer_certificate(ssl) != NULL) {
-		/* verify certificate if necessary */
-		if (verify && ((r = SSL_get_verify_result(ssl)) != X509_V_OK)) {
-			xasprintf(cause, "certificate verification failed: %s",
-			    X509_verify_cert_error_string(r));
-			goto error;
-		}
-	} else if (verify) {
-		/* no certificate, error if we wanted to verify it */
-		xasprintf(cause,
-		    "certificate verification failed: no certificate");
+	/* Verify certificate. */
+	if (verify && sslverify(srv, ssl, cause) != 0)
 		goto error;
-	}
 
 	return (ssl);
 
@@ -500,7 +572,7 @@ struct io *
 connectio(struct server *srv, int verify, const char *eol, int timeout,
     char **cause)
 {
-	int		 fd = -1, error = 0, mode;
+	int		 fd = -1, error = 0;
 	struct addrinfo	 hints;
 	struct addrinfo	*ai;
 	const char	*fn = NULL;
@@ -541,17 +613,7 @@ connectio(struct server *srv, int verify, const char *eol, int timeout,
 	if (!srv->ssl)
 		return (io_create(fd, NULL, eol, timeout));
 
-       /*
-	* Set non-blocking. Normally io_create does this, but it must be
-        * done before SSL_set_fd otherwise the SSL won't be non-blocking for
-        * SSL_connect. XXX No longer needed.
-        */
-	if ((mode = fcntl(fd, F_GETFL)) == -1)
-		fatal("fcntl");
-	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
-		fatal("fcntl");
-
-	if ((ssl = makessl(fd, verify && srv->verify, cause)) == NULL) {
+	if ((ssl = makessl(srv, fd, verify && srv->verify, cause)) == NULL) {
 		close(fd);
 		return (NULL);
 	}
