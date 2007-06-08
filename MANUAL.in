@@ -15,6 +15,7 @@ fdm ============================================================================
 ##	Fetching mail
 %%	Mail tagging
 %%	POP3 and POP3S
+%%	SSL certificate verification
 %%	The .netrc file
 %%	IMAP and IMAPS
 %%	IMAP over a pipe or via ssh
@@ -519,6 +520,31 @@ fetched. If the server adds a 'From ' line when delivering (sendmail does when
 delivering to a pipe), it is included in the counts even though fdm later
 strips it. These tags are not updated to reflect any changes made to the mail
 by fdm rules.
+
+%%% SSL certificate verification
+
+fdm can verify SSL certificates before collecting mail from an SSL server. This
+is enabled globally with the 'verify-certificates' option:
+
+	set verify-certificates
+
+And may be disabled per-account using the 'no-verify' keyword (this applies to
+both POP3S and IMAP3 accounts):
+
+	account "pop3sacct" pop3s server "pop.isp.com" no-verify
+
+For an introduction to SSL, see:
+
+	http://httpd.apache.org/docs/2.0/ssl/ssl_intro.html
+
+A cert bundle is required to verify SSL certificate chains. For more information
+see:
+
+	http://lynx.isc.org/current/README.sslcerts
+
+A pregenerated bundle is available courtesy of the MirOS project:
+
+	http://cvs.mirbsd.de/src/etc/ssl.certs.shar
 
 %%% The .netrc file
 
@@ -1234,6 +1260,11 @@ a connection. The default is 900 seconds.
 In addition to these options, some environment variables may be used to control
 fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
 temporary files.
+
+- verify-certificates
+
+This instructs fdm to verify SSL certificates for all SSL connections, see the
+previous section on SSL certificate verification.
 
 ### Archiving and searching mail
 

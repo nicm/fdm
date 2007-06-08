@@ -22,7 +22,6 @@
 - write/append/pipe would benefit from add-from per stdout
 - deliver to IMAP folder
 - refactor & clean up privsep mail transfer code
-- split fetch into next and get(line) and alloc mail outside
 - is there any reason struct mail shouldn't point to a struct account?
 - coalesce multiple IMAP deletions into a single call? is this possible?
 - audit close/closedir error checks
@@ -32,8 +31,7 @@
   decreasing size order, but with longer queue necessary
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
-- document set verify-certificates/no-verify
-	(http://cvs.mirbsd.de/src/etc/ssl.certs.shar)
-- document chained actions
 - reconsider built-in cache (for duplicates, killfiles, IMAP syncing). what
   about expiry/limits? special "fdm create" command line?
+- document chained actions
+- document no-verify etc in man page

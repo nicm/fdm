@@ -15,6 +15,12 @@
 # OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
+/%%VERSION%%/ {
+	gsub(/%%VERSION%%/, V);
+	print ($0);
+	next;
+}
+
 /^.*$/ {
 	if ($0 ~ /^%%/) {
 		name = substr($0, 3);
