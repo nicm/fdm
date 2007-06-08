@@ -2720,8 +2720,7 @@ poptype: TOKPOP3
          {
 		 $$ = 0;
          }
-       | TOKPOP3S verify
-/**      [$2: verify (int)] */
+       | TOKPOP3S
 	 {
 		 $$ = 1;
 	 }
@@ -2731,8 +2730,7 @@ imaptype: TOKIMAP
           {
 		  $$ = 0;
           }
-        | TOKIMAPS verify
-/**       [$2: verify (int)] */
+        | TOKIMAPS
 	  {
 		  $$ = 1;
 	  }

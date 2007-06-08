@@ -224,6 +224,10 @@ does not attempt to set the group of new files and directories.
 This controls the maximum time to wait for a server to send data before closing
 a connection.
 The default is 900 seconds.
+.It Ic verify-certificates
+Instructs
+.Xr fdm 1
+to verify SSL certificates for all SSL connections.
 .El
 .Sh INCLUDING FILES
 Further configuration files may be including using the
@@ -340,6 +344,7 @@ for details.
 .Op Ic port Ar port
 .Op Ic user Ar user
 .Op Ic pass Ar pass
+.Op Ic no-verify
 .Xc
 These statements define a POP3 or POP3S account.
 The
@@ -359,6 +364,11 @@ The port option may be either a string which will be looked up in the
 .Xr services 5
 database, or a number.
 If it is omitted, the default port (110 for POP3, 995 for POP3S) is used.
+The
+.Ic no-verify
+keyword instructs
+.Xr fdm 1
+to skip SSL certificate validation for this account.
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
@@ -368,6 +378,7 @@ If it is omitted, the default port (110 for POP3, 995 for POP3S) is used.
 .Op Ic port Ar port
 .Ic user Ar user Ic pass Ar pass
 .Op Ic folder Ar name
+.Op Ic no-verify
 .Xc
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3 account, aside from the additional

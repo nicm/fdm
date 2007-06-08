@@ -34,4 +34,3 @@
 - reconsider built-in cache (for duplicates, killfiles, IMAP syncing). what
   about expiry/limits? special "fdm create" command line?
 - document chained actions
-- document no-verify etc in man page
