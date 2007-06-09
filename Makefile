@@ -29,7 +29,7 @@ HDRS= fdm.h array.h fetch.h match.h deliver.h
 LEX= lex
 YACC= yacc -d
 
-CC= cc
+CC?= cc
 INCDIRS+= -I. -I- -I/usr/local/include
 CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE

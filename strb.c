@@ -181,4 +181,3 @@ strb_match(struct strb *sb, const char *patt)
 	}
 	return (NULL);
 }
-
