@@ -134,6 +134,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
 	xfree(fqdn);
 
+
 	/* Valid CN. */
 	if (ptr != NULL)
 		return (0);
@@ -335,7 +336,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 
 	if ((port = getport(srv->port)) < 0) {
 		xasprintf(cause, "bad port: %s", srv->port);
-		return (1);
+		return (-1);
 	}
 
 	/* Method selection. */
@@ -346,15 +347,15 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	buf[3] = 2;	/* 2 = user/pass auth */
 	io_write(io, buf, auth ? 4 : 3);
 	if (io_wait(io, 2, cause) != 0)
-		return (1);
+		return (-1);
 	io_read2(io, buf, 2);
 	if (buf[0] != 5) {
 		xasprintf(cause, "bad protocol version: %d", buf[0]);
-		return (1);
+		return (-1);
 	}
 	if ((buf[1] != 0 && buf[1] != 2) || (auth == 0 && buf[1] == 2)) {
 		xasprintf(cause, "unexpected method: %d", buf[1]);
-		return (1);
+		return (-1);
 	}
 
 	/* User/pass negotiation. */
@@ -364,7 +365,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		len = strlen(pr->user);
 		if (len > 255) {
 			xasprintf(cause, "user too long");
-			return (1);
+			return (-1);
 		}
 		*ptr++ = len;
 		memcpy(ptr, pr->user, len);
@@ -372,7 +373,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		len = strlen(pr->pass);
 		if (len > 255) {
 			xasprintf(cause, "pass too long");
-			return (1);
+			return (-1);
 		}
 		*ptr++ = len;
 		memcpy(ptr, pr->pass, len);
@@ -380,15 +381,15 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		io_write(io, buf, ptr - buf);
 
 		if (io_wait(io, 2, cause) != 0)
-			return (1);
+			return (-1);
 		io_read2(io, buf, 2);
 		if (buf[0] != 5) {
 			xasprintf(cause, "bad protocol version: %d", buf[0]);
-			return (1);
+			return (-1);
 		}
 		if (buf[1] != 0) {
 			xasprintf(cause, "authentication failed");
-			return (1);
+			return (-1);
 		}
 	}
 
@@ -401,7 +402,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	len = strlen(srv->host);
 	if (len > 255) {
 		xasprintf(cause, "host too long");
-		return (1);
+		return (-1);
 	}
 	*ptr++ = len;
 	memcpy(ptr, srv->host, len);
@@ -412,42 +413,42 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 
 	/* Connect response. */
 	if (io_wait(io, 5, cause) != 0)
-		return (1);
+		return (-1);
 	io_read2(io, buf, 5);
 	if (buf[0] != 5) {
 		xasprintf(cause, "bad protocol version: %d", buf[0]);
-		return (1);
+		return (-1);
 	}
 	switch (buf[1]) {
 	case 0:
 		break;
 	case 1:
 		xasprintf(cause, "%d: server failure", buf[1]);
-		return (1);
+		return (-1);
 	case 2:
 		xasprintf(cause, "%d: connection not permitted", buf[1]);
-		return (1);
+		return (-1);
 	case 3:
 		xasprintf(cause, "%d: network unreachable", buf[1]);
-		return (1);
+		return (-1);
 	case 4:
 		xasprintf(cause, "%d: host unreachable", buf[1]);
-		return (1);
+		return (-1);
 	case 5:
 		xasprintf(cause, "%d: connection refused", buf[1]);
-		return (1);
+		return (-1);
 	case 6:
 		xasprintf(cause, "%d: TTL expired", buf[1]);
-		return (1);
+		return (-1);
 	case 7:
 		xasprintf(cause, "%d: command not supported", buf[1]);
-		return (1);
+		return (-1);
 	case 8:
 		xasprintf(cause, "%d: address type not supported", buf[1]);
-		return (1);
+		return (-1);
 	default:
 		xasprintf(cause, "%d: unknown failure", buf[1]);
-		return (1);
+		return (-1);
 	}
 
 	/* Flush the rest. */
@@ -463,10 +464,10 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		break;
 	default:
 		xasprintf(cause, "unknown address type: %d", buf[3]);
-		return (1);
+		return (-1);
 	}
 	if (io_wait(io, len, cause) != 0)
-		return (1);
+		return (-1);
 	io_read2(io, buf, len);
 
 	return (0);
@@ -480,12 +481,12 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 
 	if (pr->user != NULL || pr->pass != NULL) {
 		xasprintf(cause, "HTTP proxy authentication is not supported");
-		return (1);
+		return (-1);
 	}
 
 	if ((port = getport(srv->port)) < 0) {
 		xasprintf(cause, "bad port: %s", srv->port);
-		return (1);
+		return (-1);
 	}
 
 	io_writeline(io, "CONNECT %s:%d HTTP/1.1", srv->host, port);
@@ -494,7 +495,7 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	header = 0;
 	for (;;) {
 		if (io_pollline(io, &line, cause) != 1)
-			return (1);
+			return (-1);
 
 		if (header == 0) {
 			if (strlen(line) < 12 ||
@@ -502,7 +503,7 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 			    strncmp(line + 8, " 200", 4) != 0) {
 				xfree(line);
 				xasprintf(cause, "unexpected data: %s", line);
-				return (1);
+				return (-1);
 			}
 			header = 1;
 		} else {
