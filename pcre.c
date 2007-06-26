@@ -26,7 +26,7 @@
 #include "fdm.h"
 
 int
-re_compile(struct re *re, char *s, int flags, char **cause)
+re_compile(struct re *re, const char *s, int flags, char **cause)
 {
 	const char	*error;
 	int		 off;
@@ -51,13 +51,13 @@ re_compile(struct re *re, char *s, int flags, char **cause)
 }
 
 int
-re_string(struct re *re, char *s, struct rmlist *rml, char **cause)
+re_string(struct re *re, const char *s, struct rmlist *rml, char **cause)
 {
 	return (re_block(re, s, strlen(s), rml, cause));
 }
 
 int
-re_block(struct re *re, void *buf, size_t len, struct rmlist *rml, char **cause)
+re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml, char **cause)
 {
 	int		res, pm[NPMATCH];
 	u_int		i, j;
