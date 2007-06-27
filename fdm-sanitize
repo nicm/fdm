@@ -30,14 +30,14 @@ BEGIN {
 
 /> [0-9]+ LOGIN \{[0-9]+\}/ {
 	imap_user = 1;
-	print ($0);
+	print ($1 " " $2 " " $3 " {*}");
 	fflush();
 	next;
 }
 
 /> .+ \{[0-9]+\}/ {
 	if (imap_user) {
-		print ("> * " $3);
+		print ("> * {*}");
 		fflush();
 		imap_user = 0;
 		imap_pass = 1;
