@@ -1,5 +1,7 @@
 27 June 2007
 
+* New tags taken from the date header corresponding to the current time tags:
+  mail-hour, mail-year, etc. If the header is invalid, the current time is used.
 * Make fdm-sanitize also obfuscate the lengths of login/pass with IMAP.
 * Bug fix: "and not" rather than "not and" in ruleset -vv output.
 * "match tag ..." is now completely gone.

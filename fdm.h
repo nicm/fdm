@@ -726,265 +726,252 @@ enum cmp {
 
 #ifdef NO_STRTONUM
 /* strtonum.c */
-long long		 strtonum(const char *, long long, long long,
-			     const char **);
+long long	 strtonum(const char *, long long, long long, const char **);
 #endif
 
 #ifdef NO_STRLCPY
 /* strlcpy.c */
-size_t	 		 strlcpy(char *, const char *, size_t);
+size_t	 	 strlcpy(char *, const char *, size_t);
 #endif
 
 #ifdef NO_STRLCAT
 /* strlcat.c */
-size_t	 		 strlcat(char *, const char *, size_t);
+size_t	 	 strlcat(char *, const char *, size_t);
 #endif
 
 #ifdef NO_ASPRINTF
 /* asprintf.c */
-int 			 asprintf(char **, const char *, ...);
-int			 vasprintf(char **, const char *, va_list);
+int 		 asprintf(char **, const char *, ...);
+int		 vasprintf(char **, const char *, va_list);
 #endif
 
 /* shm.c */
-void			*shm_create(struct shm *, size_t);
-int			 shm_owner(struct shm *, uid_t, gid_t);
-void			 shm_destroy(struct shm *);
-void			 shm_close(struct shm *);
-void			*shm_reopen(struct shm *);
-void			*shm_resize(struct shm *, size_t, size_t);
+void		*shm_create(struct shm *, size_t);
+int		 shm_owner(struct shm *, uid_t, gid_t);
+void		 shm_destroy(struct shm *);
+void		 shm_close(struct shm *);
+void		*shm_reopen(struct shm *);
+void		*shm_resize(struct shm *, size_t, size_t);
 
 /* lex.l */
-extern char		*curfile;
-void			 include_start(char *);
-int			 include_finish(void);
+extern char	*curfile;
+void		 include_start(char *);
+int		 include_finish(void);
 
 /* parse.y */
-extern struct strb	*parse_tags;
-extern struct macros	 macros;
-struct users		*weed_users(struct users *);
-struct strings 		*weed_strings(struct strings *);
-void			 free_replstrs(struct replstrs *);
-char 			*fmt_replstrs(const char *, struct replstrs *);
-void			 free_strings(struct strings *);
-char 			*fmt_strings(const char *, struct strings *);
-char 			*fmt_users(const char *, struct users *);
-struct macro		*find_macro(const char *);
-struct actions		*match_actions(const char *);
-void			 free_action(struct action *);
-void			 free_rule(struct rule *);
-void			 free_account(struct account *);
-char			*expand_path(const char *);
+extern struct strb  *parse_tags;
+extern struct macros macros;
+struct users	*weed_users(struct users *);
+struct strings 	*weed_strings(struct strings *);
+void		 free_replstrs(struct replstrs *);
+char 		*fmt_replstrs(const char *, struct replstrs *);
+void		 free_strings(struct strings *);
+char 		*fmt_strings(const char *, struct strings *);
+char 		*fmt_users(const char *, struct users *);
+struct macro	*find_macro(const char *);
+struct actions	*match_actions(const char *);
+void		 free_action(struct action *);
+void		 free_rule(struct rule *);
+void		 free_account(struct account *);
+char		*expand_path(const char *);
 
 /* netrc.c */
-FILE 			*netrc_open(const char *, char **);
-void			 netrc_close(FILE *);
-int			 netrc_lookup(FILE *, const char *, char **, char **);
+FILE 		*netrc_open(const char *, char **);
+void		 netrc_close(FILE *);
+int		 netrc_lookup(FILE *, const char *, char **, char **);
 
 /* fdm.c */
-double			 get_time(void);
-int			 dropto(uid_t);
-int			 check_incl(const char *);
-int		         check_excl(const char *);
-int			 use_account(struct account *, char **);
-void			 fill_info(const char *);
+double		 get_time(void);
+int		 dropto(uid_t);
+int		 check_incl(const char *);
+int	         check_excl(const char *);
+int		 use_account(struct account *, char **);
+void		 fill_info(const char *);
 
 /* re.c */
-int			 re_compile(struct re *, const char *, int, char **);
-int			 re_string(struct re *, const char *, struct rmlist *,
-			     char **);
-int			 re_block(struct re *, const void *, size_t,
-			     struct rmlist *, char **);
-void			 re_free(struct re *);
+int		 re_compile(struct re *, const char *, int, char **);
+int		 re_string(struct re *, const char *, struct rmlist *, char **);
+int		 re_block(struct re *, const void *, size_t, struct rmlist *,
+		     char **);
+void		 re_free(struct re *);
 
 /* attach.c */
-struct attach 		*attach_visit(struct attach *, u_int *);
-void printflike2	 attach_log(struct attach *, const char *, ...);
-struct attach 		*attach_build(struct mail *);
-void			 attach_free(struct attach *);
+struct attach 	*attach_visit(struct attach *, u_int *);
+void printflike2 attach_log(struct attach *, const char *, ...);
+struct attach 	*attach_build(struct mail *);
+void		 attach_free(struct attach *);
 
 /* privsep.c */
-int			 privsep_send(struct io *, struct msg *,
-			     struct msgbuf *);
-int			 privsep_check(struct io *);
-int			 privsep_recv(struct io *, struct msg *,
-			     struct msgbuf *);
+int		 privsep_send(struct io *, struct msg *, struct msgbuf *);
+int		 privsep_check(struct io *);
+int		 privsep_recv(struct io *, struct msg *, struct msgbuf *);
 
 /* command.c */
-struct cmd 		*cmd_start(const char *, int, int, const char *, size_t,
-			     char **);
-int			 cmd_poll(struct cmd *, char **, char **, char **,
-			     size_t *, char **);
-void			 cmd_free(struct cmd *);
+struct cmd 	*cmd_start(const char *, int, int, const char *, size_t,
+    		     char **);
+int		 cmd_poll(struct cmd *, char **, char **, char **, size_t *,
+		     char **);
+void		 cmd_free(struct cmd *);
 
 /* child.c */
-int			 child_fork(void);
-__dead void		 child_exit(int);
-struct child 		*child_start(struct children *, uid_t,
-    			     int (*)(struct child *, struct io *),
-			     int (*)(struct child *, struct msg *,
-    			     struct msgbuf *), void *);
+int		 child_fork(void);
+__dead void	 child_exit(int);
+struct child 	*child_start(struct children *, uid_t, int (*)(struct child *,
+    		     struct io *), int (*)(struct child *, struct msg *,
+    		     struct msgbuf *), void *);
 
 /* child-fetch.c */
-int			 child_fetch(struct child *, struct io *);
-void			 fetch_free1(struct mail_ctx *);
+int		 child_fetch(struct child *, struct io *);
+void		 fetch_free1(struct mail_ctx *);
 
 /* mail-callback.c */
-void			 transform_mail(struct account *, struct fetch_ctx *,
-    			     struct mail *);
-int			 enqueue_mail(struct account *, struct fetch_ctx *,
-			     struct mail *);
-int			 empty_mail(struct account *, struct fetch_ctx *,
-			     struct mail *);
-int			 oversize_mail(struct account *, struct fetch_ctx *,
-			     struct mail *);
-struct mail 		*done_mail(struct account *, struct fetch_ctx *);
-void			 dequeue_mail(struct account *, struct fetch_ctx *);
-int		  	 can_purge(struct account *, struct fetch_ctx *);
+void		 transform_mail(struct account *, struct fetch_ctx *,
+    		     struct mail *);
+int		 enqueue_mail(struct account *, struct fetch_ctx *,
+		     struct mail *);
+int		 empty_mail(struct account *, struct fetch_ctx *,
+		     struct mail *);
+int		 oversize_mail(struct account *, struct fetch_ctx *,
+		     struct mail *);
+struct mail 	*done_mail(struct account *, struct fetch_ctx *);
+void		 dequeue_mail(struct account *, struct fetch_ctx *);
+int		 can_purge(struct account *, struct fetch_ctx *);
 
 /* child-deliver.c */
-int			 child_deliver(struct child *, struct io *);
-void			 child_deliver_action_hook(int, struct account *,
-			     struct msg *, struct child_deliver_data *, int *);
-void			 child_deliver_cmd_hook(int, struct account *,
-			     struct msg *, struct child_deliver_data *, int *);
+int		 child_deliver(struct child *, struct io *);
+void		 child_deliver_action_hook(int, struct account *, struct msg *,
+    		     struct child_deliver_data *, int *);
+void		 child_deliver_cmd_hook(int, struct account *, struct msg *,
+    		     struct child_deliver_data *, int *);
 
 /* parent-fetch.c */
-int			 parent_fetch(struct child *, struct msg *,
-			     struct msgbuf *);
+int		 parent_fetch(struct child *, struct msg *, struct msgbuf *);
 
 /* parent-deliver.c */
-int			 parent_deliver(struct child *, struct msg *,
-			     struct msgbuf *);
+int		 parent_deliver(struct child *, struct msg *, struct msgbuf *);
 
 /* connect.c */
-char 			*sslerror(const char *);
-char			*sslerror2(int, const char *);
-void			 getaddrs(const char *, char **, char **);
-struct proxy 		*getproxy(const char *);
-struct io 		*connectproxy(struct server *, int, struct proxy *,
-			     const char *, int, char **);
-struct io		*connectio(struct server *, int, const char *, int,
-			     char **);
+char 		*sslerror(const char *);
+char		*sslerror2(int, const char *);
+void		 getaddrs(const char *, char **, char **);
+struct proxy 	*getproxy(const char *);
+struct io 	*connectproxy(struct server *, int, struct proxy *,
+    		     const char *, int, char **);
+struct io	*connectio(struct server *, int, const char *, int, char **);
 
 /* mail.c */
-int			 mail_open(struct mail *, size_t);
-void			 mail_send(struct mail *, struct msg *);
-int			 mail_receive(struct mail *, struct msg *, int);
-void			 mail_close(struct mail *);
-void			 mail_destroy(struct mail *);
-int			 mail_resize(struct mail *, size_t);
-char	 		*rfc822_time(time_t, char *, size_t);
-int			 openlock(const char *, u_int, int, mode_t);
-void			 closelock(int, const char *, u_int);
-int			 checkperms(const char *, const char *, int *);
-void			 line_init(struct mail *, char **, size_t *);
-void			 line_next(struct mail *, char **, size_t *);
-int printflike3		 insert_header(struct mail *, const char *,
-			     const char *, ...);
-int			 remove_header(struct mail *, const char *);
-char			*find_header(struct mail *, const char *, size_t *,
-    			     int);
-struct users		*find_users(struct mail *);
-char			*find_address(char *, size_t, size_t *);
-void			 trim_from(struct mail *);
-char 		        *make_from(struct mail *);
-u_int			 fill_wrapped(struct mail *);
-void			 set_wrapped(struct mail *, char);
+int		 mail_open(struct mail *, size_t);
+void		 mail_send(struct mail *, struct msg *);
+int		 mail_receive(struct mail *, struct msg *, int);
+void		 mail_close(struct mail *);
+void		 mail_destroy(struct mail *);
+int		 mail_resize(struct mail *, size_t);
+int		 openlock(const char *, u_int, int, mode_t);
+void		 closelock(int, const char *, u_int);
+int		 checkperms(const char *, const char *, int *);
+void		 line_init(struct mail *, char **, size_t *);
+void		 line_next(struct mail *, char **, size_t *);
+int printflike3	 insert_header(struct mail *, const char *, const char *, ...);
+int		 remove_header(struct mail *, const char *);
+char		*find_header(struct mail *, const char *, size_t *, int);
+struct users	*find_users(struct mail *);
+char		*find_address(char *, size_t, size_t *);
+void		 trim_from(struct mail *);
+char 	        *make_from(struct mail *);
+u_int		 fill_wrapped(struct mail *);
+void		 set_wrapped(struct mail *, char);
+
+/* mail-time.c */
+char   *rfc822time(time_t, char *, size_t);
+int	mailtime(struct mail *, time_t *);
 
 /* mail-state.c */
 int	mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
 int	mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
 /* imap-common.c */
-int			 imap_connect(struct account *);
-u_int			 imap_total(struct account *);
-int			 imap_completed(struct account *);
-int			 imap_closed(struct account *);
-int			 imap_fetch(struct account *, struct fetch_ctx *);
-int			 imap_poll(struct account *, u_int *);
-int			 imap_purge(struct account *);
-int			 imap_close(struct account *);
-int			 imap_disconnect(struct account *, int);
+int		 imap_connect(struct account *);
+u_int		 imap_total(struct account *);
+int		 imap_completed(struct account *);
+int		 imap_closed(struct account *);
+int		 imap_fetch(struct account *, struct fetch_ctx *);
+int		 imap_poll(struct account *, u_int *);
+int		 imap_purge(struct account *);
+int		 imap_close(struct account *);
+int		 imap_disconnect(struct account *, int);
 
 /* cleanup.c */
-void			 cleanup_check(void);
-void			 cleanup_flush(void);
-void			 cleanup_purge(void);
-void			 cleanup_register(const char *);
-void			 cleanup_deregister(const char *);
+void		 cleanup_check(void);
+void		 cleanup_flush(void);
+void		 cleanup_purge(void);
+void		 cleanup_register(const char *);
+void		 cleanup_deregister(const char *);
 
 /* strb.c */
-void		 	 strb_create(struct strb **);
-void			 strb_clear(struct strb **);
-void			 strb_destroy(struct strb **);
-void			 strb_dump(struct strb *, const char *,
-    			     void (*)(const char *, ...));
-void printflike3	 strb_add(struct strb **, const char *, const char *,
-			     ...);
-void			 strb_vadd(struct strb **, const char *, const char *,
-			     va_list);
-struct strbent 		*strb_find(struct strb *, const char *);
-struct strbent	 	*strb_match(struct strb *, const char *);
+void		 strb_create(struct strb **);
+void		 strb_clear(struct strb **);
+void		 strb_destroy(struct strb **);
+void		 strb_dump(struct strb *, const char *, 
+    		     void (*)(const char *, ...));
+void printflike3 strb_add(struct strb **, const char *, const char *, ...);
+void		 strb_vadd(struct strb **, const char *, const char *, va_list);
+struct strbent	*strb_find(struct strb *, const char *);
+struct strbent 	*strb_match(struct strb *, const char *);
 
 /* replace.c */
-void printflike3	 add_tag(struct strb **, const char *, const char *,
-			     ...);
-const char 		*find_tag(struct strb *, const char *);
-const char		*match_tag(struct strb *, const char *);
-void			 default_tags(struct strb **, const char *,
-    			     struct account *);
-void			 update_tags(struct strb **);
-char 			*replacestr(struct replstr *, struct strb *,
-			     struct mail *, struct rmlist *);
-char 			*replacepath(struct replpath *, struct strb *,
-    			     struct mail *, struct rmlist *);
+void printflike3 add_tag(struct strb **, const char *, const char *, ...);
+const char	*find_tag(struct strb *, const char *);
+const char	*match_tag(struct strb *, const char *);
+void		 default_tags(struct strb **, const char *);
+void		 update_tags(struct strb **);
+char 		*replacestr(struct replstr *, struct strb *, struct mail *,
+    		     struct rmlist *);
+char 		*replacepath(struct replpath *, struct strb *, struct mail *,
+    		     struct rmlist *);
 
 /* buffer.c */
-struct buffer 		*buffer_create(size_t);
-void			 buffer_destroy(struct buffer *);
-void			 buffer_clear(struct buffer *);
-void			 buffer_ensure(struct buffer *, size_t);
-void			 buffer_added(struct buffer *, size_t);
-void			 buffer_removed(struct buffer *, size_t);
-void			 buffer_write(struct buffer *, const void *, size_t);
-void			 buffer_read(struct buffer *, void *, size_t);
+struct buffer 	*buffer_create(size_t);
+void		 buffer_destroy(struct buffer *);
+void		 buffer_clear(struct buffer *);
+void		 buffer_ensure(struct buffer *, size_t);
+void		 buffer_added(struct buffer *, size_t);
+void		 buffer_removed(struct buffer *, size_t);
+void		 buffer_write(struct buffer *, const void *, size_t);
+void		 buffer_read(struct buffer *, void *, size_t);
 
 /* io.c */
-struct io		*io_create(int, SSL *, const char *, int);
-void			 io_readonly(struct io *);
-void			 io_writeonly(struct io *);
-void			 io_free(struct io *);
-void			 io_close(struct io *);
-int			 io_polln(struct io **, u_int, struct io **, int,
-			     char **);
-int			 io_poll(struct io *, char **);
-int			 io_read2(struct io *, void *, size_t);
-void 			*io_read(struct io *, size_t);
-void			 io_write(struct io *, const void *, size_t);
-char 			*io_readline2(struct io *, char **, size_t *);
-char 			*io_readline(struct io *);
-void printflike2	 io_writeline(struct io *, const char *, ...);
-void			 io_vwriteline(struct io *, const char *, va_list);
-int			 io_pollline2(struct io *, char **, char **, size_t *,
-			     char **);
-int			 io_pollline(struct io *, char **, char **);
-int			 io_flush(struct io *, char **);
-int			 io_wait(struct io *, size_t, char **);
-int			 io_update(struct io *, char **);
+struct io	*io_create(int, SSL *, const char *, int);
+void		 io_readonly(struct io *);
+void		 io_writeonly(struct io *);
+void		 io_free(struct io *);
+void		 io_close(struct io *);
+int		 io_polln(struct io **, u_int, struct io **, int, char **);
+int		 io_poll(struct io *, char **);
+int		 io_read2(struct io *, void *, size_t);
+void 		*io_read(struct io *, size_t);
+void		 io_write(struct io *, const void *, size_t);
+char 		*io_readline2(struct io *, char **, size_t *);
+char 		*io_readline(struct io *);
+void printflike2 io_writeline(struct io *, const char *, ...);
+void		 io_vwriteline(struct io *, const char *, va_list);
+int		 io_pollline2(struct io *, char **, char **, size_t *, char **);
+int		 io_pollline(struct io *, char **, char **);
+int		 io_flush(struct io *, char **);
+int		 io_wait(struct io *, size_t, char **);
+int		 io_update(struct io *, char **);
 
 /* log.c */
-void			 vlog(FILE *, int, const char *, va_list);
-void			 log_init(int);
-void			 log_syslog(int);
-void printflike1	 log_warn(const char *, ...);
-void printflike1	 log_warnx(const char *, ...);
-void printflike1	 log_info(const char *, ...);
-void printflike1	 log_debug(const char *, ...);
-void printflike1	 log_debug2(const char *, ...);
-void printflike1	 log_debug3(const char *, ...);
-__dead void		 fatal(const char *);
-__dead void		 fatalx(const char *);
+void		 vlog(FILE *, int, const char *, va_list);
+void		 log_init(int);
+void		 log_syslog(int);
+void printflike1 log_warn(const char *, ...);
+void printflike1 log_warnx(const char *, ...);
+void printflike1 log_info(const char *, ...);
+void printflike1 log_debug(const char *, ...);
+void printflike1 log_debug2(const char *, ...);
+void printflike1 log_debug3(const char *, ...);
+__dead void	 fatal(const char *);
+__dead void	 fatalx(const char *);
 
 /* xmalloc.c */
 void		*ensure_size(void *, size_t *, size_t, size_t);

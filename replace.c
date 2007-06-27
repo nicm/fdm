@@ -122,7 +122,7 @@ match_tag(struct strb *tags, const char *pattern)
 }
 
 void
-default_tags(struct strb **tags, const char *src, struct account *a)
+default_tags(struct strb **tags, const char *src)
 {
 	struct tm	*tm;
 	time_t		 t;
@@ -134,8 +134,6 @@ default_tags(struct strb **tags, const char *src, struct account *a)
 
 	if (src != NULL)
 		add_tag(tags, "source", "%s", src);
-	if (a != NULL)
-		add_tag(tags, "account", "%s", a->name);
 
 	t = time(NULL);
 	if ((tm = localtime(&t)) != NULL) {

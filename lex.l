@@ -85,7 +85,7 @@ include[ \t]*\" {
 
 	if (parse_tags == NULL) {
 		strb_create(&parse_tags);
-		default_tags(&parse_tags, NULL, NULL);
+		default_tags(&parse_tags, NULL);
 	}
 
 	rp.str = read_str('"', 1);
@@ -102,7 +102,7 @@ include[ \t]*\' {
 
 	if (parse_tags == NULL) {
 		strb_create(&parse_tags);
-		default_tags(&parse_tags, NULL, NULL);
+		default_tags(&parse_tags, NULL);
 	}
 
 	rp.str = read_str('\'', 0);

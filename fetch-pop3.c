@@ -633,7 +633,7 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	/* Tag mail. */
-	default_tags(&m->tags, data->server.host, a);
+	default_tags(&m->tags, data->server.host);
 	add_tag(&m->tags, "server", "%s", data->server.host);
 	add_tag(&m->tags, "port", "%s", data->server.port);
 	add_tag(&m->tags, "server_uid", "%s", aux->uid);

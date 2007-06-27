@@ -25,15 +25,38 @@
 void
 transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 {
-	char	*hdr, rtm[64], *rnm;
-	u_int	 lines;
-	size_t	 len;
-	int	 error;
+	char		*hdr, rtm[64], *rnm;
+	u_int		 lines;
+	size_t		 len;
+	int		 error;
+ 	struct tm	*tm;
+	time_t		 t;
 
 	/* Trim "From" line. */
 	trim_from(m);
 	if (m->size == 0)
 		return;
+
+	/* Add account name tag. */
+ 	add_tag(&m->tags, "account", "%s", a->name);
+
+	/* Add mail time tags. */
+	if (mailtime(m, &t) != 0) {
+		log_debug2("%s: bad date header, using current time", a->name); 
+		t = time(NULL);
+	}
+	if ((tm = localtime(&t)) != NULL) {
+		add_tag(&m->tags, "mail-hour", "%.2d", tm->tm_hour);
+		add_tag(&m->tags, "mail-minute", "%.2d", tm->tm_min);
+		add_tag(&m->tags, "mail-second", "%.2d", tm->tm_sec);
+		add_tag(&m->tags, "mail-day", "%.2d", tm->tm_mday);
+		add_tag(&m->tags, "mail-month", "%.2d", tm->tm_mon);
+		add_tag(&m->tags, "mail-year", "%.4d", 1900 + tm->tm_year);
+		add_tag(&m->tags, "mail-dayofweek", "%d", tm->tm_wday);
+		add_tag(&m->tags, "mail-dayofyear", "%.2d", tm->tm_yday);
+		add_tag(&m->tags,
+		    "mail-quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
+	}
 
 	/* Insert message-id tag. */
 	hdr = find_header(m, "message-id", &len, 1);
@@ -53,7 +76,7 @@ transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 	 */
 	if (!conf.no_received) {
 		error = 1;
-		if (rfc822_time(time(NULL), rtm, sizeof rtm) != NULL) {
+		if (rfc822time(time(NULL), rtm, sizeof rtm) != NULL) {
 			rnm = conf.info.fqdn;
 			if (rnm == NULL)
 				rnm = conf.info.host;

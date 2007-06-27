@@ -381,7 +381,7 @@ restart:
 
 	/* Add the tags. */
 	maildir = xbasename(xdirname(data->path));
-	default_tags(&m->tags, maildir, a);
+	default_tags(&m->tags, maildir);
 	add_tag(&m->tags, "maildir", "%s", maildir);
 
 	/* Add aux data. */

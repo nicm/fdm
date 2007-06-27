@@ -132,7 +132,7 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 	m->auxfree = NULL;
 
 	/* Add default tags. */
-	default_tags(&m->tags, NULL, a);
+	default_tags(&m->tags, NULL);
 
 	for (;;) {
 		/*

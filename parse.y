@@ -962,7 +962,7 @@ replstrv: strv
 
 		  if (parse_tags == NULL) {
 			  strb_create(&parse_tags);
-			  default_tags(&parse_tags, NULL, NULL);
+			  default_tags(&parse_tags, NULL);
 		  }
 
 		  rs.str = $1;
@@ -978,7 +978,7 @@ replpathv: strv
 
 		  if (parse_tags == NULL) {
 			  strb_create(&parse_tags);
-			  default_tags(&parse_tags, NULL, NULL);
+			  default_tags(&parse_tags, NULL);
 		  }
 
 		  rp.str = $1;

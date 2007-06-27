@@ -150,20 +150,6 @@ mail_resize(struct mail *m, size_t size)
 	return (0);
 }
 
-char *
-rfc822_time(time_t t, char *buf, size_t len)
-{
-	struct tm	*tm;
-	size_t		 n;
-
-	tm = localtime(&t);
-	if ((n = strftime(buf, len, "%a, %d %b %Y %H:%M:%S %z", tm)) == 0)
-		return (NULL);
-	if (n == len)
-		return (NULL);
-	return (buf);
-}
-
 int
 openlock(const char *path, u_int locks, int flags, mode_t mode)
 {

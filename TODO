@@ -28,6 +28,13 @@
   decreasing size order, but with longer queue necessary
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
-- reconsider built-in cache (for duplicates, killfiles, IMAP syncing). what
-  about expiry/limits? special "fdm create" command line?
-- add mail time tags as well as real time
+- built-in cache/db...
+
+	action "a" to-cache "~/my-cache" key "%[message-id]"
+	match in-cache "~/my-cache" key "%[message-id]" action ...
+
+  problems: dependency+dirty hacks to get db 1.85 support on Linux, or
+  introduce a bdb, gdbm (LGPL, ick), qdbm, sqlite or similar dependancy
+  everywhere;   expiry or limits: "fdm create/modify" command lines to set
+  (ick), or what?
+- document mail time tags

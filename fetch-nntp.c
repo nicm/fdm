@@ -762,7 +762,7 @@ fetch_nntp_line(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	/* Tag mail. */
-	default_tags(&m->tags, group->name, a);
+	default_tags(&m->tags, group->name);
 	add_tag(&m->tags, "group", "%s", group->name);
 	add_tag(&m->tags, "server", "%s", data->server.host);
 	add_tag(&m->tags, "port", "%s", data->server.port);

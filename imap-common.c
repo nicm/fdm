@@ -636,7 +636,7 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 	m->size = 0;
 
 	/* Fill in tags. */
-	default_tags(&m->tags, data->server.host, a);
+	default_tags(&m->tags, data->server.host);
 	if (data->server.host != NULL) {
 		add_tag(&m->tags, "server", "%s", data->server.host);
 		add_tag(&m->tags, "port", "%s", data->server.port);

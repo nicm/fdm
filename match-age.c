@@ -18,9 +18,8 @@
 
 #include <sys/types.h>
 
-#include <ctype.h>
-#include <limits.h>
 #include <string.h>
+#include <time.h>
 
 #include "fdm.h"
 #include "match.h"
@@ -36,117 +35,28 @@ struct match match_age = {
 	match_age_desc
 };
 
-/*
- * Some mailers, notably AOL's, use the timezone string instead of an offset
- * from UTC. This is highly annoying: since there are duplicate abbreviations
- * it cannot be converted with absolute certainty. As it is only a few clients
- * do this anyway, don't even try particularly hard, just try to look it up
- * using tzset, which catches the few most common abbreviations.
- */
-int
-match_age_tzlookup(const char *tz, int *off)
-{
-	char		*saved_tz;
-	struct tm	*tm;
-	time_t		 t;
-
-	saved_tz = getenv("TZ");
-	if (saved_tz != NULL)
-	    saved_tz = xstrdup(saved_tz);
-
-	/* Set the new timezone. */
-	if (setenv("TZ", tz, 1) != 0)
-		return (1);
-	tzset();
-
-	/* Get the time at epoch + one year. */
-	t = TIME_YEAR;
-	tm = localtime(&t);
-
-	/* And work out the timezone. */
-	if (strcmp(tz, tm->tm_zone) == 0)
-		*off = tm->tm_gmtoff;
-
-	/* Restore the old timezone. */
-	if (saved_tz != NULL) {
-		if (setenv("TZ", saved_tz, 1) != 0)
-			return (1);
-		xfree(saved_tz);
-	} else
-		unsetenv("TZ");
-	tzset();
-
-	return (0);
-}
-
 int
 match_age_match(struct mail_ctx *mctx, struct expritem *ei)
 {
 	struct match_age_data	*data = ei->data;
 	struct account		*a = mctx->account;
 	struct mail		*m = mctx->mail;
-	char			*s, *ptr, *endptr, *hdr;
-	const char		*errstr;
-	size_t			 len;
-	struct tm		 tm;
 	time_t			 then, now;
 	long long		 diff;
-	int			 tz;
 
-	memset(&tm, 0, sizeof tm);
-
-	hdr = find_header(m, "date", &len, 1);
-	if (hdr == NULL || len == 0 || len > INT_MAX)
-		goto invalid;
-	/* Make a copy of the header. */
-	xasprintf(&s, "%.*s", (int) len, hdr);
-
-	/* Skip spaces. */
-	ptr = s;
-	while (*ptr != '\0' && isspace((u_char) *ptr))
-		ptr++;
-
-	/* Parse the date. */
-	log_debug2("%s: found date header: %s", a->name, ptr);
-	memset(&tm, 0, sizeof tm);
-	endptr = strptime(ptr, "%a, %d %b %Y %H:%M:%S", &tm);
-	if (endptr == NULL)
-		endptr = strptime(ptr, "%d %b %Y %H:%M:%S", &tm);
-	if (endptr == NULL) {
-		xfree(s);
-		goto invalid;
-	}
+	/* Get current and mail time. */
 	now = time(NULL);
-	then = mktime(&tm);
-
-	/* Skip spaces. */
-	while (*endptr != '\0' && isspace((u_char) *endptr))
-		endptr++;
-
-	/* Terminate the timezone. */
-	ptr = endptr;
-	while (*ptr != '\0' && !isspace((u_char) *ptr))
-		ptr++;
-	*ptr = '\0';
-
-	tz = strtonum(endptr, -2359, 2359, &errstr);
-	if (errstr != NULL) {
-		/* Try it using tzset. */
-		if (match_age_tzlookup(endptr, &tz) != 0) {
-			xfree(s);
-			goto invalid;
-		}
+	if (mailtime(m, &then) != 0) {
+		/* Invalid, so return true if testing validity, else false. */
+		if (data->time < 0)
+			return (MATCH_TRUE);
+		return (MATCH_FALSE);
 	}
+	/* Not invalid, so return false if validity is being tested for. */
+	if (data->time < 0)
+		return (MATCH_FALSE);
 
-	log_debug2("%s: mail timezone is: %+.4d", a->name, tz);
-	then -= (tz / 100) * TIME_HOUR + (tz % 100) * TIME_MINUTE;
-	if (then < 0) {
-		xfree(s);
-		goto invalid;
-	}
-
-	xfree(s);
-
+	/* Work out the time difference. */
 	diff = difftime(now, then);
 	log_debug2("%s: time difference is %lld (now %lld, then %lld)", a->name,
 	    diff, (long long) now, (long long) then);
@@ -155,21 +65,9 @@ match_age_match(struct mail_ctx *mctx, struct expritem *ei)
 		diff = 0;
 	}
 
-	/*
-	 * Mail reaching this point is not invalid, so return false if validity
-	 * is what is being tested for.
-	 */
-	if (data->time < 0)
-		return (MATCH_FALSE);
-
 	if (data->cmp == CMP_LT && diff < data->time)
 		return (MATCH_TRUE);
 	else if (data->cmp == CMP_GT && diff > data->time)
-		return (MATCH_TRUE);
-	return (MATCH_FALSE);
-
-invalid:
-	if (data->time < 0)
 		return (MATCH_TRUE);
 	return (MATCH_FALSE);
 }
