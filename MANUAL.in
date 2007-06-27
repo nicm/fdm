@@ -117,9 +117,8 @@ accounts and delivering to one maildir may look similar to:
 		user "my-username" pass "my-password" folder "my-folder"
 
 	# Discard mail from Bob Idiot. Note that the regexp is an extended
-	# regexp, and case-insensitive by default. Note that this action is
-	# a "lambda" or unnamed action, it is defined inline as part of the
-	# match rule.
+	# regexp, and case-insensitive by default. This action is a "lambda" or
+	# unnamed action, it is defined inline as part of the match rule.
 	match "From:.*bob@idiot\\.net" action drop
 
 	# Match all other mail and deliver using the 'inbox' action.
@@ -233,7 +232,7 @@ or number is expected, depending on the type of macro:
 Or embedded in a string by enclosing the macro name in {}s:
 
 	$myfile2 = "a-file2"
-	include "/etc/${myfile}"
+	include "/etc/${myfile2}"
 
 	%anum = 57
 	include "/etc/file-number-%{anum}"
@@ -261,7 +260,7 @@ temporary directory and the fdm options according to their needs.
 
 %%% Command line arguments
 
-The fdm binary has the following synopsis:
+The fdm command has the following synopsis:
 
 	fdm [-klmnqv] [-f conffile] [-u user] [-a account] [-x account]
 		[-D name=value] [fetch | poll]
@@ -515,11 +514,10 @@ value of the server and port attributes exactly as specified in the account
 definition. A 'server_uid' tag is also added with the server unique id (UIDL).
 
 POP3 adds 'lines', 'body_lines' and 'header_lines' tags with the number of
-lines in the complete mail and its body and header. These when the mail is
-fetched. If the server adds a 'From ' line when delivering (sendmail does when
-delivering to a pipe), it is included in the counts even though fdm later
-strips it. These tags are not updated to reflect any changes made to the mail
-by fdm rules.
+lines in the complete mail and its body and header. If the server adds a 'From '
+line when delivering (sendmail does when delivering to a pipe), it is
+included in the counts even though fdm later strips it. These tags are not
+updated to reflect any changes made to the mail by fdm rules.
 
 %%% SSL certificate verification
 
@@ -529,7 +527,7 @@ is enabled globally with the 'verify-certificates' option:
 	set verify-certificates
 
 And may be disabled per-account using the 'no-verify' keyword (this applies to
-both POP3S and IMAP3 accounts):
+both POP3S and IMAPS accounts):
 
 	account "pop3sacct" pop3s server "pop.isp.com" no-verify
 
@@ -721,7 +719,6 @@ filtering rule (see the section on filtering below), the default user is
 used, see the '-u' command line option and the 'default-user' option in the
 setting options section
 
-
 %%% Drop and keep actions
 
 The simplest actions are the 'drop' and 'keep' actions. They have no parameters
@@ -855,14 +852,14 @@ example,
 
 	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
 
-The tag is attached to the mail with the specified value, or no value if one is
-not provided.
+The tag is attached to the mail with the specified value, or no value if none is
+provided.
 
 %%% Compound actions
 
-Compound actions may be defined which perform multiple single actions types.
-They are similar to standard single actions but multiple actions are provided
-using {}. For example,
+Compound actions may be defined which perform multiple single actions.  They
+are similar to standard single actions but multiple actions are provided using
+{}. For example,
 
 	action "multiple" {
 		append-string "my string!!"
@@ -876,8 +873,8 @@ using {}. For example,
 
 Compound action are executed from top-to-bottom, once for each user. Note that
 the effects are cumulative: the second example above would deliver a mail
-rewritten once to 'bob' and twice to 'jim'. If this is not desired, seperate
-actions must be used.
+rewritten once to 'bob' and rewritten again (ie, twice) to 'jim'. If this is
+not desired, seperate actions must be used.
 
 %%% Chained actions
 
@@ -1044,9 +1041,8 @@ The size condition is similar:
 
 	size [<|>] <size> [K|KB|kilobytes...]
 
-Where <size> is a simple number in bytes, or suffixed directly (no space) with
-'K', 'M' or 'G' to specify a size in kilobytes, megabytes or gigabytes, such
-as:
+Where <size> is a simple number in bytes, or suffixed with 'K', 'M' or 'G' to
+specify a size in kilobytes, megabytes or gigabytes, such as:
 
 	match size < 1K action "small"
 
@@ -1212,7 +1208,7 @@ mail headers with the 'from-headers' keyword. Examples include:
 
 	set domains { "abc.ca" "def.co.uk" }
 
-The default is the hostname of the local machine.
+The default is the hostname, FQDN and IP of the local machine.
 
 - [header|headers] <headers>
 
@@ -1356,7 +1352,9 @@ And more importantly:
    had to have five programs to deal with mail: sendmail, fetchmail, procmail,
    archivemail, mutt; all with different, variously broken configuration file
    syntaxes, and weird quirks. I now have three programs: sendmail, fdm and
-   mutt, and fewer weird configurations to learn and potential problems.
+   mutt, and fewer weird configurations to learn and potential problems. I can
+   also do some quite complex things without reaching for additional tools like
+   formail and reformail.
 
 %%% How do I write regexps?
 
