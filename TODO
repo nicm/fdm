@@ -43,3 +43,4 @@
   or global option for all caches (also ick)?
 - document mail time tags
 - should time stuff use localtime or gmtime?
+- remove some stupid crap like append-string (== rewrite "(cat; echo abc)")

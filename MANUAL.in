@@ -104,9 +104,6 @@ accounts and delivering to one maildir may look similar to:
 	# An action to save to the maildir ~/mail/inbox.
 	action "inbox" maildir "%h/mail/inbox"
 
-	# An action to drop unwanted mail.
-	action "drop" drop
-
 	# Accounts: POP3, POP3S and IMAP. Note the double escaping of the '\'
 	# character in the password. If the port is omitted, the default
 	# ("pop3", "pop3s", "imap" or "imaps" in the services(5) db) is used.
@@ -120,8 +117,10 @@ accounts and delivering to one maildir may look similar to:
 		user "my-username" pass "my-password" folder "my-folder"
 
 	# Discard mail from Bob Idiot. Note that the regexp is an extended
-	# regexp, and case-insensitive by default.
-	match "From:.*bob@idiot\\.net" action "drop"
+	# regexp, and case-insensitive by default. Note that this action is
+	# a "lambda" or unnamed action, it is defined inline as part of the
+	# match rule.
+	match "From:.*bob@idiot\\.net" action drop
 
 	# Match all other mail and deliver using the 'inbox' action.
 	match all action "inbox"
