@@ -134,7 +134,6 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
 	xfree(fqdn);
 
-
 	/* Valid CN. */
 	if (ptr != NULL)
 		return (0);
