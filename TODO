@@ -13,7 +13,6 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - ifdef/endif directives in config file, change -D to not require a value
-- loops? how? is this even worth it?
 - get only read/unread mail (IMAP only, probably) (read-only, unread-only)
   flags to account line
 - handle multiple header instances when looking for users (other places?)
@@ -24,8 +23,6 @@
 - refactor & clean up privsep mail transfer code
 - is there any reason struct mail shouldn't point to a struct account?
 - coalesce multiple IMAP deletions into a single call? is this possible?
-- audit close/closedir error checks
-- make it possible to reference one action from another
 - cumulative effect of a compound action sucks
 - fetch smallest/largest mails first. best pattern? probably 1 small, then in
   decreasing size order, but with longer queue necessary
