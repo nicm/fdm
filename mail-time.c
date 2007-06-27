@@ -19,6 +19,7 @@
 #include <sys/types.h>
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -56,7 +57,7 @@ tzlookup(const char *tz, int *off)
 
 	saved_tz = getenv("TZ");
 	if (saved_tz != NULL)
-	    saved_tz = xstrdup(saved_tz);
+		saved_tz = xstrdup(saved_tz);
 
 	/* Set the new timezone. */
 	if (setenv("TZ", tz, 1) != 0)
