@@ -35,7 +35,11 @@
 
   problems: dependency+dirty hacks to get db 1.85 support on Linux, or
   introduce a bdb, gdbm (LGPL, ick), qdbm, sqlite or similar dependancy
-  everywhere;   expiry or limits: "fdm create/modify" command lines to set
-  (ick), or what?
+  everywhere; expiry or limits: "fdm create/modify" command lines to set (ick),
+  or explicit cache declarations:
+
+	cache "path" expire 1000 seconds maximum 100
+
+  or global option for all caches (also ick)?
 - document mail time tags
 - should time stuff use localtime or gmtime?
