@@ -54,20 +54,20 @@ match_age_tzlookup(const char *tz, int *off)
 	if (saved_tz != NULL)
 	    saved_tz = xstrdup(saved_tz);
 
-	/* set the new timezone */
+	/* Set the new timezone. */
 	if (setenv("TZ", tz, 1) != 0)
 		return (1);
 	tzset();
 
-	/* get the time at epoch + one year */
+	/* Get the time at epoch + one year. */
 	t = TIME_YEAR;
 	tm = localtime(&t);
 
-	/* and work out the timezone */
+	/* And work out the timezone. */
 	if (strcmp(tz, tm->tm_zone) == 0)
 		*off = tm->tm_gmtoff;
 
-	/* restore the old timezone */
+	/* Restore the old timezone. */
 	if (saved_tz != NULL) {
 		if (setenv("TZ", saved_tz, 1) != 0)
 			return (1);
@@ -98,15 +98,15 @@ match_age_match(struct mail_ctx *mctx, struct expritem *ei)
 	hdr = find_header(m, "date", &len, 1);
 	if (hdr == NULL || len == 0 || len > INT_MAX)
 		goto invalid;
-	/* make a copy of the header */
+	/* Make a copy of the header. */
 	xasprintf(&s, "%.*s", (int) len, hdr);
 
-	/* skip spaces */
+	/* Skip spaces. */
 	ptr = s;
 	while (*ptr != '\0' && isspace((u_char) *ptr))
 		ptr++;
 
-	/* parse the date */
+	/* Parse the date. */
 	log_debug2("%s: found date header: %s", a->name, ptr);
 	memset(&tm, 0, sizeof tm);
 	endptr = strptime(ptr, "%a, %d %b %Y %H:%M:%S", &tm);
@@ -119,11 +119,11 @@ match_age_match(struct mail_ctx *mctx, struct expritem *ei)
 	now = time(NULL);
 	then = mktime(&tm);
 
-	/* skip spaces */
+	/* Skip spaces. */
 	while (*endptr != '\0' && isspace((u_char) *endptr))
 		endptr++;
 
-	/* terminate the timezone */
+	/* Terminate the timezone. */
 	ptr = endptr;
 	while (*ptr != '\0' && !isspace((u_char) *ptr))
 		ptr++;
@@ -131,7 +131,7 @@ match_age_match(struct mail_ctx *mctx, struct expritem *ei)
 
 	tz = strtonum(endptr, -2359, 2359, &errstr);
 	if (errstr != NULL) {
-		/* try it using tzset */
+		/* Try it using tzset. */
 		if (match_age_tzlookup(endptr, &tz) != 0) {
 			xfree(s);
 			goto invalid;
@@ -151,12 +151,14 @@ match_age_match(struct mail_ctx *mctx, struct expritem *ei)
 	log_debug2("%s: time difference is %lld (now %lld, then %lld)", a->name,
 	    diff, (long long) now, (long long) then);
 	if (diff < 0) {
-		/* reset all ages in the future to zero */
+		/* Reset all ages in the future to zero. */
 		diff = 0;
 	}
 
-	/* mail reaching this point is not invalid, so return false if validity
-	   is what is being tested for */
+	/*
+	 * Mail reaching this point is not invalid, so return false if validity
+	 * is what is being tested for.
+	 */
 	if (data->time < 0)
 		return (MATCH_FALSE);
 
