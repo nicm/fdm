@@ -1,5 +1,6 @@
 27 June 2007
 
+* Bug fix: "and not" rather than "not and" in ruleset -vv output.
 * "match tag ..." is now completely gone.
 * "value" keyword is now preferred for add-header action:
 
