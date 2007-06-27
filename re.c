@@ -49,7 +49,7 @@ re_compile(struct re *re, const char *s, int flags, char **cause)
 		buf = xmalloc(len);
 		regerror(error, &re->re, buf, len);
 		xasprintf(cause, "%s%s", s, buf);
-		return (1);
+		return (-1);
 	}
 
 	return (0);
