@@ -1,3 +1,7 @@
+27 June 2007
+
+* fdm 1.2 released.
+
 08 June 2007
 
 * Check CN against FQDN and user-supplied host when verifying SSL certificates.
