@@ -1,5 +1,11 @@
 27 June 2007
 
+* "match tag ..." is now completely gone.
+* "value" keyword is now preferred for add-header action:
+
+	action "ah" add-header "My-Header" value "ABC"
+
+  but is not mandatory.
 * fdm 1.2 released.
 
 08 June 2007

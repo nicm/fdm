@@ -790,7 +790,7 @@ find_netrc(const char *host, char **user, char **pass)
 %type  <replstrs> actions actionslist
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to folder xstrv strv replstrv retre replpathv
+%type  <string> port to folder xstrv strv replstrv retre replpathv val optval
 %type  <strings> domains domainslist headers headerslist accounts accountslist
 %type  <strings> maildirslist maildirs groupslist groups
 %type  <users> users userslist
@@ -827,6 +827,29 @@ groupp: TOKGROUP
 /** MAILDIRP */
 maildirp: TOKMAILDIR
         | TOKMAILDIRS
+
+/** VAL: <string> (char *) */
+val: TOKVALUE strv
+/**  [$2: strv (char *)] */
+     {
+	     $$ = $2;
+     }
+   | strv
+/**  [$1: strv (char *)] */
+     {
+	     $$ = $1;
+     }
+
+/** OPTVAL: <string> (char *) */
+optval: TOKVALUE strv
+/**     [$2: strv (char *)] */
+        {
+		$$ = $2;
+        }
+      | /* empty */
+	{
+		$$ = NULL;
+	}
 
 /** XSTRV: <string> (char *) */
 xstrv: STRING
@@ -1781,8 +1804,8 @@ actitem: TOKPIPE strv
 			 *cp = tolower((u_char) *cp);
 		 data->hdr.str = $2;
 	 }
-       | TOKADDHEADER strv strv
-/**      [$2: strv (char *)] [$3: strv (char *)] */
+       | TOKADDHEADER strv val
+/**      [$2: strv (char *)] [$3: val (char *)] */
 	 {
 		 struct deliver_add_header_data	*data;
 
@@ -1863,8 +1886,8 @@ actitem: TOKPIPE strv
 
 		 data->add_from = $2;
 	 }
-       | TOKTAG strv
-/**      [$2: strv (char *)] */
+       | TOKTAG strv optval
+/**      [$2: strv (char *)] [$3: optval (char *)] */
 	 {
 		 struct deliver_tag_data	*data;
 
@@ -1878,24 +1901,7 @@ actitem: TOKPIPE strv
 		 $$->data = data;
 
 		 data->key.str = $2;
-		 data->value.str = NULL;
-	 }
-       | TOKTAG strv TOKVALUE strv
-/**      [$2: strv (char *)] [$4: strv (char *)] */
-	 {
-		 struct deliver_tag_data	*data;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid tag");
-
-		 $$ = xcalloc(1, sizeof *$$);
-		 $$->deliver = &deliver_tag;
-
-		 data = xcalloc(1, sizeof *data);
-		 $$->data = data;
-
-		 data->key.str = $2;
-		 data->value.str = $4;
+		 data->value.str = $3;
 	 }
        | actions
 /**      [$1: actions (struct replstrs *)] */
@@ -2511,21 +2517,9 @@ match: TOKMATCH expr
        }
 
 /** PERFORM: <rule> (struct rule *) */
-perform: TOKTAG strv
-/**      [$2: strv (char *)] */
-	 {
-		 yyerror("\"match ... tag\" is no longer supported, "
-		     "please use \"match ... action tag\"");
-	 }
-       | TOKTAG strv TOKVALUE strv
-/**      [$2: strv (char *)] [$4: strv (char *)] */
-	 {
-		 yyerror("\"match ... tag\" is no longer supported, "
-		     "please use \"match ... action tag\"");
-	 }
-       | users actionp actitem cont
-/**      [$1: users (struct { ... } users)] */
-/**      [$3: actitem (struct actitem *)] [$4: cont (int)] */
+perform: users actionp actitem cont
+/**      [$1: users (struct { ... } users)] [$3: actitem (struct actitem *)] */
+/**      [$4: cont (int)] */
 	 {
 		 struct action	*t;
 

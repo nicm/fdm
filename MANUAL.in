@@ -835,7 +835,7 @@ of this). Possible rewrite action definitions are:
 
 Simple actions are provided to add a header to a mail:
 
-	action "lines" add-header "Lines" "%[lines]"
+	action "lines" add-header "Lines" value "%[lines]"
 
 Or to remove all instances of a header from mail:
 

@@ -84,5 +84,5 @@ deliver_add_header_desc(struct actitem *ti, char *buf, size_t len)
 	struct deliver_add_header_data	*data = ti->data;
 
 	xsnprintf(buf, len,
-	    "add-header \"%s\" \"%s\"", data->hdr.str, data->value.str);
+	    "add-header \"%s\" value \"%s\"", data->hdr.str, data->value.str);
 }
