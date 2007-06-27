@@ -33,6 +33,7 @@ fdm ============================================================================
 %%	Adding or removing headers and appending a string
 %%	Tagging
 %%	Compound actions
+%%	Chained actions
 ##	Filtering mail
 %%	Nesting rules
 %%	The all condition
@@ -879,6 +880,21 @@ the effects are cumulative: the second example above would deliver a mail
 rewritten once to 'bob' and twice to 'jim'. If this is not desired, seperate
 actions must be used.
 
+%%% Chained actions
+
+An action may call other named actions by reusing the 'action' keyword:
+
+	action "abc" action "def"
+
+	action "an_action" {
+		rewrite "rev"
+		action "another_action"
+		action "yet_more_actions"
+	}
+
+There is a hard limit of five chained actions in a sequence to prevent infinite
+loops.
+
 ### Filtering mail
 
 Mail is filtered by defining a set of filtering rules. These rules tie together
@@ -928,10 +944,10 @@ stops.
 
 %%% Lambda actions
 
-Lambda actions are unnamed actions included inline as part of the filtering rule.
-This can be convenient for actions which do not need to be used multiple times.
-Lambda actions are specified as a combination of the rule and an action definition.
-For example:
+Lambda actions are unnamed actions included inline as part of the filtering
+rule. This can be convenient for actions which do not need to be used multiple
+times. Lambda actions are specified as a combination of the rule and an action
+definition. For example:
 
 	match all action maildir "mymaildir"
 

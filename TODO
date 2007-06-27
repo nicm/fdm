@@ -34,4 +34,3 @@
 - reconsider built-in cache (for duplicates, killfiles, IMAP syncing). what
   about expiry/limits? special "fdm create" command line?
 - add mail time tags as well as real time
-- document chained actions
