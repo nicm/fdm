@@ -133,7 +133,7 @@ oversize_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 
 	if (conf.del_big) {
 		/*
-		 * Create an mctx and  queue on the done queue.
+		 * Create an mctx and queue on the done queue.
 		 */
 		m->decision = DECISION_DROP;
 		m->idx = ++a->idx;
