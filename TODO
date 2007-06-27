@@ -38,3 +38,4 @@
   everywhere;   expiry or limits: "fdm create/modify" command lines to set
   (ick), or what?
 - document mail time tags
+- should time stuff use localtime or gmtime?
