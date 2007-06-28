@@ -38,7 +38,7 @@ SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
       deliver-stdout.c deliver-append-string.c strb.c deliver-add-header.c \
       deliver-exec.c child-fetch.c parent-fetch.c child-deliver.c \
       parent-deliver.c mail-state.c netrc.c shm-mmap.c deliver-tag.c buffer.c \
-      mail-callback.c mail-time.c \
+      mail-callback.c mail-time.c db-tdb.c deliver-to-cache.c match-in-cache.c \
       y.tab.c lex.yy.c
 
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
@@ -68,6 +68,10 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
+ifdef DB
+DEFS+= -DDB
+LIBS+= -ltdb
+endif
 ifdef PCRE
 DEFS+= -DPCRE
 LIBS+= -lpcre

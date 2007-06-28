@@ -104,4 +104,4 @@ re_free(struct re *re)
 	pcre_free(re->pcre);
 }
 
-#endif
+#endif /* PCRE */

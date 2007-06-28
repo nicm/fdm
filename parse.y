@@ -505,6 +505,10 @@ free_actitem(struct actitem *ti)
 		xfree(data->key.str);
 		if (data->value.str != NULL)
 			xfree(data->value.str);
+	} else if (ti->deliver == &deliver_to_cache) {
+		struct deliver_to_cache_data		*data = ti->data;
+		xfree(data->key.str);
+		xfree(data->path);
 	} else if (ti->deliver == &deliver_smtp) {
 		struct deliver_smtp_data		*data = ti->data;
 		xfree(data->to.str);
@@ -572,6 +576,10 @@ free_rule(struct rule *r)
 			struct match_string_data	*data = ei->data;
 			xfree(data->str.str);
 			re_free(&data->re);
+		} else if (ei->match == &match_in_cache) {
+			struct match_in_cache_data	*data = ei->data;
+			xfree(data->key.str);
+			xfree(data->path);
 		} else if (ei->match == &match_attachment) {
 			struct match_attachment_data	*data = ei->data;
 			if (data->op == ATTACHOP_ANYTYPE ||
@@ -586,6 +594,13 @@ free_rule(struct rule *r)
 	xfree(r->expr);
 
 	xfree(r);
+}
+
+void
+free_cache(struct cache *cache)
+{
+	xfree(cache->path);
+	xfree(cache);
 }
 
 void
@@ -727,7 +742,7 @@ find_netrc(const char *host, char **user, char **pass)
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
 %token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW
-%token TOKVERIFYCERTS
+%token TOKVERIFYCERTS TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -807,6 +822,7 @@ cmds: /* empty */
     | cmds rule
     | cmds set
     | cmds close
+    | cmds cache
     | cmds INCLUDE
 
 /* Plural/singular combinations. */
@@ -1072,6 +1088,24 @@ time: numv
 		      yyerror("time is too long");
 	      $$ = $1 * TIME_YEAR;
       }
+
+cache: TOKCACHE replpathv TOKEXPIRE time
+       {
+	       struct cache	*cache;
+
+	       TAILQ_FOREACH(cache, &conf.caches, entry) {
+		       if (strcmp(cache->path, $2) == 0)
+			       yyerror("duplicate cache path");
+	       }
+
+	       cache = xcalloc(1, sizeof *cache);
+	       cache->path = $2;
+	       cache->expire = $4;
+
+	       TAILQ_INSERT_TAIL(&conf.caches, cache, entry);
+
+	       log_debug2("added cache \"%s\": expire %lld", cache->path, $4);
+       }
 
 /** SET */
 set: TOKSET TOKMAXSIZE size
@@ -1901,6 +1935,24 @@ actitem: TOKPIPE strv
 		 data->key.str = $2;
 		 data->value.str = $3;
 	 }
+       | TOKTOCACHE replpathv TOKKEY strv
+	 {
+		 struct deliver_to_cache_data	*data;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid path");
+		 if (*$4 == '\0')
+			 yyerror("invalid key");
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_to_cache;
+
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+
+		 data->key.str = $4;
+		 data->path = $2;
+	 }
        | actions
 /**      [$1: actions (struct replstrs *)] */
 	 {
@@ -2314,6 +2366,26 @@ expritem: not icase replstrv area
 		  if (re_compile(&data->re, $5, RE_NOSUBST, &cause) != 0)
 			  yyerror("%s", cause);
 		  xfree($5);
+	  }
+	| not TOKINCACHE replpathv TOKKEY strv
+	  {
+		  struct match_in_cache_data	*data;
+
+		  if (*$3 == '\0')
+			  yyerror("invalid path");
+		  if (*$5 == '\0')
+			  yyerror("invalid key");
+		  
+		  $$ = xcalloc(1, sizeof *$$);
+
+		  $$->match = &match_in_cache;
+		  $$->inverted = $1;	
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->key.str = $5;
+		  data->path = $3;
 	  }
         | not TOKMATCHED
 /**       [$1: not (int)] */

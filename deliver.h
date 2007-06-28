@@ -132,6 +132,12 @@ struct deliver_action_data {
 	struct replstrs	*actions;
 };
 
+/* Deliver rewrite data. */
+struct deliver_to_cache_data {
+	char		*path;
+	struct replstr	 key;
+};
+
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;
 
@@ -178,5 +184,8 @@ extern struct deliver 	 deliver_append;
 
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
+
+/* deliver-to_cache.c */
+extern struct deliver 	 deliver_to_cache;
 
 #endif

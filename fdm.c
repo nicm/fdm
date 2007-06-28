@@ -269,12 +269,14 @@ main(int argc, char **argv)
 #ifdef DEBUG
 	struct rule	*r;
 	struct action	*t;
+	struct cache	*cache;
 #endif
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
 	TAILQ_INIT(&conf.rules);
 	TAILQ_INIT(&conf.actions);
+	TAILQ_INIT(&conf.caches);
 	conf.max_size = DEFMAILSIZE;
 	conf.timeout = DEFTIMEOUT;
 	conf.lock_types = LOCK_FLOCK;
@@ -837,6 +839,11 @@ out:
 	COUNTFDS("parent");
 
 	/* free everything */
+	while (!TAILQ_EMPTY(&conf.caches)) {
+		cache = TAILQ_FIRST(&conf.caches);
+		TAILQ_REMOVE(&conf.caches, cache, entry);
+		free_cache(cache);
+	}
 	while (!TAILQ_EMPTY(&conf.accounts)) {
 		a = TAILQ_FIRST(&conf.accounts);
 		TAILQ_REMOVE(&conf.accounts, a, entry);

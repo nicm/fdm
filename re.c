@@ -108,4 +108,4 @@ re_free(struct re *re)
 	regfree(&re->re);
 }
 
-#endif
+#endif /* !PCRE */

@@ -34,6 +34,9 @@
 #include <stdint.h>
 #include <regex.h>
 
+#ifdef DB
+#include <tdb.h>
+#endif
 #ifdef PCRE
 #include <pcre.h>
 #endif
@@ -86,6 +89,14 @@ extern char	*__progname;
 #endif
 #ifndef __packed
 #define __packed __attribute__ ((__packed__))
+#endif
+
+/* Databases are not portable between endiness on OSs without these. */
+#ifndef htole64
+#define htole64
+#endif
+#ifndef letoh64
+#define letoh64
 #endif
 
 #ifdef DEBUG
@@ -303,6 +314,26 @@ struct rmlist {
 /* Regexp flags. */
 #define RE_IGNCASE 0x1
 #define RE_NOSUBST 0x2
+
+/* Cache data. */
+struct cache {
+	struct db	       *db;
+	char		       *path;
+	long long		expire;
+
+	TAILQ_ENTRY(cache)	entry;
+};
+
+/* Database structs. */
+struct db {
+#ifdef DB
+	TDB_CONTEXT		*tdb;
+#endif
+};
+struct dbitem {
+	uint64_t 		 tim;
+	uint32_t		 pad[4];
+} __packed;
 
 /* A single mail. */
 struct mail {
@@ -617,6 +648,7 @@ struct conf {
 	u_int			 lock_types;
 	uid_t			 def_user;
 
+	TAILQ_HEAD(, cache)	 caches;
 	TAILQ_HEAD(, account)	 accounts;
  	TAILQ_HEAD(, action)	 actions;
 	struct rules		 rules;
@@ -773,6 +805,7 @@ struct actions	*match_actions(const char *);
 void		 free_action(struct action *);
 void		 free_rule(struct rule *);
 void		 free_account(struct account *);
+void		 free_cache(struct cache *);
 char		*expand_path(const char *);
 
 /* netrc.c */
@@ -821,6 +854,7 @@ struct child 	*child_start(struct children *, uid_t, int (*)(struct child *,
     		     struct msgbuf *), void *);
 
 /* child-fetch.c */
+int		 open_cache(struct account *, struct cache *);
 int		 child_fetch(struct child *, struct io *);
 void		 fetch_free1(struct mail_ctx *);
 
@@ -888,6 +922,14 @@ int	mailtime(struct mail *, time_t *);
 /* mail-state.c */
 int	mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
 int	mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
+
+/* db-tdb.c */
+struct db      *db_open(char *);
+void		db_close(struct db *);
+int		db_add(struct db *, char *);
+int		db_contains(struct db *, char *);
+int		db_size(struct db *);
+int		db_expire(struct db *, uint64_t);
 
 /* imap-common.c */
 int		 imap_connect(struct account *);

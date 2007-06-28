@@ -95,6 +95,12 @@ struct match_command_data {
 	int		 ret;		/* -1 to not check */
 };
 
+/* Match in-cache data. */
+struct match_in_cache_data {
+	char		*path;
+	struct replstr	 key;
+};
+
 /* match-age.c */
 extern struct match	 match_age;
 
@@ -121,5 +127,8 @@ extern struct match	 match_command;
 
 /* match-regexp.c */
 extern struct match	 match_regexp;
+
+/* match-in-cache.c */
+extern struct match	 match_in_cache;
 
 #endif
