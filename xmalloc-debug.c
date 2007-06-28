@@ -75,7 +75,7 @@ struct {
 void			 xmalloc_called(const char *, u_int, enum xmalloc_type);
 struct xmalloc_blk	*xmalloc_find(void *);
 void			 xmalloc_new(const char *, u_int, void *, size_t);
-void			 xmalloc_change(const char *,u_int, void *, void *,
+void			 xmalloc_change(const char *, u_int, void *, void *,
 			     size_t);
 void			 xmalloc_free(const char *, u_int, void *);
 

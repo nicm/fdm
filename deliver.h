@@ -185,7 +185,7 @@ extern struct deliver 	 deliver_append;
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
 
-/* deliver-to_cache.c */
+/* deliver-to-cache.c */
 extern struct deliver 	 deliver_to_cache;
 
 #endif
