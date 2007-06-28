@@ -187,7 +187,7 @@ openlock(const char *path, u_int locks, int flags, mode_t mode)
 		fl.l_type = F_WRLCK;
 		fl.l_whence = SEEK_SET;
 		if (fcntl(fd, F_SETLK, &fl) == -1) {
-			/* fcntl already returns EAGAIN if needed */
+			/* fcntl already returns EAGAIN if needed. */
 			goto error;
 		}
 	}
@@ -304,10 +304,10 @@ remove_header(struct mail *m, const char *hdr)
 	if ((ptr = find_header(m, hdr, &len, 0)) == NULL)
 		return (1);
 
-	/* include the \n */
+	/* Include the \n. */
 	len++;
 
-	/* remove the header */
+	/* Remove the header. */
 	memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
 	m->size -= len;
  	if (m->body != -1)
@@ -324,13 +324,13 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	size_t		 hdrlen, len, off;
 
 	if (before != NULL) {
-		/* insert before header */
+		/* Insert before header. */
 		ptr = find_header(m, before, &len, 0);
 		if (ptr == NULL)
 			return (1);
 		off = ptr - m->data;
 	} else {
-		/* insert at the end */
+		/* Insert at the end. */
 		if (m->body == -1)
 			off = m->size;
 		else if (m->body < 1)
@@ -343,10 +343,10 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	hdrlen = xvasprintf(&hdr, fmt, ap);
 	va_end(ap);
 
-	/* include the \n */
+	/* Include the \n. */
 	hdrlen++;
 
-	/* make space for the header */
+	/* Make space for the header. */
 	if (mail_resize(m, m->size + hdrlen) != 0) {
 		xfree(hdr);
 		return (1);
@@ -354,7 +354,7 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	ptr = m->data + off;
 	memmove(ptr + hdrlen, ptr, m->size - off);
 
-	/* copy the header */
+	/* Copy the header. */
 	memcpy(ptr, hdr, hdrlen - 1);
 	ptr[hdrlen - 1] = '\n';
 	m->size += hdrlen;
@@ -394,19 +394,19 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 	else
 		*len = ptr - out;
 
-	/* header must be followed by space */
+	/* Header must be followed by space. */
 	if (!isspace((u_char) *out))
 		return (NULL);
 
-	/* sort out what is actually returned */
+	/* Sort out what is actually returned. */
 	if (value) {
-		/* strip any following space */
+		/* Strip any following space. */
 		while (isspace((u_char) *out)) {
 			out++;
 			(*len)--;
 		}
 	} else {
-		/* move back to the start of the header */
+		/* Move back to the start of the header. */
 		out -= hdrlen;
 		(*len) += hdrlen;
 	}
@@ -512,7 +512,7 @@ find_address(char *hdr, size_t len, size_t *alen)
 		}
 	}
 
-	/* no address found. try the whole header */
+	/* No address found. try the whole header. */
 	*alen = 0;
 	for (*alen = 0; *alen < len; (*alen)++) {
 		if (!isaddr(hdr[*alen]))
@@ -602,11 +602,11 @@ fill_wrapped(struct mail *m)
 		if (off >= end)
 			break;
 
-		/* check if the line starts with whitespace */
+		/* Check if the line starts with whitespace. */
 		if (!isblank((u_char) *ptr))
 			continue;
 
-		/* save the position */
+		/* Save the position. */
 		ARRAY_ADD(&m->wrapped, off - 1);
 		n++;
 	}

@@ -388,7 +388,7 @@ main(int argc, char **argv)
 			usage();
 	}
 
-	/* check the user */
+	/* Check the user. */
 	if (user != NULL) {
 		pw = getpwnam(user);
 		if (pw == NULL) {
@@ -409,7 +409,7 @@ main(int argc, char **argv)
 		endpwent();
 	}
 
-	/* set debug level and start logging to syslog if necessary */
+	/* Set debug level and start logging to syslog if necessary. */
 	log_init(conf.debug);
 	if (conf.syslog)
 		log_syslog(LOG_MAIL);
@@ -417,20 +417,20 @@ main(int argc, char **argv)
 	log_debug("version is: %s " BUILD ", started at: %.24s", __progname,
 	    ctime(&tt));
 
-	/* and the OS version */
+	/* And the OS version. */
 	if (uname(&un) == 0) {
 		log_debug2("running on: %s %s %s %s", un.sysname, un.release,
 		    un.version, un.machine);
 	} else
 		log_debug2("uname: %s", strerror(errno));
 
-	/* save the home dir and misc user info */
+	/* Save the home dir and misc user info. */
 	fill_info(getenv("HOME"));
 	log_debug2("user is: %s, home is: %s", conf.info.user, conf.info.home);
 
-	/* find the config file */
+	/* Find the config file. */
 	if (conf.conf_file == NULL) {
-		/* if no file specified, try ~ then /etc */
+		/* If no file specified, try ~ then /etc. */
 		xasprintf(&conf.conf_file, "%s/%s", conf.info.home, CONFFILE);
 		if (access(conf.conf_file, R_OK) != 0) {
 			xfree(conf.conf_file);
@@ -450,7 +450,7 @@ main(int argc, char **argv)
 	}
 	log_debug2("configuration loaded");
 
-	/* sort out queue limits */
+	/* Sort out queue limits. */
 	if (conf.queue_high == -1)
 		conf.queue_high = DEFMAILQUEUE;
 	if (conf.queue_low == -1) {
@@ -459,10 +459,10 @@ main(int argc, char **argv)
 			conf.queue_low = conf.queue_high - 1;
  	}
 
-	/* set the umask */
+	/* Set the umask. */
 	umask(conf.file_umask);
 
-	/* print proxy info */
+	/* Print proxy info. */
 	if (conf.proxy != NULL) {
 		switch (conf.proxy->type) {
 		case PROXY_HTTP:
@@ -479,7 +479,7 @@ main(int argc, char **argv)
 		    conf.proxy->server.host, conf.proxy->server.port);
 	}
 
-	/* print some locking info */
+	/* Print some locking info. */
 	*tmp = '\0';
 	if (conf.lock_types == 0)
 		strlcpy(tmp, "none", sizeof tmp);
@@ -493,7 +493,7 @@ main(int argc, char **argv)
 	}
 	log_debug2("locking using: %s", tmp);
 
-	/* initialise and print headers and domains */
+	/* Initialise and print headers and domains. */
 	if (conf.headers == NULL) {
 		conf.headers = xmalloc(sizeof *conf.headers);
 		ARRAY_INIT(conf.headers);
@@ -520,7 +520,7 @@ main(int argc, char **argv)
 	log_debug2("domains are: %s", strs);
 	xfree(strs);
 
-	/* print the other settings */
+	/* Print the other settings. */
 	*tmp = '\0';
 	off = 0;
 	if (conf.allow_many)
@@ -581,7 +581,7 @@ main(int argc, char **argv)
 		log_debug2("options are: %s", tmp);
 	}
 
-	/* save and print tmp dir */
+	/* Save and print tmp dir. */
 	s = getenv("TMPDIR");
 	if (s == NULL || *s == '\0')
 		s = _PATH_TMP;
@@ -599,7 +599,7 @@ main(int argc, char **argv)
 	}
 	log_debug2("using tmp directory: %s", conf.tmp_dir);
 
-	/* if -n, bail now, otherwise check there is something to work with */
+	/* If -n, bail now, otherwise check there is something to work with. */
 	if (conf.check_only)
 		exit(0);
         if (TAILQ_EMPTY(&conf.accounts)) {
@@ -627,7 +627,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	/* set up signal handlers */
+	/* Set up signal handlers. */
 	sigemptyset(&act.sa_mask);
 	sigaddset(&act.sa_mask, SIGINT);
 	sigaddset(&act.sa_mask, SIGTERM);
@@ -647,7 +647,7 @@ main(int argc, char **argv)
 	if (sigaction(SIGTERM, &act, NULL) < 0)
 		fatal("sigaction");
 
-	/* check lock file */
+	/* Check lock file. */
 	lock = conf.lock_file;
 	if (lock == NULL) {
 		if (geteuid() == 0)
@@ -675,7 +675,7 @@ main(int argc, char **argv)
 	COUNTFDS("parent");
 #endif
 
-	/* start the children and build the array */
+	/* Start the children and build the array. */
 	ARRAY_INIT(&children);
 	ARRAY_INIT(&dead_children);
 
@@ -713,14 +713,14 @@ main(int argc, char **argv)
 		if (sigint || sigterm)
 			break;
 
-		/* fill the io list */
+		/* Fill the io list. */
 		ios = xrealloc(ios, ARRAY_LENGTH(&children), sizeof **ios);
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i);
 			ios[i] = child->io;
 		}
 
-		/* poll the io list */
+		/* Poll the io list. */
 		n = io_polln(ios, ARRAY_LENGTH(&children), &io, INFTIM, NULL);
 		switch (n) {
 		case -1:
@@ -730,7 +730,7 @@ main(int argc, char **argv)
 		}
 
 		while (!ARRAY_EMPTY(&children)) {
-			/* check all children for pending privsep messages */
+			/* Check all children for pending privsep messages. */
 			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 				child = ARRAY_ITEM(&children, i);
 				if (privsep_check(child->io))
@@ -739,7 +739,7 @@ main(int argc, char **argv)
 			if (i == ARRAY_LENGTH(&children))
 				break;
 
-			/* and handle them if necessary */
+			/* And handle them if necessary. */
 			if (privsep_recv(child->io, &msg, &msgbuf) != 0)
 				fatalx("parent: privsep_recv error");
 			log_debug3("parent: got message type %d, id %u from "
@@ -748,13 +748,13 @@ main(int argc, char **argv)
 			if (child->msg(child, &msg, &msgbuf) == 0)
 				continue;
 
-			/* child has said it is ready to exit, tell it to */
+			/* Child has said it is ready to exit, tell it to. */
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL) != 0)
 				fatalx("parent: privsep_send error");
 
-			/* wait for the child */
+			/* Wait for the child. */
 			if (waitpid(child->pid, &status, 0) == -1)
 				fatal("waitpid");
 			if (WIFSIGNALED(status)) {
@@ -783,7 +783,7 @@ main(int argc, char **argv)
 	if (ios != NULL)
 		xfree(ios);
 
-	/* free the dead children */
+	/* Free the dead children. */
 	for (i = 0; i < ARRAY_LENGTH(&dead_children); i++) {
 		child = ARRAY_ITEM(&dead_children, i);
 		if (child->data != NULL)
@@ -804,7 +804,7 @@ main(int argc, char **argv)
 		else if (sigterm)
 			log_warnx("parent: caught SIGTERM. stopping");
 
-		/* kill the children */
+		/* Kill the children. */
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i);
 			kill(child->pid, SIGTERM);
@@ -815,7 +815,7 @@ main(int argc, char **argv)
 		}
 		ARRAY_FREE(&children);
 
-		/* and wait for them */
+		/* And wait for them. */
 		for (;;) {
 			if ((pid = wait(&status)) == -1) {
 				if (errno == ECHILD)
@@ -838,7 +838,7 @@ out:
 #ifdef DEBUG
 	COUNTFDS("parent");
 
-	/* free everything */
+	/* Free everything. */
 	while (!TAILQ_EMPTY(&conf.caches)) {
 		cache = TAILQ_FIRST(&conf.caches);
 		TAILQ_REMOVE(&conf.caches, cache, entry);
