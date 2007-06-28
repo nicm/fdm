@@ -67,7 +67,7 @@ deliver_to_cache_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			return (DELIVER_SUCCESS);
 		}
 	}
-	log_warnx("%s: cache %s not found", a->name, data->path);
+	log_warnx("%s: cache %s not declared", a->name, data->path);
 
 error:
 	if (key != NULL)

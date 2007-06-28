@@ -65,7 +65,7 @@ match_in_cache_match(struct mail_ctx *mctx, struct expritem *ei)
 			return (MATCH_FALSE);
 		}
 	}
-	log_warnx("%s: cache %s not found", a->name, data->path);
+	log_warnx("%s: cache %s not declared", a->name, data->path);
 
 error:
 	if (key != NULL)
