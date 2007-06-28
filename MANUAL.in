@@ -93,6 +93,10 @@ to the make command:
 	
 	$ make -DPCRE
 
+Or PCRE=1 if using GNU make:
+
+	$ make PCRE=1
+
 ### Quick start
 
 A simple ~/.fdm.conf file for a single user fetching from POP3, POP3S and IMAP
