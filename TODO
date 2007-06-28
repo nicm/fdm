@@ -30,4 +30,5 @@
   consistent in some way (closed=1, success=0, error=-1)
 - should time stuff use localtime or gmtime?
 - document mail time tags
+- document $() and %()
 - decide everything for cache and document it
