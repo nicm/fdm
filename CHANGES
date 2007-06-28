@@ -7,10 +7,20 @@
 
 	$arch = $(uname -m)
 	
-  These are executed at parse time and the section between the brackets is 
-  subject to escape and tag replacement similar to strings enclosed in
-  double quotes ("). As with macros, they may be used at any point a string or
-  number is appropriate.
+  These are executed at parse time. Sections between the brackets within "s
+  are subject to escape and macro replacement as normal; parts outside
+  quotes or inside 's are not. For example:
+
+	$SHELL = "test"
+	$cmd = $(echo "${SHELL} $SHELL \${SHELL}")
+
+  Takes advantage of the fact that fdm requires {}s and the shell does not to
+  yield:
+
+	added macro "$cmd": "test /bin/ksh /bin/ksh"
+
+  As with macros, commands may be used at any point a string or number is
+  appropriate.
 * The mail time tags (mail_year, mail_quarter, etc) now use underscores in their
   names rather than dashes, for consistency.
 * Deliver append-string is no more, it is trivially replaced using rewrite.

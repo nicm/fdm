@@ -735,7 +735,7 @@ run_command(const char *s)
 	if (*s == '\0')
 		yyerror("empty command");
 
-	if ((cmd = cmd_start(s, CMD_OUT, 60, NULL, 0, &cause)) == NULL)
+	if ((cmd = cmd_start(s, CMD_OUT, DEFTIMEOUT, NULL, 0, &cause)) == NULL)
 		yyerror("%s: %s", s, cause);
 
 	llen = IO_LINESIZE;
@@ -771,8 +771,11 @@ run_command(const char *s)
 
 	cmd_free(cmd);
 
-	if (slen > 1)
-		sbuf[slen - 2] = '\0';
+	slen--;
+	while (slen > 0 && sbuf[slen - 1] == '\n') {
+		sbuf[slen - 1] = '\0';
+		slen--;
+	}
 	return (sbuf);
 }
 %}

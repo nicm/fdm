@@ -37,6 +37,8 @@
 extern int 			 yylex(void);
 extern __dead printflike1 void	 yyerror(const char *, ...);
 
+void				 read_macro(char, char *, size_t *, size_t);
+char				*read_cmd(void);
 char 				*read_str(char, int);
 
 /*
@@ -80,11 +82,11 @@ char				*curfile;
         return (STRING);
 }
 \$\( {
-	yylval.string = read_str(')', 1);
+	yylval.string = read_cmd();
 	return (STRCOMMAND);
 }
 \%\( {
-	yylval.string = read_str(')', 1);
+	yylval.string = read_cmd();
 	return (NUMCOMMAND);
 }
 include[ \t]*\" {
@@ -259,6 +261,63 @@ write return (TOKWRITE);
 %%
 
 char *
+read_cmd(void)
+{
+	int	 done = 0, ch, nesting = 0;
+	size_t	 pos = 0, len, slen;
+	char	*buf, *s;
+
+	len = 24;
+        buf = xmalloc(len + 1);
+
+        while (!done) {
+		ch = input();
+                switch (ch) {
+		case 0:
+		case EOF:
+			yyerror("unterminated command");
+		case '(':
+			nesting++;
+			break;
+		case ')':
+			if (nesting == 0) {
+				done = 1;
+				continue; 
+			}
+			nesting--;
+			break;
+		case '"':
+			s = read_str('"', 1);
+			slen = strlen(s);
+			ENSURE_SIZE(buf, len, pos + slen + 2);
+			buf[pos++] = '"';
+			memcpy(buf + pos, s, slen);
+			pos += slen;
+			buf[pos++] = '"';
+			xfree(s);
+			continue;
+		case '\'':
+			s = read_str('\'', 0);
+			slen = strlen(s);
+			ENSURE_SIZE(buf, len, pos + slen + 2);
+			buf[pos++] = '\'';
+			memcpy(buf + pos, s, slen);
+			pos += slen;
+			buf[pos++] = '\'';
+			xfree(s);
+			continue;
+                }
+
+                buf[pos++] = ch;
+                ENSURE_SIZE(buf, len, pos);
+        }
+
+        buf[pos] = '\0';
+
+	return (buf);
+}
+
+char *
 read_str(char endc, int esc)
 {
 	int		 done = 0, ch, valid;
@@ -301,11 +360,10 @@ read_str(char endc, int esc)
 		case '%':
 			if (!esc)
 				break;
-
 			name[0] = ch;
 			off = 1;
 
-			/* first character */
+			/* First character. */
 			ch = input();
 			if (ch == 0 || ch == EOF)
 				yyerror("unterminated string");
@@ -315,7 +373,7 @@ read_str(char endc, int esc)
 				break;
 			}
 
-			/* remaining characters */
+			/* Remaining characters. */
 			valid = 1;
 			do {
 				ch = input();
@@ -351,8 +409,7 @@ read_str(char endc, int esc)
 			continue;
                 }
 
-                buf[pos] = ch;
-                pos++;
+                buf[pos++] = ch;
                 ENSURE_SIZE(buf, len, pos);
         }
 
