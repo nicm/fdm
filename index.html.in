@@ -7,6 +7,7 @@
 <body>
 <p>The project page is <a href="http://sf.net/projects/fdm">here.</a></p>
 <p>Download fdm with <a href="http://downloads.sourceforge.net/fdm/fdm-%%VERSION%%.tar.gz">this link.</a></p>
+<p>A mailing list is available, see <a href="https://lists.sourceforge.net/lists/listinfo/fdm-users">this page.</a></p>
 <hr>
 <pre>
 &&MANUAL

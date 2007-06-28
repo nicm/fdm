@@ -32,3 +32,4 @@
 - document mail time tags
 - document $() and %()
 - decide everything for cache and document it
+- strip environ before calling child?
