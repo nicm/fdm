@@ -64,6 +64,8 @@ open_cache(struct account *a, struct cache *cache)
 	n = db_size(cache->db);
 	log_debug3("%s: opened cache %s: %d items", a->name, cache->path, n);
 
+	if (cache->expire < 0)
+		return (0);
 	if (db_expire(cache->db, cache->expire) != 0) {
 		log_warnx("%s: %s: expiry failed", a->name, cache->path);
 		return (-1);

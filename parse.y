@@ -796,7 +796,7 @@ find_netrc(const char *host, char **user, char **pass)
 %type  <flag> poptype imaptype
 %type  <gid> gid
 %type  <locks> lock locklist
-%type  <number> size time numv retrc
+%type  <number> size time numv retrc expire
 %type  <replstrs> actions actionslist
 %type  <rule> perform
 %type  <server> server
@@ -1086,7 +1086,16 @@ time: numv
 	      $$ = $1 * TIME_YEAR;
       }
 
-cache: TOKCACHE replpathv TOKEXPIRE time
+expire: TOKEXPIRE time
+	{
+		$$ = $2;
+	}
+      | /* empty */
+	{
+		$$ = -1;
+	}
+
+cache: TOKCACHE replpathv expire
        {
 	       struct cache	*cache;
 
@@ -1097,11 +1106,11 @@ cache: TOKCACHE replpathv TOKEXPIRE time
 
 	       cache = xcalloc(1, sizeof *cache);
 	       cache->path = $2;
-	       cache->expire = $4;
+	       cache->expire = $3;
 
 	       TAILQ_INSERT_TAIL(&conf.caches, cache, entry);
 
-	       log_debug2("added cache \"%s\": expire %lld", cache->path, $4);
+	       log_debug2("added cache \"%s\": expire %lld", cache->path, $3);
        }
 
 /** SET */
