@@ -1086,7 +1086,9 @@ time: numv
 	      $$ = $1 * TIME_YEAR;
       }
 
+/** EXPIRE: <number> (long long) */
 expire: TOKEXPIRE time
+/**     [$2: time (long long)] */
 	{
 		$$ = $2;
 	}
@@ -1095,7 +1097,9 @@ expire: TOKEXPIRE time
 		$$ = -1;
 	}
 
+/** CACHE */
 cache: TOKCACHE replpathv expire
+/**    [$2: replpathv (char *)] [$3: expire (long long)] */
        {
 	       struct cache	*cache;
 
@@ -1926,6 +1930,7 @@ actitem: TOKPIPE strv
 		 data->value.str = $3;
 	 }
        | TOKTOCACHE replpathv TOKKEY strv
+/**      [$2: replpathv (char *)] [$4: strv (char *)] */
 	 {
 		 struct deliver_to_cache_data	*data;
 
@@ -2358,6 +2363,7 @@ expritem: not icase replstrv area
 		  xfree($5);
 	  }
 	| not TOKINCACHE replpathv TOKKEY strv
+/**       [$1: not (int)] [$3: replpathv (char *)] [$5: strv (char *)] */
 	  {
 		  struct match_in_cache_data	*data;
 
@@ -2365,11 +2371,11 @@ expritem: not icase replstrv area
 			  yyerror("invalid path");
 		  if (*$5 == '\0')
 			  yyerror("invalid key");
-		  
+
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_in_cache;
-		  $$->inverted = $1;	
+		  $$->inverted = $1;
 
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
