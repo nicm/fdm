@@ -59,7 +59,7 @@ fetch_imap_putln(struct account *a, const char *fmt, va_list ap)
 	return (0);
 }
 
-/* Get line from server. */ 
+/* Get line from server. */
 int
 fetch_imap_getln(struct account *a, char **line)
 {

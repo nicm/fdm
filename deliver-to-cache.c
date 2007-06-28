@@ -55,7 +55,7 @@ deliver_to_cache_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	log_debug2("%s: saving to cache %s: %s", a->name, data->path, key);
 
 	TAILQ_FOREACH(cache, &conf.caches, entry) {
-		if (strcmp(data->path, cache->path) == 0) { 
+		if (strcmp(data->path, cache->path) == 0) {
 			if (open_cache(a, cache) != 0)
 				goto error;
 			if (db_add(cache->db, key) != 0) {

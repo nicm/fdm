@@ -111,7 +111,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 	n = 0;
 	do {
-		fd = openlock(path, 
+		fd = openlock(path,
 		    conf.lock_types, O_CREAT|O_WRONLY|O_APPEND, FILEMODE);
 		if (fd < 0) {
 			if (errno == EAGAIN) {
@@ -155,7 +155,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	 * having written a partial mail. So, block SIGTERM until we're
 	 * done.
 	 */
-	sigemptyset(&set); 
+	sigemptyset(&set);
  	sigaddset(&set, SIGTERM);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
 		fatal("sigprocmask");

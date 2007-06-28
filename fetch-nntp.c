@@ -117,12 +117,12 @@ fetch_nntp_check(struct account *a, char **line, int *codep, u_int n, ...)
 		*line = io_readline2(data->io, &data->lbuf, &data->llen);
 		if (*line == NULL)
 			return (0);
-		
+
 		*codep = fetch_nntp_code(*line);
 		if (*codep == -1)
 			goto error;
 	} while (*codep >= 100 && *codep <= 199);
-	
+
 	va_start(ap, n);
 	for (i = n; i > 0; i--) {
 		if (*codep == va_arg(ap, int))

@@ -218,7 +218,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		case -1:
 			if (errno == EINTR || errno == EAGAIN)
 				break;
-			/* 
+			/*
 			 * Ignore closed input (rely on child returning non-
 			 * zero on error) unless CMD_ONCE is clear (it will
 			 * be needed later).
@@ -287,7 +287,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		}
 	}
 
- 	/* 
+ 	/*
 	 * A closed input is an error, unless writing once or the child has
 	 * died.
 	 */

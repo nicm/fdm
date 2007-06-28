@@ -80,7 +80,7 @@ imap_getln(struct account *a, int type, char **line)
 
 	do {
 		if (data->getln(a, line) != 0)
-			return (-1); 
+			return (-1);
 		if (*line == NULL)
 			return (0);
 	} while ((n = imap_parse(a, type, *line)) == 1);
@@ -366,7 +366,7 @@ imap_login(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	
+
 	if (imap_putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
 		return (FETCH_ERROR);
 	data->state = imap_user;
@@ -433,7 +433,7 @@ imap_select2(struct account *a, unused struct fetch_ctx *fctx)
 			return (FETCH_ERROR);
 		if (line == NULL)
 			return (FETCH_BLOCK);
-		
+
 		if (sscanf(line, "* %u EXISTS", &data->num) == 1)
 			break;
 	}
@@ -464,7 +464,7 @@ imap_select3(struct account *a, unused struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* 
+/*
  * Next state. Get next mail. This is also the idle state when completed, so
  * check for finished mail, exiting, and so on.
  */
@@ -482,7 +482,7 @@ imap_next(struct account *a, unused struct fetch_ctx *fctx)
 			ARRAY_ADD(&data->kept, aux->uid);
 			dequeue_mail(a, fctx);
 		} else {
-			if (imap_putln(a, "%u STORE %u +FLAGS \\Deleted", 
+			if (imap_putln(a, "%u STORE %u +FLAGS \\Deleted",
 			    ++data->tag, aux->idx) != 0)
 				return (FETCH_ERROR);
 			data->state = imap_delete;
@@ -547,12 +547,12 @@ imap_uid1(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	
+
 	if (sscanf(line, "* %u FETCH (UID %u)", &n, &data->uid) != 2)
 		return (imap_invalid(a, line));
 	if (n != data->cur)
 		return (imap_bad(a, line));
-	
+
 	data->state = imap_uid2;
 	return (FETCH_AGAIN);
 }
@@ -571,7 +571,7 @@ imap_uid2(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
-	
+
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
 		if (ARRAY_ITEM(&data->kept, i) == data->uid) {
 			/* Had this message before and kept, so skip. */
@@ -600,10 +600,10 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	
+
 	if (sscanf(line, "* %u FETCH (", &n) != 1)
 		return (imap_invalid(a, line));
-	if ((ptr = strstr(line, "BODY[] {")) == NULL)	
+	if ((ptr = strstr(line, "BODY[] {")) == NULL)
 		return (imap_invalid(a, line));
 
 	if (sscanf(ptr, "BODY[] {%zu}", &data->size) != 1)
@@ -618,7 +618,7 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 	aux->uid = data->uid;
 	m->auxdata = aux;
 	m->auxfree = imap_free;
-	
+
 	/* Deal with empty and oversize mails. */
 	if (data->size == 0) {
 		if (empty_mail(a, fctx, m) != 0)
@@ -647,12 +647,12 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 	data->flushing = data->size > conf.max_size;
 	data->lines = 0;
 	data->bodylines = -1;
-	
+
 	data->state = imap_line;
 	return (FETCH_AGAIN);
 }
 
-/* Line state. */ 
+/* Line state. */
 int
 imap_line(struct account *a, unused struct fetch_ctx *fctx)
 {
@@ -666,7 +666,7 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 			return (FETCH_ERROR);
 		if (line == NULL)
 			return (FETCH_BLOCK);
-		
+
 		len = strlen(line);
 		if (len == 0 && m->body == -1) {
 			m->body = m->size + 1;
@@ -678,12 +678,12 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 				log_warn("%s: failed to resize mail", a->name);
 				return (FETCH_ERROR);
 			}
-			
+
 			if (len > 0)
 				memcpy(m->data + m->size, line, len);
 			m->data[m->size + len] = '\n';
 		}
-		
+
 		data->lines++;
 		if (data->bodylines != -1)
 		data->bodylines++;
@@ -697,7 +697,7 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* Done state 1. */ 
+/* Done state 1. */
 int
 imap_done1(struct account *a, unused struct fetch_ctx *fctx)
 {
@@ -716,7 +716,7 @@ imap_done1(struct account *a, unused struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* Done state 1. */ 
+/* Done state 1. */
 int
 imap_done2(struct account *a, struct fetch_ctx *fctx)
 {
@@ -753,7 +753,7 @@ imap_done2(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* Delete state. */ 
+/* Delete state. */
 int
 imap_delete(struct account *a, struct fetch_ctx *fctx)
 {
@@ -768,12 +768,12 @@ imap_delete(struct account *a, struct fetch_ctx *fctx)
 		return (imap_bad(a, line));
 
 	dequeue_mail(a, fctx);
-	
+
 	data->state = imap_next;
 	return (FETCH_AGAIN);
 }
 
-/* Expunge state. */ 
+/* Expunge state. */
 int
 imap_expunge(struct account *a, unused struct fetch_ctx *fctx)
 {

@@ -533,7 +533,7 @@ fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
 		return (fetch_pop3_bad(a, line));
 	if (n != data->cur)
 		return (fetch_pop3_bad(a, line));
-	
+
 	line = strchr(line, ' ');
 	if (line == NULL)
 		return (fetch_pop3_bad(a, line));

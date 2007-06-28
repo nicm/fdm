@@ -94,7 +94,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 
 	if ((x509 = SSL_get_peer_certificate(ssl)) == NULL) {
 		/* No certificate, error since we wanted to verify it. */
-		xasprintf(cause, 
+		xasprintf(cause,
 		    "certificate verification failed: no certificate");
 		return (-1);
 	}
@@ -119,7 +119,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	getaddrs(srv->host, &fqdn, NULL);
 	do {
 		ptr += 4;
-		
+
 		ptr2 = strchr(ptr, '/');
 		if (ptr2 != NULL)
 			*ptr2 = '\0';
@@ -140,7 +140,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 
 	/* No valid CN. */
 	xasprintf(cause, "certificate verification failed: no matching CN");
-	return (-1);	
+	return (-1);
 }
 
 void

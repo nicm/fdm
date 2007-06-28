@@ -953,7 +953,7 @@ void		 cleanup_deregister(const char *);
 void		 strb_create(struct strb **);
 void		 strb_clear(struct strb **);
 void		 strb_destroy(struct strb **);
-void		 strb_dump(struct strb *, const char *, 
+void		 strb_dump(struct strb *, const char *,
     		     void (*)(const char *, ...));
 void printflike3 strb_add(struct strb **, const char *, const char *, ...);
 void		 strb_vadd(struct strb **, const char *, const char *, va_list);

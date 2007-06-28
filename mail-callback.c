@@ -42,7 +42,7 @@ transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 
 	/* Add mail time tags. */
 	if (mailtime(m, &t) != 0) {
-		log_debug2("%s: bad date header, using current time", a->name); 
+		log_debug2("%s: bad date header, using current time", a->name);
 		t = time(NULL);
 	}
 	if ((tm = localtime(&t)) != NULL) {

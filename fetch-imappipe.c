@@ -59,7 +59,7 @@ fetch_imappipe_putln(struct account *a, const char *fmt, va_list ap)
 	return (0);
 }
 
-/* Get line from server. */ 
+/* Get line from server. */
 int
 fetch_imappipe_getln(struct account *a, char **line)
 {
@@ -118,7 +118,7 @@ fetch_imappipe_connect(struct account *a)
 	if (imap_connect(a) != 0)
 		return (-1);
 
-	data->cmd = 
+	data->cmd =
 	    cmd_start(data->pipecmd, CMD_IN|CMD_OUT, 0, NULL, 0, &cause);
 	if (data->cmd == NULL) {
 		log_warnx("%s: %s", a->name, cause);

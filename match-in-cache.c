@@ -54,7 +54,7 @@ match_in_cache_match(struct mail_ctx *mctx, struct expritem *ei)
 	log_debug2("%s: matching to cache %s: %s", a->name, data->path, key);
 
 	TAILQ_FOREACH(cache, &conf.caches, entry) {
-		if (strcmp(data->path, cache->path) == 0) { 
+		if (strcmp(data->path, cache->path) == 0) {
 			if (open_cache(a, cache) != 0)
 				goto error;
 			if (db_contains(cache->db, key)) {
