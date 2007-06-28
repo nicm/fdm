@@ -30,7 +30,7 @@ fdm ============================================================================
 %%	Write, pipe, exec and append
 %%	stdout
 %% 	Rewriting mail
-%%	Adding or removing headers and appending a string
+%%	Adding or removing headers
 %%	Tagging
 %%	Compound actions
 %%	Chained actions
@@ -810,13 +810,6 @@ fdm can write mails directly to stdout, optionally prepending an mbox-style
 
 	action "so" stdout
 
-The append-string action (see below) is useful to include a separator between
-each mail:
-
-	action "sep" append-string "--\n"
-	action "so" stdout
-	match all actions { "sep" "so" } continue
-
 %%% Rewriting mail
 
 Mail may be altered by passing it to a rewrite action. This is similar to
@@ -843,10 +836,6 @@ Or to remove all instances of a header from mail:
 
 	action "rmhdr" remove-header "x-stupid-header"
 
-A similar action can append a string to each mail:
-
-	action "append-sep" append-string "--cut here--\n"
-
 %%% Tagging
 
 Mails may be assigned one of more tags manually using the tag action type. For
@@ -856,8 +845,8 @@ example,
 
 	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
 
-The tag is attached to the mail with the specified value, or no value if none is
-provided.
+The tag is attached to the mail with the specified value, or no value if none
+is provided.
 
 %%% Compound actions
 
@@ -866,7 +855,7 @@ are similar to standard single actions but multiple actions are provided using
 {}. For example,
 
 	action "multiple" {
-		append-string "my string!!"
+		add-header "X-My-Header" value "Yay!"
 		mbox "mbox2"
 	}
 

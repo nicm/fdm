@@ -494,9 +494,6 @@ free_actitem(struct actitem *ti)
 		struct deliver_add_header_data		*data = ti->data;
 		xfree(data->hdr.str);
 		xfree(data->value.str);
-	} else if (ti->deliver == &deliver_append_string) {
-		struct deliver_append_string_data	*data = ti->data;
-		xfree(data->str.str);
 	} else if (ti->deliver == &deliver_mbox) {
 		struct deliver_mbox_data		*data = ti->data;
 		xfree(data->path.str);
@@ -741,8 +738,8 @@ find_netrc(const char *host, char **user, char **pass)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
 %token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
-%token TOKADDFROM TOKAPPENDSTRING TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW
-%token TOKVERIFYCERTS TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY
+%token TOKADDFROM TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKVERIFYCERTS
+%token TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -1852,22 +1849,6 @@ actitem: TOKPIPE strv
 
 		 data->hdr.str = $2;
 		 data->value.str = $3;
-	 }
-       | TOKAPPENDSTRING strv
-/**      [$2: strv (char *)] */
-	 {
-		 struct deliver_append_string_data	*data;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid string");
-
-		 $$ = xcalloc(1, sizeof *$$);
-		 $$->deliver = &deliver_append_string;
-
-		 data = xcalloc(1, sizeof *data);
-		 $$->data = data;
-
-		 data->str.str = $2;
 	 }
        | TOKMBOX strv compress
 /**      [$2: strv (char *)] [$3: compress (int)] */

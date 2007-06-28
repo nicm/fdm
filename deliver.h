@@ -116,11 +116,6 @@ struct deliver_pipe_data {
 	struct replpath	cmd;
 };
 
-/* Deliver append-string data. */
-struct deliver_append_string_data {
-	struct replstr	str;
-};
-
 /* Deliver tag data. */
 struct deliver_tag_data {
 	struct replstr	 key;
@@ -168,9 +163,6 @@ extern struct deliver	 deliver_remove_header;
 
 /* deliver-add-header.c */
 extern struct deliver	 deliver_add_header;
-
-/* deliver-append-string.c */
-extern struct deliver	 deliver_append_string;
 
 /* deliver-mbox.c */
 extern struct deliver 	 deliver_mbox;

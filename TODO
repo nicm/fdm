@@ -30,5 +30,4 @@
   consistent in some way (closed=1, success=0, error=-1)
 - document mail time tags
 - should time stuff use localtime or gmtime?
-- remove some stupid crap like append-string (== rewrite "(cat; echo abc)")
 - decide everything for cache and document it

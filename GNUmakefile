@@ -27,18 +27,22 @@ LFLAGS= -l
 INSTALLBIN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 555
 INSTALLMAN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 
-SRCS= fdm.c log.c xmalloc.c xmalloc-debug.c io.c replace.c connect.c mail.c \
-      command.c fetch-pop3.c fetch-imap.c fetch-stdin.c fetch-nntp.c \
-      fetch-maildir.c pcre.c re.c deliver-smtp.c deliver-pipe.c deliver-drop.c \
-      deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-write.c \
-      deliver-append.c deliver-rewrite.c match-regexp.c match-command.c \
-      match-tagged.c match-size.c match-string.c match-matched.c match-age.c \
-      match-unmatched.c match-attachment.c child.c privsep.c attach.c \
-      cleanup.c imap-common.c fetch-imappipe.c deliver-remove-header.c \
-      deliver-stdout.c deliver-append-string.c strb.c deliver-add-header.c \
-      deliver-exec.c child-fetch.c parent-fetch.c child-deliver.c \
-      parent-deliver.c mail-state.c netrc.c shm-mmap.c deliver-tag.c buffer.c \
-      mail-callback.c mail-time.c db-tdb.c deliver-to-cache.c match-in-cache.c \
+SRCS= fdm.c \
+      attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
+      child-deliver.c child-fetch.c child.c \
+      pcre.c re.c privsep.c replace.c shm-mmap.c strb.c db-tdb.c \
+      xmalloc-debug.c  xmalloc.c \
+      deliver-add-header.c deliver-append.c deliver-drop.c deliver-exec.c \
+      deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-pipe.c \
+      deliver-remove-header.c deliver-rewrite.c deliver-smtp.c \
+      deliver-stdout.c deliver-tag.c deliver-to-cache.c deliver-write.c \
+      fetch-imap.c fetch-imappipe.c fetch-maildir.c fetch-nntp.c fetch-pop3.c \
+      fetch-stdin.c imap-common.c \
+      mail-callback.c mail-state.c mail-time.c  mail.c \
+      match-age.c match-attachment.c match-command.c match-in-cache.c \
+      match-matched.c match-regexp.c match-size.c match-string.c \
+      match-tagged.c  match-unmatched.c \
+      parent-deliver.c parent-fetch.c \
       y.tab.c lex.yy.c
 
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""

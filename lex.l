@@ -158,7 +158,6 @@ any-name return (TOKANYNAME);
 any-size return (TOKANYSIZE);
 any-type return (TOKANYTYPE);
 append return (TOKAPPEND);
-append-string return (TOKAPPENDSTRING);
 attachment return (TOKATTACHMENT);
 body return (TOKBODY);
 cache return (TOKCACHE);

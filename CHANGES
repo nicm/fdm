@@ -1,5 +1,6 @@
 28 June 2007
 
+* Deliver append-string is no more, it is trivially replaced using rewrite.
 * Built-in cache using TDB (http://sourceforge.net/projects/tdb/). Currently
   disabled by default, enabled by building with make -DDB.
 
@@ -32,7 +33,7 @@
 27 June 2007
 
 * New tags taken from the date header corresponding to the current time tags:
-  mail-hour, mail-year, etc. If the header is invalid, the current time is used.
+  mail_hour, mail_year, etc. If the header is invalid, the current time is used.
   Request/idea from Maximilian Gass.
 * Make fdm-sanitize also obfuscate the lengths of login/pass with IMAP.
 * Bug fix: "and not" rather than "not and" in ruleset -vv output.

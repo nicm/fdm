@@ -46,16 +46,16 @@ transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 		t = time(NULL);
 	}
 	if ((tm = localtime(&t)) != NULL) {
-		add_tag(&m->tags, "mail-hour", "%.2d", tm->tm_hour);
-		add_tag(&m->tags, "mail-minute", "%.2d", tm->tm_min);
-		add_tag(&m->tags, "mail-second", "%.2d", tm->tm_sec);
-		add_tag(&m->tags, "mail-day", "%.2d", tm->tm_mday);
-		add_tag(&m->tags, "mail-month", "%.2d", tm->tm_mon);
-		add_tag(&m->tags, "mail-year", "%.4d", 1900 + tm->tm_year);
-		add_tag(&m->tags, "mail-dayofweek", "%d", tm->tm_wday);
-		add_tag(&m->tags, "mail-dayofyear", "%.2d", tm->tm_yday);
+		add_tag(&m->tags, "mail_hour", "%.2d", tm->tm_hour);
+		add_tag(&m->tags, "mail_minute", "%.2d", tm->tm_min);
+		add_tag(&m->tags, "mail_second", "%.2d", tm->tm_sec);
+		add_tag(&m->tags, "mail_day", "%.2d", tm->tm_mday);
+		add_tag(&m->tags, "mail_month", "%.2d", tm->tm_mon);
+		add_tag(&m->tags, "mail_year", "%.4d", 1900 + tm->tm_year);
+		add_tag(&m->tags, "mail_dayofweek", "%d", tm->tm_wday);
+		add_tag(&m->tags, "mail_dayofyear", "%.2d", tm->tm_yday);
 		add_tag(&m->tags,
-		    "mail-quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
+		    "mail_quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
 	}
 
 	/* Insert message-id tag. */
