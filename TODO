@@ -28,6 +28,6 @@
   decreasing size order, but with longer queue necessary
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
-- document mail time tags
 - should time stuff use localtime or gmtime?
+- document mail time tags
 - decide everything for cache and document it

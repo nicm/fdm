@@ -66,8 +66,8 @@ void				 print_rule(struct rule *);
 void				 print_action(struct action *);
 void				 make_actlist(struct actlist *, char *, size_t);
 
-
 void				 find_netrc(const char *, char **, char **);
+char				*run_command(const char *);
 
 __dead printflike1 void
 yyerror(const char *fmt, ...)
@@ -722,6 +722,59 @@ find_netrc(const char *host, char **user, char **pass)
 
 	netrc_close(f);
 }
+
+char *
+run_command(const char *s)
+{
+	struct cmd	*cmd;
+	char		*lbuf, *sbuf;
+	size_t		 llen, slen;
+	char		*cause, *out, *err;
+	int		 status;
+
+	if (*s == '\0')
+		yyerror("empty command");
+
+	if ((cmd = cmd_start(s, CMD_OUT, 60, NULL, 0, &cause)) == NULL)
+		yyerror("%s: %s", s, cause);
+
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
+	slen = 1;
+	sbuf = xmalloc(slen);
+
+	*sbuf = '\0';
+	do {
+		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
+		if (status == -1) {
+			cmd_free(cmd);
+			yyerror("%s: %s", s, cause);
+		}
+		if (status == 0) {
+			if (err != NULL)
+				log_warnx("%s: %s", s, err);
+			if (out != NULL) {
+				slen += strlen(out) + 1;
+				sbuf = xrealloc(sbuf, 1, slen);
+				strlcat(sbuf, out, slen);
+				strlcat(sbuf, "\n", slen);
+			}
+		}
+	} while (status == 0);
+	status--;
+
+	if (status != 0) {
+		cmd_free(cmd);
+		yyerror("%s: command returned %d", s, status);
+	}
+
+	cmd_free(cmd);
+
+	if (slen > 1)
+		sbuf[slen - 2] = '\0';
+	return (sbuf);
+}
 %}
 
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
@@ -783,6 +836,7 @@ find_netrc(const char *host, char **user, char **pass)
 %token INCLUDE
 %token <number> NUMBER
 %token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
+%token <string> STRCOMMAND NUMCOMMAND
 
 %type  <actitem> actitem
 %type  <actlist> actlist
@@ -907,7 +961,11 @@ xstrv: STRING
        }
 
 /** STRV: <string> (char *) */
-strv: xstrv
+strv: STRCOMMAND
+      {
+	      $$ = run_command($1);
+      }
+    | xstrv
 /**   [$1: xstrv (char *)] */
       {
 	      $$ = $1;
@@ -924,7 +982,15 @@ strv: xstrv
       }
 
 /** NUMV: <number> (long long) */
-numv: NUMBER
+numv: NUMCOMMAND
+      {
+	      const char	*errstr;
+
+	      $$ = strtonum(run_command($1), 0, LLONG_MAX, &errstr);
+	      if (errstr != NULL)
+		      yyerror("number is %s", errstr);
+      }
+    | NUMBER
       {
 	      $$ = $1;
       }

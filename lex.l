@@ -65,7 +65,7 @@ char				*curfile;
 [0-9]+ {
 	const char	*errstr;
 
-        yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
+	yylval.number = strtonum(yytext, 0, LLONG_MAX, &errstr);
 	if (errstr != NULL)
 		yyerror("number is %s", errstr);
 
@@ -78,6 +78,14 @@ char				*curfile;
 \" {
 	yylval.string = read_str('"', 1);
         return (STRING);
+}
+\$\( {
+	yylval.string = read_str(')', 1);
+	return (STRCOMMAND);
+}
+\%\( {
+	yylval.string = read_str(')', 1);
+	return (NUMCOMMAND);
 }
 include[ \t]*\" {
 	struct replpath	 rp;

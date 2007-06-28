@@ -1,5 +1,18 @@
 28 June 2007
 
+* Shell commands may now be called when parsing the ruleset using $() and %()
+  operators:
+
+	%year = %(date +%y)
+
+	$arch = $(uname -m)
+	
+  These are executed at parse time and the section between the brackets is 
+  subject to escape and tag replacement similar to strings enclosed in
+  double quotes ("). As with macros, they may be used at any point a string or
+  number is appropriate.
+* The mail time tags (mail_year, mail_quarter, etc) now use underscores in their
+  names rather than dashes, for consistency.
 * Deliver append-string is no more, it is trivially replaced using rewrite.
 * Built-in cache using TDB (http://sourceforge.net/projects/tdb/). Currently
   disabled by default, enabled by building with make -DDB.
