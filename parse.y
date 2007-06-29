@@ -923,7 +923,11 @@ optval: TOKVALUE strv
 	}
 
 /** XSTRV: <string> (char *) */
-xstrv: STRING
+xstrv: STRCOMMAND
+       {
+	       $$ = run_command($1);
+       }
+     | STRING
        {
 	       $$ = $1;
        }
@@ -967,11 +971,7 @@ xstrv: STRING
        }
 
 /** STRV: <string> (char *) */
-strv: STRCOMMAND
-      {
-	      $$ = run_command($1);
-      }
-    | xstrv
+strv: xstrv
 /**   [$1: xstrv (char *)] */
       {
 	      $$ = $1;
