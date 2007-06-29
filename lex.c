@@ -198,6 +198,7 @@ yylex(void)
 		else
 			path = read_string('\'', 0);
 		include_start(path);
+		lex_include = 0;
 	}
 
 restart:
