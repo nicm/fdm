@@ -1,7 +1,8 @@
 29 June 2007
 
 * New lexer makes ifdef/ifndef/endif possible, although not completely elegant.
-  Syntax is: ifdef $macro .... endif
+  Syntax is: ifdef $macro .... endif. Note that stuff inside ifdefs must still
+  be valid syntax!
 * Scrap use of lex in favour of custom C lexer. This allows (yet another)
   workaround for include files, to make stuff like this work:
 

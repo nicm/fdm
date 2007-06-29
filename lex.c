@@ -280,7 +280,7 @@ restart:
 			goto out;
 		case '\n':
 			yylineno++;
-			/* FALLTHROUGH */
+			break;
 		case ' ':
 		case '\t':
 			break;
