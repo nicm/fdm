@@ -737,7 +737,7 @@ run_command(const char *s)
 	if (*s == '\0')
 		yyerror("empty command");
 
-	log_debug3("starting command: %s", s);
+	log_debug3("running command: %s", s);
 	if ((cmd = cmd_start(s, CMD_OUT, DEFTIMEOUT, NULL, 0, &cause)) == NULL)
 		yyerror("%s: %s", s, cause);
 
