@@ -1,3 +1,8 @@
+29 June 2007
+
+* Combine multiple IMAP deletions together into one command where possible,
+  although I doubt it makes any actual difference.
+
 28 June 2007
 
 * Shell commands may now be called when parsing the ruleset using $() and %()

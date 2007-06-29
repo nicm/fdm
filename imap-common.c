@@ -474,20 +474,43 @@ imap_next(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	struct fetch_imap_mail	*aux;
 	struct mail		*m;
+	char			 cmd[96];
+	size_t			 pos, len;
 
-	/* Delete mail if any to be deleted. */
+	/*
+	 * Delete mail if any to be deleted. The whole done queue is processed
+	 * and deletions coalesced into a single command, up to a maximum
+	 * length.
+	 */
+	pos = 0;
 	while ((m = done_mail(a, fctx)) != NULL) {
 		aux = m->auxdata;
 		if (m->decision == DECISION_KEEP) {
 			ARRAY_ADD(&data->kept, aux->uid);
 			dequeue_mail(a, fctx);
-		} else {
-			if (imap_putln(a, "%u STORE %u +FLAGS \\Deleted",
-			    ++data->tag, aux->idx) != 0)
-				return (FETCH_ERROR);
-			data->state = imap_delete;
-			return (FETCH_BLOCK);
+			continue;
 		}
+
+		len = xsnprintf(cmd + pos, (sizeof cmd) - pos, "%u,", aux->idx);
+		pos += len;
+		if (pos >= (sizeof cmd) - 12)
+			break;
+		/*
+		 * Dequeuing mail here is a logic break, but it has no actual
+		 * ill-effects: dequeuing doesn't actually do anything except
+		 * let the main loop try to close the connection once the
+		 * queue is empty, and since we ignore close requests until
+		 * we get back here after the store succeeds, it is irrelevent.
+		 */
+		dequeue_mail(a, fctx);
+	}
+	if (pos > 0) {
+		cmd[pos - 1] = '\0';
+		if (imap_putln(a,
+		    "%u STORE %s +FLAGS \\Deleted", ++data->tag, cmd) != 0)
+			return (FETCH_ERROR);
+		data->state = imap_delete;
+		return (FETCH_BLOCK);
 	}
 
 	/* Need to purge. */
@@ -766,8 +789,6 @@ imap_delete(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	if (!imap_okay(a, line))
 		return (imap_bad(a, line));
-
-	dequeue_mail(a, fctx);
 
 	data->state = imap_next;
 	return (FETCH_AGAIN);
