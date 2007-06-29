@@ -63,7 +63,7 @@ deliver_add_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	m->wrapchar = '\0';
 	fill_wrapped(m);
 
-	/* invalidate the match data since stuff may have moved */
+	/* Invalidate the match data since stuff may have moved. */
 	m->rml.valid = 0;
 
 	xfree(hdr);
