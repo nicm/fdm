@@ -778,7 +778,7 @@ imap_done2(struct account *a, struct fetch_ctx *fctx)
 
 /* Delete state. */
 int
-imap_delete(struct account *a, struct fetch_ctx *fctx)
+imap_delete(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
