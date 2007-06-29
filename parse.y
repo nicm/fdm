@@ -835,7 +835,7 @@ run_command(const char *s)
 	} userpass;
 }
 
-%token INCLUDE
+%token NONE
 %token <number> NUMBER
 %token <string> STRING STRMACRO NUMMACRO
 %token <string> STRCOMMAND NUMCOMMAND
@@ -876,7 +876,7 @@ cmds: /* empty */
     | cmds set
     | cmds close
     | cmds cache
-    | cmds INCLUDE
+    | cmds NONE
 
 /* Plural/singular combinations. */
 /** ACTIONP */

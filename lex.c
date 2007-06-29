@@ -30,9 +30,11 @@ extern int			yywrap(void);
 
 int	 	 yylex(void);
 FILE		*yyin;
-int		 yylineno;
+int		 yylineno = 1;
 char		*yyfile;
 int		 yyinclude;
+u_int		 yyifdef;
+int		 yyskip;
 
 int		 cmp_token(const void *, const void *);
 int		 read_token(int);
@@ -216,44 +218,56 @@ restart:
 			break;
 		case '\'':
 			yylval.string = read_string('\'', 0);
-			return (STRING);
+			n = STRING;
+			goto out;
 		case '"':
 			yylval.string = read_string('"', 1);
-			return (STRING);
+			n = STRING;
+			goto out;
 		case '$':
 			ch = getc(yyin);
 			if (ch == '(') {
 				yylval.string = read_command();
-				return (STRCOMMAND);
+				n = STRCOMMAND;
+				goto out;
 			}
 			if (ch == '{' || isalnum((u_char) ch)) {
 				yylval.string = read_macro('$', ch);
-				return (STRMACRO);
+				n = STRMACRO;
+				goto out;
 			}
 			yyerror("invalid macro name");
 		case '%':
 			ch = getc(yyin);
 			if (ch == '(') {
 				yylval.string = read_command();
-				return (NUMCOMMAND);
+				n = NUMCOMMAND;
+				goto out;
 			}
 			if (ch == '{' || isalnum((u_char) ch)) {
 				yylval.string = read_macro('%', ch);
-				return (NUMMACRO);
+				n = NUMMACRO;
+				goto out;
 			}
 			yyerror("invalid macro name");
 		case '=':
 			ch = getc(yyin);
-			if (ch == '=')
-				return (TOKEQ);
+			if (ch == '=') {
+				n = TOKEQ;
+				goto out;
+			}
 			ungetc(ch, yyin);
-			return ('=');
+			n = '=';
+			goto out;
 		case '!':
 			ch = getc(yyin);
-			if (ch == '=')
-				return (TOKNE);
+			if (ch == '=') {
+				n = TOKNE; 
+				goto out;
+			}
 			ungetc(ch, yyin);
-			return ('!');
+			n = '!';
+			goto out;
 		case '+':
 		case '(':
 		case ')':
@@ -262,7 +276,8 @@ restart:
 		case '>':
 		case '{':
 		case '}':
-			return (ch);
+			n = ch;
+			goto out;
 		case '\n':
 			yylineno++;
 			/* FALLTHROUGH */
@@ -275,18 +290,25 @@ restart:
 
 			if (isdigit((u_char) ch)) {
 				yylval.number = read_number(ch);
-				return (NUMBER);
+				n = NUMBER;
+				goto out;
 			}
+
 			n = read_token(ch);
-			if (n != EOF)
-				return (n);
-			break;
+			goto out;
 		}
 	}
 
 	if (!yywrap())
 		goto restart;
+	if (yyifdef != 0)
+		yyerror("missing endif");
 	return (EOF);
+
+out:
+	if (yyskip)
+		goto restart;
+	return (n); 
 }
 
 int
@@ -300,9 +322,11 @@ cmp_token(const void *name, const void *ptr)
 int
 read_token(int ch)
 {
-	char		 token[128];
+	int		 ch2;
+	char		 token[128], *name;
 	size_t		 tlen;
 	struct token	*ptr;
+	struct macro	*macro;
 
 	tlen = 0;
 	token[tlen++] = ch;
@@ -316,13 +340,45 @@ read_token(int ch)
 	token[tlen] = '\0';
 	ungetc(ch, yyin);
 
+	/*
+	 * ifdef/ifndef/endif is special-cased here since it is really really
+	 * hard to make work with yacc.
+	 */
+	if (strcmp(token, "ifdef") == 0 || strcmp(token, "ifndef") == 0) {
+		while ((ch = getc(yyin)) != EOF && isspace((u_char) ch))
+			;
+
+		if (ch != '$' && ch != '%')
+			yyerror("syntax error");
+		ch2 = getc(yyin);
+		if (ch2 != '{' && !isalnum((u_char) ch2))
+			yyerror("invalid macro name");
+		name = read_macro(ch, ch2);
+
+		macro = find_macro(name);
+		if (!yyskip && token[2] == 'n' && macro != NULL)
+			yyskip = 1;
+		if (!yyskip && token[2] != 'n' && macro == NULL)
+			yyskip = 1;
+		yyifdef++;
+		return (NONE);
+	}
+	if (strcmp(token, "endif") == 0) {
+		if (yyifdef == 0)
+			yyerror("spurious endif");
+		yyifdef--;
+		if (yyifdef == 0)
+			yyskip = 0;
+		return (NONE);
+	}
+
 	if (strcmp(token, "include") == 0) {
 		/*
 		 * This is a bit strange. yacc may have symbols buffered and be
 		 * waiting for more to decide which production to match, so we
 		 * can't just switch file now. So, we set a flag that tells
 		 * yylex to switch files next time it's called and return the
-		 * INCLUDE symbol. This is a placeholder not used in any real
+		 * NONE symbol. This is a placeholder not used in any real
 		 * productions, so it should cause yacc to match using whatever
 		 * it has (assuming it can). If we don't do this, there are
 		 * problems with things like:
@@ -335,7 +391,7 @@ read_token(int ch)
 		 * build the include file path.
 		 */
 		yyinclude = 1;
-		return (INCLUDE);
+		return (NONE);
 	}
 
 	ptr = bsearch(token, tokens,

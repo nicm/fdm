@@ -12,7 +12,6 @@
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
-- ifdef/endif directives in config file, change -D to not require a value
 - get only read/unread mail (IMAP only, probably) (read-only, unread-only)
   flags to account line
 - handle multiple header instances when looking for users (other places?)
@@ -30,3 +29,4 @@
 - should time stuff use localtime or gmtime?
 - document $() and %()
 - decide everything for cache and document it
+- document ifdef/ifndef/endif
