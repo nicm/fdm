@@ -96,14 +96,14 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	}
 	log_debug2("%s: saving to mbox %s", a->name, path);
 
-	/* save the mbox path */
+	/* Save the mbox path. */
 	add_tag(&m->tags, "mbox_file", "%s", path);
 
-	/* create a from line for the mail */
+	/* Create a from line for the mail. */
 	from = make_from(m);
 	log_debug3("%s: using from line: %s", a->name, from);
 
-	/* check permissions and ownership */
+	/* Check permissions and ownership. */
 	if (checkperms(a->name, path, &exists) != 0) {
 		log_warn("%s: %s: checkperms", a->name, path);
 		goto out;
@@ -136,7 +136,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		}
 	}
 
-	/* open for compressed writing if necessary */
+	/* Open for compressed writing if necessary. */
 	if (data->compress) {
 		if ((fd2 = dup(fd)) < 0)
 			fatal("dup");
@@ -160,7 +160,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
 		fatal("sigprocmask");
 
-	/* write the from line */
+	/* Write the from line. */
 	if (deliver_mbox_write(fd, gzf, from, strlen(from)) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out2;
@@ -170,11 +170,11 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		goto out2;
 	}
 
-	/* write the mail */
+	/* Write the mail. */
 	line_init(m, &ptr, &len);
 	while (ptr != NULL) {
 		if (ptr != m->data) {
-			/* skip >s */
+			/* Skip >s. */
 			ptr2 = ptr;
 			len2 = len;
 			while (*ptr2 == '>' && len2 > 0) {

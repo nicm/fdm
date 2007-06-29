@@ -64,7 +64,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	}
 	log_debug2("%s: saving to maildir %s", a->name, path);
 
-	/* create the maildir directories */
+	/* Create the maildir directories. */
 	gid = conf.file_group;
 	if (checkperms(a->name, path, &exists) != 0) {
 		log_warn("%s: %s: checkperms", a->name, path);
@@ -126,8 +126,10 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	if (gethostname(host1, sizeof host1) != 0)
 		fatal("gethostname");
 
-	/* replace '/' with "\057" and ':' with "\072". this is a bit
-	   inefficient but sod it */
+	/*
+	 * Replace '/' with "\057" and ':' with "\072". this is a bit
+	 * inefficient but sod it.
+	 */
 	last = strcspn(host1, "/:");
 	if (host1[last] == '\0')
 		host = host1;
@@ -157,7 +159,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	}
 
 restart:
-	/* find a suitable name in tmp */
+	/* Find a suitable name in tmp. */
 	do {
 		len = xsnprintf(name, sizeof name, "%ld.%ld_%u.%s",
 		    (long) time(NULL), (long) getpid(), delivered, host);
@@ -189,7 +191,7 @@ restart:
 		}
 	}
 
-	/* write the message */
+	/* Write the message. */
 	log_debug2("%s: writing to %s", a->name, src);
 	n = write(fd, m->data, m->size);
 	if (n < 0 || (size_t) n != m->size || fsync(fd) != 0) {
@@ -199,8 +201,10 @@ restart:
 	close(fd);
 	fd = -1;
 
-	/* create the new path and attempt to link it. a failed link jumps
-	   back to find another name in the tmp directory */
+	/*
+	 * Create the new path and attempt to link it. a failed link jumps
+	 * back to find another name in the tmp directory.
+	 */
 	if (printpath(dst, sizeof dst, "%s/new/%s", path, name) != 0) {
 		log_warn("%s: %s: printpath", a->name, path);
 		goto error;
@@ -221,7 +225,7 @@ restart:
 		goto error;
 	}
 
-	/* unlink the original tmp file */
+	/* Unlink the original tmp file. */
 	log_debug2("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
 	if (unlink(src) != 0) {
 		log_warn("%s: %s: unlink", a->name, src);
@@ -229,7 +233,7 @@ restart:
 	}
 	cleanup_deregister(src);
 
-	/* save the mail file as a tag */
+	/* Save the mail file as a tag. */
 	add_tag(&m->tags, "mail_file", "%s", dst);
 
 	if (path != NULL)

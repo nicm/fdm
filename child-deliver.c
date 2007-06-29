@@ -48,16 +48,16 @@ child_deliver(struct child *child, struct io *io)
 	setproctitle("%s[%lu]", data->name, (u_long) geteuid());
 #endif
 
-	/* refresh user and home and fix tags */
+	/* Refresh user and home and fix tags. */
 	fill_info(NULL);
 	update_tags(&m->tags);
 	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
 	    conf.info.home);
 
-	/* call the hook */
+	/* Call the hook. */
 	data->hook(0, a, &msg, data, &msg.data.error);
 
-	/* inform parent we're done */
+	/* Inform parent we're done. */
 	msg.type = MSG_DONE;
 	msg.id = 0;
 
@@ -88,9 +88,9 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 	struct mail		*m = data->mail;
 	struct mail		*md = &dctx->wr_mail;
 
-	/* check if this is the parent */
+	/* Check if this is the parent. */
 	if (pid != 0) {
-		/* use new mail if necessary */
+		/* Use new mail if necessary. */
 		if (ti->deliver->type != DELIVER_WRBACK) {
 			xfree(dctx);
 			return;
@@ -113,7 +113,7 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 		return;
 	}
 
-	/* this is the child. do the delivery */
+	/* This is the child. do the delivery. */
 	*result = ti->deliver->deliver(dctx, ti);
 	if (ti->deliver->type != DELIVER_WRBACK || *result != DELIVER_SUCCESS)
 		return;
@@ -136,13 +136,13 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	struct rmlist			 rml;
 	u_int				 i;
 
-	/* if this is the parent, do nothing */
+	/* If this is the parent, do nothing. */
 	if (pid != 0) {
 		xfree(mctx);
 		return;
 	}
 
-	/* sort out the command */
+	/* Sort out the command. */
 	s = replacepath(&cmddata->cmd, m->tags, m, &m->rml);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
@@ -166,7 +166,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	lbuf = xmalloc(llen);
 
 	for (;;) {
-		/* stop early if looking for regexp only */
+		/* Stop early if looking for regexp only. */
 		if (found && cmddata->ret == -1) {
 			log_debug3("%s: %s: found. stopping early", a->name, s);
 			status = 1;
@@ -195,7 +195,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		}
 		if (found != 1)
 			continue;
-		/* save the matches */
+		/* Save the matches. */
 		if (!rml.valid)
 			continue;
 		for (i = 0; i < NPMATCH; i++) {

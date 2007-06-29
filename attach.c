@@ -122,7 +122,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	len -= 13;
 	hdr += 13;
 
-	/* skip spaces */
+	/* Skip spaces. */
 	while (len > 0 && isspace((u_char) *hdr)) {
 		len--;
 		hdr++;
@@ -130,14 +130,14 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	if (len == 0)
 		goto error;
 
-	/* find end of line */
+	/* Find end of line. */
 	ptr = memchr(hdr, '\n', len);
 	if (ptr == NULL)
 		llen = len;
 	else
 		llen = ptr - hdr;
 
-	/* find type */
+	/* Find type. */
 	ptr = memchr(hdr, ';', llen);
 	if (ptr == NULL)
 		ptr = hdr + llen;
@@ -147,10 +147,10 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	len -= ptr - hdr;
 	hdr = ptr;
 
-	/* if this is now the end of the line, return the type */
+	/* If this is now the end of the line, return the type. */
 	if (len == 0 || *ptr == '\n')
 		return (type);
-	/* skip the semicolon */
+	/* Skip the semicolon. */
 	len--;
 	hdr++;
 
@@ -161,7 +161,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	 */
 	namelen = strlen(name);
 	for (;;) {
-		/* skip spaces and newlines */
+		/* Skip spaces and newlines. */
 		while (len > 0 && (isspace((u_char) *hdr) || *hdr == '\n')) {
 			hdr++;
 			len--;
@@ -169,14 +169,14 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 		if (len == 0)
 			goto error;
 
-		/* find end of line */
+		/* Find end of line. */
 		ptr = memchr(hdr, '\n', len);
 		if (ptr == NULL)
 			llen = len;
 		else
 			llen = ptr - hdr;
 
-		/* find the end of the attribute name */
+		/* Find the end of the attribute name. */
 		ptr = memchr(hdr, '=', llen);
 		if (ptr == NULL)
 			break;
@@ -200,7 +200,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 			break;
 		}
 
-		/* skip to next semicolon */
+		/* Skip to next semicolon. */
 		ptr = memchr(hdr, ';', llen);
 		if (ptr == NULL)
 			break;
@@ -250,7 +250,7 @@ attach_build(struct mail *m)
 	TAILQ_INIT(&atr->children);
 	atr->type = type;
 
-	/* find the first boundary */
+	/* Find the first boundary. */
 	line_init(m, &ptr, &len);
 	while (ptr != NULL) {
 		if (ptr[0] == '-' && ptr[1] == '-') {
@@ -262,7 +262,7 @@ attach_build(struct mail *m)
 	if (ptr == NULL)
 		goto error;
 
-	/* now iterate over the rest */
+	/* Now iterate over the rest. */
 	last = 0;
 	n = 0;
 	while (ptr != NULL && !last) {
@@ -327,7 +327,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 	atr->name = name;
 
 	if (strncasecmp(atr->type, "multipart/", 10) != 0) {
-		/* skip the remaining headers */
+		/* Skip the remaining headers. */
 		while (*ptr != NULL && *len > 1)
 			line_next(m, ptr, len);
 		if (*ptr == NULL)
@@ -354,14 +354,14 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 
 		atr->size = *ptr - m->data - atr->data;
 	} else {
-		/* XXX avoid doing this twice */
+		/* XXX avoid doing this twice. */
 		xfree(atr->type);
 		atr->type = attach_type(m, *ptr, "boundary", &b2);
 		if (b2 == NULL)
 			goto error;
 		bl2 = strlen(b2);
 
-		/* find the first boundary */
+		/* Find the first boundary. */
 		while (*ptr != NULL) {
 			if ((*ptr)[0] == '-' && (*ptr)[1] == '-') {
 				if (*len - 3 == bl2 &&
@@ -373,7 +373,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 		if (ptr == NULL)
 			goto error;
 
-		/* now iterate over the rest */
+		/* Now iterate over the rest. */
 		last2 = 0;
 		n = 0;
 		while (*ptr != NULL && !last2) {
@@ -385,7 +385,7 @@ attach_get(struct mail *m, char **ptr, size_t *len, const char *b, int *last)
 			TAILQ_INSERT_TAIL(&atr->children, at, entry);
 		}
 
-		/* and skip on to the end of the multipart */
+		/* And skip on to the end of the multipart. */
 		while (*ptr != NULL) {
 			if ((*ptr)[0] == '-' && (*ptr)[1] == '-') {
 				if (*len - 5 == bl2 &&
