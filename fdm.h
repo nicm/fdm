@@ -741,6 +741,14 @@ enum cmp {
 	CMP_GT
 };
 
+/* Configuration file (used by parser). */
+struct file {
+	FILE		*f;
+	int		 line;
+	const char	*path;
+};
+ARRAY_DECL(files, struct file *);
+
 #ifdef NO_SETRESUID
 #define setresuid(r, e, s) setreuid(r, e)
 #endif
@@ -779,30 +787,39 @@ void		*shm_reopen(struct shm *);
 void		*shm_resize(struct shm *, size_t, size_t);
 
 /* lex.c */
-extern FILE	*yyin;
-extern int	 yylineno;
-extern char	*yyfile;
-#define YYFILE (yyfile == NULL ? conf.conf_file : yyfile)
-void		 include_start(char *);
-int		 include_finish(void);
+int 	 	 	yylex(void);
 
 /* parse.y */
-extern struct strb  *parse_tags;
-extern struct macros macros;
-struct users	*weed_users(struct users *);
-struct strings 	*weed_strings(struct strings *);
-void		 free_replstrs(struct replstrs *);
+extern struct macros	parse_macros;
+extern struct files     parse_filestack;
+extern struct file     *parse_file;
+int	 		parse_conf(const char *);
+__dead printflike1 void yyerror(const char *, ...);
+
+/* parse-fn.c */
+char		*expand_path(const char *);
+char		*run_command(const char *, const char *);
 char 		*fmt_replstrs(const char *, struct replstrs *);
-void		 free_strings(struct strings *);
 char 		*fmt_strings(const char *, struct strings *);
 char 		*fmt_users(const char *, struct users *);
-struct macro	*find_macro(const char *);
+int		 have_accounts(char *);
+struct account	*find_account(char *);
+struct action  	*find_action(char *);
 struct actions	*match_actions(const char *);
-void		 free_action(struct action *);
-void		 free_rule(struct rule *);
+struct macro	*find_macro(const char *);
+struct strings 	*weed_strings(struct strings *);
+struct users	*weed_users(struct users *);
+void		 find_netrc(const char *, char **, char **);
 void		 free_account(struct account *);
+void		 free_action(struct action *);
+void		 free_actitem(struct actitem *);
 void		 free_cache(struct cache *);
-char		*expand_path(const char *);
+void		 free_replstrs(struct replstrs *);
+void		 free_rule(struct rule *);
+void		 free_strings(struct strings *);
+void		 make_actlist(struct actlist *, char *, size_t);
+void		 print_action(struct action *);
+void		 print_rule(struct rule *);
 
 /* netrc.c */
 FILE 		*netrc_open(const char *, char **);

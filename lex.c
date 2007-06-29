@@ -25,16 +25,11 @@
 #include "fdm.h"
 #include "y.tab.h"
 
-extern __dead printflike1 void	yyerror(const char *, ...);
-extern int			yywrap(void);
+int		 lex_include;
+u_int		 lex_ifdef;
+int		 lex_skip;
 
 int	 	 yylex(void);
-FILE		*yyin;
-int		 yylineno = 1;
-char		*yyfile;
-int		 yyinclude;
-u_int		 yyifdef;
-int		 yyskip;
 
 int		 cmp_token(const void *, const void *);
 int		 read_token(int);
@@ -42,13 +37,11 @@ long long	 read_number(int);
 char	 	*read_macro(int, int);
 char		*read_command(void);
 char		*read_string(char, int);
+void		 include_start(char *);
+int		 include_finish(void);
 
-struct file {
-	FILE	*yyin;
-	int	 yylineno;
-	char	*yyfile;
-};
-ARRAY_DECL(, struct file *) filestack;
+#define lex_getc() getc(parse_file->f)
+#define lex_ungetc(ch) ungetc(ch, parse_file->f)
 
 struct token {
 	const char	*name;
@@ -194,8 +187,8 @@ yylex(void)
 	char	*path;
 
 	/* Switch to new file. See comment in read_token below. */
-	if (yyinclude) {
-		while ((ch = getc(yyin)) != EOF && isspace((u_char) ch))
+	if (lex_include) {
+		while ((ch = lex_getc()) != EOF && isspace((u_char) ch))
 			;
 		
 		if (ch != '"' && ch != '\'')
@@ -208,13 +201,13 @@ yylex(void)
 	}
 
 restart:
-	while ((ch = getc(yyin)) != EOF) {
+	while ((ch = lex_getc()) != EOF) {
 		switch (ch) {
 		case '#':
 			/* Comment: discard until EOL. */
-			while ((ch = getc(yyin)) != '\n' && ch != EOF)
+			while ((ch = lex_getc()) != '\n' && ch != EOF)
 				;
-			yylineno++;
+			parse_file->line++;
 			break;
 		case '\'':
 			yylval.string = read_string('\'', 0);
@@ -225,7 +218,7 @@ restart:
 			value = STRING;
 			goto out;
 		case '$':
-			ch = getc(yyin);
+			ch = lex_getc();
 			if (ch == '(') {
 				yylval.string = read_command();
 				value = STRCOMMAND;
@@ -238,7 +231,7 @@ restart:
 			}
 			yyerror("invalid macro name");
 		case '%':
-			ch = getc(yyin);
+			ch = lex_getc();
 			if (ch == '(') {
 				yylval.string = read_command();
 				value = NUMCOMMAND;
@@ -251,21 +244,21 @@ restart:
 			}
 			yyerror("invalid macro name");
 		case '=':
-			ch = getc(yyin);
+			ch = lex_getc();
 			if (ch == '=') {
 				value = TOKEQ;
 				goto out;
 			}
-			ungetc(ch, yyin);
+			lex_ungetc(ch);
 			value = '=';
 			goto out;
 		case '!':
-			ch = getc(yyin);
+			ch = lex_getc();
 			if (ch == '=') {
 				value = TOKNE; 
 				goto out;
 			}
-			ungetc(ch, yyin);
+			lex_ungetc(ch);
 			value = '!';
 			goto out;
 		case '+':
@@ -279,7 +272,7 @@ restart:
 			value = ch;
 			goto out;
 		case '\n':
-			yylineno++;
+			parse_file->line++;
 			break;
 		case ' ':
 		case '\t':
@@ -299,14 +292,14 @@ restart:
 		}
 	}
 
-	if (!yywrap())
+	if (!include_finish())
 		goto restart;
-	if (yyifdef != 0)
+	if (lex_ifdef != 0)
 		yyerror("missing endif");
 	return (EOF);
 
 out:
-	if (yyskip)
+	if (lex_skip)
 		goto restart;
 	return (value); 
 }
@@ -330,7 +323,7 @@ read_token(int ch)
 
 	tlen = 0;
 	token[tlen++] = ch;
-	while ((ch = getc(yyin)) != EOF) {
+	while ((ch = lex_getc()) != EOF) {
 		if (!isalnum((u_char) ch) && ch != '-' && ch != '_')
 			break;
 		token[tlen++] = ch;
@@ -338,37 +331,37 @@ read_token(int ch)
 			yyerror("token too long");
 	}
 	token[tlen] = '\0';
-	ungetc(ch, yyin);
+	lex_ungetc(ch);
 
 	/*
 	 * ifdef/ifndef/endif is special-cased here since it is really really
 	 * hard to make work with yacc.
 	 */
 	if (strcmp(token, "ifdef") == 0 || strcmp(token, "ifndef") == 0) {
-		while ((ch = getc(yyin)) != EOF && isspace((u_char) ch))
+		while ((ch = lex_getc()) != EOF && isspace((u_char) ch))
 			;
 
 		if (ch != '$' && ch != '%')
 			yyerror("syntax error");
-		ch2 = getc(yyin);
+		ch2 = lex_getc();
 		if (ch2 != '{' && !isalnum((u_char) ch2))
 			yyerror("invalid macro name");
 		name = read_macro(ch, ch2);
 
 		macro = find_macro(name);
-		if (!yyskip && token[2] == 'n' && macro != NULL)
-			yyskip = 1;
-		if (!yyskip && token[2] != 'n' && macro == NULL)
-			yyskip = 1;
-		yyifdef++;
+		if (!lex_skip && token[2] == 'n' && macro != NULL)
+			lex_skip = 1;
+		if (!lex_skip && token[2] != 'n' && macro == NULL)
+			lex_skip = 1;
+		lex_ifdef++;
 		return (NONE);
 	}
 	if (strcmp(token, "endif") == 0) {
-		if (yyifdef == 0)
+		if (lex_ifdef == 0)
 			yyerror("spurious endif");
-		yyifdef--;
-		if (yyifdef == 0)
-			yyskip = 0;
+		lex_ifdef--;
+		if (lex_ifdef == 0)
+			lex_skip = 0;
 		return (NONE);
 	}
 
@@ -390,7 +383,7 @@ read_token(int ch)
 		 * previous line, so the macro doesn't exist when we try to
 		 * build the include file path.
 		 */
-		yyinclude = 1;
+		lex_include = 1;
 		return (NONE);
 	}
 
@@ -411,7 +404,7 @@ read_number(int ch)
 
 	nlen = 0;
 	number[nlen++] = ch;
-	while ((ch = getc(yyin)) != EOF) {
+	while ((ch = lex_getc()) != EOF) {
 		if (!isdigit((u_char) ch))
 			break;
 		number[nlen++] = ch;
@@ -419,7 +412,7 @@ read_number(int ch)
 			yyerror("number too long");
 	}
 	number[nlen] = '\0';
-	ungetc(ch, yyin);
+	lex_ungetc(ch);
 
 	n = strtonum(number, 0, LLONG_MAX, &errstr);
 	if (errstr != NULL)
@@ -436,7 +429,7 @@ read_macro(int type, int ch)
 
 	brackets = 0;
 	if (ch == '{') {
-		ch = getc(yyin);
+		ch = lex_getc();
 		if (!isalnum((u_char) ch))
 			yyerror("invalid macro name");
 		brackets = 1;
@@ -445,7 +438,7 @@ read_macro(int type, int ch)
 	nlen = 0;
 	name[nlen++] = type;
 	name[nlen++] = ch;
-	while ((ch = getc(yyin)) != EOF) {
+	while ((ch = lex_getc()) != EOF) {
 		if (!isalnum((u_char) ch) && ch != '-' && ch != '_')
 			break;
 		name[nlen++] = ch;
@@ -454,7 +447,7 @@ read_macro(int type, int ch)
 	}
  	name[nlen] = '\0';
 	if (!brackets)
-		ungetc(ch, yyin);
+		lex_ungetc(ch);
 
 	if (brackets && ch != '}')
 		yyerror("missing }");
@@ -475,7 +468,7 @@ read_command(void)
         buf = xmalloc(len + 1);
 
 	nesting = 0;
-        while ((ch = getc(yyin)) != EOF) {
+        while ((ch = lex_getc()) != EOF) {
 		switch (ch) {
 		case '(':
 			nesting++;
@@ -528,14 +521,14 @@ read_string(char endch, int esc)
         buf = xmalloc(len + 1);
 
 	pos = 0;
-        while ((ch = getc(yyin)) != endch) {
+        while ((ch = lex_getc()) != endch) {
                 switch (ch) {
 		case EOF:
 			yyerror("missing %c", endch);
                 case '\\':
 			if (!esc)
 				break;
-                        switch (ch = getc(yyin)) {
+                        switch (ch = lex_getc()) {
 			case EOF:
 				yyerror("missing %c", endch);
                         case 'r':
@@ -555,11 +548,11 @@ read_string(char endch, int esc)
 				break;
 			oldch = ch;
 
-			ch = getc(yyin);
+			ch = lex_getc();
 			if (ch == EOF)
 				yyerror("missing %c", endch);
 			if (ch != '{') {
-				ungetc(ch, yyin);
+				lex_ungetc(ch);
 				ch = oldch;
 				break;
 			}
@@ -595,56 +588,39 @@ read_string(char endch, int esc)
 void
 include_start(char *file)
 {
-	char		*path;
-	struct file	*top;
+	char	*path;
+	FILE	*f;	
 
 	if (*file == '\0')
 		yyerror("invalid include file");
 
-	top = xmalloc(sizeof *top);
-	top->yyin = yyin;
-	top->yylineno = yylineno;
-	top->yyfile = yyfile;
-	ARRAY_ADD(&filestack, top);
-
-	yyin = fopen(file, "r");
-	if (yyin == NULL) {
+	if ((f = fopen(file, "r")) == NULL) {
 		xasprintf(&path, "%s/%s", xdirname(conf.conf_file), file);
-		if (access(path, R_OK) != 0)
+		if ((f = fopen(path, "r")) == NULL)
 			yyerror("%s: %s", path, strerror(errno));
-		yyin = fopen(path, "r");
-		if (yyin == NULL)
-			yyerror("%s: %s", path, strerror(errno));
-		yyfile = path;
 		xfree(file);
 	} else
-		yyfile = file;
+		path = file;
 
-	log_debug2("including file %s", yyfile);
-	yylineno = 1;
+	ARRAY_ADD(&parse_filestack, parse_file);
+	parse_file = xmalloc(sizeof *parse_file);
+	parse_file->f = f;
+	parse_file->line = 1;
+	parse_file->path = path;
+
+	log_debug2("including file %s", parse_file->path);
 }
 
 int
 include_finish(void)
 {
-	struct file	*top;
-
-	if (ARRAY_EMPTY(&filestack)) {
-		ARRAY_FREE(&filestack);
+	if (ARRAY_EMPTY(&parse_filestack))
 		return (1);
-	}
+	log_debug2("finished file %s", parse_file->path);
 
-	log_debug2("finished file %s", yyfile);
-
-	top = ARRAY_LAST(&filestack);
-	yyin = top->yyin;
-	yylineno = top->yylineno;
-
-	xfree(yyfile);
-	yyfile = top->yyfile;
-
-	xfree(top);
-	ARRAY_TRUNC(&filestack, 1);
+	xfree(parse_file);
+	parse_file = ARRAY_LAST(&parse_filestack);
+	ARRAY_TRUNC(&parse_filestack, 1);
 
 	return (0);
 }

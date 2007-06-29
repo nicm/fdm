@@ -40,7 +40,7 @@ SRCS= fdm.c \
       match-matched.c match-regexp.c match-size.c match-string.c \
       match-tagged.c  match-unmatched.c \
       parent-deliver.c parent-fetch.c \
-      y.tab.c lex.c
+      y.tab.c parse-fn.c lex.c
 
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
 

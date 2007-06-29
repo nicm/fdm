@@ -27,7 +27,7 @@ SRCS= fdm.c \
       match-matched.c match-regexp.c match-size.c match-string.c \
       match-tagged.c  match-unmatched.c \
       parent-deliver.c parent-fetch.c \
-      parse.y lex.c
+      parse.y parse-fn.c lex.c
 HDRS= fdm.h array.h fetch.h match.h deliver.h
 
 YACC= yacc -d
