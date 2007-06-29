@@ -1,5 +1,7 @@
 29 June 2007
 
+* Split parse helper functions out into parse-fn.c and do lots of other cleanup 
+  of parse.y and lex.c.
 * New lexer makes ifdef/ifndef/endif possible, although not completely elegant.
   Syntax is: ifdef $macro .... endif. Note that stuff inside ifdefs must still
   be valid syntax!

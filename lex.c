@@ -25,20 +25,20 @@
 #include "fdm.h"
 #include "y.tab.h"
 
-int		 lex_include;
-u_int		 lex_ifdef;
-int		 lex_skip;
+int	  lex_include;
+u_int	  lex_ifdef;
+int	  lex_skip;
 
-int	 	 yylex(void);
+int	  yylex(void);
 
-int		 cmp_token(const void *, const void *);
-int		 read_token(int);
-long long	 read_number(int);
-char	 	*read_macro(int, int);
-char		*read_command(void);
-char		*read_string(char, int);
-void		 include_start(char *);
-int		 include_finish(void);
+int	  cmp_token(const void *, const void *);
+int	  read_token(int);
+long long read_number(int);
+char	 *read_macro(int, int);
+char	 *read_command(void);
+char	 *read_string(char, int);
+void	  include_start(char *);
+int	  include_finish(void);
 
 #define lex_getc() getc(parse_file->f)
 #define lex_ungetc(ch) ungetc(ch, parse_file->f)
@@ -368,14 +368,16 @@ read_token(int ch)
 
 	if (strcmp(token, "include") == 0) {
 		/*
-		 * This is a bit strange. yacc may have symbols buffered and be
-		 * waiting for more to decide which production to match, so we
-		 * can't just switch file now. So, we set a flag that tells
-		 * yylex to switch files next time it's called and return the
-		 * NONE symbol. This is a placeholder not used in any real
-		 * productions, so it should cause yacc to match using whatever
-		 * it has (assuming it can). If we don't do this, there are
-		 * problems with things like:
+		 * This is a bit strange.
+		 *
+		 * yacc may have symbols buffered and be waiting for more to
+		 * decide which production to match, so we can't just switch
+		 * file now. So, we set a flag that tells yylex to switch files
+		 * next time it's called and return the NONE symbol. This is a
+		 * placeholder not used in any real productions, so it should
+		 * cause yacc to match using whatever it has (assuming it
+		 * can). If we don't do this, there are problems with things
+		 * like:
 		 *
 		 * 	$file = "abc"
 		 * 	include "${file}"
