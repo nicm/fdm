@@ -62,14 +62,14 @@ parse_conf(const char *path)
 
 	ARRAY_INIT(&parse_filestack);
 	parse_file = xmalloc(sizeof *parse_file);
-	    
+
 	parse_file->f = f;
 	parse_file->line = 1;
 	parse_file->path = path;
 
 	strb_create(&parse_tags);
 	default_tags(&parse_tags, NULL);
-	
+
 	TAILQ_INIT(&parse_macros);
 
         yyparse();
