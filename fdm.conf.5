@@ -486,6 +486,19 @@ The current day of the week (0-6, Sunday is 0).
 The current day of the year (000-365).
 .It quarter (%Q)
 The current quarter (1-4).
+.It mail_hour
+The hour from the mail's date header, if it exists and is valid, otherwise the
+current time.
+.It mail_minute
+The minute from the mail's date header.
+.It mail_second
+The second from the mail's date header.
+.It mail_day
+The day from the mail's date header.
+.It mail_month
+The month from the mail's date header.
+.It mail_year
+The year from the mail's date header.
 .El
 .Pp
 In addition, the shorthand %% is replaced with a literal %, and %0 to %9 are
