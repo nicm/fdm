@@ -185,13 +185,6 @@ struct macro {
 };
 TAILQ_HEAD(macros, macro);
 
-/* Valid macro name chars. */
-#define ismacrofirst(c) (						\
-	((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
-#define ismacro(c) (							\
-	((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z') ||	\
-	((c) >= '0' && (c) <= '9') || (c) == '_' || (c) == '-')
-
 /* Command-line commands. */
 enum fdmop {
 	FDMOP_NONE = 0,
@@ -785,8 +778,11 @@ void		 shm_close(struct shm *);
 void		*shm_reopen(struct shm *);
 void		*shm_resize(struct shm *, size_t, size_t);
 
-/* lex.l */
-extern char	*curfile;
+/* lex.c */
+extern FILE	*yyin;
+extern int	 yylineno;
+extern char	*yyfile;
+#define YYFILE (yyfile == NULL ? conf.conf_file : yyfile)
 void		 include_start(char *);
 int		 include_finish(void);
 

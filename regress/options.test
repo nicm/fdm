@@ -1,7 +1,7 @@
 # $Id$
 
-set lock-types abcdef
-@1 ^/dev/stdin: syntax error at line .$
+set lock-types test
+@1 ^/dev/stdin: unknown token: test at line .$
 set lock-types flock
 @0 ^locking using: flock $
 set lock-types fcntl
@@ -88,7 +88,7 @@ set unmatched-mail drop
 set unmatched-mail keep
 @0 ^options are:.*unmatched-mail=keep
 set unmatched-mail test
-@1 ^/dev/stdin: syntax error at line .$
+@1 ^/dev/stdin: unknown token: test at line .$
 
 set file-umask 777
 @0 ^options are:.*file-umask=777
@@ -96,8 +96,8 @@ set file-umask 0
 @0 ^options are:.*file-umask=000
 set file-umask 7777
 @1 ^/dev/stdin: invalid umask: 7777 at line .$
-set file-umask abc
-@1 ^/dev/stdin: syntax error at line .$
+set file-umask test
+@1 ^/dev/stdin: unknown token: test at line .$
 
 set file-group 0
 @0 ^options are:.*file-group=0

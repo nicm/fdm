@@ -21,9 +21,6 @@ YACC= bison
 YFLAGS= -dy
 endif
 
-LEX= flex
-LFLAGS= -l
-
 INSTALLBIN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 555
 INSTALLMAN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 
@@ -31,7 +28,7 @@ SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
       child-deliver.c child-fetch.c child.c \
       pcre.c re.c privsep.c replace.c shm-mmap.c strb.c db-tdb.c \
-      xmalloc-debug.c  xmalloc.c \
+      xmalloc-debug.c xmalloc.c \
       deliver-add-header.c deliver-append.c deliver-drop.c deliver-exec.c \
       deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-pipe.c \
       deliver-remove-header.c deliver-rewrite.c deliver-smtp.c \
@@ -43,7 +40,7 @@ SRCS= fdm.c \
       match-matched.c match-regexp.c match-size.c match-string.c \
       match-tagged.c  match-unmatched.c \
       parent-deliver.c parent-fetch.c \
-      y.tab.c lex.yy.c
+      y.tab.c lex.c
 
 DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
 
@@ -83,7 +80,7 @@ endif
 
 LIBS+= -lssl -lz
 
-CLEANFILES= $(PROG) y.tab.c lex.yy.c y.tab.h $(OBJS) .depend
+CLEANFILES= $(PROG) y.tab.c y.tab.h $(OBJS) .depend
 
 all: fdm
 
@@ -95,9 +92,6 @@ depend: $(SRCS)
 
 y.tab.c y.tab.h: parse.y
 	$(YACC) $(YFLAGS) $<
-
-lex.yy.c: lex.l
-	$(LEX) $(LFLAGS) $<
 
 install:
 	$(INSTALLBIN) $(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)

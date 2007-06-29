@@ -52,7 +52,6 @@ struct rule			*currule;
 extern FILE			*yyin;
 extern int		 	 yylineno;
 extern int 		 	 yylex(void);
-extern void		 	 yyrestart(FILE *);
 
 int			 	 yyparse(void);
 __dead printflike1 void  	 yyerror(const char *, ...);
@@ -73,10 +72,9 @@ __dead printflike1 void
 yyerror(const char *fmt, ...)
 {
 	va_list	ap;
-	char   *s, *file;
+	char   *s;
 
-	file = curfile == NULL ? conf.conf_file : curfile;
-	xasprintf(&s, "%s: %s at line %d", file, fmt, yylineno);
+	xasprintf(&s, "%s: %s at line %d", YYFILE, fmt, yylineno);
 
 	va_start(ap, fmt);
 	vlog(stderr, LOG_CRIT, s, ap);
@@ -729,10 +727,8 @@ run_command(const char *s)
 	struct cmd	*cmd;
 	char		*lbuf, *sbuf;
 	size_t		 llen, slen;
-	char		*cause, *out, *err, *file;
+	char		*cause, *out, *err;
 	int		 status;
-
-	file = curfile == NULL ? conf.conf_file : curfile;
 
 	if (*s == '\0')
 		yyerror("empty command");
@@ -756,7 +752,7 @@ run_command(const char *s)
 		}
 		if (status == 0) {
 			if (err != NULL)
-				log_warnx("%s: %s: %s", file, s, err);
+				log_warnx("%s: %s: %s", YYFILE, s, err);
 			if (out != NULL) {
 				slen += strlen(out) + 1;
 				sbuf = xrealloc(sbuf, 1, slen);
@@ -841,7 +837,7 @@ run_command(const char *s)
 
 %token INCLUDE
 %token <number> NUMBER
-%token <string> STRING STRMACRO STRMACROB NUMMACRO NUMMACROB
+%token <string> STRING STRMACRO NUMMACRO
 %token <string> STRCOMMAND NUMCOMMAND
 
 %type  <actitem> actitem
@@ -947,28 +943,6 @@ xstrv: STRCOMMAND
 
 	       xfree($1);
        }
-     | STRMACROB
-       {
-	       struct macro	*macro;
-	       char 		 name[MAXNAMESIZE];
-
-	       if (strlen($1) > MAXNAMESIZE + 2)
-		       yyerror("macro name too long: %s", $1);
-
-	       name[0] = $1[0];
-	       name[1] = '\0';
-	       strlcat(name, $1 + 2, MAXNAMESIZE);
-	       name[strlen(name) - 1] = '\0';
-
-	       if ((macro = find_macro(name)) == NULL)
-		       yyerror("undefined macro: %s", name);
-	       if (macro->type != MACRO_STRING)
-		       yyerror("string macro expected: %s", name);
-
-	       $$ = xstrdup(macro->value.str);
-
-	       xfree($1);
-       }
 
 /** STRV: <string> (char *) */
 strv: xstrv
@@ -1011,28 +985,6 @@ numv: NUMCOMMAND
 		      yyerror("undefined macro: %s", $1);
 	      if (macro->type != MACRO_NUMBER)
 		      yyerror("number macro expected: %s", $1);
-
-	      $$ = macro->value.num;
-
-	      xfree($1);
-      }
-    | NUMMACROB
-      {
-	      struct macro	*macro;
-	      char 		 name[MAXNAMESIZE];
-
-	      if (strlen($1) > MAXNAMESIZE + 2)
-		      yyerror("macro name too long: %s", $1);
-
-	      name[0] = $1[0];
-	      name[1] = '\0';
-	      strlcat(name, $1 + 2, MAXNAMESIZE);
-	      name[strlen(name) - 1] = '\0';
-
-	      if ((macro = find_macro(name)) == NULL)
-		      yyerror("undefined macro: %s", name);
-	      if (macro->type != MACRO_NUMBER)
-		      yyerror("number macro expected: %s", name);
 
 	      $$ = macro->value.num;
 

@@ -1,6 +1,6 @@
 # $Id$
 
-.SUFFIXES: .c .o .y .l .h
+.SUFFIXES: .c .o .y .h
 .PHONY: clean lint regress yannotate manual \
 	update-index.html upload-index.html
 
@@ -15,7 +15,7 @@ SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
       child-deliver.c child-fetch.c child.c \
       pcre.c re.c privsep.c replace.c shm-mmap.c strb.c db-tdb.c \
-      xmalloc-debug.c  xmalloc.c \
+      xmalloc-debug.c xmalloc.c \
       deliver-add-header.c deliver-append.c deliver-drop.c deliver-exec.c \
       deliver-keep.c deliver-maildir.c deliver-mbox.c deliver-pipe.c \
       deliver-remove-header.c deliver-rewrite.c deliver-smtp.c \
@@ -27,10 +27,9 @@ SRCS= fdm.c \
       match-matched.c match-regexp.c match-size.c match-string.c \
       match-tagged.c  match-unmatched.c \
       parent-deliver.c parent-fetch.c \
-      parse.y lex.l
+      parse.y lex.c
 HDRS= fdm.h array.h fetch.h match.h deliver.h
 
-LEX= lex
 YACC= yacc -d
 
 CC?= cc
@@ -94,22 +93,18 @@ LDFLAGS+= -pg
 .endif
 LIBS+= -lssl -lcrypto -lz
 
-OBJS= ${SRCS:S/.c/.o/:S/.y/.o/:S/.l/.o/}
+OBJS= ${SRCS:S/.c/.o/:S/.y/.o/}
 
 DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] fdm-sanitize \
 	   README MANUAL TODO CHANGES \
 	   `find examples regress compat -type f -and ! -path '*CVS*'`
 
-CLEANFILES= ${PROG} *.o compat/*.o y.tab.c lex.yy.c y.tab.h .depend \
+CLEANFILES= ${PROG} *.o compat/*.o y.tab.c y.tab.h .depend \
 	    ${PROG}-*.tar.gz *~ *.ln ${PROG}.core MANUAL index.html \
 	    *.bb *.bbg *.da *.gcov
 
 .c.o:
 		${CC} ${CFLAGS} ${INCDIRS} -c ${.IMPSRC} -o ${.TARGET}
-
-.l.o:
-		${LEX} ${.IMPSRC}
-		${CC} ${CFLAGS} ${INCDIRS} -c lex.yy.c -o ${.TARGET}
 
 .y.o:
 		${YACC} ${.IMPSRC}
