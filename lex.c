@@ -321,8 +321,8 @@ read_token(int ch)
 		 * This is a bit strange. yacc may have symbols buffered and be
 		 * waiting for more to decide which production to match, so we
 		 * can't just switch file now. So, we set a flag that tells
-		 * yylex to switch files next time its called and return the
-		 * INCLUDE symbol. This is a placeholder not used in any
+		 * yylex to switch files next time it's called and return the
+		 * INCLUDE symbol. This is a placeholder not used in any real
 		 * productions, so it should cause yacc to match using whatever
 		 * it has (assuming it can). If we don't do this, there are
 		 * problems with things like:
@@ -480,7 +480,6 @@ read_string(char endch, int esc)
 			if (!esc)
 				break;
                         switch (ch = getc(yyin)) {
-			case 0:
 			case EOF:
 				yyerror("missing %c", endch);
                         case 'r':
