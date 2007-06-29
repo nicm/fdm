@@ -483,6 +483,8 @@ cache: TOKCACHE replpathv expire
 set: TOKSET TOKMAXSIZE size
 /**  [$3: size (long long)] */
      {
+	     if ($3 == 0)
+		     yyerror("zero maximum size");
 	     if ($3 > MAXMAILSIZE)
 		     yyerror("maximum size too large: %lld", $3);
 	     conf.max_size = $3;
@@ -517,6 +519,8 @@ set: TOKSET TOKMAXSIZE size
    | TOKSET TOKTIMEOUT time
 /**  [$3: time (long long)] */
      {
+	     if ($3 == 0)
+		     yyerror("zero timeout");
 	     if ($3 > INT_MAX / 1000)
 		     yyerror("timeout too long: %lld", $3);
 	     conf.timeout = $3 * 1000;
