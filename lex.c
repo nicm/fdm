@@ -190,7 +190,7 @@ static const struct token tokens[] = {
 int
 yylex(void)
 {
-	int	 ch, n;
+	int	 ch, value;
 	char	*path;
 
 	/* Switch to new file. See comment in read_token below. */
@@ -218,22 +218,22 @@ restart:
 			break;
 		case '\'':
 			yylval.string = read_string('\'', 0);
-			n = STRING;
+			value = STRING;
 			goto out;
 		case '"':
 			yylval.string = read_string('"', 1);
-			n = STRING;
+			value = STRING;
 			goto out;
 		case '$':
 			ch = getc(yyin);
 			if (ch == '(') {
 				yylval.string = read_command();
-				n = STRCOMMAND;
+				value = STRCOMMAND;
 				goto out;
 			}
 			if (ch == '{' || isalnum((u_char) ch)) {
 				yylval.string = read_macro('$', ch);
-				n = STRMACRO;
+				value = STRMACRO;
 				goto out;
 			}
 			yyerror("invalid macro name");
@@ -241,32 +241,32 @@ restart:
 			ch = getc(yyin);
 			if (ch == '(') {
 				yylval.string = read_command();
-				n = NUMCOMMAND;
+				value = NUMCOMMAND;
 				goto out;
 			}
 			if (ch == '{' || isalnum((u_char) ch)) {
 				yylval.string = read_macro('%', ch);
-				n = NUMMACRO;
+				value = NUMMACRO;
 				goto out;
 			}
 			yyerror("invalid macro name");
 		case '=':
 			ch = getc(yyin);
 			if (ch == '=') {
-				n = TOKEQ;
+				value = TOKEQ;
 				goto out;
 			}
 			ungetc(ch, yyin);
-			n = '=';
+			value = '=';
 			goto out;
 		case '!':
 			ch = getc(yyin);
 			if (ch == '=') {
-				n = TOKNE; 
+				value = TOKNE; 
 				goto out;
 			}
 			ungetc(ch, yyin);
-			n = '!';
+			value = '!';
 			goto out;
 		case '+':
 		case '(':
@@ -276,7 +276,7 @@ restart:
 		case '>':
 		case '{':
 		case '}':
-			n = ch;
+			value = ch;
 			goto out;
 		case '\n':
 			yylineno++;
@@ -290,11 +290,11 @@ restart:
 
 			if (isdigit((u_char) ch)) {
 				yylval.number = read_number(ch);
-				n = NUMBER;
+				value = NUMBER;
 				goto out;
 			}
 
-			n = read_token(ch);
+			value = read_token(ch);
 			goto out;
 		}
 	}
@@ -308,7 +308,7 @@ restart:
 out:
 	if (yyskip)
 		goto restart;
-	return (n); 
+	return (value); 
 }
 
 int
