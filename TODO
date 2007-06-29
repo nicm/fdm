@@ -30,4 +30,3 @@
 - should time stuff use localtime or gmtime?
 - document $() and %()
 - decide everything for cache and document it
-- strip environ before calling child?
