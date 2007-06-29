@@ -347,9 +347,11 @@ read_token(int ch)
 		ch2 = lex_getc();
 		if (ch2 != '{' && !isalnum((u_char) ch2))
 			yyerror("invalid macro name");
-		name = read_macro(ch, ch2);
 
+		name = read_macro(ch, ch2);
 		macro = find_macro(name);
+		xfree(name);
+
 		if (!lex_skip && token[2] == 'n' && macro != NULL)
 			lex_skip = 1;
 		if (!lex_skip && token[2] != 'n' && macro == NULL)
@@ -563,6 +565,7 @@ read_string(char endch, int esc)
 			name = read_macro(oldch, '{');
 			if ((macro = find_macro(name)) == NULL)
 				yyerror("undefined macro: %s", name);
+			xfree(name);
 
 			if (macro->type == MACRO_NUMBER)
  				xasprintf(&s, "%lld", macro->value.num);

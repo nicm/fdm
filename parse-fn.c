@@ -684,6 +684,8 @@ run_command(const char *s, const char *file)
 	} while (status == 0);
 	status--;
 
+	xfree(lbuf);
+
 	if (status != 0) {
 		cmd_free(cmd);
 		yyerror("%s: command returned %d", s, status);

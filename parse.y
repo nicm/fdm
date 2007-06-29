@@ -45,8 +45,8 @@ struct rule	*parse_rule;
 struct files	 parse_filestack;
 struct file	*parse_file;
 
-int			 	 yyparse(void);
-__dead printflike1 void  	 yyerror(const char *, ...);
+int			yyparse(void);
+__dead printflike1 void	yyerror(const char *, ...);
 
 int
 parse_conf(const char *path)
@@ -257,6 +257,7 @@ optval: TOKVALUE strv
 xstrv: STRCOMMAND
        {
 	       $$ = run_command($1, parse_file->path);
+	       xfree($1);
        }
      | STRING
        {
@@ -307,6 +308,10 @@ numv: NUMCOMMAND
 	      $$ = strtonum(s, 0, LLONG_MAX, &errstr);
 	      if (errstr != NULL)
 		      yyerror("number is %s", errstr);
+
+	      xfree(s);
+
+	      xfree($1);
       }
     | NUMBER
       {
