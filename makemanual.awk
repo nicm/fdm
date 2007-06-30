@@ -35,6 +35,16 @@ BEGIN {
 	next;
 }
 
+/^\*\*\*/ {
+	s = substr($0, 5) " ";
+	while (length(s) < 80) {
+		s = s "=";
+	}
+
+	print (s);
+	next;
+}
+
 /^###/ {
 	h1++;
 	h2 = 0;
