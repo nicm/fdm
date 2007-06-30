@@ -31,7 +31,6 @@
 
 int	fetch_nntp_connect(struct account *);
 void	fetch_nntp_fill(struct account *, struct io **, u_int *);
-u_int	fetch_nntp_total(struct account *);
 int	fetch_nntp_completed(struct account *);
 int	fetch_nntp_closed(struct account *);
 int	fetch_nntp_fetch(struct account *, struct fetch_ctx *);
@@ -63,7 +62,7 @@ struct fetch fetch_nntp = {
 	"nntp",
 	fetch_nntp_connect,
 	fetch_nntp_fill,
-	fetch_nntp_total,
+	NULL,
 	fetch_nntp_completed,
 	fetch_nntp_closed,
 	fetch_nntp_fetch,
@@ -385,14 +384,6 @@ fetch_nntp_fill(struct account *a, struct io **iop, u_int *n)
 	struct fetch_nntp_data	*data = a->data;
 
 	iop[(*n)++] = data->io;
-}
-
-/* Return total mails available. */
-u_int
-fetch_nntp_total(unused struct account *a)
-{
-	/*XXX*/
-	return (0);
 }
 
 /* Return if fetch is complete. */
