@@ -686,13 +686,14 @@ struct buffer {
 /* IO macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
 #define IO_CLOSED(io) ((io)->flags & IOF_CLOSED)
+#define IO_ERROR(io) ((io)->error)
 #define IO_RDSIZE(io) (BUFFER_USED((io)->rd))
 #define IO_WRSIZE(io) (BUFFER_USED((io)->wr))
 
 /* IO structure. */
 struct io {
 	int		 fd;
-	int		 dup_fd;	/* dup all data to this fd */
+	int		 dup_fd;	/* duplicate all data to this fd */
 	SSL		*ssl;
 
 	char		*error;

@@ -50,7 +50,7 @@ void
 log_syslog(int facility)
 {
  	tosyslog = 1;
-	openlog(__progname, LOG_PID | LOG_NDELAY, facility);
+	openlog(__progname, LOG_PID|LOG_NDELAY, facility);
 }
 
 void printflike2

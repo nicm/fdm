@@ -137,15 +137,25 @@ default_tags(struct strb **tags, const char *src)
 
 	t = time(NULL);
 	if ((tm = localtime(&t)) != NULL) {
+		/*
+		 * Okay, in a struct tm, everything is zero-based (including
+		 * month!) except day of the month which is one-based.
+		 *
+		 * To make thing clearer, strftime(3) measures everything as
+		 * you would expect... except that day of the week runs from
+		 * 0-6 but day of the year runs from 1-366.
+		 *
+		 * Fun fun fun.
+		 */
 		add_tag(tags, "hour", "%.2d", tm->tm_hour);
 		add_tag(tags, "minute", "%.2d", tm->tm_min);
 		add_tag(tags, "second", "%.2d", tm->tm_sec);
 		add_tag(tags, "day", "%.2d", tm->tm_mday);
-		add_tag(tags, "month", "%.2d", tm->tm_mon);
+		add_tag(tags, "month", "%.2d", tm->tm_mon + 1);
 		add_tag(tags, "year", "%.4d", 1900 + tm->tm_year);
 		add_tag(tags, "dayofweek", "%d", tm->tm_wday);
-		add_tag(tags, "dayofyear", "%.2d", tm->tm_yday);
-		add_tag(tags, "quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
+		add_tag(tags, "dayofyear", "%.2d", tm->tm_yday + 1);
+		add_tag(tags, "quarter", "%d", tm->tm_mon / 3 + 1);
 	}
 }
 

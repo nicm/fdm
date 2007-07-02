@@ -30,3 +30,5 @@
 - document $() and %()
 - decide everything for cache and document it
 - document ifdef/ifndef/endif
+- get rid of IO_POLLFDS limit, and move timeout out of struct io
+- add two digit year, hostname tags

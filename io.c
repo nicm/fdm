@@ -53,7 +53,7 @@ io_create(int fd, SSL *ssl, const char *eol, int timeout)
 	/* Set non-blocking. */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
 		fatal("fcntl");
-	if (fcntl(fd, F_SETFL, mode | O_NONBLOCK) == -1)
+	if (fcntl(fd, F_SETFL, mode|O_NONBLOCK) == -1)
 		fatal("fcntl");
 
 	io->flags = 0;
