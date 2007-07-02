@@ -321,8 +321,9 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 {
 	va_list		 ap;
 	char		*hdr, *ptr;
-	size_t		 hdrlen, len, off;
+	size_t		 hdrlen, len, off, newlines;
 
+	newlines = 1;
 	if (before != NULL) {
 		/* Insert before header. */
 		ptr = find_header(m, before, &len, 0);
@@ -331,11 +332,17 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 		off = ptr - m->data;
 	} else {
 		/* Insert at the end. */
-		if (m->body == -1)
-			off = m->size;
-		else if (m->body < 1)
+		if (m->body == -1 || m->body == 0) {
+			/* 
+			 * If there is no body, assume the entire mail is
+			 * body and insert the headers at the start.
+			 */
 			off = 0;
-		else
+			
+			/* And insert an extra newline if necessary. */
+			if (m->body == -1)
+				newlines++;
+		} else
 			off = m->body - 1;
 	}
 
@@ -343,8 +350,8 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	hdrlen = xvasprintf(&hdr, fmt, ap);
 	va_end(ap);
 
-	/* Include the \n. */
-	hdrlen++;
+	/* Include the newlines. */
+	hdrlen += newlines;
 
 	/* Make space for the header. */
 	if (mail_resize(m, m->size + hdrlen) != 0) {
@@ -355,11 +362,13 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	memmove(ptr + hdrlen, ptr, m->size - off);
 
 	/* Copy the header. */
-	memcpy(ptr, hdr, hdrlen - 1);
-	ptr[hdrlen - 1] = '\n';
+	memcpy(ptr, hdr, hdrlen - newlines);
+	memset(ptr + hdrlen - newlines, '\n', newlines);
 	m->size += hdrlen;
  	if (m->body != -1)
 		m->body += hdrlen;
+	else
+		m->body = hdrlen;
 
 	xfree(hdr);
 	return (0);

@@ -32,3 +32,5 @@
 - document ifdef/ifndef/endif
 - get rid of IO_POLLFDS limit, and move timeout out of struct io
 - add two digit year, hostname tags
+- figure out whether a mail without body is all headers or all body or both,
+  particularly for "in body/in headers"

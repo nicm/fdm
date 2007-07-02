@@ -1,5 +1,8 @@
 02 July 2007
 
+* If a mail has no body, insert new headers at the start instead of the end.
+  This matches formail's behaviour. Requested by Giorgio Lando. Note there is
+  no change to the regexp "in body" behaviour, although perhaps there should be.
 * Sort out the localtime(3)/strftime(3) mess by actually reading the man page
   and time.h. This means July is now the seventh rather than sixth month. 
   Reported by Giorgio Lando.
