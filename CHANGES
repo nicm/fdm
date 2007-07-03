@@ -60,12 +60,13 @@
 
 	match not string "%[message_id]" to "" {
 		# Filter messages already in the cache.	
-		match in-cache $db key "%[message_id]"
-			action mbox "duplicate-mail"
+		match in-cache $db key "%[message_id]" action
+			mbox "duplicate-mail"
 
 		# Add message-ids to the cache (any other string can be added
 		# but message-ids are most useful).
-		match all action to-cache $db key "%[message_id]"
+		match all action
+			to-cache $db key "%[message_id]" continue
 	}
 
   Note the guard statement - the key can't be empty and news (NNTP) messages
