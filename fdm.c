@@ -217,7 +217,8 @@ use_account(struct account *a, char **cause)
 __dead void
 usage(void)
 {
-	printf("usage: %s [-klmnqv] [-a name] [-D name=value] [-f conffile]"
+	fprintf(stderr,
+	    "usage: %s [-klmnqv] [-a name] [-D name=value] [-f conffile]"
 	    " [-u user] [-x name] [fetch|poll]\n", __progname);
         exit(1);
 }

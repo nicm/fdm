@@ -82,7 +82,6 @@ vlog(FILE *f, int pri, const char *fmt, va_list ap)
 		vsyslog(pri, fmt, ap);
 }
 
-
 void printflike1
 log_warn(const char *emsg, ...)
 {
