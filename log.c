@@ -173,7 +173,7 @@ log_debug3(const char *msg, ...)
 	}
 }
 
-/* Log a critical error, with error string if necesarys, and die. */
+/* Log a critical error, with error string if necessary, and die. */
 __dead void
 log_vfatal(const char *msg, va_list ap)
 {

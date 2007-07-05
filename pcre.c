@@ -32,7 +32,7 @@ re_compile(struct re *re, const char *s, int flags, char **cause)
 	int		 off;
 
 	if (s == NULL)
-		fatalx("re_compile: null regexp");
+		log_fatalx("re_compile: null regexp");
 	re->str = xstrdup(s);
 	if (*s == '\0')
 		return (0);
@@ -64,7 +64,7 @@ re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
 	u_int		i, j;
 
 	if (len > INT_MAX)
-		fatalx("re_block: buffer too big");
+		log_fatalx("re_block: buffer too big");
 
 	if (rml != NULL)
 		memset(rml, 0, sizeof *rml);
