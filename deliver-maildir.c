@@ -124,7 +124,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	}
 
 	if (gethostname(host1, sizeof host1) != 0)
-		fatal("gethostname");
+		log_fatal("gethostname");
 
 	/*
 	 * Replace '/' with "\057" and ':' with "\072". this is a bit
@@ -214,7 +214,7 @@ restart:
 	if (link(src, dst) != 0) {
 		if (errno == EEXIST) {
 			if (unlink(src) != 0)
-				fatal("unlink");
+				log_fatal("unlink");
 			cleanup_deregister(src);
 			xfd = fd = -1;
 
@@ -245,7 +245,7 @@ error:
 		if (fd != -1)
 			close(fd);
 		if (unlink(src) != 0)
-			fatal("unlink");
+			log_fatal("unlink");
 		cleanup_deregister(src);
 	}
 	if (path != NULL)

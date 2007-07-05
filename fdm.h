@@ -991,6 +991,7 @@ void		 buffer_destroy(struct buffer *);
 void		 buffer_clear(struct buffer *);
 void		 buffer_ensure(struct buffer *, size_t);
 void		 buffer_added(struct buffer *, size_t);
+void		 buffer_trimmed(struct buffer *, size_t);
 void		 buffer_removed(struct buffer *, size_t);
 void		 buffer_write(struct buffer *, const void *, size_t);
 void		 buffer_read(struct buffer *, void *, size_t);
@@ -1017,17 +1018,19 @@ int		 io_wait(struct io *, size_t, char **);
 int		 io_update(struct io *, char **);
 
 /* log.c */
-void		 vlog(FILE *, int, const char *, va_list);
-void		 log_init(int);
-void		 log_syslog(int);
+void		 log_open(FILE *, int, int);
+void		 log_close(void);
+void		 log_vwrite(FILE *, int, const char *, va_list);
+void		 log_write(FILE *, int, const char *, ...);
 void printflike1 log_warn(const char *, ...);
 void printflike1 log_warnx(const char *, ...);
 void printflike1 log_info(const char *, ...);
 void printflike1 log_debug(const char *, ...);
 void printflike1 log_debug2(const char *, ...);
 void printflike1 log_debug3(const char *, ...);
-__dead void	 fatal(const char *);
-__dead void	 fatalx(const char *);
+__dead void	 log_vfatal(const char *, va_list);
+__dead void	 log_fatal(const char *, ...);
+__dead void	 log_fatalx(const char *, ...);
 
 /* xmalloc.c */
 void		*ensure_size(void *, size_t *, size_t, size_t);

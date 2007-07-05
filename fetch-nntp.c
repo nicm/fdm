@@ -322,7 +322,7 @@ error:
 		if (fd != -1)
 			close(fd);
 		if (unlink(tmp) != 0)
-			fatal("unlink");
+			log_fatal("unlink");
 	}
 	cleanup_deregister(tmp);
 	return (-1);

@@ -69,7 +69,7 @@ get_time(void)
 	struct timeval	 tv;
 
 	if (gettimeofday(&tv, NULL) != 0)
-		fatal("gettimeofday");
+		log_fatal("gettimeofday");
 	return (tv.tv_sec + tv.tv_usec / 1000000.0);
 }
 
@@ -101,7 +101,7 @@ fill_info(const char *home)
 
 	if (conf.info.host == NULL) {
 		if (gethostname(host, sizeof host) != 0)
-			fatal("gethostname");
+			log_fatal("gethostname");
 		conf.info.host = xstrdup(host);
 
 		getaddrs(host, &conf.info.fqdn, &conf.info.addr);
@@ -254,6 +254,8 @@ main(int argc, char **argv)
 	struct cache	*cache;
 #endif
 
+	log_open(stderr, LOG_MAIL, 0);
+
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
 	TAILQ_INIT(&conf.rules);
@@ -268,8 +270,6 @@ main(int argc, char **argv)
 	conf.file_group = NOGRP;
 	conf.queue_high = -1;
 	conf.queue_low = -1;
-
-	log_init(0);
 
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
@@ -303,8 +303,6 @@ main(int argc, char **argv)
 					macro->value.str = xstrdup("");
 				else
 					macro->value.str = xstrdup(ptr);
-				log_debug2("added -D macro \"%s\": %s",
-				    macro->name, macro->value.str);
 				break;
 			}
 
@@ -318,8 +316,6 @@ main(int argc, char **argv)
 				log_warnx("number is %s: %s", errstr, ptr);
 				exit(1);
 			}
-			log_debug2("added -D macro \"%s\": %lld", macro->name,
-			    macro->value.num);
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
@@ -392,9 +388,10 @@ main(int argc, char **argv)
 	}
 
 	/* Set debug level and start logging to syslog if necessary. */
-	log_init(conf.debug);
 	if (conf.syslog)
-		log_syslog(LOG_MAIL);
+		log_open(NULL, LOG_MAIL, conf.debug);
+	else
+		log_open(stderr, LOG_MAIL, conf.debug);
 	tt = time(NULL);
 	log_debug("version is: %s " BUILD ", started at: %.24s", __progname,
 	    ctime(&tt));
@@ -617,17 +614,17 @@ main(int argc, char **argv)
 
 	act.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &act, NULL) < 0)
-		fatal("sigaction");
+		log_fatal("sigaction");
 	if (sigaction(SIGUSR1, &act, NULL) < 0)
-		fatal("sigaction");
+		log_fatal("sigaction");
 	if (sigaction(SIGUSR2, &act, NULL) < 0)
-		fatal("sigaction");
+		log_fatal("sigaction");
 
 	act.sa_handler = sighandler;
 	if (sigaction(SIGINT, &act, NULL) < 0)
-		fatal("sigaction");
+		log_fatal("sigaction");
 	if (sigaction(SIGTERM, &act, NULL) < 0)
-		fatal("sigaction");
+		log_fatal("sigaction");
 
 	/* Check lock file. */
 	lock = conf.lock_file;
@@ -706,9 +703,9 @@ main(int argc, char **argv)
 		n = io_polln(ios, ARRAY_LENGTH(&children), &io, INFTIM, NULL);
 		switch (n) {
 		case -1:
-			fatalx("parent: child socket error");
+			log_fatalx("parent: child socket error");
 		case 0:
-			fatalx("parent: child socket closed");
+			log_fatalx("parent: child socket closed");
 		}
 
 		while (!ARRAY_EMPTY(&children)) {
@@ -723,7 +720,7 @@ main(int argc, char **argv)
 
 			/* And handle them if necessary. */
 			if (privsep_recv(child->io, &msg, &msgbuf) != 0)
-				fatalx("parent: privsep_recv error");
+				log_fatalx("parent: privsep_recv error");
 			log_debug3("parent: got message type %d, id %u from "
 			    "child %ld", msg.type, msg.id, (long) child->pid);
 
@@ -734,11 +731,11 @@ main(int argc, char **argv)
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL) != 0)
-				fatalx("parent: privsep_send error");
+				log_fatalx("parent: privsep_send error");
 
 			/* Wait for the child. */
 			if (waitpid(child->pid, &status, 0) == -1)
-				fatal("waitpid");
+				log_fatal("waitpid");
 			if (WIFSIGNALED(status)) {
 				res = 1;
 				log_debug2("parent: child %ld got signal %d",
@@ -777,9 +774,9 @@ main(int argc, char **argv)
 	if (sigint || sigterm) {
 		act.sa_handler = SIG_IGN;
 		if (sigaction(SIGINT, &act, NULL) < 0)
-			fatal("sigaction");
+			log_fatal("sigaction");
 		if (sigaction(SIGTERM, &act, NULL) < 0)
-			fatal("sigaction");
+			log_fatal("sigaction");
 
 		if (sigint)
 			log_warnx("parent: caught SIGINT. stopping");
@@ -802,7 +799,7 @@ main(int argc, char **argv)
 			if ((pid = wait(&status)) == -1) {
 				if (errno == ECHILD)
 					break;
-				fatal("wait");
+				log_fatal("wait");
 			}
 			log_debug2("parent: child %ld killed", (long) pid);
 		}

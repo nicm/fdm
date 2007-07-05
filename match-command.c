@@ -62,7 +62,7 @@ match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 	mail_send(m, &msg);
 
 	if (privsep_send(io, &msg, &msgbuf) != 0)
-		fatalx("child: privsep_send error");
+		log_fatalx("child: privsep_send error");
 
 	mctx->msgid = msg.id;
 	return (MATCH_PARENT);

@@ -1,3 +1,8 @@
+05 July 2007
+
+* Move to rewritten log.c which which makes the syslog/stderr hacks I had made
+  to the old version less fugly.
+
 02 July 2007
 
 * If a mail has no body, insert new headers at the start instead of the end.

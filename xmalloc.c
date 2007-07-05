@@ -33,10 +33,10 @@ void *
 ensure_for(void *buf, size_t *len, size_t size, size_t adj)
 {
 	if (adj == 0)
-		fatalx("ensure_for: zero adj");
+		log_fatalx("ensure_for: zero adj");
 
 	if (SIZE_MAX - size < adj)
-		fatalx("ensure_for: size + adj > SIZE_MAX");
+		log_fatalx("ensure_for: size + adj > SIZE_MAX");
 	size += adj;
 
 	if (*len == 0) {
@@ -56,9 +56,9 @@ void *
 ensure_size(void *buf, size_t *len, size_t nmemb, size_t size)
 {
 	if (nmemb == 0 || size == 0)
-		fatalx("ensure_size: zero size");
+		log_fatalx("ensure_size: zero size");
 	if (SIZE_MAX / nmemb < size)
-		fatalx("ensure_size: nmemb * size > SIZE_MAX");
+		log_fatalx("ensure_size: nmemb * size > SIZE_MAX");
 
 	if (*len == 0) {
 		*len = BUFSIZ;
@@ -91,11 +91,11 @@ xxcalloc(size_t nmemb, size_t size)
         void	*ptr;
 
         if (size == 0 || nmemb == 0)
-                fatalx("xcalloc: zero size");
+                log_fatalx("xcalloc: zero size");
         if (SIZE_MAX / nmemb < size)
-                fatalx("xcalloc: nmemb * size > SIZE_MAX");
+                log_fatalx("xcalloc: nmemb * size > SIZE_MAX");
         if ((ptr = calloc(nmemb, size)) == NULL)
-		fatal("xcalloc");
+		log_fatal("xcalloc");
 
         return (ptr);
 }
@@ -106,9 +106,9 @@ xxmalloc(size_t size)
         void	*ptr;
 
         if (size == 0)
-                fatalx("xmalloc: zero size");
+                log_fatalx("xmalloc: zero size");
         if ((ptr = malloc(size)) == NULL)
-		fatal("xmalloc");
+		log_fatal("xmalloc");
 
         return (ptr);
 }
@@ -120,11 +120,11 @@ xxrealloc(void *oldptr, size_t nmemb, size_t size)
 	void	*newptr;
 
 	if (newsize == 0)
-                fatalx("xrealloc: zero size");
+                log_fatalx("xrealloc: zero size");
         if (SIZE_MAX / nmemb < size)
-                fatalx("xrealloc: nmemb * size > SIZE_MAX");
+                log_fatalx("xrealloc: nmemb * size > SIZE_MAX");
         if ((newptr = realloc(oldptr, newsize)) == NULL)
-		fatal("xrealloc");
+		log_fatal("xrealloc");
 
         return (newptr);
 }
@@ -133,7 +133,7 @@ void
 xxfree(void *ptr)
 {
 	if (ptr == NULL)
-		fatalx("xfree: null pointer");
+		log_fatalx("xfree: null pointer");
 	free(ptr);
 }
 
@@ -158,7 +158,7 @@ xxvasprintf(char **ret, const char *fmt, va_list ap)
 	i = vasprintf(ret, fmt, ap);
 
         if (i < 0 || *ret == NULL)
-                fatal("xvasprintf");
+                log_fatal("xvasprintf");
 
         return (i);
 }
@@ -183,13 +183,13 @@ xvsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
 
 	if (len > INT_MAX) {
 		errno = EINVAL;
-		fatal("xvsnprintf");
+		log_fatal("xvsnprintf");
 	}
 
 	i = vsnprintf(buf, len, fmt, ap);
 
         if (i < 0)
-                fatal("xvsnprintf");
+                log_fatal("xvsnprintf");
 
         return (i);
 }

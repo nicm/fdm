@@ -59,7 +59,7 @@ void
 netrc_close(FILE *f)
 {
 	if (fclose(f) != 0)
-		fatal("fclose");
+		log_fatal("fclose");
 }
 
 int

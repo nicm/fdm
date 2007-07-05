@@ -64,7 +64,7 @@ fetch_stdin_connect(struct account *a)
 
 	if (fcntl(STDIN_FILENO, F_GETFL) == -1) {
 		if (errno != EBADF)
-			fatal("fcntl");
+			log_fatal("fcntl");
 		log_warnx("%s: stdin is invalid", a->name);
 		return (-1);
 	}

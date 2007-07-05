@@ -286,7 +286,7 @@ connectproxy(struct server *srv, int verify, struct proxy *pr, const char *eol,
 			goto error;
 		break;
 	default:
-		fatalx("unknown proxy type");
+		log_fatalx("unknown proxy type");
 	}
 
 	/* If the original request was for SSL, initiate it now. */
@@ -543,9 +543,9 @@ makessl(struct server *srv, int fd, int verify, char **cause)
 	 * certificate. XXX This means our timeout is ignored.
 	 */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
-		fatal("fcntl");
+		log_fatal("fcntl");
 	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
-		fatal("fcntl");
+		log_fatal("fcntl");
 
 	SSL_set_connect_state(ssl);
 	if ((n = SSL_connect(ssl)) < 1) {
@@ -555,7 +555,7 @@ makessl(struct server *srv, int fd, int verify, char **cause)
 
 	/* Reset to non-blocking mode. */
 	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
-		fatal("fcntl");
+		log_fatal("fcntl");
 
 	/* Verify certificate. */
 	if (verify && sslverify(srv, ssl, cause) != 0)

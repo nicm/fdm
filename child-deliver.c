@@ -65,11 +65,11 @@ child_deliver(struct child *child, struct io *io)
 	msgbuf.len = STRB_SIZE(m->tags);
 
 	if (privsep_send(io, &msg, &msgbuf) != 0)
-		fatalx("deliver: privsep_send error");
+		log_fatalx("deliver: privsep_send error");
 	if (privsep_recv(io, &msg, NULL) != 0)
-		fatalx("deliver: privsep_recv error");
+		log_fatalx("deliver: privsep_recv error");
 	if (msg.type != MSG_EXIT)
-		fatalx("deliver: unexpected message");
+		log_fatalx("deliver: unexpected message");
 
 #ifdef DEBUG
 	COUNTFDS(a->name);

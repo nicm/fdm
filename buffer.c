@@ -72,13 +72,29 @@ buffer_ensure(struct buffer *b, size_t size)
 void
 buffer_added(struct buffer *b, size_t size)
 {
+	if (b->size + size > b->space)
+		log_fatalx("buffer_added: overflow");
+
 	b->size += size;
+}
+
+/* Remove added data from buffer. */
+void
+buffer_trimmed(struct buffer *b, size_t size)
+{
+	if (size > b->size)
+		log_fatalx("buffer_trimmed: underflow");
+
+	b->size -= size;
 }
 
 /* Remove data from start of buffer after it is used. */
 void
 buffer_removed(struct buffer *b, size_t size)
 {
+	if (size > b->size)
+		log_fatalx("buffer_removed: underflow");
+
 	b->size -= size;
 	b->off += size;
 }
@@ -96,6 +112,9 @@ buffer_write(struct buffer *b, const void *data, size_t size)
 void
 buffer_read(struct buffer *b, void *data, size_t size)
 {
+	if (size > b->size)
+		log_fatalx("buffer_read: underflow");
+
 	memcpy(data, BUFFER_OUT(b), size);
 	buffer_removed(b, size);
 }

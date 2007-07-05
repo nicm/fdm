@@ -121,7 +121,7 @@ child_fetch(struct child *child, struct io *io)
 		error = fetch_account(a, io, tim);
 		break;
 	default:
-		fatalx("child: unexpected command");
+		log_fatalx("child: unexpected command");
 	}
 	log_debug2("%s: finished processing. exiting", a->name);
 
@@ -137,12 +137,12 @@ out:
 	msg.type = MSG_EXIT;
 	log_debug3("%s: sending exit message to parent", a->name);
 	if (privsep_send(io, &msg, NULL) != 0)
-		fatalx("child: privsep_send error");
+		log_fatalx("child: privsep_send error");
 	log_debug3("%s: waiting for exit message from parent", a->name);
 	if (privsep_recv(io, &msg, NULL) != 0)
-		fatalx("child: privsep_recv error");
+		log_fatalx("child: privsep_recv error");
 	if (msg.type != MSG_EXIT)
-		fatalx("child: unexpected message");
+		log_fatalx("child: unexpected message");
 
 #ifdef DEBUG
 	COUNTFDS(a->name);
@@ -248,14 +248,14 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	switch (io_polln(iop, n, &rio, timeout, &cause)) {
 	case 0:
 		if (rio == fctx->io)
-			fatalx("child: parent socket closed");
+			log_fatalx("child: parent socket closed");
 		log_warnx("%s: connection closed", a->name);
 		return (FETCH_ERROR);
 	case -1:
 		if (errno == EAGAIN)
 			break;
 		if (rio == fctx->io)
-			fatalx("child: parent socket error");
+			log_fatalx("child: parent socket error");
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (FETCH_ERROR);
@@ -397,7 +397,7 @@ fetch_account(struct account *a, struct io *io, double tim)
 		msgp = NULL;
 		if (privsep_check(fctx.io)) {
 			if (privsep_recv(io, &msg, &msgbuf) != 0)
-				fatalx("child: privsep_recv error");
+				log_fatalx("child: privsep_recv error");
 			log_debug3("%s: got message type %d, id %u", a->name,
 			    msg.type, msg.id);
 			msgp = &msg;

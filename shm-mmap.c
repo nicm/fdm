@@ -94,7 +94,7 @@ shm_create(struct shm *shm, size_t size)
 	int	error;
 
         if (size == 0)
-                fatalx("shm_malloc: zero size");
+                log_fatalx("shm_malloc: zero size");
 
 	if (printpath(shm->name, sizeof shm->name,
 	    "%s/%s.XXXXXXXXXX", conf.tmp_dir, __progname) != 0)
@@ -130,7 +130,7 @@ shm_destroy(struct shm *shm)
 	shm_close(shm);
 
 	if (unlink(shm->name) != 0)
-		fatal("unlink");
+		log_fatal("unlink");
 	*shm->name = '\0';
 }
 
@@ -142,7 +142,7 @@ shm_close(struct shm *shm)
 		return;
 
 	if (munmap(shm->data, shm->size) != 0)
-		fatal("munmap");
+		log_fatal("munmap");
 	shm->data = NULL;
 
 	close(shm->fd);
@@ -181,12 +181,12 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	size_t	 newsize = nmemb * size;
 
 	if (size == 0)
-                fatalx("shm_realloc: zero size");
+                log_fatalx("shm_realloc: zero size");
         if (SIZE_MAX / nmemb < size)
-                fatalx("shm_realloc: nmemb * size > SIZE_MAX");
+                log_fatalx("shm_realloc: nmemb * size > SIZE_MAX");
 
 	if (munmap(shm->data, shm->size) != 0)
-		fatal("munmap");
+		log_fatal("munmap");
 	shm->data = NULL;
 
 	if (shm_expand(shm, newsize) != 0)

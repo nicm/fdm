@@ -96,7 +96,7 @@ xmalloc_called(const char *file, u_int line, enum xmalloc_type type)
 				break;
 		}
 		if (i == XMALLOC_SLOTS)
-			fatalx("xmalloc_called: no space");
+			log_fatalx("xmalloc_called: no space");
 	}
 
 	xmalloc_ctx.calls[i].type = type;

@@ -139,7 +139,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	/* Open for compressed writing if necessary. */
 	if (data->compress) {
 		if ((fd2 = dup(fd)) < 0)
-			fatal("dup");
+			log_fatal("dup");
 		errno = 0;
 		if ((gzf = gzdopen(fd2, "a")) == NULL) {
 			if (errno == 0)
@@ -158,7 +158,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	sigemptyset(&set);
  	sigaddset(&set, SIGTERM);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 
 	/* Write the from line. */
 	if (deliver_mbox_write(fd, gzf, from, strlen(from)) < 0) {
@@ -214,7 +214,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 out2:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 
 out:
 	if (gzf != NULL)

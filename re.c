@@ -32,7 +32,7 @@ re_compile(struct re *re, const char *s, int flags, char **cause)
 	char	*buf;
 
 	if (s == NULL)
-		fatalx("re_compile: null regexp");
+		log_fatalx("re_compile: null regexp");
 	re->str = xstrdup(s);
 	if (*s == '\0')
 		return (0);

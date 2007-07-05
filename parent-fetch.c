@@ -47,7 +47,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	switch (msg->type) {
 	case MSG_ACTION:
 		if (msgbuf->buf == NULL || msgbuf->len == 0)
-			fatalx("parent_fetch: bad tags");
+			log_fatalx("parent_fetch: bad tags");
 		m = xcalloc(1, sizeof *m);
 		if (mail_receive(m, msg, 0) != 0) {
 			log_warn("parent_fetch: can't receive mail");
@@ -64,7 +64,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 		break;
 	case MSG_COMMAND:
 		if (msgbuf->buf == NULL || msgbuf->len == 0)
-			fatalx("parent_fetch: bad tags");
+			log_fatalx("parent_fetch: bad tags");
 		m = xcalloc(1, sizeof *m);
 		if (mail_receive(m, msg, 0) != 0) {
 			log_warn("parent_fetch: can't receive mail");
@@ -80,7 +80,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 		parent_fetch_cmd(child, children, mctx, msg);
 		break;
 	case MSG_DONE:
-		fatalx("parent_fetch: unexpected message");
+		log_fatalx("parent_fetch: unexpected message");
 	case MSG_EXIT:
 		return (1);
 	}
@@ -94,7 +94,7 @@ parent_fetch_error(struct child *child, struct msg *msg)
 	msg->type = MSG_DONE;
 	msg->data.error = DELIVER_FAILURE;
 	if (privsep_send(child->io, msg, NULL) != 0)
-		fatalx("parent_deliver: privsep_send error");
+		log_fatalx("parent_deliver: privsep_send error");
 }
 
 void

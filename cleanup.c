@@ -35,7 +35,7 @@ void
 cleanup_check(void)
 {
 	if (!TAILQ_EMPTY(&cleanlist))
-		fatalx("cleanup_check: list not empty");
+		log_fatalx("cleanup_check: list not empty");
 }
 
 void
@@ -66,7 +66,7 @@ cleanup_flush(void)
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 
 	while (!TAILQ_EMPTY(&cleanlist)) {
 		cent = TAILQ_FIRST(&cleanlist);
@@ -76,7 +76,7 @@ cleanup_flush(void)
 	}
 
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 }
 
 void
@@ -94,12 +94,12 @@ cleanup_register(const char *path)
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 
 	TAILQ_INSERT_HEAD(&cleanlist, cent, entry);
 
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 }
 
 void
@@ -114,7 +114,7 @@ cleanup_deregister(const char *path)
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 
  	TAILQ_FOREACH(cent, &cleanlist, entry) {
 		if (strcmp(cent->path, path) == 0) {
@@ -125,9 +125,9 @@ cleanup_deregister(const char *path)
 		}
 	}
 
-	fatalx("cleanup_deregister: entry not found");
+	log_fatalx("cleanup_deregister: entry not found");
 
 out:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		fatal("sigprocmask");
+		log_fatal("sigprocmask");
 }

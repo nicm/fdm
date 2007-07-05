@@ -98,7 +98,7 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	size = sb->str_size;
 	while (sb->str_size - sb->str_used < keylen + valuelen) {
 		if (STRB_SIZE(sb) > SIZE_MAX / 2)
-			fatalx("strb_add: size too large");
+			log_fatalx("strb_add: size too large");
 		sb->str_size *= 2;
 	}
 	if (size != sb->str_size) {
@@ -116,10 +116,10 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 
 			size = STRB_SIZE(sb);
 			if (sb->ent_max > UINT_MAX / 2)
-				fatalx("strb_add: ent_max too large");
+				log_fatalx("strb_add: ent_max too large");
 			sb->ent_max *= 2;
 			if (STRB_SIZE(sb) < size)
-				fatalx("strb_add: size too large");
+				log_fatalx("strb_add: size too large");
 
 			sb = *sbp = xrealloc(sb, 1, STRB_SIZE(sb));
 

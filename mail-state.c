@@ -74,7 +74,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		mctx->msgid = 0;
 
 		if (msg->type != MSG_DONE)
-			fatalx("child: unexpected message");
+			log_fatalx("child: unexpected message");
 		if (msgbuf->buf != NULL && msgbuf->len != 0) {
 			strb_destroy(&m->tags);
 			m->tags = msgbuf->buf;
@@ -92,7 +92,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 			this = 0;
 			break;
 		default:
-			fatalx("child: unexpected response");
+			log_fatalx("child: unexpected response");
 		}
 		apply_result(ei, &mctx->result, this);
 
@@ -194,7 +194,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		this = 0;
 		break;
 	default:
-		fatalx("child: unexpected op");
+		log_fatalx("child: unexpected op");
 	}
 	apply_result(ei, &mctx->result, this);
 
@@ -559,7 +559,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 
 	log_debug3("%s: sending action to parent", a->name);
 	if (privsep_send(mctx->io, &msg, &msgbuf) != 0)
-		fatalx("child: privsep_send error");
+		log_fatalx("child: privsep_send error");
 
 	mctx->msgid = msg.id;
 	return (ACTION_PARENT);
