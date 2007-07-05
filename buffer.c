@@ -28,6 +28,9 @@ buffer_create(size_t size)
 {
 	struct buffer	*b;
 
+	if (size == 0)
+		log_fatalx("buffer_create: zero size");
+
 	b = xcalloc(1, sizeof *b);
 
 	b->base = xmalloc(size);
@@ -56,6 +59,9 @@ buffer_clear(struct buffer *b)
 void
 buffer_ensure(struct buffer *b, size_t size)
 {
+	if (size == 0)
+		log_fatalx("buffer_ensure: zero size");
+
 	if (BUFFER_FREE(b) >= size)
 		return;
 
@@ -70,51 +76,75 @@ buffer_ensure(struct buffer *b, size_t size)
 
 /* Adjust buffer after data appended. */
 void
-buffer_added(struct buffer *b, size_t size)
+buffer_add(struct buffer *b, size_t size)
 {
-	if (b->size + size > b->space)
-		log_fatalx("buffer_added: overflow");
+	if (size == 0)
+		log_fatalx("buffer_add: zero size");
+	if (size > b->space - b->size)
+		log_fatalx("buffer_add: overflow");
 
 	b->size += size;
 }
 
-/* Remove added data from buffer. */
+/* Reverse buffer add. */
 void
-buffer_trimmed(struct buffer *b, size_t size)
+buffer_reverse_add(struct buffer *b, size_t size)
 {
+	if (size == 0)
+		log_fatalx("buffer_reverse_add: zero size");
 	if (size > b->size)
-		log_fatalx("buffer_trimmed: underflow");
+		log_fatalx("buffer_reverse_add: underflow");
 
 	b->size -= size;
 }
 
-/* Remove data from start of buffer after it is used. */
+/* Adjust buffer after data removed. */
 void
-buffer_removed(struct buffer *b, size_t size)
+buffer_remove(struct buffer *b, size_t size)
 {
+	if (size == 0)
+		log_fatalx("buffer_remove: zero size");
 	if (size > b->size)
-		log_fatalx("buffer_removed: underflow");
+		log_fatalx("buffer_remove: underflow");
 
 	b->size -= size;
 	b->off += size;
+}
+
+/* Reverse buffer remove. */
+void
+buffer_reverse_remove(struct buffer *b, size_t size)
+{
+	if (size == 0)
+		log_fatalx("buffer_reverse_remove: zero size");
+	if (size > b->off)
+		log_fatalx("buffer_reverse_remove: overflow");
+
+	b->size += size;
+	b->off -= size;
 }
 
 /* Copy data into a buffer. */
 void
 buffer_write(struct buffer *b, const void *data, size_t size)
 {
+	if (size > SSIZE_MAX)
+		log_fatalx("buffer_write: size too big");
+
 	buffer_ensure(b, size);
 	memcpy(BUFFER_IN(b), data, size);
-	buffer_added(b, size);
+	buffer_add(b, size);
 }
 
 /* Copy data out of a buffer. */
 void
 buffer_read(struct buffer *b, void *data, size_t size)
 {
+	if (size > SSIZE_MAX)
+		log_fatalx("buffer_read: size too big");
 	if (size > b->size)
 		log_fatalx("buffer_read: underflow");
 
 	memcpy(data, BUFFER_OUT(b), size);
-	buffer_removed(b, size);
+	buffer_remove(b, size);
 }

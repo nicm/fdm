@@ -332,7 +332,7 @@ io_fill(struct io *io)
 		}
 
 		/* Adjust the buffer size. */
-		buffer_added(io->rd, n);
+		buffer_add(io->rd, n);
 
 		/* Reset the need flags. */
 		io->flags &= ~IOF_NEEDFILL;
@@ -407,7 +407,7 @@ io_push(struct io *io)
 		}
 
 		/* Adjust the buffer size. */
-		buffer_removed(io->wr, n);
+		buffer_remove(io->wr, n);
 
 		/* Reset the need flags. */
 		io->flags &= ~IOF_NEEDPUSH;
@@ -546,7 +546,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	(*buf)[size] = '\0';
 
 	/* Discard the EOL from the buffer. */
-	buffer_removed(io->rd, eollen);
+	buffer_remove(io->rd, eollen);
 
 #ifdef IO_DEBUG
 	log_debug3("io_readline2: out: off=%zu used=%zu", io->roff, io->rsize);
@@ -605,7 +605,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 
 		buffer_ensure(io->wr, n + 1);
  		xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
-		buffer_added(io->wr, n);
+		buffer_add(io->wr, n);
 	}
 	io_write(io, io->eol, strlen(io->eol));
 }

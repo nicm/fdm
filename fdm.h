@@ -990,9 +990,10 @@ struct buffer 	*buffer_create(size_t);
 void		 buffer_destroy(struct buffer *);
 void		 buffer_clear(struct buffer *);
 void		 buffer_ensure(struct buffer *, size_t);
-void		 buffer_added(struct buffer *, size_t);
-void		 buffer_trimmed(struct buffer *, size_t);
-void		 buffer_removed(struct buffer *, size_t);
+void		 buffer_add(struct buffer *, size_t);
+void		 buffer_reverse_add(struct buffer *, size_t);
+void		 buffer_remove(struct buffer *, size_t);
+void		 buffer_reverse_remove(struct buffer *, size_t);
 void		 buffer_write(struct buffer *, const void *, size_t);
 void		 buffer_read(struct buffer *, void *, size_t);
 
