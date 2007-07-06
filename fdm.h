@@ -994,6 +994,8 @@ void		 buffer_add(struct buffer *, size_t);
 void		 buffer_reverse_add(struct buffer *, size_t);
 void		 buffer_remove(struct buffer *, size_t);
 void		 buffer_reverse_remove(struct buffer *, size_t);
+void		 buffer_insert_range(struct buffer *, size_t, size_t);
+void		 buffer_delete_range(struct buffer *, size_t, size_t);
 void		 buffer_write(struct buffer *, const void *, size_t);
 void		 buffer_read(struct buffer *, void *, size_t);
 

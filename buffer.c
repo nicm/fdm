@@ -124,12 +124,43 @@ buffer_reverse_remove(struct buffer *b, size_t size)
 	b->off -= size;
 }
 
+/* Insert a section into the buffer. */ 
+void
+buffer_insert_range(struct buffer *b, size_t base, size_t size)
+{
+	if (size == 0)
+		log_fatalx("buffer_insert_range: zero size");
+	if (base > b->size)
+		log_fatalx("buffer_insert_range: range overflows buffer");
+
+	buffer_ensure(b, size);
+	memmove(b->base + b->off + base + size,
+	    b->base + b->off + base, b->size - base);
+	b->size += size;
+}
+
+/* Delete a section from the buffer. */ 
+void
+buffer_delete_range(struct buffer *b, size_t base, size_t size)
+{
+	if (size == 0)
+		log_fatalx("buffer_delete_range: zero size");
+	if (size > b->size)
+		log_fatalx("buffer_delete_range: size too big");
+	if (base + size > b->size)
+		log_fatalx("buffer_delete_range: range overflows buffer");
+
+	memmove(b->base + b->off + base,
+	    b->base + b->off + base + size, b->size - base - size);
+	b->size -= size;
+}
+
 /* Copy data into a buffer. */
 void
 buffer_write(struct buffer *b, const void *data, size_t size)
 {
-	if (size > SSIZE_MAX)
-		log_fatalx("buffer_write: size too big");
+	if (size == 0)
+		log_fatalx("buffer_write: zero size");
 
 	buffer_ensure(b, size);
 	memcpy(BUFFER_IN(b), data, size);
@@ -140,8 +171,8 @@ buffer_write(struct buffer *b, const void *data, size_t size)
 void
 buffer_read(struct buffer *b, void *data, size_t size)
 {
-	if (size > SSIZE_MAX)
-		log_fatalx("buffer_read: size too big");
+	if (size == 0)
+		log_fatalx("buffer_read: zero size");
 	if (size > b->size)
 		log_fatalx("buffer_read: underflow");
 
