@@ -40,6 +40,8 @@ void
 log_open(FILE *f, int facility, int level)
 {
 	log_stream = f;
+	setlinebuf(f);
+
 	log_level = level;
 
 	if (f == NULL)
@@ -61,19 +63,21 @@ log_close(void)
 
 /* Write a log message. */
 void
-log_write(FILE *f, int priority, const char *fmt, ...)
+log_write(FILE *f, int priority, const char *msg, ...)
 {
 	va_list	ap;
 
-	va_start(ap, fmt);
-	log_vwrite(f, priority, fmt, ap);
+	va_start(ap, msg);
+	log_vwrite(f, priority, msg, ap);
 	va_end(ap);
 }
 
 /* Write a log message. */
 void
-log_vwrite(FILE *f, int priority, const char *fmt, va_list ap)
+log_vwrite(FILE *f, int priority, const char *msg, va_list ap)
 {
+	char	*fmt;
+
 	if (!log_enabled)
 		return;
 
@@ -82,11 +86,12 @@ log_vwrite(FILE *f, int priority, const char *fmt, va_list ap)
 		return;
 	}
 	
+	if (asprintf(&fmt, "%s\n", msg) == -1)
+		exit(1);
 	if (vfprintf(f, fmt, ap) == -1)
 		exit(1);
-	if (fputc('\n', f) == EOF)
-		exit(1);
 	fflush(log_stream);
+	free(fmt);
 }
 
 /* Log a warning with error string. */

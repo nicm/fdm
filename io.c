@@ -446,7 +446,7 @@ io_read2(struct io *io, void *buf, size_t len)
 		return (-1);
 
 	if (BUFFER_USED(io->rd) < len)
-		return (-1);
+		return (1);
 
 	buffer_read(io->rd, buf, len);
 
