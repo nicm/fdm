@@ -523,8 +523,10 @@ io_readline2(struct io *io, char **buf, size_t *len)
 				    xstrdup("io: maximum line length exceeded");
 				return (NULL);
 			}
+
 			/*
-			 * If the socket has closed, just return all the data.
+			 * If the socket has closed, just return all the data
+			 * (the buffer is known not to be at least eollen long).
 			 */
 			if (!IO_CLOSED(io))
 				return (NULL);
@@ -542,7 +544,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 
 	/* Copy the line and remove it from the buffer. */
 	ENSURE_FOR(*buf, *len, size, 1);
-	buffer_read(io->rd, *buf, size);
+	if (size != 0)
+		buffer_read(io->rd, *buf, size);
 	(*buf)[size] = '\0';
 
 	/* Discard the EOL from the buffer. */
