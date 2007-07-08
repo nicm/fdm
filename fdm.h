@@ -794,6 +794,7 @@ int 	 	 	yylex(void);
 extern struct macros	parse_macros;
 extern struct files     parse_filestack;
 extern struct file     *parse_file;
+extern struct strb     *parse_tags;
 int	 		parse_conf(const char *);
 __dead printflike1 void yyerror(const char *, ...);
 

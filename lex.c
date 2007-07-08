@@ -46,7 +46,7 @@ int	  include_finish(void);
 struct token {
 	const char	*name;
 	int		 value;
-}; 
+};
 static const struct token tokens[] = {
 	{ "B", TOKBYTES },
 	{ "G", TOKGIGABYTES },
@@ -128,7 +128,7 @@ static const struct token tokens[] = {
 	{ "mb", TOKMEGABYTES },
 	{ "mbox", TOKMBOX },
 	{ "megabyte", TOKMEGABYTES },
-	{ "megabytes", TOKMEGABYTES }, 
+	{ "megabytes", TOKMEGABYTES },
 	{ "minute", TOKMINUTES },
 	{ "minutes", TOKMINUTES },
 	{ "month", TOKMONTHS },
@@ -183,20 +183,23 @@ static const struct token tokens[] = {
 int
 yylex(void)
 {
-	int	 ch, value;
-	char	*path;
+	int	 	 ch, value;
+	char		*path;
+	struct replpath  rp;
 
 	/* Switch to new file. See comment in read_token below. */
 	if (lex_include) {
 		while ((ch = lex_getc()) != EOF && isspace((u_char) ch))
 			;
-		
+
 		if (ch != '"' && ch != '\'')
 			yyerror("syntax error");
 		if (ch == '"')
-			path = read_string('"', 1);
+			rp.str = read_string('"', 1);
 		else
-			path = read_string('\'', 0);
+			rp.str = read_string('\'', 0);
+		path = replacepath(&rp, parse_tags, NULL, NULL);
+		xfree(rp.str);
 		include_start(path);
 		lex_include = 0;
 	}
@@ -256,7 +259,7 @@ restart:
 		case '!':
 			ch = lex_getc();
 			if (ch == '=') {
-				value = TOKNE; 
+				value = TOKNE;
 				goto out;
 			}
 			lex_ungetc(ch);
@@ -302,7 +305,7 @@ restart:
 out:
 	if (lex_skip)
 		goto restart;
-	return (value); 
+	return (value);
 }
 
 int
@@ -352,9 +355,9 @@ read_token(int ch)
 		macro = find_macro(name);
 		xfree(name);
 
-		if (!lex_skip && token[2] == 'n' && macro != NULL)
+		if (token[2] == 'n' && macro != NULL)
 			lex_skip = 1;
-		if (!lex_skip && token[2] != 'n' && macro == NULL)
+		if (token[2] != 'n' && macro == NULL)
 			lex_skip = 1;
 		lex_ifdef++;
 		return (NONE);
@@ -561,7 +564,7 @@ read_string(char endch, int esc)
 				ch = oldch;
 				break;
 			}
-			
+
 			name = read_macro(oldch, '{');
 			if ((macro = find_macro(name)) == NULL)
 				yyerror("undefined macro: %s", name);
@@ -595,7 +598,7 @@ void
 include_start(char *file)
 {
 	char	*path;
-	FILE	*f;	
+	FILE	*f;
 
 	if (*file == '\0')
 		yyerror("invalid include file");
