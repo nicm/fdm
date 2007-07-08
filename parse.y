@@ -351,11 +351,6 @@ replpathv: strv
 	   {
 		  struct replpath	rp;
 
-		  if (parse_tags == NULL) {
-			  strb_create(&parse_tags);
-			  default_tags(&parse_tags, NULL);
-		  }
-
 		  rp.str = $1;
 		  $$ = replacepath(&rp, parse_tags, NULL, NULL);
 		  xfree($1);
