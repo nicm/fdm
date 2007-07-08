@@ -17,6 +17,7 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <string.h>
@@ -597,8 +598,9 @@ read_string(char endch, int esc)
 void
 include_start(char *file)
 {
-	char	*path;
-	FILE	*f;
+	char		*path;
+	FILE		*f;
+	struct stat	 sb;
 
 	if (*file == '\0')
 		yyerror("invalid include file");
@@ -610,6 +612,11 @@ include_start(char *file)
 		xfree(file);
 	} else
 		path = file;
+
+	if (fstat(fileno(f), &sb) != 0)
+		yyerror("%s: %s", path, strerror(errno));
+	if (geteuid() != 0 && (sb.st_mode & (S_IROTH|S_IWOTH)) != 0)
+		log_warnx("%s: world readable or writable", path);
 
 	ARRAY_ADD(&parse_filestack, parse_file);
 	parse_file = xmalloc(sizeof *parse_file);

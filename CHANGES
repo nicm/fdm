@@ -1,3 +1,9 @@
+08 July 2007
+
+* Check permissions on include files as well as main configuration file.
+* First new parser bug: include files should be subject to tag replacement,
+  noticed by Frank Terbeck.
+
 05 July 2007
 
 * Move to rewritten log.c which which makes the syslog/stderr hacks I had made
