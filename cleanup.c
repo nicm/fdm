@@ -34,8 +34,13 @@ TAILQ_HEAD(, cleanent)		 cleanlist;
 void
 cleanup_check(void)
 {
-	if (!TAILQ_EMPTY(&cleanlist))
+	struct cleanent	*cent;
+
+	if (!TAILQ_EMPTY(&cleanlist)) {
+		TAILQ_FOREACH(cent, &cleanlist, entry)
+		        log_debug("cleanup: %s", cent->path);
 		log_fatalx("cleanup_check: list not empty");
+	}
 }
 
 void

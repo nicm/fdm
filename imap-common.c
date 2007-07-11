@@ -226,6 +226,9 @@ imap_disconnect(struct account *a, unused int aborted)
 {
 	struct fetch_imap_data	*data = a->data;
 
+	if (data->mail != NULL)
+		mail_destroy(data->mail);
+
 	ARRAY_FREE(&data->kept);
 
 	xfree(data->lbuf);
@@ -678,15 +681,15 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 		if (line == NULL)
 			return (FETCH_BLOCK);
 
-		if (!data->flushing)
+		if (data->flushing)
 			continue;
 		if (append_line(m, line) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}
+
 		if (m->size >= data->size)
 			break;
-
 	}
 
 	data->state = imap_done1;
