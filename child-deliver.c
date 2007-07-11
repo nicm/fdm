@@ -156,7 +156,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 		flags |= CMD_IN;
 	if (cmddata->re.str != NULL)
 		flags |= CMD_OUT;
-	cmd = cmd_start(s, flags, conf.timeout, m->data, m->size, &cause);
+	cmd = cmd_start(s, flags, m->data, m->size, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		goto error;
@@ -173,7 +173,8 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 			break;
 		}
 
-		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
+		status = cmd_poll(
+		    cmd, &out, &err, &lbuf, &llen, conf.timeout, &cause);
 		if (status == -1) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			goto error;

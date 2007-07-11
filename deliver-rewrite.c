@@ -64,8 +64,7 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 	md->size = 0;
 
-	cmd = cmd_start(s, CMD_IN|CMD_OUT|CMD_ONCE, conf.timeout, m->data,
-	    m->size, &cause);
+	cmd = cmd_start(s, CMD_IN|CMD_OUT|CMD_ONCE, m->data, m->size, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);
@@ -77,7 +76,8 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	lbuf = xmalloc(llen);
 
 	do {
-		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
+		status = cmd_poll(
+		    cmd, &out, &err, &lbuf, &llen, conf.timeout, &cause);
 		if (status == -1) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			xfree(cause);

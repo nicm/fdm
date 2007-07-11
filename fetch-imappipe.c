@@ -65,11 +65,9 @@ fetch_imappipe_getln(struct account *a, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*out, *err, *cause;
-	int			 n;
 
-	data->cmd->timeout = 0;
-	n = cmd_poll(data->cmd, &out, &err, &data->lbuf, &data->llen, &cause);
-	switch (n) {
+	switch (cmd_poll(
+	    data->cmd, &out, &err, &data->lbuf, &data->llen, 0, &cause)) {
 	case 0:
 		break;
 	case -1:
@@ -118,8 +116,7 @@ fetch_imappipe_connect(struct account *a)
 	if (imap_connect(a) != 0)
 		return (-1);
 
-	data->cmd =
-	    cmd_start(data->pipecmd, CMD_IN|CMD_OUT, 0, NULL, 0, &cause);
+	data->cmd = cmd_start(data->pipecmd, CMD_IN|CMD_OUT, NULL, 0, &cause);
 	if (data->cmd == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);

@@ -40,7 +40,7 @@ int	io_fill(struct io *);
 
 /* Create a struct io for the specified socket and SSL descriptors. */
 struct io *
-io_create(int fd, SSL *ssl, const char *eol, int timeout)
+io_create(int fd, SSL *ssl, const char *eol)
 {
 	struct io	*io;
 	int		 mode;
@@ -65,7 +65,6 @@ io_create(int fd, SSL *ssl, const char *eol, int timeout)
 	io->lbuf = NULL;
 	io->llen = 0;
 
-	io->timeout = timeout;
 	io->eol = eol;
 
 	return (io);
@@ -258,12 +257,10 @@ error:
 
 /* Poll the io. */
 int
-io_poll(struct io *io, char **cause)
+io_poll(struct io *io, int timeout, char **cause)
 {
 	struct io	*rio;
-	int		 timeout;
 
-	timeout = io->timeout;
 	return (io_polln(&io, 1, &rio, timeout, cause));
 }
 
@@ -615,7 +612,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 
 /* Poll until a line is received. */
 int
-io_pollline(struct io *io, char **line, char **cause)
+io_pollline(struct io *io, char **line, int timeout, char **cause)
 {
 	int	res;
 
@@ -624,14 +621,16 @@ io_pollline(struct io *io, char **line, char **cause)
 		io->lbuf = xmalloc(io->llen);
 	}
 
-	if ((res = io_pollline2(io, line, &io->lbuf, &io->llen, cause)) == 1)
+	res = io_pollline2(io, line, &io->lbuf, &io->llen, timeout, cause);
+	if (res == 1)
 		io->lbuf = NULL;
 	return (res);
 }
 
 /* Poll until a line is received, using a user buffer. */
 int
-io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
+io_pollline2(struct io *io, char **line, char **buf, size_t *len, int timeout,
+    char **cause)
 {
 	int	res;
 
@@ -640,17 +639,17 @@ io_pollline2(struct io *io, char **line, char **buf, size_t *len, char **cause)
 		if (*line != NULL)
 			return (1);
 
-		if ((res = io_poll(io, cause)) != 1)
+		if ((res = io_poll(io, timeout, cause)) != 1)
 			return (res);
 	}
 }
 
 /* Poll until all data in the write buffer has been written to the socket. */
 int
-io_flush(struct io *io, char **cause)
+io_flush(struct io *io, int timeout, char **cause)
 {
 	while (BUFFER_USED(io->wr) != 0) {
-		if (io_poll(io, cause) != 1)
+		if (io_poll(io, timeout, cause) != 1)
 			return (-1);
 	}
 
@@ -659,10 +658,10 @@ io_flush(struct io *io, char **cause)
 
 /* Poll until len bytes have been read into the read buffer. */
 int
-io_wait(struct io *io, size_t len, char **cause)
+io_wait(struct io *io, size_t len, int timeout, char **cause)
 {
 	while (BUFFER_USED(io->rd) < len) {
-		if (io_poll(io, cause) != 1)
+		if (io_poll(io, timeout, cause) != 1)
 			return (-1);
 	}
 
@@ -671,10 +670,10 @@ io_wait(struct io *io, size_t len, char **cause)
 
 /* Poll if there is lots of data to write. */
 int
-io_update(struct io *io, char **cause)
+io_update(struct io *io, int timeout, char **cause)
 {
 	if (BUFFER_USED(io->wr) < IO_FLUSHSIZE)
 		return (1);
 
-	return (io_poll(io, cause));
+	return (io_poll(io, timeout, cause));
 }

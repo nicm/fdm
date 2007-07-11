@@ -87,7 +87,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 		log_fatal("socketpair");
 
 	child = xcalloc(1, sizeof *child);
-	child->io = io_create(fds[0], NULL, IO_CRLF, INFTIM);
+	child->io = io_create(fds[0], NULL, IO_CRLF);
 	child->data = data;
 	child->msg = msg;
 
@@ -104,7 +104,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 		if (geteuid() == 0 && dropto(uid) != 0)
 			log_fatal("dropto");
 
-		io = io_create(fds[1], NULL, IO_LF, INFTIM);
+		io = io_create(fds[1], NULL, IO_LF);
 		n = start(child, io);
 		io_close(io);
 		io_free(io);

@@ -77,10 +77,9 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 		log_debug2("%s: executing \"%s\"", a->name, s);
 
 	if (pipef) {
-		cmd = cmd_start(s, CMD_IN|CMD_ONCE, conf.timeout, m->data,
-		    m->size, &cause);
+		cmd = cmd_start(s, CMD_IN|CMD_ONCE, m->data, m->size, &cause);
 	} else
-		cmd = cmd_start(s, 0, conf.timeout, NULL, 0, &cause);
+		cmd = cmd_start(s, 0, NULL, 0, &cause);
 	if (cmd == NULL) {
 		log_warnx("%s: %s: %s", a->name, s, cause);
 		xfree(cause);
@@ -92,7 +91,8 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 	lbuf = xmalloc(llen);
 
 	do {
-		status = cmd_poll(cmd, NULL, &err, &lbuf, &llen, &cause);
+		status = cmd_poll(
+		    cmd, NULL, &err, &lbuf, &llen, conf.timeout, &cause);
 		if (status == -1) {
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			xfree(cause);

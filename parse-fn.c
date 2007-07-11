@@ -654,7 +654,7 @@ run_command(const char *s, const char *file)
 		yyerror("empty command");
 
 	log_debug3("running command: %s", s);
-	if ((cmd = cmd_start(s, CMD_OUT, DEFTIMEOUT, NULL, 0, &cause)) == NULL)
+	if ((cmd = cmd_start(s, CMD_OUT, NULL, 0, &cause)) == NULL)
 		yyerror("%s: %s", s, cause);
 
 	llen = IO_LINESIZE;
@@ -665,7 +665,8 @@ run_command(const char *s, const char *file)
 
 	*sbuf = '\0';
 	do {
-		status = cmd_poll(cmd, &out, &err, &lbuf, &llen, &cause);
+		status = cmd_poll(
+		    cmd, &out, &err, &lbuf, &llen, DEFTIMEOUT, &cause);
 		if (status == -1) {
 			cmd_free(cmd);
 			yyerror("%s: %s", s, cause);

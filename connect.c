@@ -39,8 +39,8 @@
 int	sslverify(struct server *, SSL *, char **);
 #ifndef	NO_PROXY
 int	getport(char *);
-int	httpproxy(struct server *, struct proxy *, struct io *, char **);
-int	socks5proxy(struct server *, struct proxy *, struct io *, char **);
+int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
+int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
 #endif
 SSL    *makessl(struct server *, int, int, char **);
 
@@ -264,25 +264,25 @@ error:
 }
 
 struct io *
-connectproxy(struct server *srv, int verify, struct proxy *pr, const char *eol,
-    int timeout, char **cause)
+connectproxy(struct server *srv,
+    int verify, struct proxy *pr, const char *eol, int timeout, char **cause)
 {
 	struct io	*io;
 
 	if (pr == NULL)
-		return (connectio(srv, verify, eol, timeout, cause));
+		return (connectio(srv, verify, eol, cause));
 
-	io = connectio(&pr->server, verify, IO_CRLF, timeout, cause);
+	io = connectio(&pr->server, verify, IO_CRLF, cause);
 	if (io == NULL)
 		return (NULL);
 
 	switch (pr->type) {
 	case PROXY_HTTP:
-		if (httpproxy(srv, pr, io, cause) != 0)
+		if (httpproxy(srv, pr, io, timeout, cause) != 0)
 			goto error;
 		break;
 	case PROXY_SOCKS5:
-		if (socks5proxy(srv, pr, io, cause) != 0)
+		if (socks5proxy(srv, pr, io, timeout, cause) != 0)
 			goto error;
 		break;
 	default:
@@ -327,7 +327,8 @@ getport(char *port)
 }
 
 int
-socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
+socks5proxy(struct server *srv,
+    struct proxy *pr, struct io *io, int timeout, char **cause)
 {
 	int	port, auth;
 	char	buf[1024], *ptr;
@@ -345,7 +346,8 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	buf[2] = 0;	/* 0 = no auth */
 	buf[3] = 2;	/* 2 = user/pass auth */
 	io_write(io, buf, auth ? 4 : 3);
-	if (io_wait(io, 2, cause) != 0)
+
+	if (io_wait(io, 2, timeout, cause) != 0)
 		return (-1);
 	io_read2(io, buf, 2);
 	if (buf[0] != 5) {
@@ -379,7 +381,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		ptr += len;
 		io_write(io, buf, ptr - buf);
 
-		if (io_wait(io, 2, cause) != 0)
+		if (io_wait(io, 2, timeout, cause) != 0)
 			return (-1);
 		io_read2(io, buf, 2);
 		if (buf[0] != 5) {
@@ -411,7 +413,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 	io_write(io, buf, ptr - buf);
 
 	/* Connect response. */
-	if (io_wait(io, 5, cause) != 0)
+	if (io_wait(io, 5, timeout, cause) != 0)
 		return (-1);
 	io_read2(io, buf, 5);
 	if (buf[0] != 5) {
@@ -465,7 +467,7 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 		xasprintf(cause, "unknown address type: %d", buf[3]);
 		return (-1);
 	}
-	if (io_wait(io, len, cause) != 0)
+	if (io_wait(io, len, timeout, cause) != 0)
 		return (-1);
 	io_read2(io, buf, len);
 
@@ -473,7 +475,8 @@ socks5proxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 }
 
 int
-httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
+httpproxy(struct server *srv,
+    struct proxy *pr, struct io *io, int timeout, char **cause)
 {
 	char	*line;
 	int	 port, header;
@@ -493,7 +496,7 @@ httpproxy(struct server *srv, struct proxy *pr, struct io *io, char **cause)
 
 	header = 0;
 	for (;;) {
-		if (io_pollline(io, &line, cause) != 1)
+		if (io_pollline(io, &line, timeout, cause) != 1)
 			return (-1);
 
 		if (header == 0) {
@@ -571,8 +574,8 @@ error:
 }
 
 struct io *
-connectio(struct server *srv, int verify, const char *eol, int timeout,
-    char **cause)
+connectio(
+    struct server *srv, int verify, const char *eol, char **cause)
 {
 	int		 fd = -1, error = 0;
 	struct addrinfo	 hints;
@@ -613,11 +616,11 @@ connectio(struct server *srv, int verify, const char *eol, int timeout,
 		return (NULL);
 	}
 	if (!srv->ssl)
-		return (io_create(fd, NULL, eol, timeout));
+		return (io_create(fd, NULL, eol));
 
 	if ((ssl = makessl(srv, fd, verify && srv->verify, cause)) == NULL) {
 		close(fd);
 		return (NULL);
 	}
-	return (io_create(fd, ssl, eol, timeout));
+	return (io_create(fd, ssl, eol));
 }

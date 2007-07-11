@@ -710,7 +710,6 @@ struct io {
 	char		*lbuf;		/* line buffer */
 	size_t		 llen;		/* line buffer size */
 
-	int		 timeout;
 	const char	*eol;
 };
 
@@ -724,7 +723,6 @@ struct cmd {
 	pid_t	 	 pid;
 	int		 status;
 	int		 flags;
-	int		 timeout;
 
 	const char	*buf;
 	size_t		 len;
@@ -855,10 +853,9 @@ int		 privsep_check(struct io *);
 int		 privsep_recv(struct io *, struct msg *, struct msgbuf *);
 
 /* command.c */
-struct cmd 	*cmd_start(const char *, int, int, const char *, size_t,
-    		     char **);
+struct cmd 	*cmd_start(const char *, int, const char *, size_t, char **);
 int		 cmd_poll(struct cmd *, char **, char **, char **, size_t *,
-		     char **);
+		     int, char **);
 void		 cmd_free(struct cmd *);
 
 /* child.c */
@@ -900,7 +897,7 @@ void		 getaddrs(const char *, char **, char **);
 struct proxy 	*getproxy(const char *);
 struct io 	*connectproxy(struct server *, int, struct proxy *,
     		     const char *, int, char **);
-struct io	*connectio(struct server *, int, const char *, int, char **);
+struct io	*connectio(struct server *, int, const char *, char **);
 
 /* mail.c */
 int		 mail_open(struct mail *, size_t);
@@ -998,13 +995,13 @@ void		 buffer_write(struct buffer *, const void *, size_t);
 void		 buffer_read(struct buffer *, void *, size_t);
 
 /* io.c */
-struct io	*io_create(int, SSL *, const char *, int);
+struct io	*io_create(int, SSL *, const char *);
 void		 io_readonly(struct io *);
 void		 io_writeonly(struct io *);
 void		 io_free(struct io *);
 void		 io_close(struct io *);
 int		 io_polln(struct io **, u_int, struct io **, int, char **);
-int		 io_poll(struct io *, char **);
+int		 io_poll(struct io *, int, char **);
 int		 io_read2(struct io *, void *, size_t);
 void 		*io_read(struct io *, size_t);
 void		 io_write(struct io *, const void *, size_t);
@@ -1012,11 +1009,12 @@ char 		*io_readline2(struct io *, char **, size_t *);
 char 		*io_readline(struct io *);
 void printflike2 io_writeline(struct io *, const char *, ...);
 void		 io_vwriteline(struct io *, const char *, va_list);
-int		 io_pollline2(struct io *, char **, char **, size_t *, char **);
-int		 io_pollline(struct io *, char **, char **);
-int		 io_flush(struct io *, char **);
-int		 io_wait(struct io *, size_t, char **);
-int		 io_update(struct io *, char **);
+int		 io_pollline2(struct io *, char **, char **, size_t *, int,
+		     char **);
+int		 io_pollline(struct io *, char **, int, char **);
+int		 io_flush(struct io *, int, char **);
+int		 io_wait(struct io *, size_t, int, char **);
+int		 io_update(struct io *, int, char **);
 
 /* log.c */
 void		 log_open(FILE *, int, int);

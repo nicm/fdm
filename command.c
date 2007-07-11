@@ -29,8 +29,7 @@
 
 /* Start a command. */
 struct cmd *
-cmd_start(const char *s, int flags, int timeout, const char *buf, size_t len,
-    char **cause)
+cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 {
 	struct cmd	*cmd;
 	int	 	 fd_in[2], fd_out[2], fd_err[2];
@@ -38,7 +37,6 @@ cmd_start(const char *s, int flags, int timeout, const char *buf, size_t len,
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
 	cmd->flags = flags;
-	cmd->timeout = timeout;
 
 	if (buf != NULL && len != 0 && flags & CMD_IN) {
 		cmd->buf = buf;
@@ -131,19 +129,19 @@ cmd_start(const char *s, int flags, int timeout, const char *buf, size_t len,
 
 	/* Create ios. */
 	if (fd_in[1] != -1) {
-		cmd->io_in = io_create(fd_in[1], NULL, IO_LF, conf.timeout);
+		cmd->io_in = io_create(fd_in[1], NULL, IO_LF);
 		io_writeonly(cmd->io_in);
  		if (cmd->len != 0)
 			cmd->io_in->flags |= IOF_MUSTWR;
 	} else
 		cmd->io_in = NULL;
 	if (fd_out[0] != -1) {
-		cmd->io_out = io_create(fd_out[0], NULL, IO_LF, conf.timeout);
+		cmd->io_out = io_create(fd_out[0], NULL, IO_LF);
 		io_readonly(cmd->io_out);
 	} else
 		cmd->io_out = NULL;
 	if (fd_err[0] != -1) {
-		cmd->io_err = io_create(fd_err[0], NULL, IO_LF, conf.timeout);
+		cmd->io_err = io_create(fd_err[0], NULL, IO_LF);
 		io_readonly(cmd->io_err);
 	} else
 		cmd->io_err = NULL;
@@ -176,8 +174,8 @@ error:
  * return code + 1 if it has exited.
  */
 int
-cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
-    char **cause)
+cmd_poll(struct cmd *cmd, char **out, char **err,
+    char **lbuf, size_t *llen, int timeout, char **cause)
 {
 	struct io	*io, *ios[3];
 	size_t		 len;
@@ -260,7 +258,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err, char **lbuf, size_t *llen,
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
 		ios[2] = cmd->io_err;
-		switch (io_polln(ios, 3, &io, cmd->timeout, cause)) {
+		switch (io_polln(ios, 3, &io, timeout, cause)) {
 		case -1:
 			if (errno == EAGAIN)
 				return (0);

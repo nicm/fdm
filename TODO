@@ -27,10 +27,10 @@
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
 - should time stuff use localtime or gmtime?
-- get rid of IO_POLLFDS limit, and move timeout out of struct io
 - weed is not doing its jobs, check domains
 - document $() and %()
 - decide everything for cache and document it
 - document ifdef/ifndef/endif
 - document NNTP
 - document two digit year (year2/mail_year2), hostname tags
+- better website

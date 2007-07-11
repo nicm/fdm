@@ -102,7 +102,8 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	line = cause = NULL;
 	done = 0;
 	do {
-		switch (io_pollline2(io, &line, &lbuf, &llen, &cause)) {
+		switch (io_pollline2(io,
+		    &line, &lbuf, &llen, conf.timeout, &cause)) {
 		case 0:
 			cause = xstrdup("connection unexpectedly closed");
 			goto error;
@@ -144,15 +145,15 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 				io_write(io, ptr, len - 1);
 				io_writeline(io, NULL);
 
-				/* update if necessary */
-				if (io_update(io, &cause) != 1)
+				/* Update if necessary. */
+				if (io_update(io, conf.timeout, &cause) != 1)
 					goto error;
 
 				line_next(m, &ptr, &len);
 			}
 			state = SMTP_DONE;
 			io_writeline(io, ".");
-			io_flush(io, NULL);
+			io_flush(io, conf.timeout, NULL);
 			break;
 		case SMTP_DONE:
 			if (code != 250)
@@ -190,7 +191,7 @@ error:
 		log_warnx("%s: unexpected response: %s", a->name, line);
 
 	io_writeline(io, "QUIT");
-	io_flush(io, NULL);
+	io_flush(io, conf.timeout, NULL);
 
 	xfree(lbuf);
 	if (from != NULL)
