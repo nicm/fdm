@@ -15,7 +15,7 @@
 - get only read/unread mail (IMAP only, probably) (read-only, unread-only)
   flags to account line
 - handle multiple header instances when looking for users (other places?)
-- fnmatch in find_header (don't forget ':')
+- fnmatch in find_header (don't forget ':') -- new: match_header
 - add some of the other non-useless stuff reformail can do, if any
 - write/append/pipe would benefit from add-from per stdout
 - deliver to IMAP folder
@@ -26,10 +26,9 @@
   decreasing size order, but with longer queue necessary
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
-- should time stuff use localtime or gmtime?
 - weed is not doing its jobs, check domains
 - document $() and %()
 - decide everything for cache and document it
 - document ifdef/ifndef/endif
-- document NNTP
+- document NNTPS
 - better website

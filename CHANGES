@@ -1,5 +1,6 @@
 11 July 2007
 
+* Additional example from Giorgio Lando (examples/g-lando.conf).
 * Add two-digit year (year2/mail_year2) and hostname tags.
 * Simplify fetching: line counting and body detection is now done globally for
   all fetch types in the mail queuing code, as is checking for empty and 
