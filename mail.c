@@ -363,6 +363,7 @@ append_line(struct mail *m, char *line)
 	return (0); 
 }
 
+/* Fill array of users from headers. */
 struct users *
 find_users(struct mail *m)
 {
@@ -376,18 +377,12 @@ find_users(struct mail *m)
 	ARRAY_INIT(users);
 
 	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		if (*ARRAY_ITEM(conf.headers, i) == '\0')
+		hdr = ARRAY_ITEM(conf.headers, i); 
+		if (*hdr == '\0')
 			continue;
 
-		hdr = find_header(m, ARRAY_ITEM(conf.headers, i),
-		    &len, 1);
+		hdr = find_header(m, hdr, &len, 1);
 		if (hdr == NULL || len == 0)
-			continue;
-		while (isspace((u_char) *hdr)) {
-			hdr++;
-			len--;
-		}
-		if (*hdr == '\0')
 			continue;
 
 		while (len > 0) {
@@ -400,6 +395,7 @@ find_users(struct mail *m)
 				dom = ARRAY_ITEM(conf.domains, j);
 				if (fnmatch(dom, dptr, FNM_CASEFOLD) != 0)
 					continue;
+
 				*--dptr = '\0';
 				pw = getpwnam(ptr);
 				if (pw != NULL)
