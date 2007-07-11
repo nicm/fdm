@@ -40,7 +40,8 @@ void
 log_open(FILE *f, int facility, int level)
 {
 	log_stream = f;
-	setlinebuf(f);
+	if (f != NULL)
+		setlinebuf(f);
 
 	log_level = level;
 
@@ -82,7 +83,7 @@ log_vwrite(FILE *f, int priority, const char *msg, va_list ap)
 		return;
 
 	if (f == NULL) {
-		vsyslog(priority, fmt, ap);
+		vsyslog(priority, msg, ap);
 		return;
 	}
 	
