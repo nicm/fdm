@@ -468,7 +468,8 @@ minute		%M		The current minute (00-59).
 second		%S		The current second (00-59).
 day		%d		The current day of the month (00-31).
 month		%m		The current month (01-12).
-year		%y		The current year.
+year		%y		The current year as four digits.
+year2				The current year as two digits.
 dayofweek	%W		The current day of the week (0-6, Sunday is 0).
 dayofyear	%Y		The current day of the year (000-365).
 quarter		%Q		The current quarter (1-4).
@@ -478,7 +479,10 @@ mail_minute			The minute from the mail's date header.
 mail_second			The second from the mail's date header.
 mail_day			The day from the mail's date header.
 mail_month			The month from the mail's date header.
-mail_year			The year from the mail's date header.
+mail_year			The year from the mail's date header as four
+				digits.
+mail_year2			The same as two digits.
+hostname			The local hostname.
 
 In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
 replaced with the result of any bracket expressions in the last regexp (see
