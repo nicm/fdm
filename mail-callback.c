@@ -30,7 +30,7 @@ enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 {
 	struct mail_ctx		*mctx;
 	struct mail_queue	*mq = &fctx->matchq;
-	char			*hdr, rtime[64], *rhost;
+	char			*hdr, rtime[128], *rhost;
 	u_int		 	 n, b;
 	size_t		 	 size;
 	int		 	 error;
@@ -91,6 +91,8 @@ enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 		add_tag(&m->tags,
 		    "mail_quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
 	}
+	if (rfc822time(t, rtime, sizeof rtime) != NULL)
+		add_tag(&m->tags, "mail_rfc822date", "%s", rtime);
 
 	/* Fill in lines tags. */
 	count_lines(m, &n, &b);

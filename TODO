@@ -32,3 +32,5 @@
 - document ifdef/ifndef/endif
 - document NNTPS
 - better website
+- document %[mail_rfc822], that all mail tags are /localtime/ and that
+  current time is used if date header is invalid

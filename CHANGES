@@ -1,5 +1,8 @@
 11 July 2007
 
+* Add %[mail_rfc822date] which contains the mail date and time (or current date
+  and time if invalid) in RFC822 format and %[rfc822date] which is the same for
+  the current date/time. I probably need to stop adding tags now $() works.
 * Additional example from Giorgio Lando (examples/g-lando.conf).
 * Add two-digit year (year2/mail_year2) and hostname tags.
 * Simplify fetching: line counting and body detection is now done globally for
