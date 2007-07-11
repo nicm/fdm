@@ -1,5 +1,11 @@
 11 July 2007
 
+* Simplify fetching: line counting and body detection is now done globally for
+  all fetch types in the mail queuing code, as is checking for empty and 
+  oversize mails.
+* There is now no concept of a body-less mail (m->body == -1). Mails with
+  no separating blank line are assumed to be entirely body (m->body == 0),
+  otherwise the body is the first byte after the separator.
 * Fix a long-standing bug in openlock (mail.c): if open(2) failed, the lock
   file was not removed.
 * NNTPS fetching, suggested by Maximilian Gass.

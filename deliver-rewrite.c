@@ -47,7 +47,6 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct deliver_rewrite_data	*data = ti->data;
 	struct mail			*md = &dctx->wr_mail;
         char				*s, *cause, *out, *err;
-	size_t				 len;
 	int	 			 status;
 	struct cmd			*cmd;
 	char				*lbuf;
@@ -85,29 +84,21 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			xfree(lbuf);
 			goto error;
 		}
-       		if (status == 0) {
-			if (err != NULL)
-				log_warnx("%s: %s: %s", a->name, s, err);
-			if (out != NULL) {
-				log_debug3("%s: %s: out: %s", a->name, s, out);
+		if (status != 0)
+			continue;
+		if (err != NULL)
+			log_warnx("%s: %s: %s", a->name, s, err);
+		if (out == NULL)
+			continue;
+		log_debug3("%s: %s: out: %s", a->name, s, out);
 
-				len = strlen(out);
-				if (len == 0 && md->body == -1)
-					md->body = md->size + 1;
-
-				if (mail_resize(md, md->size + len + 1) != 0) {
-					log_warn("%s: failed to resize mail",
-					    a->name);
-					goto error;
-				}
-
-				if (len > 0)
-					memcpy(md->data + md->size, out, len);
-
-				/* append an LF */
-				md->data[md->size + len] = '\n';
-				md->size += len + 1;
-			}
+		if (append_line(md, out) != 0) {
+			log_warnx("%s: %s: failed to resize mail", s, a->name);
+			goto error;
+		}
+		if (md->size > conf.max_size) {
+			log_warnx("%s: %s: oversize mail returned", s, a->name);
+			goto error;
 		}
 	} while (status == 0);
 	status--;
@@ -123,6 +114,7 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		log_warnx("%s: %s: empty mail returned", a->name, s);
 		goto error;
 	}
+	md->body = find_body(md);
 
 	cmd_free(cmd);
 	xfree(s);

@@ -39,7 +39,7 @@ mail_open(struct mail *m, size_t size)
 {
 	m->size = size;
 	m->space = m->size;
-	m->body = -1;
+	m->body = 0;
 
 	if ((m->base = shm_create(&m->shm, m->size)) == NULL)
 		return (1);
@@ -312,8 +312,7 @@ remove_header(struct mail *m, const char *hdr)
 	/* Remove the header. */
 	memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
 	m->size -= len;
- 	if (m->body != -1)
-		m->body -= len;
+	m->body -= len;
 
 	return (0);
 }
@@ -334,20 +333,20 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 		off = ptr - m->data;
 	} else {
 		/* Insert at the end. */
-		if (m->body == -1 || m->body == 0) {
+		if (m->body == 0 || m->body == 1) {
 			/* 
-			 * If there is no body, assume the entire mail is
-			 * body and insert the headers at the start.
+			 * Creating the headers section. Insert at the start,
+			 * and add an extra newline.
 			 */
 			off = 0;
-			
-			/* And insert an extra newline if necessary. */
-			if (m->body == -1)
-				newlines++;
-		} else
+			newlines++;
+		} else {
+			/* Insert before the start of the body. */
 			off = m->body - 1;
+		}
 	}
 
+	/* Create the header. */
 	va_start(ap, fmt);
 	hdrlen = xvasprintf(&hdr, fmt, ap);
 	va_end(ap);
@@ -367,10 +366,7 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	memcpy(ptr, hdr, hdrlen - newlines);
 	memset(ptr + hdrlen - newlines, '\n', newlines);
 	m->size += hdrlen;
- 	if (m->body != -1)
-		m->body += hdrlen;
-	else
-		m->body = hdrlen;
+	m->body += hdrlen;
 
 	xfree(hdr);
 	return (0);
@@ -384,7 +380,7 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 
 	hdrlen = strlen(hdr) + 1; /* include : */
 
-	end = m->data + (m->body == -1 ? m->size : (size_t) m->body);
+	end = m->data + m->body;
 	ptr = m->data;
 	if (hdrlen > (size_t) (end - ptr))
 		return (NULL);
@@ -426,6 +422,69 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 		return (NULL);
 
 	return (out);
+}
+
+/*
+ * Find offset of body. The body is the offset of the first octet after the
+ * separator (\n\n), or zero.
+ */
+size_t
+find_body(struct mail *m)
+{
+	size_t	 len;
+	char	*ptr;
+
+	line_init(m, &ptr, &len);
+	while (ptr != NULL) {
+		if (len == 1) {
+			line_next(m, &ptr, &len);
+			/* If no next line, body is end of mail. */
+			if (ptr == NULL)
+				return (m->size - 1);
+			/* Otherwise, body is start of line after separator. */
+			return (ptr - m->data);
+		}
+		line_next(m, &ptr, &len);
+	}
+	return (0);
+}
+
+/* Count mail lines. */
+void
+count_lines(struct mail *m, u_int *total, u_int *body)
+{
+	size_t	 len;
+	char	*ptr;
+	int	 flag;
+
+	flag = 0;
+	*total = *body = 0;
+
+	line_init(m, &ptr, &len);
+	while (ptr != NULL) {
+		if (flag)
+			(*body)++;
+		if (len == 1)
+			flag = 1;
+		(*total)++;
+		line_next(m, &ptr, &len);
+	}
+}
+
+/* Append line to mail. Used during fetching. */
+int
+append_line(struct mail *m, char *line)
+{
+	size_t	size;
+
+	size = strlen(line);
+	if (mail_resize(m, m->size + size + 1) != 0)
+		return (-1);
+	if (size > 0)
+		memcpy(m->data + m->size, line, size);
+	m->data[m->size + size] = '\n';
+	m->size += size + 1;
+	return (0); 
 }
 
 struct users *
@@ -542,21 +601,16 @@ trim_from(struct mail *m)
 	char	*ptr;
 	size_t	 len;
 
-	if (m->data == NULL || m->size < 5 || strncmp(m->data, "From ", 5) != 0)
+	if (m->data == NULL || m->body == 0 || m->size < 5)
+		return;
+	if (strncmp(m->data, "From ", 5) != 0)
 		return;
 
-	ptr = memchr(m->data, '\n', m->size);
-	if (ptr == NULL)
-		ptr = m->data + m->size;
-	else
-		ptr++;
-	len = ptr - m->data;
-
+	line_init(m, &ptr, &len);
 	m->size -= len;
 	m->off += len;
 	m->data = m->base + m->off;
-	if (m->body != -1)
-		m->body -= len;
+	m->body -= len;
 }
 
 char *
@@ -600,7 +654,7 @@ fill_wrapped(struct mail *m)
 	ARRAY_INIT(&m->wrapped);
 	m->wrapchar = '\0';
 
-	end = m->body == -1 ? m->size : (size_t) m->body;
+	end = m->body;
 	ptr = m->data;
 
 	n = 0;

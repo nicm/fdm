@@ -68,8 +68,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		/* Remove the header. */
 		memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
 		m->size -= len;
-		if (m->body != -1)
-			m->body -= len;
+		m->body -= len;
 
 		/* Fix up the wrapped array. */
 		off = ptr - m->data;

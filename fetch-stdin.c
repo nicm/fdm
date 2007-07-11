@@ -73,9 +73,6 @@ fetch_stdin_connect(struct account *a)
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
-	data->lines = 0;
-	data->bodylines = -1;
-
 	data->complete = 0;
 
 	return (0);
@@ -111,7 +108,6 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 	struct mail		*m;
 	int		 	 error;
 	char			*line, *cause;
-	size_t			 len;
 
 	/* Flush deleted once complete. */
 	if (data->complete) {
@@ -153,52 +149,17 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_ERROR);
 		}
 
-		len = strlen(line);
-		if (len == 0 && m->body == -1) {
-			m->body = m->size + 1;
-			data->bodylines = 0;
-		}
-		data->lines++;
-		if (data->bodylines != -1)
-			data->bodylines++;
-
-		if (mail_resize(m, m->size + len + 1) != 0) {
+		if (append_line(m, line) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}
-		if (len > 0)
-			memcpy(m->data + m->size, line, len);
-
-		/* Append an LF. */
-		m->data[m->size + len] = '\n';
-		m->size += len + 1;
-
-		if (m->size > conf.max_size) {
-			oversize_mail(a, fctx, m);
-			data->complete = 1;
-			return (FETCH_HOLD);
-		}
+		if (m->size > conf.max_size)
+			break;
 	}
 
-	/* Tag mail. */
-	add_tag(&m->tags, "lines", "%u", data->lines);
-	if (data->bodylines == -1) {
-		add_tag(&m->tags, "body_lines", "0");
-		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
-	} else {
-		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines -
-		    data->bodylines);
-	}
-
-	transform_mail(a, fctx, m);
-	if (m->size == 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->complete = 1;
-		return (FETCH_HOLD);
-	}
-	enqueue_mail(a, fctx, m);
+	/* Enqueue the mail. */
+	if (enqueue_mail(a, fctx, m) != 0)
+		return (FETCH_ERROR);
 
 	data->complete = 1;
 	return (FETCH_HOLD);

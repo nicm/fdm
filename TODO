@@ -27,11 +27,10 @@
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
 - should time stuff use localtime or gmtime?
+- get rid of IO_POLLFDS limit, and move timeout out of struct io
+- add two digit year, hostname tags
+- weed is not doing its jobs, check domains
 - document $() and %()
 - decide everything for cache and document it
 - document ifdef/ifndef/endif
-- get rid of IO_POLLFDS limit, and move timeout out of struct io
-- add two digit year, hostname tags
-- figure out whether a mail without body is all headers or all body or both,
-  particularly for "in body/in headers"
-- weed is not doing its jobs, check domains
+- document NNTP

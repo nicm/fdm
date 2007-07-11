@@ -348,10 +348,10 @@ struct mail {
 	size_t	 	 	 size;		/* size of mail */
 	size_t	 	 	 space;		/* size of malloc'd area */
 
+	size_t		 	 body;		/* offset of body */
+
 	ARRAY_DECL(, size_t)	 wrapped;	/* list of wrapped lines */
 	char			 wrapchar;	/* wrapped character */
-
-	ssize_t		 	 body;		/* offset of body */
 
 	/* XXX move below into special struct and just cp it in mail_*? */
 	struct rmlist		 rml;		/* regexp matches */
@@ -874,13 +874,7 @@ int		 child_fetch(struct child *, struct io *);
 void		 fetch_free1(struct mail_ctx *);
 
 /* mail-callback.c */
-void		 transform_mail(struct account *, struct fetch_ctx *,
-    		     struct mail *);
 int		 enqueue_mail(struct account *, struct fetch_ctx *,
-		     struct mail *);
-int		 empty_mail(struct account *, struct fetch_ctx *,
-		     struct mail *);
-int		 oversize_mail(struct account *, struct fetch_ctx *,
 		     struct mail *);
 struct mail 	*done_mail(struct account *, struct fetch_ctx *);
 void		 dequeue_mail(struct account *, struct fetch_ctx *);
@@ -923,6 +917,9 @@ void		 line_next(struct mail *, char **, size_t *);
 int printflike3	 insert_header(struct mail *, const char *, const char *, ...);
 int		 remove_header(struct mail *, const char *);
 char		*find_header(struct mail *, const char *, size_t *, int);
+size_t		 find_body(struct mail *);
+void		 count_lines(struct mail *, u_int *, u_int *);
+int		 append_line(struct mail *, char *);
 struct users	*find_users(struct mail *);
 char		*find_address(char *, size_t, size_t *);
 void		 trim_from(struct mail *);

@@ -237,7 +237,7 @@ fetch_nntp_load(struct account *a)
 	}
 
 	fclose(f);
-	closelock(-1, data->path, conf.lock_types);
+	closelock(fd, data->path, conf.lock_types);
 	return (0);
 
 invalid:
@@ -247,7 +247,7 @@ error:
 	if (f != NULL)
 		fclose(f);
 	if (fd != -1)
-		closelock(-1, data->path, conf.lock_types);
+		closelock(fd, data->path, conf.lock_types);
 	return (-1);
 }
 
@@ -679,15 +679,13 @@ fetch_nntp_article(struct account *a, unused struct fetch_ctx *fctx)
 	m = data->mail = xcalloc(1, sizeof *data->mail);
 
 	/* Open the mail. */
-	if (mail_open(m, IO_ROUND(data->size)) != 0) {
+	if (mail_open(m, IO_BLOCKSIZE) != 0) {
 		log_warn("%s: failed to create mail", a->name);
 		return (FETCH_ERROR);
 	}
 	m->size = 0;
 
 	data->flushing = 0;
-	data->lines = 0;
-	data->bodylines = -1;
 
 	data->state = fetch_nntp_line;
 	return (FETCH_AGAIN);
@@ -701,7 +699,6 @@ fetch_nntp_line(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_nntp_group	*group;
 	struct mail		*m = data->mail;
 	char			*line;
-	size_t			 len;
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
@@ -715,28 +712,13 @@ fetch_nntp_line(struct account *a, struct fetch_ctx *fctx)
 		else if (line[0] == '.')
 			break;
 
-		len = strlen(line);
-		if (len == 0 && m->body == -1) {
-			m->body = m->size + 1;
-			data->bodylines = 0;
+		if (data->flushing)
+			continue;
+		if (append_line(m, line) != 0) {
+			log_warn("%s: failed to resize mail", a->name);
+			return (FETCH_ERROR);
 		}
-
-		if (!data->flushing) {
-			if (mail_resize(m, m->size + len + 1) != 0) {
-				log_warn("%s: failed to resize mail", a->name);
-				return (FETCH_ERROR);
-			}
-
-			if (len > 0)
-				memcpy(m->data + m->size, line, len);
-			m->data[m->size + len] = '\n';
-		}
-
-		data->lines++;
-		if (data->bodylines != -1)
-			data->bodylines++;
-		m->size += len + 1;
-		if (m->size + data->lines > conf.max_size)
+		if (m->size > conf.max_size)
 			data->flushing = 1;
 	}
 
@@ -746,34 +728,8 @@ fetch_nntp_line(struct account *a, struct fetch_ctx *fctx)
 	add_tag(&m->tags, "server", "%s", data->server.host);
 	add_tag(&m->tags, "port", "%s", data->server.port);
 
-	add_tag(&m->tags, "lines", "%u", data->lines);
-	if (data->bodylines == -1) {
-		add_tag(&m->tags, "body_lines", "0");
-		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
-	} else {
-		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags, "header_lines", "%d", data->lines -
-		    data->bodylines);
-	}
-
-	if (data->flushing) {
-		if (oversize_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		io_writeline(data->io, "NEXT");
-		data->state = fetch_nntp_next;
-		return (FETCH_BLOCK);
-	}
-	transform_mail(a, fctx, m);
-	if (m->size == 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		io_writeline(data->io, "NEXT");
-		data->state = fetch_nntp_next;
-		return (FETCH_BLOCK);
-	}
-	enqueue_mail(a, fctx, m);
+	if (enqueue_mail(a, fctx, m) != 0)
+		return (FETCH_ERROR);
 	data->mail = NULL;
 
 	io_writeline(data->io, "NEXT");

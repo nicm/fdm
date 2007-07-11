@@ -46,12 +46,11 @@ match_regexp_match(struct mail_ctx *mctx, struct expritem *ei)
 	eo = m->size;
 	switch (data->area) {
 	case AREA_HEADERS:
-		if (m->body != -1)
-			eo = m->body;
+		if (m->body == 0)
+			return (MATCH_FALSE);
+		eo = m->body;
 		break;
 	case AREA_BODY:
-		if (m->body == -1)
-			return (MATCH_FALSE);
 		so = m->body;
 		break;
 	case AREA_ANY:

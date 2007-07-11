@@ -302,7 +302,7 @@ fetch_maildir_mail(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_maildir_mail	*aux;
 	struct mail			*m;
 	struct dirent			*dp;
-	char	       			*ptr, *maildir, name[MAXPATHLEN];
+	char	       			*maildir, name[MAXPATHLEN];
 	struct stat			 sb;
 	uintmax_t			 size;
 	int				 fd;
@@ -348,22 +348,6 @@ restart:
 	m = xcalloc(1, sizeof *m);
 	m->shm.fd = -1;
 
-	/* Got a valid entry, start reading it. */
-	log_debug2("%s: reading mail from: %s", a->name, name);
-	if (sb.st_size <= 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		mail_destroy(m);
-		return (FETCH_AGAIN);
-	}
-	size = sb.st_size;
-	if (size > SIZE_MAX || size > conf.max_size) {
-		if (oversize_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		mail_destroy(m);
-		return (FETCH_AGAIN);
-	}
-
 	/* Open the mail. */
 	if (mail_open(m, IO_ROUND(sb.st_size)) != 0) {
 		log_warn("%s: failed to create mail", a->name);
@@ -371,6 +355,17 @@ restart:
 		return (FETCH_ERROR);
 	}
 	m->size = 0;
+
+	/* Got a valid entry, start reading it. */
+	log_debug2("%s: reading mail from: %s", a->name, name);
+	size = sb.st_size;
+	if (sb.st_size <= 0) {
+		m->size = 0;
+		goto out;
+	} else if (size > SIZE_MAX || size > conf.max_size) {
+		m->size = SIZE_MAX;
+		goto out;
+	}
 
 	/* Open the file. */
 	if ((fd = open(name, O_RDONLY, 0)) == -1) {
@@ -401,22 +396,10 @@ restart:
 	log_debug2("%s: read %ju bytes", a->name, size);
 	m->size = size;
 
-	/* Find the body. */
-	m->body = -1;
-	ptr = m->data;
-	while ((ptr = memchr(ptr, '\n', (m->data + m->size) - ptr)) != NULL) {
-		ptr++;
-		if (ptr < (m->data + m->size) && *ptr == '\n') {
-			ptr++;
-			if (ptr != (m->data + m->size))
-				m->body = ptr - m->data;
-			break;
-		}
-	}
-
+out:
 	/* And queue the mail. */
-	enqueue_mail(a, fctx, m);
-
+	if (enqueue_mail(a, fctx, m) != 0)
+		return (FETCH_ERROR);
 	return (FETCH_AGAIN);
 }
 

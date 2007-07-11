@@ -21,21 +21,54 @@
 #include "fdm.h"
 #include "fetch.h"
 
-/* Transform a mail in some obvious ways. */
-void
-transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
+/*
+ * Check mail for various problems, add headers and fill tags, then create an
+ * and enqueue it onto the fetch queue. Called from the fetch code itself.
+ */
+int
+enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 {
-	char		*hdr, rtm[64], *rnm;
-	u_int		 lines;
-	size_t		 len;
-	int		 error;
- 	struct tm	*tm;
-	time_t		 t;
+	struct mail_ctx		*mctx;
+	struct mail_queue	*mq = &fctx->matchq;
+	char			*hdr, rtime[64], *rhost;
+	u_int		 	 n, b;
+	size_t		 	 size;
+	int		 	 error;
+ 	struct tm		*tm;
+	time_t		 	 t;
 
-	/* Trim "From" line. */
+	/*
+	 * Check for oversize mails. This must be first since there is no
+	 * guarantee anything other than size is valid if oversize.
+	 */
+	if (m->size > conf.max_size) {
+		log_warnx("%s: message too big: %zu bytes", a->name, m->size);
+		if (!conf.del_big)
+			return (-1);
+		/* Enqueue on done queue. */
+		mq = &fctx->doneq;
+		goto enqueue;
+	}
+
+ 	/*
+	 * Find the mail body (needed by trim_from). This is probably slower
+	 * than doing it during fetching but it guarantees consistency.
+	 */
+	m->body = find_body(m);
+
+ 	/* Trim "From" line, if any. */
 	trim_from(m);
-	if (m->size == 0)
-		return;
+	    
+	/* Check for empty mails. */
+	if (m->size == 0) {
+		log_warnx("%s: empty message", a->name);
+		return (-1);
+	}
+
+	/* Fill in standard mail attributes. */
+	m->decision = DECISION_DROP;
+	m->idx = ++a->idx;
+	m->tim = get_time();
 
 	/* Add account name tag. */
  	add_tag(&m->tags, "account", "%s", a->name);
@@ -58,13 +91,20 @@ transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 		    "mail_quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
 	}
 
+	/* Fill in lines tags. */
+	count_lines(m, &n, &b);
+	log_debug2("%s: found %u lines, %u in body", a->name, n, b);
+	add_tag(&m->tags, "lines", "%u", n);
+	add_tag(&m->tags, "body_lines", "%u", b);
+	add_tag(&m->tags, "header_lines", "%u", n - b);
+
 	/* Insert message-id tag. */
-	hdr = find_header(m, "message-id", &len, 1);
-	if (hdr == NULL || len == 0 || len > INT_MAX)
+	hdr = find_header(m, "message-id", &size, 1);
+	if (hdr == NULL || size == 0 || size > INT_MAX)
 		log_debug2("%s: message-id not found", a->name);
 	else {
-		log_debug2("%s: message-id is: %.*s", a->name, (int) len, hdr);
-		add_tag(&m->tags, "message_id", "%.*s", (int) len, hdr);
+		log_debug2("%s: message-id is: %.*s", a->name, (int) size, hdr);
+		add_tag(&m->tags, "message_id", "%.*s", (int) size, hdr);
 	}
 
 	/*
@@ -76,38 +116,24 @@ transform_mail(struct account *a, unused struct fetch_ctx *fctx, struct mail *m)
 	 */
 	if (!conf.no_received) {
 		error = 1;
-		if (rfc822time(time(NULL), rtm, sizeof rtm) != NULL) {
-			rnm = conf.info.fqdn;
-			if (rnm == NULL)
-				rnm = conf.info.host;
+		if (rfc822time(time(NULL), rtime, sizeof rtime) != NULL) {
+			rhost = conf.info.fqdn;
+			if (rhost == NULL)
+				rhost = conf.info.host;
 
 			error = insert_header(m, "received", "Received: by "
 			    "%.450s (%s " BUILD ", account \"%.450s\");\n\t%s",
-			    rnm, __progname, a->name, rtm);
+			    rhost, __progname, a->name, rtime);
 		}
 		if (error != 0)
 			log_debug3("%s: couldn't add received header", a->name);
 	}
 
 	/* Fill wrapped line list. */
-	lines = fill_wrapped(m);
-	log_debug2("%s: found %u wrapped lines", a->name, lines);
-}
+	n = fill_wrapped(m);
+	log_debug2("%s: found %u wrapped lines", a->name, n);
 
-/*
- * Create an mctx for a mail and enqueue it onto the fetch queue. Called from
- * the fetch code itself.
- */
-int
-enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
-{
-	struct mail_ctx	*mctx;
-
-	/* Fill in our bits of the mail. */
-	m->decision = DECISION_DROP;
-	m->idx = ++a->idx;
-	m->tim = get_time();
-
+enqueue:
 	/* Create the mctx. */
 	mctx = xcalloc(1, sizeof *mctx);
 	mctx->account = a;
@@ -127,59 +153,13 @@ enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 	fctx->queued++;
 
 	if (a->fetch->total != NULL && a->fetch->total(a) > 0) {
-		log_debug("%s: got message %u of %d: size %zu, body %zd",
+		log_debug("%s: got message %u of %d: size %zu, body %zu",
 		    a->name, m->idx, a->fetch->total(a), m->size, m->body);
 	} else {
-		log_debug("%s: got message %u: size %zu, body %zd", a->name,
+		log_debug("%s: got message %u: size %zu, body %zu", a->name,
 		    m->idx, m->size, m->body);
 	}
 	return (0);
-}
-
-/* Handle an empty mail. */
-int
-empty_mail(struct account *a, unused struct fetch_ctx *fctx,
-    unused struct mail *m)
-{
-	log_warnx("%s: empty message", a->name);
-
-	return (-1);
-}
-
-/* Handle an oversize mail. */
-int
-oversize_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
-{
-	struct mail_ctx	*mctx;
-
-	log_warnx("%s: message too big: %zu bytes", a->name, m->size);
-
-	if (conf.del_big) {
-		/*
-		 * Create an mctx and queue on the done queue.
-		 */
-		m->decision = DECISION_DROP;
-		m->idx = ++a->idx;
-		m->tim = get_time();
-
-		mctx = xcalloc(1, sizeof *mctx);
-		mctx->account = a;
-		mctx->io = fctx->io;
-		mctx->mail = m;
-		mctx->msgid = 0;
-		mctx->done = 0;
-
-		mctx->matched = 0;
-
-		mctx->rule = TAILQ_FIRST(&conf.rules);
-		TAILQ_INIT(&mctx->dqueue);
-		ARRAY_INIT(&mctx->stack);
-
-		TAILQ_INSERT_TAIL(&fctx->doneq, mctx, entry);
-		return (0);
-	}
-
-	return (-1);
 }
 
 /*

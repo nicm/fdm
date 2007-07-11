@@ -469,7 +469,7 @@ fetch_pop3_delete(struct account *a, struct fetch_ctx *fctx)
 
 /* LIST state. */
 int
-fetch_pop3_list(struct account *a, struct fetch_ctx *fctx)
+fetch_pop3_list(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct mail		*m = data->mail;
@@ -491,22 +491,6 @@ fetch_pop3_list(struct account *a, struct fetch_ctx *fctx)
 	aux->idx = data->cur;
 	m->auxdata = aux;
 	m->auxfree = fetch_pop3_free;
-
-	/* Deal with empty and oversize mails. */
-	if (data->size == 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = fetch_pop3_next;
-		return (FETCH_AGAIN);
-	}
-	if (data->size > conf.max_size) {
-		if (oversize_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = fetch_pop3_next;
-		return (FETCH_AGAIN);
-	}
 
 	io_writeline(data->io, "UIDL %u", data->cur);
 	data->state = fetch_pop3_uidl;
@@ -580,8 +564,6 @@ fetch_pop3_retr(struct account *a, unused struct fetch_ctx *fctx)
 	m->size = 0;
 
 	data->flushing = 0;
-	data->lines = 0;
-	data->bodylines = -1;
 
 	data->state = fetch_pop3_line;
 	return (FETCH_AGAIN);
@@ -595,7 +577,6 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 	struct mail		*m = data->mail;
 	struct fetch_pop3_mail	*aux = m->auxdata;
 	char			*line;
-	size_t			 len;
 
 	for (;;) {
 		line = io_readline2(data->io, &data->lbuf, &data->llen);
@@ -607,28 +588,13 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 		else if (line[0] == '.')
 			break;
 
-		len = strlen(line);
-		if (len == 0 && m->body == -1) {
-			m->body = m->size + 1;
-			data->bodylines = 0;
+		if (data->flushing)
+			continue;
+		if (append_line(m, line) != 0) {
+			log_warn("%s: failed to resize mail", a->name);
+			return (FETCH_ERROR);
 		}
-
-		if (!data->flushing) {
-			if (mail_resize(m, m->size + len + 1) != 0) {
-				log_warn("%s: failed to resize mail", a->name);
-				return (FETCH_ERROR);
-			}
-
-			if (len > 0)
-				memcpy(m->data + m->size, line, len);
-			m->data[m->size + len] = '\n';
-		}
-
-		data->lines++;
-		if (data->bodylines != -1)
-			data->bodylines++;
-		m->size += len + 1;
-		if (m->size + data->lines > conf.max_size)
+		if (m->size > conf.max_size)
 			data->flushing = 1;
 	}
 
@@ -638,40 +604,8 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 	add_tag(&m->tags, "port", "%s", data->server.port);
 	add_tag(&m->tags, "server_uid", "%s", aux->uid);
 
-	add_tag(&m->tags, "lines", "%u", data->lines);
-	if (data->bodylines == -1) {
-		add_tag(&m->tags, "body_lines", "0");
-		add_tag(&m->tags, "header_lines", "%u", data->lines - 1);
-	} else {
-		add_tag(&m->tags, "body_lines", "%d", data->bodylines - 1);
-		add_tag(&m->tags,
-		    "header_lines", "%d", data->lines - data->bodylines);
-	}
-
-	/* Accept size with either CRLF or just LF line endings. */
-	if (!data->flushing &&
-	    m->size + data->lines != data->size && m->size != data->size) {
-		log_warnx("%s: server lied about message size: expected %zu, "
-		    "got %zu (%u lines)", a->name, data->size, m->size +
-		    data->lines, data->lines);
-	}
-
-	if (data->flushing) {
-		if (oversize_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = fetch_pop3_next;
-		return (FETCH_AGAIN);
-	}
-	transform_mail(a, fctx, m);
-	if (m->size == 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = fetch_pop3_next;
-		return (FETCH_AGAIN);
-	}
-	enqueue_mail(a, fctx, m);
+	if (enqueue_mail(a, fctx, m) != 0)
+		return (FETCH_ERROR);
 	data->mail = NULL;
 
 	data->state = fetch_pop3_next;

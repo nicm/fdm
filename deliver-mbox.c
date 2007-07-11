@@ -200,6 +200,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		line_next(m, &ptr, &len);
 	}
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
+	log_debug2("%s: adding %zu newlines", a->name, len);
 	if (deliver_mbox_write(fd, gzf, "\n\n", len) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out2;

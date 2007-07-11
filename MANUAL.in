@@ -526,10 +526,8 @@ value of the server and port attributes exactly as specified in the account
 definition. A 'server_uid' tag is also added with the server unique id (UIDL).
 
 POP3 adds 'lines', 'body_lines' and 'header_lines' tags with the number of
-lines in the complete mail and its body and header. If the server adds a 'From '
-line when delivering (sendmail does when delivering to a pipe), it is
-included in the counts even though fdm later strips it. These tags are not
-updated to reflect any changes made to the mail by fdm rules.
+lines in the complete mail and its body and header. These tags are not updated
+to reflect any changes made to the mail by fdm rules.
 
 %%% SSL certificate verification
 

@@ -611,7 +611,7 @@ imap_uid2(struct account *a, unused struct fetch_ctx *fctx)
 
 /* Body state. */
 int
-imap_body(struct account *a, struct fetch_ctx *fctx)
+imap_body(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	struct mail		*m = data->mail;
@@ -642,15 +642,6 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 	m->auxdata = aux;
 	m->auxfree = imap_free;
 
-	/* Deal with empty and oversize mails. */
-	if (data->size == 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = imap_next;
-		return (FETCH_AGAIN);
-	}
-
 	/* Open the mail. */
 	if (mail_open(m, IO_ROUND(data->size)) != 0) {
 		log_warn("%s: failed to create mail", a->name);
@@ -668,8 +659,6 @@ imap_body(struct account *a, struct fetch_ctx *fctx)
 	add_tag(&m->tags, "folder", "%s", data->folder);
 
 	data->flushing = data->size > conf.max_size;
-	data->lines = 0;
-	data->bodylines = -1;
 
 	data->state = imap_line;
 	return (FETCH_AGAIN);
@@ -682,7 +671,6 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	struct mail		*m = data->mail;
 	char			*line;
-	size_t			 len;
 
 	for (;;) {
 		if (imap_getln(a, IMAP_RAW, &line) != 0)
@@ -690,28 +678,13 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 		if (line == NULL)
 			return (FETCH_BLOCK);
 
-		len = strlen(line);
-		if (len == 0 && m->body == -1) {
-			m->body = m->size + 1;
-			data->bodylines = 0;
+		if (!data->flushing)
+			continue;
+		if (append_line(m, line) != 0) {
+			log_warn("%s: failed to resize mail", a->name);
+			return (FETCH_ERROR);
 		}
-
-		if (!data->flushing) {
-			if (mail_resize(m, m->size + len + 1) != 0) {
-				log_warn("%s: failed to resize mail", a->name);
-				return (FETCH_ERROR);
-			}
-
-			if (len > 0)
-				memcpy(m->data + m->size, line, len);
-			m->data[m->size + len] = '\n';
-		}
-
-		data->lines++;
-		if (data->bodylines != -1)
-		data->bodylines++;
-		m->size += len + 1;
-		if (m->size + data->lines >= data->size)
+		if (m->size >= data->size)
 			break;
 
 	}
@@ -754,22 +727,8 @@ imap_done2(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(a, line))
 		return (FETCH_ERROR);
 
-	if (data->flushing) {
-		if (oversize_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = imap_next;
-		return (FETCH_AGAIN);
-	}
-	transform_mail(a, fctx, m);
-	if (m->size == 0) {
-		if (empty_mail(a, fctx, m) != 0)
-			return (FETCH_ERROR);
-		data->mail = NULL;
-		data->state = imap_next;
-		return (FETCH_AGAIN);
-	}
-	enqueue_mail(a, fctx, m);
+	if (enqueue_mail(a, fctx, m) != 0)
+		return (FETCH_ERROR);
 	data->mail = NULL;
 
 	data->state = imap_next;
