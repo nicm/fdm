@@ -147,6 +147,7 @@ mail_resize(struct mail *m, size_t size)
 	return (0);
 }
 
+/* Initialise for iterating over lines. */
 void
 line_init(struct mail *m, char **line, size_t *len)
 {
@@ -161,6 +162,7 @@ line_init(struct mail *m, char **line, size_t *len)
 		*len = (ptr - *line) + 1;
 }
 
+/* Move to next line. */
 void
 line_next(struct mail *m, char **line, size_t *len)
 {
@@ -179,6 +181,7 @@ line_next(struct mail *m, char **line, size_t *len)
 		*len = (ptr - *line) + 1;
 }
 
+/* Remove specified header. */
 int
 remove_header(struct mail *m, const char *hdr)
 {
@@ -186,7 +189,7 @@ remove_header(struct mail *m, const char *hdr)
 	size_t	 len;
 
 	if ((ptr = find_header(m, hdr, &len, 0)) == NULL)
-		return (1);
+		return (-1);
 
 	/* Include the \n. */
 	len++;
@@ -199,6 +202,7 @@ remove_header(struct mail *m, const char *hdr)
 	return (0);
 }
 
+/* Insert header, before specified header if not NULL, otherwise at end. */ 
 int printflike3
 insert_header(struct mail *m, const char *before, const char *fmt, ...)
 {
@@ -211,7 +215,7 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 		/* Insert before header. */
 		ptr = find_header(m, before, &len, 0);
 		if (ptr == NULL)
-			return (1);
+			return (-1);
 		off = ptr - m->data;
 	} else {
 		/* Insert at the end. */
@@ -239,7 +243,7 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	/* Make space for the header. */
 	if (mail_resize(m, m->size + hdrlen) != 0) {
 		xfree(hdr);
-		return (1);
+		return (-1);
 	}
 	ptr = m->data + off;
 	memmove(ptr + hdrlen, ptr, m->size - off);
@@ -254,56 +258,46 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	return (0);
 }
 
+/* Find a header. */
 char *
 find_header(struct mail *m, const char *hdr, size_t *len, int value)
 {
-	char	*ptr, *end, *out;
+	char	*ptr;
 	size_t	 hdrlen;
 
+
 	hdrlen = strlen(hdr) + 1; /* include : */
-
-	end = m->data + m->body;
-	ptr = m->data;
-	if (hdrlen > (size_t) (end - ptr))
+	if (m->body < hdrlen || m->size < hdrlen)
 		return (NULL);
-	while (ptr[hdrlen - 1] != ':' ||
-	    strncasecmp(ptr, hdr, hdrlen - 1) != 0) {
-		ptr = memchr(ptr, '\n', end - ptr);
-		if (ptr == NULL)
+
+	line_init(m, &ptr, len);
+	while (ptr != NULL) {
+		if (ptr >= m->data + m->body)
 			return (NULL);
-		ptr++;
-		if (hdrlen > (size_t) (end - ptr))
-			return (NULL);
+		if (*len >= hdrlen && ptr[hdrlen - 1] == ':') {
+			if (strncasecmp(ptr, hdr, hdrlen - 1) == 0)
+				break;
+		} 
+		line_next(m, &ptr, len);
 	}
-
-	out = ptr + hdrlen;
-	ptr = memchr(out, '\n', end - out);
 	if (ptr == NULL)
-		*len = end - out;
-	else
-		*len = ptr - out;
-
-	/* Header must be followed by space. */
-	if (!isspace((u_char) *out))
 		return (NULL);
 
-	/* Sort out what is actually returned. */
-	if (value) {
-		/* Strip any following space. */
-		while (isspace((u_char) *out)) {
-			out++;
-			(*len)--;
-		}
-	} else {
-		/* Move back to the start of the header. */
-		out -= hdrlen;
-		(*len) += hdrlen;
+	/* If the entire header is wanted, return it. */
+	if (!value)
+		return (ptr);
+
+	/* Otherwise skip the header and following spaces. */
+	ptr += hdrlen;
+	*len -= hdrlen;
+	while (*len > 0 && isspace((u_char) *ptr)) {
+		ptr++;
+		(*len)--;
 	}
 
 	if (len == 0)
 		return (NULL);
-
-	return (out);
+	return (ptr);
 }
 
 /*
