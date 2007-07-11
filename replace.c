@@ -135,6 +135,9 @@ default_tags(struct strb **tags, const char *src)
 	if (src != NULL)
 		add_tag(tags, "source", "%s", src);
 
+	if (conf.info.host != NULL)
+		add_tag(tags, "hostname", "%s", conf.info.host);
+
 	t = time(NULL);
 	if ((tm = localtime(&t)) != NULL) {
 		/*
@@ -153,6 +156,7 @@ default_tags(struct strb **tags, const char *src)
 		add_tag(tags, "day", "%.2d", tm->tm_mday);
 		add_tag(tags, "month", "%.2d", tm->tm_mon + 1);
 		add_tag(tags, "year", "%.4d", 1900 + tm->tm_year);
+		add_tag(tags, "year2", "%.2d", tm->tm_year);
 		add_tag(tags, "dayofweek", "%d", tm->tm_wday);
 		add_tag(tags, "dayofyear", "%.2d", tm->tm_yday + 1);
 		add_tag(tags, "quarter", "%d", tm->tm_mon / 3 + 1);
