@@ -92,8 +92,7 @@ parse_conf(const char *path)
 
 	strb_destroy(&parse_tags);
 
-        if (fclose(f) != 0)
-		return (-1);
+        fclose(f);
         return (0);
 }
 
@@ -125,8 +124,8 @@ yyerror(const char *fmt, ...)
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
-%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKCACHE TOKGROUP
-%token TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
+%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKNNTPS TOKCACHE
+%token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
 %token TOKADDFROM TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKVERIFYCERTS
 %token TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY
@@ -184,7 +183,7 @@ yyerror(const char *fmt, ...)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled keep execpipe compress addfrom verify
-%type  <flag> poptype imaptype
+%type  <flag> poptype imaptype nntptype
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -2156,6 +2155,16 @@ imaptype: TOKIMAP
 		  $$ = 1;
 	  }
 
+/** NNTPTYPE: <flag> (int) */
+nntptype: TOKNNTP
+          {
+		  $$ = 0;
+          }
+        | TOKNNTPS
+	  {
+		  $$ = 1;
+	  }
+
 /** USERPASSNETRC: <userpass> (struct { ... } userpass) */
 userpassnetrc: TOKUSER replstrv TOKPASS replstrv
 /**            [$2: replstrv (char *)] [$4: replstrv (char *)] */
@@ -2334,9 +2343,10 @@ fetchtype: poptype server userpassnetrc verify
 		   $$.data = data;
 		   data->maildirs = $1;
 	   }
-	 | TOKNNTP server groups TOKCACHE replpathv
-/**        [$2: server (struct { ... } server)] */
+	 | nntptype server groups TOKCACHE replpathv verify
+/**        [$1: nntptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: groups (struct strings *)] [$5: replpathv (char *)] */
+/**        [$6: verify (int)] */
            {
 		   struct fetch_nntp_data	*data;
 		   char				*group;
@@ -2357,10 +2367,14 @@ fetchtype: poptype server userpassnetrc verify
 		   if (data->path == NULL || *data->path == '\0')
 			   yyerror("invalid cache");
 
+		   data->server.ssl = $1;
+		   data->server.verify = $6;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
-		   else
+		   else if ($1)
+                           data->server.port = xstrdup("nntps");
+                   else
 			   data->server.port = xstrdup("nntp");
 		   data->server.ai = NULL;
 	   }

@@ -135,6 +135,7 @@ static const struct token tokens[] = {
 	{ "month", TOKMONTHS },
 	{ "months", TOKMONTHS },
 	{ "nntp", TOKNNTP },
+	{ "nntps", TOKNNTPS },
 	{ "no-received",  TOKNORECEIVED },
 	{ "no-verify", TOKNOVERIFY },
 	{ "none", TOKNONE },

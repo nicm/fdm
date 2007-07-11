@@ -72,6 +72,7 @@ do_write(struct deliver_ctx *dctx, struct actitem *ti, int appendf)
 		log_debug2("%s: appending to %s", a->name, path);
 	else
 		log_debug2("%s: writing to %s", a->name, path);
+
         f = fopen(path, appendf ? "a" : "w");
         if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, path);
@@ -89,10 +90,7 @@ do_write(struct deliver_ctx *dctx, struct actitem *ti, int appendf)
 		log_warn("%s: %s: fsync", a->name, path);
 		goto error;
 	}
-	if (fclose(f) != 0) {
-		log_warn("%s: %s: fclose", a->name, path);
-		goto error;
-	}
+	fclose(f);
 
 	xfree(path);
 	return (DELIVER_SUCCESS);

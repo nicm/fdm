@@ -1,3 +1,10 @@
+11 July 2007
+
+* Fix a long-standing bug in openlock (mail.c): if open(2) failed, the lock
+  file was not removed.
+* NNTPS fetching, suggested by Maximilian Gass.
+* After rethinking, remove some useless fclose error checks.
+
 08 July 2007
 
 * Check permissions on include files as well as main configuration file.

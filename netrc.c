@@ -58,8 +58,7 @@ netrc_open(const char *home, char **cause)
 void
 netrc_close(FILE *f)
 {
-	if (fclose(f) != 0)
-		log_fatal("fclose");
+	fclose(f);
 }
 
 int

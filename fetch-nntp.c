@@ -236,13 +236,8 @@ fetch_nntp_load(struct account *a)
 		xfree(name);
 	}
 
-	if (fclose(f) != 0) {
-		log_warn("%s: fclose", a->name);
-		f = NULL;
-		goto error;
-	}
-
-	closelock(fd, data->path, conf.lock_types);
+	fclose(f);
+	closelock(-1, data->path, conf.lock_types);
 	return (0);
 
 invalid:
@@ -252,8 +247,7 @@ error:
 	if (f != NULL)
 		fclose(f);
 	if (fd != -1)
-		closelock(fd, data->path, conf.lock_types);
-
+		closelock(-1, data->path, conf.lock_types);
 	return (-1);
 }
 
@@ -270,11 +264,11 @@ fetch_nntp_save(struct account *a)
 
 	if (printpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0) {
 		log_warn("%s: %s: printpath", a->name, data->path);
-		goto error;
+		return (-1);
 	}
 	if ((fd = mkstemp(tmp)) == -1) {
 		log_warn("%s: %s: mkstemp", a->name, tmp);
-		goto error;
+		return (-1);
 	}
 	cleanup_register(tmp);
 
@@ -300,11 +294,7 @@ fetch_nntp_save(struct account *a)
 		log_warn("%s: fsync", a->name);
 		goto error;
 	}
-	if (fclose(f) != 0) {
-		log_warn("%s: fclose", a->name);
-		f = NULL;
-		goto error;
-	}
+	fclose(f);
 	f = NULL;
 
 	if (rename(tmp, data->path) == -1) {
@@ -316,14 +306,12 @@ fetch_nntp_save(struct account *a)
 	return (0);
 
 error:
-	if (f != NULL || fd != -1) {
-		if (f != NULL)
-			fclose(f);
-		if (fd != -1)
-			close(fd);
-		if (unlink(tmp) != 0)
-			log_fatal("unlink");
-	}
+	if (f != NULL)
+		fclose(f);
+	if (fd != -1)
+		close(fd);
+	if (unlink(tmp) != 0)
+		log_fatal("unlink");
 	cleanup_deregister(tmp);
 	return (-1);
 }

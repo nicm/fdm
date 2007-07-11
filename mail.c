@@ -170,9 +170,10 @@ openlock(const char *path, u_int locks, int flags, mode_t mode)
 		cleanup_register(lock);
 	}
 
-	fd = open(path, flags, mode);
+	if ((fd = open(path, flags, mode)) == -1)
+		goto error;
 
-	if (fd != -1 && locks & LOCK_FLOCK) {
+	if (locks & LOCK_FLOCK) {
 		if (flock(fd, LOCK_EX|LOCK_NB) != 0) {
 			if (errno == EWOULDBLOCK)
 				errno = EAGAIN;
@@ -180,7 +181,7 @@ openlock(const char *path, u_int locks, int flags, mode_t mode)
 		}
 	}
 
-	if (fd != -1 && locks & LOCK_FCNTL) {
+	if (locks & LOCK_FCNTL) {
 		memset(&fl, 0, sizeof fl);
 		fl.l_start = 0;
 		fl.l_len = 0;
@@ -222,7 +223,8 @@ closelock(int fd, const char *path, u_int locks)
 		xfree(lock);
 	}
 
-	close(fd);
+	if (fd != -1)
+		close(fd);
 }
 
 int
