@@ -135,6 +135,7 @@ struct fetch_pop3_data {
 
 	struct mail	*mail;
 	int		 flushing;
+
 	size_t		 size;
 
 	size_t		 llen;
@@ -180,7 +181,9 @@ struct fetch_imap_data {
 
 	struct mail	*mail;
 	int		 flushing;
+
 	size_t		 size;
+	u_int		 lines;
 
 	size_t		 llen;
 	char		*lbuf;

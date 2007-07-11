@@ -484,7 +484,6 @@ fetch_pop3_list(struct account *a, unused struct fetch_ctx *fctx)
 
 	if (sscanf(line, "+OK %*u %zu", &data->size) != 1)
 		return (fetch_pop3_invalid(a, line));
-	m->size = data->size;
 
 	/* Fill in local data. */
 	aux = xcalloc(1, sizeof *aux);
