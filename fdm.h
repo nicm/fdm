@@ -282,8 +282,7 @@ struct strb {
 #define STRB_ENTOFF(sb, n) ((n) * (sizeof (struct strbent)))
 #define STRB_ENTSIZE(sb) STRB_ENTOFF(sb, sb->ent_max)
 
-#define STRB_ENTRY(sb, n) \
-	((struct strbent *) (STRB_ENTBASE(sb) + STRB_ENTOFF(sb, n)))
+#define STRB_ENTRY(sb, n) ((void *) (STRB_ENTBASE(sb) + STRB_ENTOFF(sb, n)))
 #define STRB_SIZE(sb) (STRBOFFSET + (sb)->str_size + STRB_ENTSIZE((sb)))
 
 /* Regexp wrapper structs. */

@@ -90,11 +90,11 @@ int
 db_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
 {
 	uint64_t	*lim = ptr;
-	struct dbitem	*v;
+	struct dbitem	 v;
 
  	if (value.dsize != sizeof *v)
 		return (-1);
-	v = (struct dbitem *) value.dptr;
+	memcpy(v, value.dptr, sizeof v);
 
 	if (letoh64(v->tim) < *lim)
 		return (tdb_delete(tdb, key));

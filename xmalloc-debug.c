@@ -281,7 +281,7 @@ xmalloc_change(const char *file, u_int line, void *oldptr, void *newptr,
 }
 
 void
-xmalloc_free(const char *file, u_int line, void *ptr)
+xmalloc_free(unused const char *file, unused u_int line, void *ptr)
 {
 	struct xmalloc_blk	*blk;
 
