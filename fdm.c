@@ -39,7 +39,7 @@
 #include "fdm.h"
 
 #ifdef DEBUG
-const char		*malloc_options = "AFGJPX";
+const char		*malloc_options = "AFGJPRX";
 #endif
 
 void			 sighandler(int);
