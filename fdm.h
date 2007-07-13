@@ -268,17 +268,23 @@ struct strb {
 };
 
 /* Initial string block slots and block size. */
+#define STRBOFFSET 64
 #define STRBENTRIES 64
 #define STRBBLOCK 1024
 
 /* String block access macros. */
-#define STRB_KEY(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + (sbe)->key)
-#define STRB_VALUE(sb, sbe) (((char *) (sb)) + (sizeof *(sb)) + (sbe)->value)
+#define STRB_BASE(sb) (((char *) (sb)) + STRBOFFSET)
 
-#define STRB_ENTRY(sb, n) ((void *) (((char *) (sb)) + \
-	(sizeof *(sb)) + (sb)->str_size + ((n) * (sizeof (struct strbent)))))
-#define STRB_ENTSIZE(sb) ((sb)->ent_max * (sizeof (struct strbent)))
-#define STRB_SIZE(sb) ((sizeof *(sb)) + (sb)->str_size + STRB_ENTSIZE((sb)))
+#define STRB_KEY(sb, sbe) (STRB_BASE(sb) + (sbe)->key)
+#define STRB_VALUE(sb, sbe) (STRB_BASE(sb) + (sbe)->value)
+
+#define STRB_ENTBASE(sb) (STRB_BASE(sb) + (sb)->str_size)
+#define STRB_ENTOFF(sb, n) ((n) * (sizeof (struct strbent)))
+#define STRB_ENTSIZE(sb) STRB_ENTOFF(sb, sb->ent_max)
+
+#define STRB_ENTRY(sb, n) \
+	((struct strbent *) (STRB_ENTBASE(sb) + STRB_ENTOFF(sb, n)))
+#define STRB_SIZE(sb) (STRBOFFSET + (sb)->str_size + STRB_ENTSIZE((sb)))
 
 /* Regexp wrapper structs. */
 struct re {

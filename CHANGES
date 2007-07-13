@@ -1,3 +1,8 @@
+13 July 2007
+
+* Fix stupid bug (grr) in strb.c which caused a segfault if realloc moved the
+  buffer when it was being expanded; also clean up macros a bit when here.
+
 11 July 2007
 
 * Add %[mail_rfc822date] which contains the mail date and time (or current date

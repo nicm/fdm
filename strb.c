@@ -84,8 +84,7 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	struct strb	*sb = *sbp;
 	size_t		 size, keylen, valuelen;
 	u_int		 n;
-	struct strbent	 sbe;
-	void		*sbep;
+	struct strbent	 sbe, *sbep;
 	va_list		 aq;
 
 	keylen = strlen(key) + 1;
@@ -94,7 +93,6 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	valuelen = xvsnprintf(NULL, 0, value, aq) + 1;
 	va_end(aq);
 
-	sbep = STRB_ENTRY(sb, 0);
 	size = sb->str_size;
 	while (sb->str_size - sb->str_used < keylen + valuelen) {
 		if (STRB_SIZE(sb) > SIZE_MAX / 2)
@@ -103,9 +101,9 @@ strb_vadd(struct strb **sbp, const char *key, const char *value, va_list ap)
 	}
 	if (size != sb->str_size) {
 		sb = *sbp = xrealloc(sb, 1, STRB_SIZE(sb));
-		memmove(STRB_ENTRY(sb, 0), sbep, STRB_ENTSIZE(sb));
-		memset(((char *) sb) + (sizeof *sb) + size, 0,
-		    sb->str_size - size);
+		memmove(
+		    STRB_ENTBASE(sb), STRB_BASE(sb) + size, STRB_ENTSIZE(sb));
+		memset(STRB_BASE(sb) + size, 0, sb->str_size - size);
 	}
 
 	sbep = strb_address(sb, key);
