@@ -1,3 +1,7 @@
+14 July 2007
+
+* Use mremap(2) on Linux.
+ 
 13 July 2007
 
 * Fix stupid bug (grr) in strb.c which caused a segfault if realloc moved the
