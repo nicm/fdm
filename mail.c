@@ -137,7 +137,7 @@ int
 mail_resize(struct mail *m, size_t size)
 {
 	if (SIZE_MAX - m->off < size)
-		log_fatalx("resize_mail: SIZE_MAX - m->off < size");
+		log_fatalx("mail_resize: SIZE_MAX - m->off < size");
 	while (m->space <= (m->off + size)) {
 		if ((m->base = shm_resize(&m->shm, 2, m->space)) == NULL)
 			return (1);
