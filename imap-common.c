@@ -101,11 +101,8 @@ imap_okay(struct account *a, char *line)
 	char	*ptr;
 
 	ptr = strchr(line, ' ');
-	if (ptr == NULL || strncmp(ptr + 1, "OK ", 3) != 0) {
-		log_warnx("%s: unexpected data: %s", a->name, line);
+	if (ptr == NULL || strncmp(ptr + 1, "OK ", 3) != 0)
 		return (0);
-	}
-
 	return (1);
 }
 
@@ -728,7 +725,7 @@ imap_done2(struct account *a, struct fetch_ctx *fctx)
 	if (line == NULL)
 		return (FETCH_BLOCK);
 	if (!imap_okay(a, line))
-		return (FETCH_ERROR);
+		return (imap_bad(a, line));
 
 	if (enqueue_mail(a, fctx, m) != 0)
 		return (FETCH_ERROR);
