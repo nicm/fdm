@@ -76,7 +76,8 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	int	 			 exists, fd = -1, fd2;
 	int				 res = DELIVER_FAILURE;
 	gzFile				 gzf = NULL;
-	u_int				 n;
+	useconds_t			 t;
+	long long			 total;
 	sigset_t	 		 set, oset;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml);
@@ -109,18 +110,23 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		goto out;
 	}
 
-	n = 0;
+	total = 0;
 	do {
 		fd = openlock(path,
 		    conf.lock_types, O_CREAT|O_WRONLY|O_APPEND, FILEMODE);
 		if (fd < 0) {
 			if (errno == EAGAIN) {
-				usleep(LOCKSLEEPTIME);
-				n++;
-				if (n >= LOCKRETRIES) {
-					log_warnx("%s: %s: couldn't obtain lock"
-					    " in %.2f seconds", a->name, path,
-					    (LOCKSLEEPTIME * n) / 1000000.0);
+				if (total == 0)
+					srandom((u_int) getpid());
+				t = LOCKSLEEPTIME + (random() % LOCKSLEEPTIME);
+				log_debug3("%s: %s: sleeping %.3f seconds for "
+				    "lock", a->name, path, t / 1000000.0);
+				usleep(t);
+				total += t;
+				if (total > LOCKTOTALTIME) {
+					log_warnx("%s: %s: couldn't get lock "
+					    "in %.3f seconds", a->name, path,
+					    total / 1000000.0);
 					goto out;
 				}
 			} else {
@@ -200,7 +206,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		line_next(m, &ptr, &len);
 	}
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
-	log_debug2("%s: adding %zu newlines", a->name, len);
+	log_debug3("%s: adding %zu newlines", a->name, len);
 	if (deliver_mbox_write(fd, gzf, "\n\n", len) < 0) {
 		log_warn("%s: %s: write", a->name, path);
 		goto out2;
