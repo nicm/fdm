@@ -48,7 +48,7 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	strb_destroy(&m->tags);
 	m->tags = msgbuf->buf;
 
-	/* call the hook */
+	/* Call the hook. */
 	data->hook(1, a, msg, data, &msg->data.error);
 
 	msg->type = MSG_DONE;
@@ -59,9 +59,13 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 
 	mail_send(m, msg);
 
+	/* Check if child is alive and send to it if so. */
 	child = data->child;
-	if (child->io != NULL && privsep_send(child->io, msg, msgbuf) != 0)
-		log_fatalx("parent_deliver: privsep_send error");
+	if (child->io != NULL && kill(child->pid, 0) == 0) {
+		if (privsep_send(child->io, msg, msgbuf) != 0)
+			log_fatalx("parent_deliver: privsep_send error");
+	} else
+		log_debug2("%s: child %ld missing", a->name, (long) child->pid);
 
 	mail_close(m);
 	xfree(m);
