@@ -27,7 +27,7 @@ int	imap_putln(struct account *, const char *, ...);
 int	imap_getln(struct account *, int, char **);
 
 void	imap_free(void *);
-int	imap_okay(struct account *, char *);
+int	imap_okay(char *);
 int	imap_parse(struct account *, int, char *);
 int	imap_tag(char *);
 
@@ -96,7 +96,7 @@ imap_free(void *ptr)
 
 /* Check for okay from server. */
 int
-imap_okay(struct account *a, char *line)
+imap_okay(char *line)
 {
 	char	*ptr;
 
@@ -402,7 +402,7 @@ imap_pass(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	data->state = imap_select1;
@@ -457,7 +457,7 @@ imap_select3(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	data->state = imap_next;
@@ -592,7 +592,7 @@ imap_uid2(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
@@ -724,7 +724,7 @@ imap_done2(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	if (enqueue_mail(a, fctx, m) != 0)
@@ -746,7 +746,7 @@ imap_delete(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	data->state = imap_next;
@@ -764,7 +764,7 @@ imap_expunge(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	data->state = imap_select1;
@@ -782,7 +782,7 @@ imap_quit1(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	if (imap_putln(a, "%u LOGOUT", ++data->tag) != 0)
@@ -802,7 +802,7 @@ imap_quit2(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-	if (!imap_okay(a, line))
+	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
 	data->close(a);
