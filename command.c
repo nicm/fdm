@@ -114,7 +114,7 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 			log_fatal("signal");
                 if (signal(SIGUSR2, SIG_DFL) == SIG_ERR)
 			log_fatal("signal");
-		
+
 		execl(_PATH_BSHELL, "sh", "-c", s, (char *) NULL);
 		log_fatal("execl");
 	}

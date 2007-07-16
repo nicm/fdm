@@ -124,7 +124,7 @@ buffer_reverse_remove(struct buffer *b, size_t size)
 	b->off -= size;
 }
 
-/* Insert a section into the buffer. */ 
+/* Insert a section into the buffer. */
 void
 buffer_insert_range(struct buffer *b, size_t base, size_t size)
 {
@@ -139,7 +139,7 @@ buffer_insert_range(struct buffer *b, size_t base, size_t size)
 	b->size += size;
 }
 
-/* Delete a section from the buffer. */ 
+/* Delete a section from the buffer. */
 void
 buffer_delete_range(struct buffer *b, size_t base, size_t size)
 {

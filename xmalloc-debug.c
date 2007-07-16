@@ -50,7 +50,7 @@ u_int	xmalloc_reallocs;
 /* Print function. */
 #define XMALLOC_PRINT log_debug3
 
-/* Bytes of unallocated blocks and number of allocated blocks to show. */ 
+/* Bytes of unallocated blocks and number of allocated blocks to show. */
 #define XMALLOC_BYTES 20
 #define XMALLOC_LINES 32
 
@@ -157,7 +157,7 @@ xmalloc_new(void *caller, void *ptr, size_t size)
 
 	if ((blk = malloc(sizeof *blk)) == NULL)
 		abort();
-	
+
 	blk->ptr = ptr;
 	blk->size = size;
 

@@ -202,7 +202,7 @@ remove_header(struct mail *m, const char *hdr)
 	return (0);
 }
 
-/* Insert header, before specified header if not NULL, otherwise at end. */ 
+/* Insert header, before specified header if not NULL, otherwise at end. */
 int printflike3
 insert_header(struct mail *m, const char *before, const char *fmt, ...)
 {
@@ -220,7 +220,7 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	} else {
 		/* Insert at the end. */
 		if (m->body == 0 || m->body == 1) {
-			/* 
+			/*
 			 * Creating the headers section. Insert at the start,
 			 * and add an extra newline.
 			 */
@@ -277,7 +277,7 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 		if (*len >= hdrlen && ptr[hdrlen - 1] == ':') {
 			if (strncasecmp(ptr, hdr, hdrlen - 1) == 0)
 				break;
-		} 
+		}
 		line_next(m, &ptr, len);
 	}
 	if (ptr == NULL)
@@ -360,7 +360,7 @@ append_line(struct mail *m, char *line)
 		memcpy(m->data + m->size, line, size);
 	m->data[m->size + size] = '\n';
 	m->size += size + 1;
-	return (0); 
+	return (0);
 }
 
 /* Fill array of users from headers. */
@@ -377,7 +377,7 @@ find_users(struct mail *m)
 	ARRAY_INIT(users);
 
 	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		hdr = ARRAY_ITEM(conf.headers, i); 
+		hdr = ARRAY_ITEM(conf.headers, i);
 		if (*hdr == '\0')
 			continue;
 

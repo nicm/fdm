@@ -58,7 +58,7 @@ enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 
  	/* Trim "From" line, if any. */
 	trim_from(m);
-	    
+
 	/* Check for empty mails. */
 	if (m->size == 0) {
 		log_warnx("%s: empty message", a->name);

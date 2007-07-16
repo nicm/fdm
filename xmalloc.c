@@ -81,7 +81,7 @@ xstrdup(const char *s)
 
 	len = strlen(s) + 1;
 	ptr = xmalloc(len);
-	
+
         return (strncpy(ptr, s, len));
 }
 
@@ -237,7 +237,7 @@ printpath(char *buf, size_t len, const char *fmt, ...)
 }
 
 /*
- * Some system modify the path in place. This function and xbasename below
+ * Some systems modify the path in place. This function and xbasename below
  * avoid that by using a temporary buffer.
  */
 char *

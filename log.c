@@ -86,7 +86,7 @@ log_vwrite(FILE *f, int priority, const char *msg, va_list ap)
 		vsyslog(priority, msg, ap);
 		return;
 	}
-	
+
 	if (asprintf(&fmt, "%s\n", msg) == -1)
 		exit(1);
 	if (vfprintf(f, fmt, ap) == -1)
@@ -140,7 +140,7 @@ log_info(const char *msg, ...)
 	}
 }
 
-/* Log a debug message. */ 
+/* Log a debug message. */
 void printflike1
 log_debug(const char *msg, ...)
 {
