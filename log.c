@@ -91,7 +91,7 @@ log_vwrite(FILE *f, int priority, const char *msg, va_list ap)
 		exit(1);
 	if (vfprintf(f, fmt, ap) == -1)
 		exit(1);
-	fflush(log_stream);
+	fflush(f);
 	free(fmt);
 }
 
