@@ -27,11 +27,12 @@
 - there are way too many constant returns values and other weirdness. make it
   consistent in some way (closed=1, success=0, error=-1)
 - weed is not doing its jobs, check domains
-- document $() and %()
-- decide everything for cache and document it
-- document ifdef/ifndef/endif
-- document NNTPS
 - better website
-- document %[mail_rfc822], that all mail tags are /localtime/ and that
-  current time is used if date header is invalid
-- update docs wrt multiple delivery
+--------------------------------------------------------------------------------
+
+- decide everything for cache and document it
+- man page: $() and %()
+- man page: ifdef/ifndef/endif
+- man page: NNTPS
+- man page: rfc822date and mail_rfc822date
+- man page: update wrt multiple delivery

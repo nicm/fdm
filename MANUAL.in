@@ -19,8 +19,10 @@ privilege separation to minimise the amount of code running as the root user.
 ##	Installation
 ##	Quick start
 ##	The configuration file
-%%	Macros
 %%	Including other files
+%%	Macros
+%%	Testing macros
+%%	Shell commands
 ##	Invoking fdm
 %%	Temporary files
 %%	Command line arguments
@@ -244,6 +246,42 @@ Or embedded in a string by enclosing the macro name in {}s:
 
 Macros are not substituted in strings specified using single-quotes.
 
+%%% Testing macros
+
+The 'ifdef', 'ifndef' and 'endif' keywords may be used to include or omit
+sections of the configuration file depending on whether a macro is defined. An
+'ifdef' is followed by a macro name (including $ or % type specifier) and if
+that macro exists, all following statements up until the next endif are
+evaluated (accounts created, rules added, and so on), otherwise they are
+skipped. 'ifndef' is the inverse: if the macro exists, the statements are
+skipped, otherwise they are included. An example is:
+
+	ifdef $dropeverything
+	match all action drop
+	endif
+
+These keywords are particularly useful in conjunction with the '-D' command line
+option. Any statements between 'ifdef'/'ifndef' and 'endif' must still be valid
+syntax.
+
+%%% Shell commands
+
+The value of a shell command may be used at any point in the configuration file
+where fdm expects a string or number. Shell commands are invoked by enclosing
+them in $() or %(). If $() is used, any output to stdout is treated as a
+literal string; %() attempts to convert the output to a number. For example:
+
+	$mytz = $(date +%Z)
+
+	%two = %(expr 1 + 1)
+
+	$astring = "abc" + $(echo def)
+
+Parts of the command within double quotes (") are subject to tag and macro
+replacement as normal (so it is necessary to use %% if a literal % is required,
+see the section on tags below); parts outside double quotes or inside single
+quotes are not.
+
 ### Invoking fdm
 
 fdm may be invoked manually from the command line or regularly using a program
@@ -439,10 +477,10 @@ The <type> item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 
 As mail is processed by fdm, it is tagged with a number of name/value pairs.
 Some tags are added automatically, and mail may also be tagged explicitly by
-the user (see the later tagging section). Tags may be inserted in strings in
-a similar manner to macros, except tags are processed at runtime rather than
-as the configuration file is parsed. A tag's value is inserted by wrapping its
-name in %[], for example:
+the user (see the later tagging section). Tags may be inserted in strings in a
+similar manner to macros, except tags are processed when the string is used
+rather than always as the configuration file is parsed. A tag's value is
+inserted by wrapping its name in %[], for example:
 
 	match string "%[account]" to "myacct" action "myacctact"
 
@@ -473,8 +511,10 @@ year2				The current year as two digits.
 dayofweek	%W		The current day of the week (0-6, Sunday is 0).
 dayofyear	%Y		The current day of the year (000-365).
 quarter		%Q		The current quarter (1-4).
-mail_hour			The hour from the mail's date header, if it
-				exists and is valid, otherwise the current time.
+rfc822date			The current time in RFC822 date format.
+mail_hour			The hour from the mail's date header, converted
+				to local time, if it exists and is valid,
+				otherwise the current time.
 mail_minute			The minute from the mail's date header.
 mail_second			The second from the mail's date header.
 mail_day			The day from the mail's date header.
@@ -482,6 +522,7 @@ mail_month			The month from the mail's date header.
 mail_year			The year from the mail's date header as four
 				digits.
 mail_year2			The same as two digits.
+mail_rfc822date			The mail date in RFC822 format.
 hostname			The local hostname.
 
 In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
@@ -663,16 +704,16 @@ maildirs, but every directory found must be a valid maildir.
 Maildir accounts tag mail with a 'maildir' tag which is the basename of the
 maildir.
 
-%%% Using NNTP
+%%% Using NNTP and NNTPS
 
-fdm can fetch news messages from a news server using NNTP. News accounts are
-specified like so:
+fdm can fetch news messages from a news server using NNTP or NNTPS. News
+accounts are specified like so:
 
 	account "news1" nntp server "news.server.sk" port 119
 		group "comp.unix.bsd.openbsd.misc"
 		cache "%h/.fdm.cache/%[group]"
 
-	account "mynews" nntp server "my.news.server" port "nntp"
+	account "mynews" nntps server "ssl.news.server" port "nntps"
 		groups { "alt.test" "alt.humor.best-of-usenet" }
 		cache "%h/.fdm.cache"
 
@@ -1145,7 +1186,7 @@ The possible options are:
 
 This specifies the maximum size of mail that fdm will accept. The default is 32
 MB. Note that fdm may be storing a number of mails simultaneously, up to the
-'queue-high' setting (plus one if rewrite is used) for each account, so care
+'queue-high' setting (doubled if rewrite is used) for each account, so care
 should be taken when increasing this option.
 
 If mail over the maximum size is encountered, fdm will abort with an error,
