@@ -36,7 +36,7 @@ struct fetch_ctx {
 	u_int		  	 kept;
 
 	u_int			 queued;  /* number of mails queued */
-	int			 blocked; /* blocked for parent */
+	u_int			 blocked; /* blocked for parent */
 	int	 		 holding; /* holding fetch until queues drop */
 
 	struct io	        *io;

@@ -1,5 +1,9 @@
 15 July 2007
 
+* Permit each account to start multiple delivery child processes simultaneously
+  (up to the maximum queue length). This doesn't help much in normal cases but
+  with particularly lengthy but non-CPU-intensive delivery actions (try exec
+  "sleep 1" ;-P), it can help a lot.
 * Introduce some randomness into the lock sleep delay when waiting for mboxes.
 
 14 July 2007

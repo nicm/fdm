@@ -218,7 +218,7 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	 */
 	error = FETCH_HOLD;
 	if (!fctx->holding && (error = a->fetch->fetch(a, fctx)) == FETCH_ERROR)
-		return (error);
+		return (FETCH_ERROR);
 
 	/*
 	 * If the fetch isn't holding for queue changes, fill in its io list.
@@ -231,7 +231,7 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	 * skip the poll entirely and tell the caller not to loop to us again
 	 * immediately.
 	 */
-	if (n == 1 && !fctx->blocked)
+	if (n == 1 && fctx->blocked == 0)
 		return (FETCH_AGAIN);
 
 	/*
@@ -239,7 +239,8 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	 * the fetch lets us block, then let poll block.
 	 */
 	timeout = 0;
-	if (error != FETCH_AGAIN && (fctx->blocked || fctx->queued == 0))
+	if (error != FETCH_AGAIN &&
+	    (fctx->blocked == fctx->queued || fctx->queued == 0))
 		timeout = conf.timeout;
 
 	log_debug3("%s: polling %u fds, timeout=%d, error=%d",
@@ -264,7 +265,7 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 
 #ifdef DEBUG
 	time_polling += tim;
-	if (fctx->blocked)
+	if (fctx->blocked == fctx->queued && fctx->queued != 0)
 		time_blocked += tim;
 #endif
 
@@ -275,28 +276,34 @@ int
 fetch_match(struct account *a, struct fetch_ctx *fctx, struct msg *msg,
     struct msgbuf *msgbuf)
 {
-	struct mail_ctx	*mctx;
+	struct mail_ctx	*mctx, *this;
 
 	if (TAILQ_EMPTY(&fctx->matchq))
 		return (0);
 
 	mctx = TAILQ_FIRST(&fctx->matchq);
-	log_debug3("%s: trying (match) message %u", a->name, mctx->mail->idx);
-	switch (mail_match(mctx, msg, msgbuf)) {
-	case MAIL_ERROR:
-		return (1);
-	case MAIL_DELIVER:
-		TAILQ_REMOVE(&fctx->matchq, mctx, entry);
-		TAILQ_INSERT_TAIL(&fctx->deliverq, mctx, entry);
-		break;
-	case MAIL_DONE:
-		TAILQ_REMOVE(&fctx->matchq, mctx, entry);
-		TAILQ_INSERT_TAIL(&fctx->doneq, mctx, entry);
-		fctx->queued--;
-		break;
-	case MAIL_BLOCKED:
-		fctx->blocked = 1;
-		break;
+	while (mctx != NULL) {
+		this = mctx;
+		mctx = TAILQ_NEXT(this, entry);
+
+		log_debug3("%s: "
+		    "trying (match) message %u", a->name, this->mail->idx);
+		switch (mail_match(this, msg, msgbuf)) {
+		case MAIL_ERROR:
+			return (1);
+		case MAIL_DELIVER:
+			TAILQ_REMOVE(&fctx->matchq, this, entry);
+			TAILQ_INSERT_TAIL(&fctx->deliverq, this, entry);
+			break;
+		case MAIL_DONE:
+			TAILQ_REMOVE(&fctx->matchq, this, entry);
+			TAILQ_INSERT_TAIL(&fctx->doneq, this, entry);
+			fctx->queued--;
+			break;
+		case MAIL_BLOCKED:
+			fctx->blocked++;
+			break;
+		}
 	}
 
 	return (0);
@@ -306,23 +313,29 @@ int
 fetch_deliver(struct account *a, struct fetch_ctx *fctx, struct msg *msg,
     struct msgbuf *msgbuf)
 {
-	struct mail_ctx	*mctx;
+	struct mail_ctx	*mctx, *this;
 
 	if (TAILQ_EMPTY(&fctx->deliverq))
 		return (0);
 
 	mctx = TAILQ_FIRST(&fctx->deliverq);
-	log_debug3("%s: trying (deliver) message %u", a->name, mctx->mail->idx);
-	switch (mail_deliver(mctx, msg, msgbuf)) {
-	case MAIL_ERROR:
-		return (1);
-	case MAIL_MATCH:
-		TAILQ_REMOVE(&fctx->deliverq, mctx, entry);
-		TAILQ_INSERT_TAIL(&fctx->matchq, mctx, entry);
-		break;
-	case MAIL_BLOCKED:
-		fctx->blocked = 1;
-		break;
+	while (mctx != NULL) {
+		this = mctx;
+		mctx = TAILQ_NEXT(this, entry);
+
+		log_debug3("%s:"
+		    " trying (deliver) message %u", a->name, this->mail->idx);
+		switch (mail_deliver(this, msg, msgbuf)) {
+		case MAIL_ERROR:
+			return (1);
+		case MAIL_MATCH:
+			TAILQ_REMOVE(&fctx->deliverq, this, entry);
+			TAILQ_INSERT_TAIL(&fctx->matchq, this, entry);
+			break;
+		case MAIL_BLOCKED:
+			fctx->blocked++;
+			break;
+		}
 	}
 
 	return (0);
@@ -416,7 +429,7 @@ fetch_account(struct account *a, struct io *io, double tim)
 		}
 
 		/* Poll for new mails or privsep messages. */
-		log_debug3("%s: queued %u; blocked=%d", a->name, fctx.queued,
+		log_debug3("%s: queued %u; blocked %u", a->name, fctx.queued,
 		    fctx.blocked);
 		if ((error = fetch_poll(a, &fctx)) == FETCH_ERROR)
 			break;

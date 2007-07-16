@@ -34,3 +34,4 @@
 - better website
 - document %[mail_rfc822], that all mail tags are /localtime/ and that
   current time is used if date header is invalid
+- update docs wrt multiple delivery

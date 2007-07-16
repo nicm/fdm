@@ -573,6 +573,7 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct mail	*m = dctx->mail;
 	u_int		 lines;
 
+
 	if (msgbuf->buf != NULL && msgbuf->len != 0) {
 		strb_destroy(&m->tags);
 		m->tags = msgbuf->buf;
