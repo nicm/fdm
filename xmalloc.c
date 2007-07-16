@@ -81,12 +81,12 @@ xstrdup(const char *s)
 
 	len = strlen(s) + 1;
 	ptr = xmalloc(len);
-
+	
         return (strncpy(ptr, s, len));
 }
 
 void *
-xxcalloc(size_t nmemb, size_t size)
+xcalloc(size_t nmemb, size_t size)
 {
         void	*ptr;
 
@@ -97,24 +97,30 @@ xxcalloc(size_t nmemb, size_t size)
         if ((ptr = calloc(nmemb, size)) == NULL)
 		log_fatal("xcalloc");
 
+#ifdef DEBUG
+	xmalloc_new(xmalloc_caller(), ptr, nmemb * size);
+#endif
         return (ptr);
 }
 
 void *
-xxmalloc(size_t size)
+xmalloc(size_t size)
 {
-        void	*ptr;
+	void	*ptr;
 
         if (size == 0)
                 log_fatalx("xmalloc: zero size");
         if ((ptr = malloc(size)) == NULL)
 		log_fatal("xmalloc");
 
+#ifdef DEBUG
+	xmalloc_new(xmalloc_caller(), ptr, size);
+#endif
         return (ptr);
 }
 
 void *
-xxrealloc(void *oldptr, size_t nmemb, size_t size)
+xrealloc(void *oldptr, size_t nmemb, size_t size)
 {
 	size_t	 newsize = nmemb * size;
 	void	*newptr;
@@ -126,32 +132,39 @@ xxrealloc(void *oldptr, size_t nmemb, size_t size)
         if ((newptr = realloc(oldptr, newsize)) == NULL)
 		log_fatal("xrealloc");
 
+#ifdef DEBUG
+	xmalloc_change(xmalloc_caller(), oldptr, newptr, nmemb * size);
+#endif
         return (newptr);
 }
 
 void
-xxfree(void *ptr)
+xfree(void *ptr)
 {
 	if (ptr == NULL)
 		log_fatalx("xfree: null pointer");
 	free(ptr);
+
+#ifdef DEBUG
+	xmalloc_free(ptr);
+#endif
 }
 
 int printflike2
-xxasprintf(char **ret, const char *fmt, ...)
+xasprintf(char **ret, const char *fmt, ...)
 {
         va_list ap;
         int	i;
 
         va_start(ap, fmt);
-        i = xxvasprintf(ret, fmt, ap);
+        i = xvasprintf(ret, fmt, ap);
         va_end(ap);
 
 	return (i);
 }
 
 int
-xxvasprintf(char **ret, const char *fmt, va_list ap)
+xvasprintf(char **ret, const char *fmt, va_list ap)
 {
 	int	i;
 
@@ -160,6 +173,9 @@ xxvasprintf(char **ret, const char *fmt, va_list ap)
         if (i < 0 || *ret == NULL)
                 log_fatal("xvasprintf");
 
+#ifdef DEBUG
+	xmalloc_new(xmalloc_caller(), *ret, i + 1);
+#endif
         return (i);
 }
 

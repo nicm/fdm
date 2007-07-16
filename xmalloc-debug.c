@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /*
- * Copyright (c) 2004 Nicholas Marriott <nicm@users.sourceforge.net>
+ * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,368 +20,210 @@
 
 #include <sys/types.h>
 
-#include <string.h>
-#include <unistd.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 #include "fdm.h"
 
-#define XMALLOC_SLOTS 8192
-
+/* Single xmalloc allocated block. */
 struct xmalloc_blk {
-	const char		*file;
-	u_int		 	 line;
+	void	*caller;
 
-	void			*ptr;
-	size_t	 	 	 size;
+	void	*ptr;
+	size_t	 size;
+
+	SPLAY_ENTRY(xmalloc_blk) entry;
 };
 
-enum xmalloc_type {
-	XMALLOC_NONE = 0,
-	XMALLOC_FREE,
-	XMALLOC_REALLOC,
-	XMALLOC_MALLOC
-};
+/* Splay tree of allocated blocks. */
+SPLAY_HEAD(xmalloc_tree, xmalloc_blk);
+struct xmalloc_tree xmalloc_tree = SPLAY_INITIALIZER(&xmalloc_tree);
 
-struct xmalloc_call {
-	const char		*file;
-	u_int			 line;
+/* Various statistics. */
+size_t	xmalloc_allocated;
+size_t	xmalloc_freed;
+size_t	xmalloc_peak;
+u_int	xmalloc_frees;
+u_int	xmalloc_mallocs;
+u_int	xmalloc_reallocs;
 
-	enum xmalloc_type	 type;
-	u_int			 count;
-};
-
-struct {
-	size_t		 	 allocated;
-	size_t		 	 freed;
-	size_t		 	 peak;
-	u_int		 	 frees;
-	u_int		 	 mallocs;
-	u_int		 	 reallocs;
-
-	struct xmalloc_blk	 list[XMALLOC_SLOTS];
-	struct xmalloc_call	 calls[XMALLOC_SLOTS];
-} xmalloc_ctx;
-
+/* Print function. */
 #define XMALLOC_PRINT log_debug3
 
-#define XMALLOC_PEEK 8
+/* Bytes of unallocated blocks and number of allocated blocks to show. */ 
+#define XMALLOC_BYTES 20
 #define XMALLOC_LINES 32
 
-#define XMALLOC_UPDATE(xctx) do {					\
-	if ((xctx)->allocated - (xctx)->freed > (xctx)->peak)		\
-		(xctx)->peak = (xctx)->allocated - (xctx)->freed;	\
+/* Macro to update peek usage variable. */
+#define XMALLOC_UPDATE() do {						\
+	if (xmalloc_allocated - xmalloc_freed > xmalloc_peak)		\
+		xmalloc_peak = xmalloc_allocated - xmalloc_freed;	\
 } while (0)
 
-void			 xmalloc_called(const char *, u_int, enum xmalloc_type);
-struct xmalloc_blk	*xmalloc_find(void *);
-void			 xmalloc_new(const char *, u_int, void *, size_t);
-void			 xmalloc_change(const char *, u_int, void *, void *,
-			     size_t);
-void			 xmalloc_free(const char *, u_int, void *);
+/* Tree functions. */
+int xmalloc_cmp(struct xmalloc_blk *, struct xmalloc_blk *);
+SPLAY_PROTOTYPE(xmalloc_tree, xmalloc_blk, entry, xmalloc_cmp);
+SPLAY_GENERATE(xmalloc_tree, xmalloc_blk, entry, xmalloc_cmp);
 
-void
-xmalloc_called(const char *file, u_int line, enum xmalloc_type type)
+/* Compare two blocks. */
+int
+xmalloc_cmp(struct xmalloc_blk *blk1, struct xmalloc_blk *blk2)
 {
-	u_int			 i;
+	uintptr_t	ptr1 = (uintptr_t) blk1->ptr;
+	uintptr_t	ptr2 = (uintptr_t) blk2->ptr;
 
-	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xmalloc_ctx.calls[i].type  == type &&
-		    xmalloc_ctx.calls[i].line == line &&
-		    strcmp(xmalloc_ctx.calls[i].file, file) == 0)
-			break;
-	}
-	if (i == XMALLOC_SLOTS) {
-		for (i = 0; i < XMALLOC_SLOTS; i++) {
-			if (xmalloc_ctx.calls[i].type == XMALLOC_NONE)
-				break;
-		}
-		if (i == XMALLOC_SLOTS)
-			log_fatalx("xmalloc_called: no space");
-	}
-
-	xmalloc_ctx.calls[i].type = type;
-	xmalloc_ctx.calls[i].line = line;
-	xmalloc_ctx.calls[i].file = file;
-	xmalloc_ctx.calls[i].count++;
+	if (ptr1 < ptr2)
+		return (-1);
+	if (ptr1 > ptr2)
+		return (1);
+	return (0);
 }
 
-void
-xmalloc_callreport(const char *hdr)
-{
-	struct xmalloc_call	*call;
-	u_int			 i;
-	const char		*type = "";
-	char			 fn[64];
-	long			 pid;
-
-	pid = getpid();
-
-	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		call = &xmalloc_ctx.calls[i];
-
-		switch (call->type) {
-		case XMALLOC_NONE:
-			continue;
-		case XMALLOC_MALLOC:
-			type = "malloc";
-			break;
-		case XMALLOC_FREE:
-			type = "free";
-			break;
-		case XMALLOC_REALLOC:
-			type = "realloc";
-			break;
-		}
-
-		xsnprintf(fn, sizeof fn, "%s:%u", call->file, call->line);
-		XMALLOC_PRINT("%s: %ld: %-10s %-24s %u", hdr, pid, type, fn,
-		    call->count);
-	}
-}
-
-
-struct xmalloc_blk *
-xmalloc_find(void *ptr)
-{
-	u_int	i;
-
-	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		if (xmalloc_ctx.list[i].ptr == ptr)
-			return (&xmalloc_ctx.list[i]);
-	}
-
-	return (NULL);
-}
-
+/* Clear statistics and block list; used to start fresh after fork(2). */
 void
 xmalloc_clear(void)
 {
-	xmalloc_ctx.allocated = 0;
-	xmalloc_ctx.freed = 0;
-	xmalloc_ctx.peak = 0;
-	xmalloc_ctx.frees = 0;
-	xmalloc_ctx.mallocs = 0;
-	xmalloc_ctx.reallocs = 0;
+ 	struct xmalloc_blk	*blk;
 
-	memset(xmalloc_ctx.list, 0, sizeof xmalloc_ctx.list);
-	memset(xmalloc_ctx.calls, 0, sizeof xmalloc_ctx.calls);
+	xmalloc_allocated = 0;
+	xmalloc_freed = 0;
+	xmalloc_peak = 0;
+	xmalloc_frees = 0;
+	xmalloc_mallocs = 0;
+	xmalloc_reallocs = 0;
+
+	while (!SPLAY_EMPTY(&xmalloc_tree)) {
+		blk = SPLAY_ROOT(&xmalloc_tree);
+		SPLAY_REMOVE(xmalloc_tree, &xmalloc_tree, blk);
+		free(blk);
+	}
 }
 
+/* Print report of statistics and unfreed blocks. */
 void
-xmalloc_report(const char *hdr)
+xmalloc_report(pid_t pid, const char *hdr)
 {
  	struct xmalloc_blk	*blk;
- 	char	 		 line[256];
- 	int			 len;
- 	size_t	 		 off, size;
-  	u_int	 		 i, j, n;
-	long			 pid;
-
-	pid = getpid();
+	u_char			*iptr;
+ 	char	 		 buf[4 * XMALLOC_BYTES + 1], *optr;
+ 	size_t		 	 len;
+  	u_int	 		 n;
 
  	XMALLOC_PRINT("%s: %ld: allocated=%zu, freed=%zu, difference=%zd, "
-	    "peak=%zu", hdr, pid, xmalloc_ctx.allocated, xmalloc_ctx.freed,
-	    xmalloc_ctx.allocated - xmalloc_ctx.freed, xmalloc_ctx.peak);
+	    "peak=%zu", hdr, (long) pid, xmalloc_allocated, xmalloc_freed,
+	    xmalloc_allocated - xmalloc_freed, xmalloc_peak);
  	XMALLOC_PRINT("%s: %ld: mallocs=%u, reallocs=%u, frees=%u", hdr,
-	    pid, xmalloc_ctx.mallocs, xmalloc_ctx.reallocs, xmalloc_ctx.frees);
-
-	/* xmalloc_callreport(hdr); */
-
- 	if (xmalloc_ctx.allocated == xmalloc_ctx.freed)
- 		return;
+	    (long) pid, xmalloc_mallocs, xmalloc_reallocs, xmalloc_frees);
 
 	n = 0;
-	off = 0;
-	for (i = 0; i < XMALLOC_SLOTS; i++) {
-		blk = &xmalloc_ctx.list[i];
-		if (blk->ptr == NULL)
-			continue;
-
+	SPLAY_FOREACH(blk, xmalloc_tree, &xmalloc_tree) {
 		n++;
 		if (n >= XMALLOC_LINES)
 			continue;
 
-		len = xsnprintf(line, sizeof line, "%u %s:%u [%p %zu:", n - 1,
-		    blk->file, blk->line, blk->ptr, blk->size);
-		if ((size_t) len >= sizeof line)
-			continue;
-		off = len;
+		len = blk->size;
+		if (len > XMALLOC_BYTES)
+			len = XMALLOC_BYTES;
 
-		size = blk->size < XMALLOC_PEEK ? blk->size : XMALLOC_PEEK;
-		for (j = 0; j < size; j++) {
-			if (off >= (sizeof line) - 3)
-				break;
-
-			if (((u_char *) blk->ptr)[j] > 31) {
-				line[off++] = ((u_char *) blk->ptr)[j];
+		optr = buf;
+		iptr = blk->ptr;
+		for (; len > 0; len--) {
+			if (isascii(*iptr) && !iscntrl(*iptr)) {
+				*optr++ = *iptr++;
 				continue;
 			}
-
-			len = xsnprintf(line + off, (sizeof line) - off,
-			    "\\%03hho", ((u_char *) blk->ptr)[j]);
-			if ((size_t) len >= (sizeof line) - off)
-				break;
-			off += len;
+			*optr++ = '\\';
+			*optr++ = '0' + ((*iptr >> 6) & 07);
+			*optr++ = '0' + ((*iptr >> 3) & 07);
+			*optr++ = '0' + (*iptr & 07);
+			iptr++;
 		}
-		line[off++] = ']';
-		line[off] = '\0';
+		*optr = '\0';
 
-		XMALLOC_PRINT("%s: %ld: %s", hdr, pid, line);
+		XMALLOC_PRINT("%s: %ld: %u, %p: [%p %zu: %s]",
+		    hdr, (long) pid, n, blk->caller, blk->ptr, blk->size, buf);
 	}
-
-	XMALLOC_PRINT("%s: %ld: %u unfreed blocks", hdr, (long) getpid(), n);
+	XMALLOC_PRINT("%s: %ld: %u unfreed blocks", hdr, (long) pid, n);
 }
 
+/* Record a newly created block. */
 void
-xmalloc_new(const char *file, u_int line, void *ptr, size_t size)
+xmalloc_new(void *caller, void *ptr, size_t size)
 {
 	struct xmalloc_blk	*blk;
 
-	xmalloc_ctx.allocated += size;
-	XMALLOC_UPDATE(&xmalloc_ctx);
+	xmalloc_allocated += size;
+	XMALLOC_UPDATE();
 
-	if ((blk = xmalloc_find(NULL)) == NULL) {
-		XMALLOC_PRINT("%s:%u: xmalloc_new: no space", file, line);
-		return;
-	}
+	if ((blk = malloc(sizeof *blk)) == NULL)
+		abort();
+	
 	blk->ptr = ptr;
 	blk->size = size;
 
-	blk->file = file;
-	blk->line = line;
+	blk->caller = caller;
+
+	SPLAY_INSERT(xmalloc_tree, &xmalloc_tree, blk);
+
+	xmalloc_mallocs++;
+	XMALLOC_UPDATE();
 }
 
+/* Record changes to a block. */
 void
-xmalloc_change(const char *file, u_int line, void *oldptr, void *newptr,
-    size_t newsize)
+xmalloc_change(void *caller, void *oldptr, void *newptr, size_t newsize)
 {
-	struct xmalloc_blk	*blk;
+	struct xmalloc_blk	*blk, key;
 	ssize_t			 change;
 
 	if (oldptr == NULL) {
-		xmalloc_new(file, line, newptr, newsize);
+		xmalloc_new(caller, newptr, newsize);
 		return;
 	}
 
-	if ((blk = xmalloc_find(oldptr)) == NULL)
+	key.ptr = oldptr;
+	blk = SPLAY_FIND(xmalloc_tree, &xmalloc_tree, &key);
+	if (blk == NULL)
 		return;
 
 	change = newsize - blk->size;
 	if (change > 0)
-		xmalloc_ctx.allocated += change;
+		xmalloc_allocated += change;
 	else
-		xmalloc_ctx.freed -= change;
-	XMALLOC_UPDATE(&xmalloc_ctx);
+		xmalloc_freed -= change;
+	XMALLOC_UPDATE();
+
+	SPLAY_REMOVE(xmalloc_tree, &xmalloc_tree, blk);
 
  	blk->ptr = newptr;
 	blk->size = newsize;
 
-	blk->file = file;
-	blk->line = line;
+	blk->caller = caller;
+
+	SPLAY_INSERT(xmalloc_tree, &xmalloc_tree, blk);
+
+	xmalloc_reallocs++;
+	XMALLOC_UPDATE();
 }
 
+/* Record a block free. */
 void
-xmalloc_free(unused const char *file, unused u_int line, void *ptr)
+xmalloc_free(void *ptr)
 {
-	struct xmalloc_blk	*blk;
+	struct xmalloc_blk	*blk, key;
 
-	if ((blk = xmalloc_find(ptr)) == NULL)
+	key.ptr = ptr;
+	blk = SPLAY_FIND(xmalloc_tree, &xmalloc_tree, &key);
+	if (blk == NULL)
 		return;
 
-	xmalloc_ctx.freed += blk->size;
+	xmalloc_freed += blk->size;
 
-	blk->ptr = NULL;
-}
+	free(blk);
+	SPLAY_REMOVE(xmalloc_tree, &xmalloc_tree, blk);
 
-void *
-dxmalloc(const char *file, u_int line, size_t size)
-{
-	void	*ptr;
-
-	ptr = xxmalloc(size);
-
-	xmalloc_ctx.mallocs++;
-	xmalloc_new(file, line, ptr, size);
-
-	xmalloc_called(file, line, XMALLOC_MALLOC);
-
-	return (ptr);
-}
-
-void *
-dxcalloc(const char *file, u_int line, size_t nmemb, size_t size)
-{
-	void	*ptr;
-
-	ptr = xxcalloc(nmemb, size);
-
-	xmalloc_ctx.mallocs++;
-	xmalloc_new(file, line, ptr, nmemb * size);
-
-	xmalloc_called(file, line, XMALLOC_MALLOC);
-
-	return (ptr);
-}
-
-void *
-dxrealloc(const char *file, u_int line, void *oldptr, size_t nmemb, size_t size)
-{
-	void	*newptr;
-
-	newptr = xxrealloc(oldptr, nmemb, size);
-
-	xmalloc_ctx.reallocs++;
-	if (oldptr != NULL)
-		xmalloc_change(file, line, oldptr, newptr, nmemb * size);
-	else
-		xmalloc_new(file, line, newptr, nmemb * size);
-
-	xmalloc_called(file, line, XMALLOC_REALLOC);
-
-        return (newptr);
-}
-
-void
-dxfree(const char *file, u_int line, void *ptr)
-{
-	xxfree(ptr);
-
-	xmalloc_ctx.frees++;
-	xmalloc_free(file, line, ptr);
-
-	xmalloc_called(file, line, XMALLOC_FREE);
-}
-
-int printflike4
-dxasprintf(const char *file, u_int line, char **ret, const char *fmt, ...)
-{
-	int	i;
-
-        va_list ap;
-
-        va_start(ap, fmt);
-        i = dxvasprintf(file, line, ret, fmt, ap);
-        va_end(ap);
-
-	xmalloc_called(file, line, XMALLOC_MALLOC);
-
-	return (i);
-}
-
-int
-dxvasprintf(const char *file, u_int line, char **ret, const char *fmt,
-    va_list ap)
-{
-	int	i;
-
-	i = xxvasprintf(ret, fmt, ap);
-
-	xmalloc_ctx.mallocs++;
-	xmalloc_new(file, line, *ret, i);
-
-	xmalloc_called(file, line, XMALLOC_MALLOC);
-
-	return (i);
+	xmalloc_frees++;
+	XMALLOC_UPDATE();
 }
 
 #endif /* DEBUG */

@@ -59,21 +59,20 @@ LIBS+= -lpcre
 
 # OS X
 .if ${OS} == "Darwin"
-SRCS+= compat/strtonum.c compat/vis.c
+SRCS+= compat/strtonum.c
 INCDIRS+= -Icompat -I/usr/local/include/openssl
 CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE
 .endif
 
 # NetBSD
 .if ${OS} == "NetBSD"
-SRCS+= compat/strtonum.c compat/vis.c
+SRCS+= compat/strtonum.c
 INCDIRS+= -Icompat
 CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
 .endif
 
 # FreeBSD
 .if ${OS} == "FreeBSD"
-SRCS+= compat/vis.c
 INCDIRS+= -Icompat -I/usr/local/include/openssl
 
 # FreeBSD 5

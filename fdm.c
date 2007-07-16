@@ -849,14 +849,14 @@ out:
 	xfree(conf.conf_file);
 	xfree(conf.lock_file);
 	xfree(conf.tmp_dir);
-	free_strings(conf.domains);
+	//free_strings(conf.domains);
 	ARRAY_FREEALL(conf.domains);
 	free_strings(conf.headers);
 	ARRAY_FREEALL(conf.headers);
 	free_strings(&conf.incl);
 	free_strings(&conf.excl);
 
-	xmalloc_report("parent");
+	xmalloc_report(getpid(), "parent");
 #endif
 
 	exit(res);

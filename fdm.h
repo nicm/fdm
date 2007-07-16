@@ -28,6 +28,12 @@
 #include "compat/queue.h"
 #endif
 
+#ifndef NO_TREE_H
+#include <sys/tree.h>
+#else
+#include "compat/tree.h"
+#endif
+
 #include <dirent.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -776,12 +782,6 @@ size_t	 	 strlcpy(char *, const char *, size_t);
 size_t	 	 strlcat(char *, const char *, size_t);
 #endif
 
-#ifdef NO_ASPRINTF
-/* asprintf.c */
-int 		 asprintf(char **, const char *, ...);
-int		 vasprintf(char **, const char *, va_list);
-#endif
-
 /* shm.c */
 void		*shm_create(struct shm *, size_t);
 int		 shm_owner(struct shm *, uid_t, gid_t);
@@ -1042,12 +1042,12 @@ __dead void	 log_fatalx(const char *, ...);
 void		*ensure_size(void *, size_t *, size_t, size_t);
 void		*ensure_for(void *, size_t *, size_t, size_t);
 char		*xstrdup(const char *);
-void		*xxcalloc(size_t, size_t);
-void		*xxmalloc(size_t);
-void		*xxrealloc(void *, size_t, size_t);
-void		 xxfree(void *);
-int printflike2	 xxasprintf(char **, const char *, ...);
-int		 xxvasprintf(char **, const char *, va_list);
+void		*xcalloc(size_t, size_t);
+void		*xmalloc(size_t);
+void		*xrealloc(void *, size_t, size_t);
+void		 xfree(void *);
+int printflike2	 xasprintf(char **, const char *, ...);
+int		 xvasprintf(char **, const char *, va_list);
 int printflike3	 xsnprintf(char *, size_t, const char *, ...);
 int		 xvsnprintf(char *, size_t, const char *, va_list);
 int printflike3	 printpath(char *, size_t, const char *, ...);
@@ -1056,34 +1056,14 @@ char 		*xbasename(const char *);
 
 /* xmalloc-debug.c */
 #ifdef DEBUG
-void		 xmalloc_callreport(const char *);
-
 void		 xmalloc_clear(void);
-void		 xmalloc_report(const char *);
+void		 xmalloc_report(pid_t, const char *);
 
-void		*dxmalloc(const char *, u_int, size_t);
-void		*dxcalloc(const char *, u_int, size_t, size_t);
-void		*dxrealloc(const char *, u_int, void *, size_t, size_t);
-void		 dxfree(const char *, u_int, void *);
-int printflike4	 dxasprintf(const char *, u_int, char **, const char *, ...);
-int		 dxvasprintf(const char *, u_int, char **, const char *,
-		     va_list);
-#endif
+void		 xmalloc_new(void *, void *, size_t);
+void		 xmalloc_change(void *, void *, void *, size_t);
+void		 xmalloc_free(void *);
 
-#ifdef DEBUG
-#define xmalloc(s) dxmalloc(__FILE__, __LINE__, s)
-#define xcalloc(n, s) dxcalloc(__FILE__, __LINE__, n, s)
-#define xrealloc(p, n, s) dxrealloc(__FILE__, __LINE__, p, n, s)
-#define xfree(p) dxfree(__FILE__, __LINE__, p)
-#define xasprintf(pp, ...) dxasprintf(__FILE__, __LINE__, pp, __VA_ARGS__)
-#define xvasprintf(pp, fmt, ap) dxvasprintf(__FILE__, __LINE__, pp, fmt, ap)
-#else
-#define xmalloc(s) xxmalloc(s)
-#define xcalloc(n, s) xxcalloc(n, s)
-#define xrealloc(p, n, s) xxrealloc(p, n, s)
-#define xfree(p) xxfree(p)
-#define xasprintf(pp, ...) xxasprintf(pp, __VA_ARGS__)
-#define xvasprintf(pp, fmt, ap) xxvasprintf(pp, fmt, ap)
+#define xmalloc_caller() __builtin_return_address(0)
 #endif
 
 #endif /* FDM_H */

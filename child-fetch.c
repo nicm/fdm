@@ -146,7 +146,7 @@ out:
 
 #ifdef DEBUG
 	COUNTFDS(a->name);
-	xmalloc_report(a->name);
+	xmalloc_report(getpid(), a->name);
 #endif
 
 	return (error);
