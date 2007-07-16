@@ -30,7 +30,7 @@
 - better website
 --------------------------------------------------------------------------------
 
-- decide everything for cache and document it
+- man page: caches
 - man page: $() and %()
 - man page: ifdef/ifndef/endif
 - man page: NNTPS

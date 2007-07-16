@@ -62,7 +62,7 @@ open_cache(struct account *a, struct cache *cache)
 	}
 
 	n = db_size(cache->db);
-	log_debug3("%s: opened cache %s: %d items", a->name, cache->path, n);
+	log_debug3("%s: opened cache %s: %d keys", a->name, cache->path, n);
 
 	if (cache->expire < 0)
 		return (0);
@@ -72,7 +72,7 @@ open_cache(struct account *a, struct cache *cache)
 	}
 
 	n -= db_size(cache->db);
-	log_debug3("%s: cache %s: expired %d items", a->name, cache->path, n);
+	log_debug3("%s: cache %s: expired %d keys", a->name, cache->path, n);
 
 	return (0);
 }

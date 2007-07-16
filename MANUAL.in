@@ -30,7 +30,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	The lock file
 %%	Testing and debugging
 ##	Fetching mail
-%%	Mail tagging
+%%	Mail tags
 %%	POP3 and POP3S
 %%	SSL certificate verification
 %%	The .netrc file
@@ -38,7 +38,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	IMAP over a pipe or via ssh
 %%	stdin and local mail
 %% 	From maildirs
-%%	Using NNTP
+%%	Using NNTP and NNTPS
 ##	Defining actions
 %%	Drop and keep
 %%	Maildirs
@@ -53,6 +53,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	Chained actions
 ##	Filtering mail
 %%	Nesting rules
+%%	Lambda actions
 %%	The all condition
 %%	Matched and unmatched
 %%	Matching a regexp
@@ -61,7 +62,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	Using a shell command
 %%	Attachments
 %%	Matching tags
-%%	Lambda actions
+%%	Using caches
 ##	Setting options
 ##	Archiving and searching mail
 ##	Using fdm behind a proxy
@@ -774,7 +775,7 @@ filtering rule (see the section on filtering below), the default user is
 used, see the '-u' command line option and the 'default-user' option in the
 setting options section
 
-%%% Drop and keep actions
+%%% Drop and keep
 
 The simplest actions are the 'drop' and 'keep' actions. They have no parameters
 and are specified like this:
@@ -875,7 +876,7 @@ of this). Possible rewrite action definitions are:
 
 	action "mysedaction" rewrite "sed 's/x/y/'"
 
-%%% Adding or removing headers and appending a string
+%%% Adding or removing headers
 
 Simple actions are provided to add a header to a mail:
 
@@ -1172,6 +1173,54 @@ matching bracket expressions):
 	match string "%[group]" to "comp.lang.c" action "clc"
 
 	match string "%u" to "bob" action "bob"
+
+%%% Using caches
+
+fdm has builtin support for maintaining a cache of string keys, including
+appending to a cache, checking if a key is present in a cache, and expiring
+keys from a cache once they reach a certain age. This feature requires the
+Trivial Database library (TDB, http://sourceforge.net/projects/tdb/) and for
+fdm to be built with:
+
+	$ make -DDB
+
+or if using GNU make:
+
+	$ make DB=1
+
+These caches should not be confused with the NNTP cache file. Key caches are
+referenced by filename and must be declared before use:
+
+	cache "%h/path/to/cache"
+	
+	cache "~/.fdm.db" expire 1 month
+
+If the expiry time is not specified, items are never expired from the cache.
+
+Once declared, keys may be added to the cache with the 'to-cache' action:
+
+	match all action to-cache "~/my-cache" key "%[message_id]"
+
+Or the existence of a key in the cache may be tested for using the 'in-cache'
+condition:
+
+	match in-cache "~/my-cache" key "%[message_id]" action "foundincache"
+
+Any string may be used as key, but the message-id is most often useful. Note
+that the key may not be empty, so care must be taken with messages without
+message-id (such as news posts fetched with NNTP).
+
+Caches may be used to elimate duplicate messages using rules similar to those
+above:
+
+	$db = "~/.fdm-duplicates.db"
+	$key = "%[message_id]"
+	cache $db expire 2 weeks
+
+	match not string $key to "" {
+		match in-cache $db key $key action maildir "%h/mail/duplicates"
+		match all action to-cache $db key $key continue
+	}
 
 ### Setting options
 
