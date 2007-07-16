@@ -109,7 +109,7 @@ log_warn(const char *msg, ...)
 	if (asprintf(&fmt, "%s: %s", msg, strerror(errno)) == -1)
 		exit(1);
 	log_vwrite(log_stream, LOG_CRIT, fmt, ap);
-	xfree(fmt);
+	free(fmt);
 	va_end(ap);
 }
 
@@ -197,7 +197,7 @@ log_vfatal(const char *msg, va_list ap)
 			exit(1);
 		log_vwrite(log_stream, LOG_CRIT, fmt, ap);
 	}
-	xfree(fmt);
+	free(fmt);
 
 	exit(1);
 }
