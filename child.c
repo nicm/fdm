@@ -96,6 +96,8 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 			childp = ARRAY_ITEM(children, i);
 			io_close(childp->io);
 			io_free(childp->io);
+			if (childp->data != NULL)
+				xfree(childp->data);
 			xfree(childp);
 		}
 		io_close(child->io);

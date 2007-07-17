@@ -104,7 +104,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	if ((error = SSL_get_verify_result(ssl)) != X509_V_OK) {
 		xasprintf(cause, "certificate verification failed: %s",
 		    X509_verify_cert_error_string(error));
-		return (-1);
+		goto error;
 	}
 
 	/* Get certificate name. */
@@ -113,7 +113,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	/* Check for CN field. */
 	if ((ptr = strstr(name, "/CN=")) == NULL) {
 		xasprintf(cause, "certificate verification failed: CN missing");
-		return (-1);
+		goto error;
 	}
 
 	/* Verify CN field. */
@@ -135,12 +135,18 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
 	xfree(fqdn);
 
-	/* Valid CN. */
-	if (ptr != NULL)
-		return (0);
+	/* No valid CN found. */
+	if (ptr == NULL) {
+		xasprintf(cause,
+		    "certificate verification failed: no matching CN");
+		goto error;
+	}
 
-	/* No valid CN. */
-	xasprintf(cause, "certificate verification failed: no matching CN");
+	/* Valid CN found. */
+	return (0);
+
+error:
+	X509_free(x509);
 	return (-1);
 }
 
@@ -165,6 +171,8 @@ getaddrs(const char *host, char **fqdn, char **addr)
 	if (fqdn != NULL && getnameinfo(ai->ai_addr,
 	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NAMEREQD) == 0)
 		*fqdn = xstrdup(ni);
+	
+	freeaddrinfo(ai);
 }
 
 #ifndef NO_PROXY
