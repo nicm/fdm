@@ -243,7 +243,7 @@ printpath(char *buf, size_t len, const char *fmt, ...)
 char *
 xdirname(const char *src)
 {
-	char	dst[MAXPATHLEN];
+	static char	dst[MAXPATHLEN];
 
 	strlcpy(dst, src, sizeof dst);
 	return (dirname(dst));
@@ -252,7 +252,7 @@ xdirname(const char *src)
 char *
 xbasename(const char *src)
 {
-	char	dst[MAXPATHLEN];
+	static char	dst[MAXPATHLEN];
 
 	strlcpy(dst, src, sizeof dst);
 	return (basename(dst));
