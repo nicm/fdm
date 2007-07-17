@@ -904,7 +904,7 @@ void		 getaddrs(const char *, char **, char **);
 struct proxy 	*getproxy(const char *);
 struct io 	*connectproxy(struct server *, int, struct proxy *,
     		     const char *, int, char **);
-struct io	*connectio(struct server *, int, const char *, char **);
+struct io	*connectio(struct server *, int, const char *, int, char **);
 
 /* file.c */
 int		 openlock(const char *, u_int, int, mode_t);

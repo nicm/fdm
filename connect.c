@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #include <errno.h>
@@ -42,7 +43,7 @@ int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
 #endif
-SSL    *makessl(struct server *, int, int, char **);
+SSL    *makessl(struct server *, int, int, int, char **);
 
 char *
 sslerror(const char *fn)
@@ -67,16 +68,16 @@ sslerror2(int n, const char *fn)
 		xasprintf(&cause, "%s: %s", fn, strerror(errno));
 		return (cause);
 	case SSL_ERROR_WANT_CONNECT:
-		xasprintf(&cause, "%s: want connect", fn);
+		xasprintf(&cause, "%s: timed out or need connect", fn);
 		return (cause);
 	case SSL_ERROR_WANT_ACCEPT:
-		xasprintf(&cause, "%s: want accept", fn);
+		xasprintf(&cause, "%s: timed out or need accept", fn);
 		return (cause);
 	case SSL_ERROR_WANT_READ:
-		xasprintf(&cause, "%s: want read", fn);
+		xasprintf(&cause, "%s: timed out or need read", fn);
 		return (cause);
 	case SSL_ERROR_WANT_WRITE:
-		xasprintf(&cause, "%s: want write", fn);
+		xasprintf(&cause, "%s: timed out of need write", fn);
 		return (cause);
 	}
 
@@ -270,9 +271,9 @@ connectproxy(struct server *srv,
 	struct io	*io;
 
 	if (pr == NULL)
-		return (connectio(srv, verify, eol, cause));
+		return (connectio(srv, verify, eol, timeout, cause));
 
-	io = connectio(&pr->server, verify, IO_CRLF, cause);
+	io = connectio(&pr->server, verify, IO_CRLF, timeout, cause);
 	if (io == NULL)
 		return (NULL);
 
@@ -291,7 +292,8 @@ connectproxy(struct server *srv,
 
 	/* If the original request was for SSL, initiate it now. */
 	if (srv->ssl) {
-		io->ssl = makessl(srv, io->fd, verify && srv->verify, cause);
+		io->ssl = makessl(
+		    srv, io->fd, verify && srv->verify, timeout, cause);
 		if (io->ssl == NULL)
 			goto error;
 	}
@@ -519,11 +521,13 @@ httpproxy(struct server *srv,
 #endif /* NO_PROXY */
 
 SSL *
-makessl(struct server *srv, int fd, int verify, char **cause)
+makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 {
 	SSL_CTX		*ctx;
 	SSL		*ssl;
 	int	 	 n, mode;
+	struct timeval	 tv, saved;
+	socklen_t	 size;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
         SSL_CTX_set_options(ctx, SSL_OP_ALL);
@@ -543,22 +547,34 @@ makessl(struct server *srv, int fd, int verify, char **cause)
 
 	/*
 	 * Switch the socket to blocking mode to be sure we have received the
-	 * certificate. XXX This means our timeout is ignored.
+	 * certificate.
 	 */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
 		log_fatal("fcntl");
 	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
 		log_fatal("fcntl");
 
+	/* Set the timeout. */
+	size = sizeof saved;
+	if (getsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &saved, &size) != 0)
+		log_fatal("getsockopt");
+	memset(&tv, 0, sizeof tv);
+	tv.tv_sec = timeout / 1000;
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv) != 0)
+		log_fatal("setsockopt");
+	
+	/* Connect with SSL.  */
 	SSL_set_connect_state(ssl);
 	if ((n = SSL_connect(ssl)) < 1) {
 		*cause = sslerror2(SSL_get_error(ssl, n), "SSL_connect");
 		goto error;
 	}
 
-	/* Reset to non-blocking mode. */
+	/* Reset non-blocking mode and timeout. */
 	if (fcntl(fd, F_SETFL, mode & ~O_NONBLOCK) == -1)
 		log_fatal("fcntl");
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &saved, sizeof saved) != 0)
+		log_fatal("setsockopt");
 
 	/* Verify certificate. */
 	if (verify && sslverify(srv, ssl, cause) != 0)
@@ -575,7 +591,7 @@ error:
 
 struct io *
 connectio(
-    struct server *srv, int verify, const char *eol, char **cause)
+    struct server *srv, int verify, const char *eol, int timeout, char **cause)
 {
 	int		 fd = -1, error = 0;
 	struct addrinfo	 hints;
@@ -618,7 +634,8 @@ connectio(
 	if (!srv->ssl)
 		return (io_create(fd, NULL, eol));
 
-	if ((ssl = makessl(srv, fd, verify && srv->verify, cause)) == NULL) {
+	ssl = makessl(srv, fd, verify && srv->verify, timeout, cause);
+	if (ssl == NULL) {
 		close(fd);
 		return (NULL);
 	}
