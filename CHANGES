@@ -1,5 +1,7 @@
 17 July 2007
 
+* Only store shared filename (NAME_MAX) in struct shm and construct path into
+  temp dir on-the-fly. Saves (PATH_MAX - NAME_MAX) per struct.
 * Trailing newlines are now stripped from message_id tag (as they used to
   be). This makes any existing caches by message-id useless.
 * Use SO_RCVTIMEO to apply configured timeout when connecting to SSL servers

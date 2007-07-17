@@ -41,6 +41,17 @@ char	shm_block[BUFSIZ];
 #define SHM_FLAGS MAP_SHARED
 #endif
 
+/* Work out shm path. */
+char *
+shm_path(struct shm *shm)
+{
+	static char	path[MAXPATHLEN];
+
+	if (printpath(path, sizeof path, "%s/%s", conf.tmp_dir, shm->name) != 0)
+		return (NULL);
+	return (path);
+}
+
 /* Expand or reduce shm file to size. */
 int
 shm_expand(struct shm *shm, size_t size)
@@ -91,16 +102,20 @@ shm_expand(struct shm *shm, size_t size)
 void *
 shm_create(struct shm *shm, size_t size)
 {
-	int	error;
+	int	 saved_errno;
+	char	*path;
 
         if (size == 0)
-                log_fatalx("shm_malloc: zero size");
+                log_fatalx("shm_create: zero size");
 
-	if (printpath(shm->name, sizeof shm->name,
-	    "%s/%s.XXXXXXXXXX", conf.tmp_dir, __progname) != 0)
+	if (printpath(
+	    shm->name, sizeof shm->name, "%s.XXXXXXXXXX", __progname) != 0)
 		return (NULL);
-	if ((shm->fd = mkstemp(shm->name)) < 0)
+	if ((path = shm_path(shm)) == NULL)
 		return (NULL);
+	if ((shm->fd = mkstemp(path)) == -1)
+		return (NULL);
+	strlcpy(shm->name, xbasename(path), sizeof shm->name);
 
 	if (shm_expand(shm, size) != 0)
 		goto error;
@@ -114,9 +129,9 @@ shm_create(struct shm *shm, size_t size)
 	return (shm->data);
 
 error:
-	error = errno;
-	unlink(shm->name);
-	errno = error;
+	saved_errno = errno;
+	unlink(path);
+	errno = saved_errno;
 	return (NULL);
 }
 
@@ -124,13 +139,18 @@ error:
 void
 shm_destroy(struct shm *shm)
 {
+	char	*path;
+
 	if (*shm->name == '\0')
 		return;
 
 	shm_close(shm);
 
-	if (unlink(shm->name) != 0)
+	if ((path = shm_path(shm)) == NULL)
 		log_fatal("unlink");
+	if (unlink(path) != 0)
+		log_fatal("unlink");
+
 	*shm->name = '\0';
 }
 
@@ -153,7 +173,11 @@ shm_close(struct shm *shm)
 void *
 shm_reopen(struct shm *shm)
 {
-	if ((shm->fd = open(shm->name, O_RDWR, 0)) < 0)
+	char	*path;
+
+	if ((path = shm_path(shm)) == NULL)
+		return (NULL);
+	if ((shm->fd = open(path, O_RDWR, 0)) == -1)
 		return (NULL);
 
 	shm->data = mmap(NULL, shm->size, SHM_PROT, SHM_FLAGS, shm->fd, 0);
@@ -181,9 +205,9 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	size_t	 newsize = nmemb * size;
 
 	if (size == 0)
-                log_fatalx("shm_realloc: zero size");
+                log_fatalx("shm_resize: zero size");
         if (SIZE_MAX / nmemb < size)
-                log_fatalx("shm_realloc: nmemb * size > SIZE_MAX");
+                log_fatalx("shm_resize: nmemb * size > SIZE_MAX");
 
 #ifndef WITH_MREMAP
 	if (munmap(shm->data, shm->size) != 0)

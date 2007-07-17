@@ -94,6 +94,9 @@ cleanup_register(const char *path)
 	log_debug("cleanup_register: %s by %ld", path, (long) getpid());
 #endif
 
+	if (path == NULL || *path == '\0')
+		log_fatalx("cleanup_register: empty path");
+
 	cent = xmalloc(sizeof *cent);
 	cent->path = xstrdup(path);
 
@@ -116,6 +119,9 @@ cleanup_deregister(const char *path)
 #if 0
  	log_debug("cleanup_deregister: %s by %ld", path, (long) getpid());
 #endif
+
+	if (path == NULL || *path == '\0')
+		log_fatalx("cleanup_deregister: empty path");
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
