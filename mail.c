@@ -258,13 +258,15 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	return (0);
 }
 
-/* Find a header. */
+/*
+ * Find a header. If value is set, only the header value is returned, with EOL
+ * stripped
+ */
 char *
 find_header(struct mail *m, const char *hdr, size_t *len, int value)
 {
 	char	*ptr;
 	size_t	 hdrlen;
-
 
 	hdrlen = strlen(hdr) + 1; /* include : */
 	if (m->body < hdrlen || m->size < hdrlen)
@@ -294,6 +296,10 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 		ptr++;
 		(*len)--;
 	}
+
+	/* And trim newlines. */
+	while (*len > 0 && ptr[*len - 1] == '\n')
+		(*len)--;
 
 	if (len == 0)
 		return (NULL);

@@ -78,6 +78,9 @@ CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 ifdef DB
 DEFS+= -DDB
 LIBS+= -ltdb
+ifdef DB_UNSAFE
+DEFS+= -DDB_UNSAFE
+endif
 endif
 ifdef PCRE
 DEFS+= -DPCRE
