@@ -6,6 +6,8 @@ PROG= fdm
 VERSION= 1.3
 DATE= $(shell date +%Y%m%d-%H%M)
 
+DEBUG= 1
+
 PREFIX?= /usr/local
 
 BIN_OWNER= bin
@@ -62,7 +64,10 @@ endif
 
 OBJS= $(patsubst %.c,%.o,$(SRCS))
 CPPFLAGS+= $(DEFS) -I. -I- $(INCDIRS)
+ifdef DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
+LDFLAGS+= -rdynamic
+endif
 #CFLAGS+= -pedantic -std=c99
 #CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-label
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2

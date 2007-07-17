@@ -11,6 +11,9 @@ OS!= uname
 REL!= uname -r
 DATE!= date +%Y%m%d-%H%M
 
+# This must be empty as OpenBSD includes it in default CFLAGS.
+DEBUG=
+
 SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
       child-deliver.c child-fetch.c child.c \
@@ -40,7 +43,10 @@ CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 CC= /usr/bin/gcc
 CFLAGS+= -pg -DPROFILE -fprofile-arcs -ftest-coverage -O0
 .endif
+.ifdef DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
+LDFLAGS+= -Wl,-E
+.endif
 #CFLAGS+= -pedantic -std=c99
 #CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-labels
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
@@ -114,8 +120,8 @@ ${PROG}:	${OBJS}
 		${CC} ${LDFLAGS} -o ${PROG} ${LIBS} ${OBJS}
 
 dist:		clean manual
-		grep '^#CFLAGS.*-DDEBUG' Makefile
-		grep '^#CFLAGS.*-DDEBUG' GNUmakefile
+		grep '^#DEBUG=' Makefile
+		grep '^#DEBUG=' GNUmakefile
 		tar -zc \
 			-s '/.*/${PROG}-${VERSION}\/\0/' \
 			-f ${PROG}-${VERSION}.tar.gz ${DISTFILES}

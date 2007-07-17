@@ -21,7 +21,9 @@
 #include <sys/types.h>
 
 #include <ctype.h>
+#include <dlfcn.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "fdm.h"
 
@@ -51,7 +53,7 @@ u_int	xmalloc_reallocs;
 #define XMALLOC_PRINT log_debug3
 
 /* Bytes of unallocated blocks and number of allocated blocks to show. */
-#define XMALLOC_BYTES 20
+#define XMALLOC_BYTES 8
 #define XMALLOC_LINES 32
 
 /* Macro to update peek usage variable. */
@@ -108,6 +110,7 @@ xmalloc_report(pid_t pid, const char *hdr)
  	char	 		 buf[4 * XMALLOC_BYTES + 1], *optr;
  	size_t		 	 len;
   	u_int	 		 n;
+	Dl_info			 info;
 
  	XMALLOC_PRINT("%s: %ld: allocated=%zu, freed=%zu, difference=%zd, "
 	    "peak=%zu", hdr, (long) pid, xmalloc_allocated, xmalloc_freed,
@@ -125,6 +128,10 @@ xmalloc_report(pid_t pid, const char *hdr)
 		if (len > XMALLOC_BYTES)
 			len = XMALLOC_BYTES;
 
+		memset(&info, 0, sizeof info);
+		if (dladdr(blk->caller, &info) == 0)
+			info.dli_sname = info.dli_saddr = NULL;
+
 		optr = buf;
 		iptr = blk->ptr;
 		for (; len > 0; len--) {
@@ -140,8 +147,9 @@ xmalloc_report(pid_t pid, const char *hdr)
 		}
 		*optr = '\0';
 
-		XMALLOC_PRINT("%s: %ld: %u, %p: [%p %zu: %s]",
-		    hdr, (long) pid, n, blk->caller, blk->ptr, blk->size, buf);
+		XMALLOC_PRINT("%s: %ld: %u, %s+0x%02tx: [%p %zu: %s]", hdr,
+		    (long) pid, n, info.dli_sname, ((u_char *) blk->caller) -
+		    ((u_char *) info.dli_saddr), blk->ptr, blk->size, buf);
 	}
 	XMALLOC_PRINT("%s: %ld: %u unfreed blocks", hdr, (long) pid, n);
 }
