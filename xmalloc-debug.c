@@ -227,8 +227,8 @@ xmalloc_free(void *ptr)
 
 	xmalloc_freed += blk->size;
 
-	free(blk);
 	SPLAY_REMOVE(xmalloc_tree, &xmalloc_tree, blk);
+	free(blk);
 
 	xmalloc_frees++;
 	XMALLOC_UPDATE();
