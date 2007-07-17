@@ -370,6 +370,7 @@ main(int argc, char **argv)
 	if (user != NULL) {
 		pw = getpwnam(user);
 		if (pw == NULL) {
+			endpwent();
 			n = strtonum(user, 0, UID_MAX, &errstr);
 			if (errstr != NULL) {
 				if (errno == ERANGE) {

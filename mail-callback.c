@@ -104,7 +104,10 @@ enqueue_mail(struct account *a, struct fetch_ctx *fctx, struct mail *m)
 	add_tag(&m->tags, "header_lines", "%u", n - b);
 
 	/* Insert message-id tag. */
-	hdr = find_header(m, "message-id", &size, 1);
+	if ((hdr = find_header(m, "message-id", &size, 1)) != NULL) {
+		while (size > 0 && hdr[size - 1] == '\n')
+			size--;
+	}
 	if (hdr == NULL || size == 0 || size > INT_MAX)
 		log_debug2("%s: message-id not found", a->name);
 	else {
