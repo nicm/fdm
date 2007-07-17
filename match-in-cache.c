@@ -32,6 +32,16 @@ struct match match_in_cache = {
 	match_in_cache_desc
 };
 
+#ifndef DB
+int
+match_in_cache_match(struct mail_ctx *mctx, unused struct expritem *ei)
+{
+	struct account	*a = mctx->account;
+
+	log_warnx("%s: caches not enabled", a->name);
+	return (MATCH_ERROR);
+}
+#else
 int
 match_in_cache_match(struct mail_ctx *mctx, struct expritem *ei)
 {
@@ -41,10 +51,6 @@ match_in_cache_match(struct mail_ctx *mctx, struct expritem *ei)
 	char				*key;
 	struct cache			*cache;
 
-#ifndef DB
-	log_warnx("%s: caches not enabled", a->name);
-	return (MATCH_ERROR);
-#endif
 
 	key = replacestr(&data->key, m->tags, m, &m->rml);
 	if (key == NULL || *key == '\0') {
@@ -72,6 +78,7 @@ error:
 		xfree(key);
 	return (MATCH_ERROR);
 }
+#endif
 
 void
 match_in_cache_desc(struct expritem *ei, char *buf, size_t len)

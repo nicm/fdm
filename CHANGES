@@ -1,5 +1,7 @@
 16 July 2007
 
+* Outright reject configuration files that uses caches unless built with -DDB,
+  rather than waiting until the cache is used.
 * Rewrite the malloc debugging stuff: lose the call counting, use a splay
   tree instead of a fixed array and use __builtin_return_address and direct
   calls from xmalloc.c rather than horrible #define games, even if it means 

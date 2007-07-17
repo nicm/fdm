@@ -871,7 +871,9 @@ struct child 	*child_start(struct children *, uid_t, int (*)(struct child *,
     		     struct msgbuf *), void *);
 
 /* child-fetch.c */
+#ifdef DB
 int		 open_cache(struct account *, struct cache *);
+#endif
 int		 child_fetch(struct child *, struct io *);
 void		 fetch_free1(struct mail_ctx *);
 
@@ -940,12 +942,14 @@ int	mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
 int	mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
 /* db-tdb.c */
+#ifdef DB
 struct db      *db_open(char *);
 void		db_close(struct db *);
 int		db_add(struct db *, char *);
 int		db_contains(struct db *, char *);
 int		db_size(struct db *);
 int		db_expire(struct db *, uint64_t);
+#endif
 
 /* imap-common.c */
 int		 imap_connect(struct account *);
