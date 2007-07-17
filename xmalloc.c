@@ -228,7 +228,7 @@ printpath(char *buf, size_t len, const char *fmt, ...)
 	n = xvsnprintf(buf, len, fmt, ap);
 	va_end(ap);
 
-	if ((size_t) n > len) {
+	if ((size_t) n >= len) {
 		errno = ENAMETOOLONG;
 		return (1);
 	}
