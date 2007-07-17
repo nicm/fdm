@@ -79,6 +79,7 @@ re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
 		return (0);
 	}
 
+	memset(pm, 0, sizeof pm);
 	pm[0].rm_so = 0;
 	pm[0].rm_eo = len;
 	res = regexec(&re->re, buf, NPMATCH, pm, REG_STARTEND);
