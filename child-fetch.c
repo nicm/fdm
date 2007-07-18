@@ -135,7 +135,6 @@ out:
 	}
 
 	memset(&msg, 0, sizeof msg);
-
 	msg.type = MSG_EXIT;
 	log_debug3("%s: sending exit message to parent", a->name);
 	if (privsep_send(io, &msg, NULL) != 0)

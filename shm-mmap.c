@@ -29,8 +29,6 @@
  * This implements shared memory using mmap'd files in TMPDIR.
  */
 
-#define SHM_PROT PROT_READ|PROT_WRITE
-
 int	shm_expand(struct shm *, size_t);
 
 char	shm_block[BUFSIZ];
@@ -40,6 +38,7 @@ char	shm_block[BUFSIZ];
 #else
 #define SHM_FLAGS MAP_SHARED
 #endif
+#define SHM_PROT PROT_READ|PROT_WRITE
 
 /* Work out shm path. */
 char *

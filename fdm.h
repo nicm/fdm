@@ -274,7 +274,7 @@ struct strb {
 };
 
 /* Initial string block slots and block size. */
-#define STRBOFFSET 64
+#define STRBOFFSET (((sizeof (struct strb)) + 0x3f) & ~0x3f)
 #define STRBENTRIES 64
 #define STRBBLOCK 1024
 

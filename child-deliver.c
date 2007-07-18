@@ -55,6 +55,7 @@ child_deliver(struct child *child, struct io *io)
 	    conf.info.home);
 
 	/* Call the hook. */
+	memset(&msg, 0, sizeof msg);
 	data->hook(0, a, &msg, data, &msg.data.error);
 
 	/* Inform parent we're done. */
