@@ -56,6 +56,8 @@ match_regexp_match(struct mail_ctx *mctx, struct expritem *ei)
 	case AREA_ANY:
 		break;
 	}
+	log_debug3("%s: matching from %zu to %zu (size=%zu, body=%zu)", a->name,
+	    so, eo, m->size, m->body);
 
 	res = re_block(&data->re, m->data + so, eo - so, &m->rml, &cause);
 	if (res == -1) {

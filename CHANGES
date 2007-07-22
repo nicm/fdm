@@ -5,7 +5,7 @@
 * Trailing newlines are now stripped from message_id tag (as they used to
   be). This makes any existing caches by message-id useless.
 * Use SO_RCVTIMEO to apply configured timeout when connecting to SSL servers
-  (SSL_connect must block as the easiest way to ensure the certificate is
+  (SSL_connect must block as it is the easiest way to ensure the certificate is
   received before checking its validity).
 
 16 July 2007

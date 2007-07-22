@@ -106,7 +106,7 @@ yyerror(const char *fmt, ...)
 	    "%s: %s at line %d", parse_file->path, fmt, parse_file->line);
 
 	va_start(ap, fmt);
-	log_vwrite(stderr, LOG_CRIT, s, ap);
+	log_vwrite(NULL, LOG_CRIT, s, ap);
 	va_end(ap);
 
 	exit(1);

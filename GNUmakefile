@@ -69,7 +69,6 @@ CFLAGS+= -g -ggdb -DDEBUG
 LDFLAGS+= -rdynamic
 endif
 #CFLAGS+= -pedantic -std=c99
-#CFLAGS+= -Wredundant-decls  -Wdisabled-optimization -Wendif-label
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare

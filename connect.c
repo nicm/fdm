@@ -171,7 +171,7 @@ getaddrs(const char *host, char **fqdn, char **addr)
 	if (fqdn != NULL && getnameinfo(ai->ai_addr,
 	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NAMEREQD) == 0)
 		*fqdn = xstrdup(ni);
-	
+
 	freeaddrinfo(ai);
 }
 
@@ -570,7 +570,7 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 	tv.tv_sec = timeout / 1000;
 	if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv) != 0)
 		log_fatal("setsockopt");
-	
+
 	/* Connect with SSL.  */
 	SSL_set_connect_state(ssl);
 	if ((n = SSL_connect(ssl)) < 1) {
