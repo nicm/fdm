@@ -67,6 +67,7 @@ CPPFLAGS+= $(DEFS) -I. -I- $(INCDIRS)
 ifdef DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
 LDFLAGS+= -rdynamic
+LIBS+= -ldl
 endif
 #CFLAGS+= -pedantic -std=c99
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
