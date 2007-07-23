@@ -54,7 +54,7 @@ parse_conf(const char *path)
 	struct macro	*macro;
 	FILE		*f;
 
-        if ((f = fopen(conf.conf_file, "r")) == NULL)
+        if ((f = fopen(path, "r")) == NULL)
                 return (-1);
 
 	ARRAY_INIT(&parse_rulestack);
