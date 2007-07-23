@@ -20,6 +20,8 @@
 #include <sys/stat.h>
 
 #include <ctype.h>
+#include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -275,6 +277,7 @@ restart:
 		case '>':
 		case '{':
 		case '}':
+		case '*':
 			value = ch;
 			goto out;
 		case '\n':
@@ -568,8 +571,10 @@ read_string(char endch, int esc)
 			}
 
 			name = read_macro(oldch, '{');
-			if ((macro = find_macro(name)) == NULL)
-				yyerror("undefined macro: %s", name);
+			if ((macro = find_macro(name)) == NULL) {
+				xfree(name);
+				continue;
+			}
 			xfree(name);
 
 			if (macro->type == MACRO_NUMBER)
