@@ -44,7 +44,7 @@ char	shm_block[BUFSIZ];
 char *
 shm_path(struct shm *shm)
 {
-	static char	path[PATH_MAX];
+	static char	path[MAXPATHLEN];
 
 	if (mkpath(path, sizeof path, "%s/%s", conf.tmp_dir, shm->name) != 0)
 		return (NULL);

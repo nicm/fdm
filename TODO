@@ -28,7 +28,6 @@
   consistent in some way (closed=1, success=0, error=-1)
 - weed is not doing its jobs, check domains
 - better website
-- get rid of printpath... (vopen/vmkdir? asprintf wrapper?)
 - audit uses of MAXPATHLEN
 - audit errors and use FATAL/FATALX
 -------------------------------------------------------------------------------

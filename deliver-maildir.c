@@ -95,7 +95,7 @@ deliver_maildir_create(struct account *a, const char *maildir)
 {
 	struct stat	sb;
 	const char     *msg, *names[] = { "", "/cur", "/new", "/tmp", NULL };
-	char		path[PATH_MAX];
+	char		path[MAXPATHLEN];
 	u_int		i;
 
 	for (i = 0; names[i] != NULL; i++) {
@@ -133,7 +133,7 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct deliver_maildir_data	*data = ti->data;
 	static u_int			 delivered = 0;
 	char				*host, *name, *path;
-	char				 src[PATH_MAX], dst[PATH_MAX];
+	char				 src[MAXPATHLEN], dst[MAXPATHLEN];
 	int	 			 fd;
 	ssize_t			 	 n;
 

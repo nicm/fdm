@@ -21,6 +21,7 @@
 
 #include <sys/param.h>
 #include <sys/cdefs.h>
+#include <sys/dirent.h>
 #include <sys/stat.h>
 
 #ifndef NO_QUEUE_H
@@ -246,7 +247,7 @@ struct proxy {
 
 /* Shared memory. */
 struct shm {
-	char	 name[NAME_MAX];
+	char	 name[MAXNAMLEN];
 	int	 fd;
 #define SHM_REGISTER(shm) cleanup_register(shm_path(shm))
 #define SHM_DEREGISTER(shm) cleanup_deregister(shm_path(shm))

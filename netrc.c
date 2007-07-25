@@ -29,7 +29,7 @@ int	netrc_token(FILE *, char **);
 FILE *
 netrc_open(const char *home, char **cause)
 {
-	char		 path[PATH_MAX];
+	char		 path[MAXPATHLEN];
 	struct stat	 sb;
 	FILE		*f;
 
