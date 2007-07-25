@@ -135,7 +135,7 @@ dropto(uid_t uid)
 	struct passwd	*pw;
 	gid_t		 gid;
 
-	if (uid == NOUSR || uid == 0)
+	if (uid == (uid_t) -1 || uid == 0)
 		return (0);
 
 	pw = getpwuid(uid);
@@ -267,7 +267,7 @@ main(int argc, char **argv)
 	conf.impl_act = DECISION_NONE;
 	conf.purge_after = 0;
 	conf.file_umask = DEFUMASK;
-	conf.file_group = NOGRP;
+	conf.file_group = -1;
 	conf.queue_high = -1;
 	conf.queue_low = -1;
 
@@ -543,7 +543,7 @@ main(int argc, char **argv)
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "file-umask=%o%o%o, ", MODE(conf.file_umask));
 	}
-	if (sizeof tmp > off && conf.file_group != NOGRP) {
+	if (sizeof tmp > off && conf.file_group != (gid_t) -1) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "file-group=%lu, ", (u_long) conf.file_group);
 	}

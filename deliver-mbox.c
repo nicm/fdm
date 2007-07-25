@@ -148,7 +148,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			}
 		}
 	} while (fd < 0);
-	if (!exists && conf.file_group != NOGRP) {
+	if (!exists && conf.file_group != (gid_t) -1) {
 		if (fchown(fd, (uid_t) -1, conf.file_group) == -1) {
 			log_warn("%s: %s", a->name, path);
 			goto out;

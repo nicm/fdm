@@ -74,9 +74,6 @@ struct fetch_ctx; 	/* fetch.h */
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define DIRMODE		(S_IRWXU|S_IRWXG|S_IRWXO)
 
-#define NOGRP	 	((gid_t) -1)
-#define NOUSR		((uid_t) -1)
-
 extern char	*__progname;
 
 /* Linux compatibility bullshit. */

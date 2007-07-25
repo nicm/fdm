@@ -620,7 +620,7 @@ set: TOKSET TOKMAXSIZE size
      }
    | TOKSET TOKFILEGROUP TOKUSER
      {
-	     conf.file_group = NOGRP;
+	     conf.file_group = -1;
      }
    | TOKSET TOKFILEGROUP gid
 /**  [$3: gid (gid_t)] */
@@ -932,7 +932,7 @@ gid: replstrv
 /** USER: <uid> (uid_t) */
 user: /* empty */
       {
-	      $$ = NOUSR;
+	      $$ = -1;
       }
     | TOKUSER uid
 /**   [$2: uid (uid_t)] */

@@ -87,18 +87,18 @@ weed_users(struct users *up)
 
 	for (i = 0; i < ARRAY_LENGTH(up) - 1; i++) {
 		uid = ARRAY_ITEM(up, i);
-		if (uid == NOUSR)
+		if (uid == (uid_t) -1)
 			continue;
 
 		for (j = i + 1; j < ARRAY_LENGTH(up); j++) {
 			if (ARRAY_ITEM(up, j) == uid)
-				ARRAY_ITEM(up, j) = NOUSR;
+				ARRAY_ITEM(up, j) = -1;
 		}
 	}
 
 	i = 0;
 	while (i < ARRAY_LENGTH(up)) {
-		if (ARRAY_ITEM(up, i) == NOUSR)
+		if (ARRAY_ITEM(up, i) == (uid_t) -1)
 			ARRAY_REMOVE(up, i);
 		else
 			i++;

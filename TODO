@@ -30,7 +30,6 @@
 - better website
 - get rid of printpath... (vopen/vmkdir? asprintf wrapper?)
 - audit uses of MAXPATHLEN
-- get rid of NOGRP/NOUSR
 -------------------------------------------------------------------------------
 
 - man page: caches
