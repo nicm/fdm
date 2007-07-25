@@ -33,12 +33,96 @@
 int	 deliver_maildir_deliver(struct deliver_ctx *, struct actitem *);
 void	 deliver_maildir_desc(struct actitem *, char *, size_t);
 
+char 	*deliver_maildir_host(void);
+int	 deliver_maildir_create(struct account *, const char *);
+
 struct deliver deliver_maildir = {
 	"maildir",
 	DELIVER_ASUSER,
 	deliver_maildir_deliver,
 	deliver_maildir_desc
 };
+
+/*
+ * Return hostname with '/' replaced with "\057" and ':' with "\072". This is a
+ * bit inefficient but sod it. Why they couldn't both be replaced by _ is
+ * beyond me...
+ *
+ * The hostname will be truncated if these additions make it longer than
+ * MAXHOSTNAMELEN. No clue if this is right.
+ */
+char *
+deliver_maildir_host(void)
+{
+	static char	host1[MAXHOSTNAMELEN], host2[MAXHOSTNAMELEN];
+	char		ch;
+	size_t		first, last;
+
+	if (gethostname(host1, sizeof host1) != 0)
+		log_fatal("gethostname");
+	*host2 = '\0';
+
+	last = strcspn(host1, "/:");
+	if (host1[last] == '\0')
+		return (host1);
+
+	first = 0;
+	do {
+		ch = host1[first + last];
+
+		host1[first + last] = '\0';
+		strlcat(host2, host1 + first, sizeof host2);
+
+		switch (ch) {
+		case '/':
+			strlcat(host2, "\\057", sizeof host2);
+			break;
+		case ':':
+			strlcat(host2, "\\072", sizeof host2);
+			break;
+		}
+
+		first += last + 1;
+		last = strcspn(host1 + first, "/:");
+	} while (ch != '\0');
+
+	return (host2);
+}
+
+/* Create a new maildir. */
+int
+deliver_maildir_create(struct account *a, const char *path)
+{
+	struct stat	sb;
+	const char     *msg, *names[] = { "", "/cur", "/new", "/tmp", NULL };
+	u_int		i;
+	
+
+	for (i = 0; names[i] != NULL; i++) {
+		log_debug("%s: creating %s%s", a->name, path, names[i]);
+
+		if (xmkdir(
+		    -1, conf.file_group, DIRMODE, "%s%s", path, names[i]) == 0)
+			continue;
+		if (errno != EEXIST)
+			goto error;
+
+		if (xstat(&sb, "%s%s", path, names[i]) != 0)
+			goto error;
+		if ((msg = checkmode(&sb, UMASK(DIRMODE))) != NULL)
+			log_warnx("%s: %s%s: %s", a->name, path, names[i], msg);
+		if ((msg = checkowner(&sb, -1)) != NULL)
+			log_warnx("%s: %s%s: %s", a->name, path, names[i], msg);
+		if ((msg = checkgroup(&sb, conf.file_group)) != NULL)
+			log_warnx("%s: %s%s: %s", a->name, path, names[i], msg);
+	}
+
+	return (0);
+
+error:
+	log_warn("%s: %s%s", a->name, path, names[i]);
+	return (-1);
+}
 
 int
 deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
@@ -47,15 +131,12 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct mail			*m = dctx->mail;
 	struct deliver_maildir_data	*data = ti->data;
 	static u_int			 delivered = 0;
-	char				*path, ch;
-	char			 	 host1[MAXHOSTNAMELEN];
-	char				 host2[MAXHOSTNAMELEN], *host;
-	char	 			 name[MAXPATHLEN];
-	char				 src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 			 exists, xfd = -1, fd = -1, len;
+	char				*host, *path, *name, *src, *dst;
+	int	 			 fd;
 	ssize_t			 	 n;
-	size_t	 			 first, last;
-	gid_t				 gid;
+
+	name = src = dst = NULL;
+	fd = -1;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
@@ -64,192 +145,98 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	}
 	log_debug2("%s: saving to maildir %s", a->name, path);
 
-	/* Create the maildir directories. */
-	gid = conf.file_group;
-	if (checkperms(a->name, path, &exists) != 0) {
-		log_warn("%s: %s: checkperms", a->name, path);
+	/* Create the maildir. */
+	if (deliver_maildir_create(a, path) != 0)
 		goto error;
-	}
-	if (!exists && mkdir(path, DIRMODE) != 0) {
-		log_warn("%s: %s: mkdir", a->name, path);
-		goto error;
-	} else if (!exists && gid != NOGRP && chown(path, -1, gid) == -1) {
-		log_warn("%s: %s: chown", a->name, path);
-		goto error;
-	}
-	if (printpath(name, sizeof name, "%s/cur", path) != 0) {
-		log_warn("%s: %s: printpath", a->name, path);
-		goto error;
-	}
-	if (checkperms(a->name, name, &exists) != 0) {
-		log_warn("%s: %s: checkperms", a->name, name);
-		goto error;
-	}
-	if (!exists && mkdir(name, DIRMODE) != 0) {
-		log_warn("%s: %s: mkdir", a->name, name);
-		goto error;
-	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
-		log_warn("%s: %s: chown", a->name, name);
-		goto error;
-	}
-	if (printpath(name, sizeof name, "%s/new", path) != 0) {
-		log_warn("%s: %s: printpath", a->name, path);
-		goto error;
-	}
-	if (checkperms(a->name, name, &exists) != 0) {
-		log_warn("%s: %s: checkperms", a->name, name);
-		goto error;
-	}
-	if (!exists && mkdir(name, DIRMODE) != 0) {
-		log_warn("%s: %s: mkdir", a->name, name);
-		goto error;
-	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
-		log_warn("%s: %s: chown", a->name, name);
-		goto error;
-	}
-	if (printpath(name, sizeof name, "%s/tmp", path) != 0) {
-		log_warn("%s: %s: printpath", a->name, path);
-		goto error;
-	}
-	if (checkperms(a->name, name, &exists) != 0) {
-		log_warn("%s: %s: checkperms", a->name, name);
-		goto error;
-	}
-	if (!exists && mkdir(name, DIRMODE) != 0) {
-		log_warn("%s: %s: mkdir", a->name, name);
-		goto error;
-	} else if (!exists && gid != NOGRP && chown(name, -1, gid) == -1) {
-		log_warn("%s: %s: chown", a->name, name);
-		goto error;
-	}
 
-	if (gethostname(host1, sizeof host1) != 0)
-		log_fatal("gethostname");
-
-	/*
-	 * Replace '/' with "\057" and ':' with "\072". this is a bit
-	 * inefficient but sod it.
-	 */
-	last = strcspn(host1, "/:");
-	if (host1[last] == '\0')
-		host = host1;
-	else {
-		*host2 = '\0';
-
-		first = 0;
-		do {
-			ch = host1[first + last];
-			host1[first + last] = '\0';
-			strlcat(host2, host1 + first, sizeof host2);
-			switch (ch) {
-			case '/':
-				strlcat(host2, "\\057", sizeof host2);
-				break;
-			case ':':
-				strlcat(host2, "\\072", sizeof host2);
-				break;
-			}
-			host1[first + last] = ch;
-
-			first += last + 1;
-			last = strcspn(host1 + first, "/:");
-		} while (ch != '\0');
-
-		host = host2;
-	}
+	/* Find host name. */
+	host = deliver_maildir_host();
 
 restart:
 	/* Find a suitable name in tmp. */
 	do {
-		len = xsnprintf(name, sizeof name, "%ld.%ld_%u.%s",
+		if (name != NULL)
+			xfree(name);
+ 		xasprintf(&name, "%ld.%ld_%u.%s",
 		    (long) time(NULL), (long) getpid(), delivered, host);
-		if ((size_t) len >= sizeof name) {
-			log_warn("%s: %s: xsnprintf", a->name, path);
-			goto error;
-		}
 
-		if (printpath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {
-			log_warn("%s: %s: printpath", a->name, path);
-			goto error;
-		}
-
-		fd = open(src, O_WRONLY|O_CREAT|O_EXCL, FILEMODE);
+		log_debug3("%s: trying %s/tmp/%s", a->name, path, name);
+		fd = xcreate(-1, conf.file_group,
+		    FILEMODE, O_WRONLY, "%s/tmp/%s", path, name);
 		if (fd == -1 && errno != EEXIST) {
-			log_warn("%s: %s: open", a->name, src);
+			log_warn("%s: %s/tmp/%s", a->name, path, name);
 			goto error;
 		}
-
 		delivered++;
 	} while (fd == -1);
-	cleanup_register(src);
 
-	xfd = fd;
-	if (conf.file_group != NOGRP) {
-		if (fchown(fd, (uid_t) -1, conf.file_group) == -1) {
-			log_warn("%s: %s: fchown", a->name, path);
-			goto error;
-		}
-	}
+	/* Create src and dst paths. */
+	xasprintf(&src, "%s/tmp/%s", path, name);
+	xasprintf(&dst, "%s/new/%s", path, name);
+	cleanup_register(src);
 
 	/* Write the message. */
 	log_debug2("%s: writing to %s", a->name, src);
 	n = write(fd, m->data, m->size);
-	if (n < 0 || (size_t) n != m->size || fsync(fd) != 0) {
-		log_warn("%s: write", a->name);
-		goto error;
-	}
+	if (n < 0 || (size_t) n != m->size || fsync(fd) != 0)
+		goto error_unlink;
 	close(fd);
 	fd = -1;
 
 	/*
-	 * Create the new path and attempt to link it. a failed link jumps
+	 * Create the new path and attempt to link it. A failed link jumps
 	 * back to find another name in the tmp directory.
 	 */
-	if (printpath(dst, sizeof dst, "%s/new/%s", path, name) != 0) {
-		log_warn("%s: %s: printpath", a->name, path);
-		goto error;
-	}
-	log_debug2("%s: linking .../%s to .../%s", a->name,
-	    src + strlen(path) + 1, dst + strlen(path) + 1);
+	log_debug2(
+	    "%s: linking .../tmp/%s to .../new/%s", a->name, name, name);
 	if (link(src, dst) != 0) {
 		if (errno == EEXIST) {
+			log_debug2("%s: %s: link failed", a->name, src);
 			if (unlink(src) != 0)
 				log_fatal("unlink");
 			cleanup_deregister(src);
-			xfd = fd = -1;
-
-			log_debug2("%s: link failed", a->name);
 			goto restart;
 		}
-		log_warn("%s: %s: link(\"%s\")", a->name, src, dst);
-		goto error;
+		goto error_unlink;
 	}
 
 	/* Unlink the original tmp file. */
-	log_debug2("%s: unlinking .../%s", a->name, src + strlen(path) + 1);
-	if (unlink(src) != 0) {
-		log_warn("%s: %s: unlink", a->name, src);
-		goto error;
-	}
+	log_debug2("%s: unlinking .../tmp/%s", a->name, name);
+	if (unlink(src) != 0)
+		goto error_unlink;
 	cleanup_deregister(src);
 
 	/* Save the mail file as a tag. */
 	add_tag(&m->tags, "mail_file", "%s", dst);
 
-	if (path != NULL)
-		xfree(path);
+	xfree(src);
+	xfree(dst);
+
+	xfree(name);
+	xfree(path);
 	return (DELIVER_SUCCESS);
 
+error_unlink:
+	if (unlink(src) != 0)
+		log_fatal("unlink");
+	cleanup_deregister(src);
+
+	log_warn("%s: %s", a->name, src);
+
 error:
-	if (fd != -1 || xfd != -1) {
-		if (fd != -1)
-			close(fd);
-		if (unlink(src) != 0)
-			log_fatal("unlink");
-		cleanup_deregister(src);
-	}
+	if (fd != -1)
+		close(fd);
+
+	if (src != NULL)
+		xfree(src);
+	if (dst != NULL)
+		xfree(dst);
+
+	if (name != NULL)
+		xfree(name);
 	if (path != NULL)
 		xfree(path);
+
 	return (DELIVER_FAILURE);
 }
 

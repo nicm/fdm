@@ -21,6 +21,7 @@
 
 #include <sys/param.h>
 #include <sys/cdefs.h>
+#include <sys/stat.h>
 
 #ifndef NO_QUEUE_H
 #include <sys/queue.h>
@@ -118,6 +119,9 @@ extern char	*__progname;
 } while (0)
 #endif
 
+/* Apply umask. */
+#define UMASK(n) ((n) & ~conf.file_umask)
+
 /* Convert a file mode. */
 #define MODE(m) \
 	(m & S_IRUSR ? 4 : 0) + (m & S_IWUSR ? 2 : 0) + (m & S_IXUSR ? 1 : 0), \
@@ -132,6 +136,8 @@ extern char	*__progname;
 #define printflike2 __attribute__ ((format (printf, 2, 3)))
 #define printflike3 __attribute__ ((format (printf, 3, 4)))
 #define printflike4 __attribute__ ((format (printf, 4, 5)))
+#define printflike5 __attribute__ ((format (printf, 5, 6)))
+#define printflike6 __attribute__ ((format (printf, 6, 7)))
 
 /* Ensure buffer size. */
 #define ENSURE_SIZE(buf, len, size) do {				\
@@ -910,7 +916,13 @@ struct io	*connectio(struct server *, int, const char *, int, char **);
 /* file.c */
 int		 openlock(const char *, u_int, int, mode_t);
 void		 closelock(int, const char *, u_int);
-int		 checkperms(const char *, const char *, int *);
+int printflike5	 xcreate(uid_t, gid_t, mode_t, int, const char *, ...);
+int printflike2	 xopen(int, const char *, ...);
+int printflike4	 xmkdir(uid_t, gid_t, mode_t, const char *, ...);
+int printflike2	 xstat(struct stat *, const char *, ...);
+const char 	*checkmode(struct stat *, mode_t);
+const char 	*checkowner(struct stat *, uid_t);
+const char 	*checkgroup(struct stat *, gid_t);
 
 /* mail.c */
 int		 mail_open(struct mail *, size_t);
@@ -935,12 +947,12 @@ u_int		 fill_wrapped(struct mail *);
 void		 set_wrapped(struct mail *, char);
 
 /* mail-time.c */
-char   *rfc822time(time_t, char *, size_t);
-int	mailtime(struct mail *, time_t *);
+char   	       *rfc822time(time_t, char *, size_t);
+int		mailtime(struct mail *, time_t *);
 
 /* mail-state.c */
-int	mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
-int	mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
+int		mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
+int		mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
 /* db-tdb.c */
 #ifdef DB

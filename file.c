@@ -108,41 +108,136 @@ closelock(int fd, const char *path, u_int locks)
 		close(fd);
 }
 
-/* Check permissions on file and report problems. */
+/* Create a file. */
 int
-checkperms(const char *hdr, const char *path, int *exists)
+xcreate(uid_t uid, gid_t gid, mode_t mode, int flags, const char *fmt, ...)
 {
-	struct stat	sb;
-	gid_t		gid;
-	mode_t		mode;
+	char	path[PATH_MAX];
+	va_list	ap;
+	int	fd;
 
-	if (stat(path, &sb) != 0) {
-		if (errno == ENOENT) {
-			*exists = 0;
-			return (0);
-		}
+	va_start(ap, fmt);
+	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
+		va_end(ap);
+		errno = ENAMETOOLONG;
 		return (-1);
 	}
-	*exists = 1;
+	va_end(ap);
 
-	mode = (S_ISDIR(sb.st_mode) ? DIRMODE : FILEMODE) & ~conf.file_umask;
-	if ((sb.st_mode & DIRMODE) != mode) {
-		log_warnx("%s: %s: bad permissions: %o%o%o, should be %o%o%o",
-		    hdr, path, MODE(sb.st_mode), MODE(mode));
+	if ((fd = open(path, flags|O_CREAT|O_EXCL, mode)) == -1)
+		return (-1);
+
+	if (uid != (uid_t) -1 || gid != (gid_t) -1) {
+		if (fchown(fd, uid, gid) != 0)
+			return (-1);
 	}
+	
+	return (fd);
+}
 
-	if (sb.st_uid != getuid()) {
-		log_warnx("%s: %s: bad owner: %lu, should be %lu", hdr, path,
-		    (u_long) sb.st_uid, (u_long) getuid());
+/* Open a file. */
+int
+xopen(int flags, const char *fmt, ...)
+{
+	char	path[PATH_MAX];
+	va_list	ap;
+
+	va_start(ap, fmt);
+	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
+		va_end(ap);
+		errno = ENAMETOOLONG;
+		return (-1);
 	}
+	va_end(ap);
 
-	gid = conf.file_group;
-	if (gid == NOGRP)
-		gid = getgid();
-	if (sb.st_gid != gid) {
-		log_warnx("%s: %s: bad group: %lu, should be %lu", hdr, path,
-		    (u_long) sb.st_gid, (u_long) gid);
+	return (open(path, flags, 0));
+}
+
+/* Make directory. */
+int
+xmkdir(uid_t uid, gid_t gid, mode_t mode, const char *fmt, ...)
+{
+	char	path[PATH_MAX];
+	va_list	ap;
+
+	va_start(ap, fmt);
+	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
+		va_end(ap);
+		errno = ENAMETOOLONG;
+		return (-1);
+	}
+	va_end(ap);
+
+	if (mkdir(path, mode) != 0)
+		return (-1);
+	if (uid != (uid_t) -1 || gid != (gid_t) -1) {
+		if (chown(path, uid, gid) != 0)
+			return (-1);
 	}
 
 	return (0);
+}
+
+/* Stat a file. */
+int
+xstat(struct stat *sb, const char *fmt, ...)
+{
+	char	path[PATH_MAX];
+	va_list	ap;
+
+	va_start(ap, fmt);
+	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
+		va_end(ap);
+		errno = ENAMETOOLONG;
+		return (-1);
+	}
+	va_end(ap);
+
+	return (stat(path, sb));
+}
+
+/* Check mode of file. */
+const char *
+checkmode(struct stat *sb, mode_t mode)
+{
+	static char	msg[128];
+
+	if ((sb->st_mode & ACCESSPERMS) == mode)
+		return (NULL);
+
+	xsnprintf(msg, sizeof msg, "bad permissions:"
+	    " %o%o%o, should be %o%o%o", MODE(sb->st_mode), MODE(mode));
+	return (msg);
+}
+
+/* Check owner of file. */
+const char *
+checkowner(struct stat *sb, uid_t uid)
+{
+	static char	msg[128];
+
+	if (uid == NOUSR)
+		uid = getuid();
+	if (sb->st_uid == uid)
+		return (NULL);
+
+	xsnprintf(msg, sizeof msg,
+	    "bad owner: %lu, should be %lu", (u_long) sb->st_uid, (u_long) uid);
+	return (msg);
+}
+
+/* Check group of file. */
+const char *
+checkgroup(struct stat *sb, gid_t gid)
+{
+	static char	msg[128];
+
+	if (gid == NOUSR)
+		gid = getgid();
+	if (sb->st_gid == gid)
+		return (NULL);
+
+	xsnprintf(msg, sizeof msg,
+	    "bad group: %lu, should be %lu", (u_long) sb->st_gid, (u_long) gid);
+	return (msg);
 }

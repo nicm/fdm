@@ -72,6 +72,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct mail			*m = dctx->mail;
 	struct deliver_mbox_data	*data = ti->data;
 	char				*path, *ptr, *ptr2, *from = NULL;
+	const char			*msg;
 	size_t	 			 len, len2;
 	int	 			 exists, fd = -1, fd2;
 	int				 res = DELIVER_FAILURE;
@@ -79,6 +80,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	useconds_t			 t;
 	long long			 total;
 	sigset_t	 		 set, oset;
+	struct stat			 sb;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
@@ -105,15 +107,26 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	log_debug3("%s: using from line: %s", a->name, from);
 
 	/* Check permissions and ownership. */
-	if (checkperms(a->name, path, &exists) != 0) {
-		log_warn("%s: %s: checkperms", a->name, path);
-		goto out;
+	exists = 1;
+	if (xstat(&sb, "%s", path) != 0) {
+		if (errno != ENOENT) {
+			log_warn("%s: %s", a->name, path);
+			goto out;
+		}
+		exists = 0;
+	} else {
+		if ((msg = checkmode(&sb, UMASK(FILEMODE))) != NULL)
+			log_warnx("%s: %s: %s", a->name, path, msg);
+		if ((msg = checkowner(&sb, -1)) != NULL)
+			log_warnx("%s: %s: %s", a->name, path, msg);
+		if ((msg = checkgroup(&sb, conf.file_group)) != NULL)
+			log_warnx("%s: %s: %s", a->name, path, msg);
 	}
 
 	total = 0;
 	do {
-		fd = openlock(path,
-		    conf.lock_types, O_CREAT|O_WRONLY|O_APPEND, FILEMODE);
+		fd = openlock(path, conf.lock_types,
+		    O_CREAT|O_WRONLY|O_APPEND, UMASK(FILEMODE));
 		if (fd < 0) {
 			if (errno == EAGAIN) {
 				if (total == 0)
@@ -130,14 +143,14 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 					goto out;
 				}
 			} else {
-				log_warn("%s: %s: open", a->name, path);
+				log_warn("%s: %s", a->name, path);
 				goto out;
 			}
 		}
 	} while (fd < 0);
 	if (!exists && conf.file_group != NOGRP) {
 		if (fchown(fd, (uid_t) -1, conf.file_group) == -1) {
-			log_warn("%s: %s: fchown", a->name, path);
+			log_warn("%s: %s", a->name, path);
 			goto out;
 		}
 	}
@@ -151,7 +164,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			if (errno == 0)
 				errno = ENOMEM;
 			close(fd2);
-			log_warn("%s: %s: gzdopen", a->name, path);
+			log_warn("%s: %s", a->name, path);
 			goto out;
 		}
 	}
@@ -168,11 +181,11 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 	/* Write the from line. */
 	if (deliver_mbox_write(fd, gzf, from, strlen(from)) < 0) {
-		log_warn("%s: %s: write", a->name, path);
+		log_warn("%s: %s", a->name, path);
 		goto out2;
 	}
 	if (deliver_mbox_write(fd, gzf, "\n", 1) < 0) {
-		log_warn("%s: %s: write", a->name, path);
+		log_warn("%s: %s", a->name, path);
 		goto out2;
 	}
 
@@ -191,15 +204,14 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 				log_debug2("%s: quoting from line: %.*s",
 				    a->name, (int) len - 1, ptr);
 				if (deliver_mbox_write(fd, gzf, ">", 1) < 0) {
-					log_warn("%s: %s: write", a->name,
-					    path);
+					log_warn("%s: %s", a->name, path);
 					goto out2;
 				}
 			}
 		}
 
 		if (deliver_mbox_write(fd, gzf, ptr, len) < 0) {
-			log_warn("%s: %s: write", a->name, path);
+			log_warn("%s: %s", a->name, path);
 			goto out2;
 		}
 
@@ -208,12 +220,12 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	len = m->data[m->size - 1] == '\n' ? 1 : 2;
 	log_debug3("%s: adding %zu newlines", a->name, len);
 	if (deliver_mbox_write(fd, gzf, "\n\n", len) < 0) {
-		log_warn("%s: %s: write", a->name, path);
+		log_warn("%s: %s", a->name, path);
 		goto out2;
 	}
 
 	if (fsync(fd) != 0) {
-		log_warn("%s: %s: fsync", a->name, path);
+		log_warn("%s: %s", a->name, path);
 		goto out2;
 	}
 
