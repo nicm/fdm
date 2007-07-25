@@ -66,5 +66,5 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	mail_close(m);
 	xfree(m);
 
-	return (1);
+	return (-1);
 }

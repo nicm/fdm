@@ -424,13 +424,13 @@ fill_from_strings(struct mail_ctx *mctx, struct rule *r, struct replstrs *rsa)
 	chained--;
 	if (chained == 0) {
 		log_warnx("%s: too many chained actions", a->name);
-		return (1);
+		return (-1);
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(rsa); i++) {
 		rs = &ARRAY_ITEM(rsa, i);
 		if (fill_from_string(mctx, r, rs) != 0)
-			return (1);
+			return (-1);
 	}
 
 	return (0);
@@ -465,7 +465,7 @@ fill_from_string(struct mail_ctx *mctx, struct rule *r, struct replstr *rs)
 			if (should_free)
 				ARRAY_FREEALL(users);
 			ARRAY_FREEALL(ta);
-			return (1);
+			return (-1);
 		}
 
 		if (should_free)
@@ -479,7 +479,7 @@ empty:
 	log_warnx("%s: no actions matching: %s (%s)", a->name, s, rs->str);
 	xfree(s);
 	ARRAY_FREEALL(ta);
-	return (1);
+	return (-1);
 }
 
 int
@@ -497,9 +497,9 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 		TAILQ_FOREACH(ti, t->list, entry) {
 			if (ti->deliver == NULL) {
 				data = ti->data;
-				if (fill_from_strings(mctx, r,
-				    data->actions) != 0)
-					return (1);
+				if (fill_from_strings(
+				    mctx, r, data->actions) != 0)
+					return (-1);
 				continue;
 			}
 

@@ -82,7 +82,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	case MSG_DONE:
 		fatalx("unexpected message");
 	case MSG_EXIT:
-		return (1);
+		return (-1);
 	}
 
 	return (0);

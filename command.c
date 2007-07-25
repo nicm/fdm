@@ -303,7 +303,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	if (cmd->io_in != NULL && IO_CLOSED(cmd->io_in) &&
 	    cmd->pid != -1 && !(cmd->flags & CMD_ONCE)) {
 		xasprintf(cause, "%s", strerror(EPIPE));
-		return (1);
+		return (-1);
 	}
 
 	/*

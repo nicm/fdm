@@ -31,12 +31,12 @@ privsep_send(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 
 	io_write(io, msg, sizeof *msg);
 	if (io_flush(io, INFTIM, &cause) != 0)
-		return (1);
+		return (-1);
 
 	if (msg->size != 0) {
 		io_write(io, msgbuf->buf, msgbuf->len);
 		if (io_flush(io, INFTIM, &cause) != 0)
-			return (1);
+			return (-1);
 	}
 
 	return (0);
@@ -57,20 +57,20 @@ privsep_recv(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 	}
 
 	if (io_wait(io, sizeof *msg, INFTIM, NULL) != 0)
-		return (1);
+		return (-1);
 	if (io_read2(io, msg, sizeof *msg) != 0)
-		return (1);
+		return (-1);
 
 	if (msg->size == 0)
 		return (0);
 
 	if (msgbuf == NULL)
-		return (1);
+		return (-1);
 	msgbuf->len = msg->size;
 	if (io_wait(io, msgbuf->len, INFTIM, NULL) != 0)
-		return (1);
+		return (-1);
 	if ((msgbuf->buf = io_read(io, msgbuf->len)) == NULL)
-		return (1);
+		return (-1);
 
 	return (0);
 }

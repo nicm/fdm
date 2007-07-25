@@ -64,7 +64,7 @@ shm_expand(struct shm *shm, size_t size)
 		return (ftruncate(shm->fd, size) != 0);
 
 	if (lseek(shm->fd, shm->size, SEEK_SET) == -1)
-		return (1);
+		return (-1);
 
 	/*
 	 * Fill the file using write(2) to avoid fragmentation problems on
@@ -72,19 +72,19 @@ shm_expand(struct shm *shm, size_t size)
 	 */
 	while (size > sizeof shm_block) {
 		if ((n = write(shm->fd, shm_block, sizeof shm_block)) == -1)
-			return (1);
+			return (-1);
 		if (n != sizeof shm_block) {
 			errno = EIO;
-			return (1);
+			return (-1);
 		}
 		size -= sizeof shm_block;
 	}
 	if (size > 0) {
 		if ((n = write(shm->fd, shm_block, size)) == -1)
-		    return (1);
+		    return (-1);
 		if ((size_t) n != size) {
 			errno = EIO;
-			return (1);
+			return (-1);
 		}
 	}
 
@@ -92,7 +92,7 @@ shm_expand(struct shm *shm, size_t size)
 	 * Sync the fd, should hopefully fail if disk full.
 	 */
 	if (fsync(shm->fd) != 0)
-		return (1);
+		return (-1);
 
 	return (0);
 }
@@ -192,7 +192,7 @@ int
 shm_owner(struct shm *shm, uid_t uid, gid_t gid)
 {
 	if (fchown(shm->fd, uid, gid) != 0)
-		return (1);
+		return (-1);
 
 	return (0);
 }
