@@ -118,11 +118,11 @@ extern char	*__progname;
 #endif
 
 /* Fatal errors. */
-#define FATAL(s) log_fatal("%s: " s, __func__);
-#define FATALX(s) log_fatal("%s: " s, __func__);
+#define fatal(msg) log_fatal("%s: %s", __func__, msg);
+#define fatalx(msg) log_fatal("%s: %s", __func__, msg);
 
 /* Apply umask. */
-#define UMASK(n) ((n) & ~conf.file_umask)
+#define UMASK(mask) ((mask) & ~conf.file_umask)
 
 /* Convert a file mode. */
 #define MODE(m) \
@@ -842,7 +842,7 @@ int		 netrc_lookup(FILE *, const char *, char **, char **);
 
 /* fdm.c */
 double		 get_time(void);
-int		 dropto(uid_t);
+void		 dropto(uid_t);
 int		 check_incl(const char *);
 int	         check_excl(const char *);
 int		 use_account(struct account *, char **);

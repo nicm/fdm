@@ -39,7 +39,7 @@ cleanup_check(void)
 	if (!TAILQ_EMPTY(&cleanlist)) {
 		TAILQ_FOREACH(cent, &cleanlist, entry)
 		        log_debug("cleanup: %s", cent->path);
-		log_fatalx("cleanup_check: list not empty");
+		fatalx("list not empty");
 	}
 }
 
@@ -71,7 +71,7 @@ cleanup_flush(void)
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 
 	while (!TAILQ_EMPTY(&cleanlist)) {
 		cent = TAILQ_FIRST(&cleanlist);
@@ -81,7 +81,7 @@ cleanup_flush(void)
 	}
 
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 }
 
 void
@@ -95,19 +95,19 @@ cleanup_register(const char *path)
 #endif
 
 	if (path == NULL || *path == '\0')
-		log_fatalx("cleanup_register: empty path");
+		fatalx("empty path");
 
 	cent = xmalloc(sizeof *cent);
 	cent->path = xstrdup(path);
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 
 	TAILQ_INSERT_HEAD(&cleanlist, cent, entry);
 
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 }
 
 void
@@ -121,11 +121,11 @@ cleanup_deregister(const char *path)
 #endif
 
 	if (path == NULL || *path == '\0')
-		log_fatalx("cleanup_deregister: empty path");
+		fatalx("empty path");
 
 	sigfillset(&set);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 
  	TAILQ_FOREACH(cent, &cleanlist, entry) {
 		if (strcmp(cent->path, path) == 0) {
@@ -136,9 +136,9 @@ cleanup_deregister(const char *path)
 		}
 	}
 
-	log_fatalx("cleanup_deregister: entry not found");
+	fatalx("entry not found");
 
 out:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 }

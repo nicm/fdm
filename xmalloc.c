@@ -29,10 +29,10 @@ void *
 ensure_for(void *buf, size_t *len, size_t size, size_t adj)
 {
 	if (adj == 0)
-		log_fatalx("ensure_for: zero adj");
+		fatalx("zero adj");
 
 	if (SIZE_MAX - size < adj)
-		log_fatalx("ensure_for: size + adj > SIZE_MAX");
+		fatalx("size + adj > SIZE_MAX");
 	size += adj;
 
 	if (*len == 0) {
@@ -52,9 +52,9 @@ void *
 ensure_size(void *buf, size_t *len, size_t nmemb, size_t size)
 {
 	if (nmemb == 0 || size == 0)
-		log_fatalx("ensure_size: zero size");
+		fatalx("zero size");
 	if (SIZE_MAX / nmemb < size)
-		log_fatalx("ensure_size: nmemb * size > SIZE_MAX");
+		fatalx("nmemb * size > SIZE_MAX");
 
 	if (*len == 0) {
 		*len = BUFSIZ;
@@ -87,11 +87,11 @@ xcalloc(size_t nmemb, size_t size)
         void	*ptr;
 
         if (size == 0 || nmemb == 0)
-                log_fatalx("xcalloc: zero size");
+                fatalx("zero size");
         if (SIZE_MAX / nmemb < size)
-                log_fatalx("xcalloc: nmemb * size > SIZE_MAX");
+                fatalx("nmemb * size > SIZE_MAX");
         if ((ptr = calloc(nmemb, size)) == NULL)
-		log_fatal("xcalloc");
+		fatal("xcalloc failed");
 
 #ifdef DEBUG
 	xmalloc_new(xmalloc_caller(), ptr, nmemb * size);
@@ -105,9 +105,9 @@ xmalloc(size_t size)
 	void	*ptr;
 
         if (size == 0)
-                log_fatalx("xmalloc: zero size");
+                fatalx("zero size");
         if ((ptr = malloc(size)) == NULL)
-		log_fatal("xmalloc");
+		fatal("xmalloc failed");
 
 #ifdef DEBUG
 	xmalloc_new(xmalloc_caller(), ptr, size);
@@ -122,11 +122,11 @@ xrealloc(void *oldptr, size_t nmemb, size_t size)
 	void	*newptr;
 
 	if (newsize == 0)
-                log_fatalx("xrealloc: zero size");
+                fatalx("zero size");
         if (SIZE_MAX / nmemb < size)
-                log_fatalx("xrealloc: nmemb * size > SIZE_MAX");
+                fatalx("nmemb * size > SIZE_MAX");
         if ((newptr = realloc(oldptr, newsize)) == NULL)
-		log_fatal("xrealloc");
+		fatal("xrealloc failed");
 
 #ifdef DEBUG
 	xmalloc_change(xmalloc_caller(), oldptr, newptr, nmemb * size);
@@ -138,7 +138,7 @@ void
 xfree(void *ptr)
 {
 	if (ptr == NULL)
-		log_fatalx("xfree: null pointer");
+		fatalx("null pointer");
 	free(ptr);
 
 #ifdef DEBUG
@@ -165,9 +165,8 @@ xvasprintf(char **ret, const char *fmt, va_list ap)
 	int	i;
 
 	i = vasprintf(ret, fmt, ap);
-
         if (i < 0 || *ret == NULL)
-                log_fatal("xvasprintf");
+                fatal("xvasprintf failed");
 
 #ifdef DEBUG
 	xmalloc_new(xmalloc_caller(), *ret, i + 1);
@@ -193,15 +192,12 @@ xvsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
 {
 	int	i;
 
-	if (len > INT_MAX) {
-		errno = EINVAL;
-		log_fatal("xvsnprintf");
-	}
+	if (len > INT_MAX)
+		fatalx("len > INT_MAX");
 
 	i = vsnprintf(buf, len, fmt, ap);
-
         if (i < 0)
-                log_fatal("xvsnprintf");
+                fatal("vsnprintf failed");
 
         return (i);
 }

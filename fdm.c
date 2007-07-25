@@ -69,7 +69,7 @@ get_time(void)
 	struct timeval	 tv;
 
 	if (gettimeofday(&tv, NULL) != 0)
-		log_fatal("gettimeofday");
+		fatal("gettimeofday failed");
 	return (tv.tv_sec + tv.tv_usec / 1000000.0);
 }
 
@@ -101,7 +101,7 @@ fill_info(const char *home)
 
 	if (conf.info.host == NULL) {
 		if (gethostname(host, sizeof host) != 0)
-			log_fatal("gethostname");
+			fatal("gethostname failed");
 		conf.info.host = xstrdup(host);
 
 		getaddrs(host, &conf.info.fqdn, &conf.info.addr);
@@ -129,29 +129,29 @@ fill_info(const char *home)
 	}
 }
 
-int
+void
 dropto(uid_t uid)
 {
 	struct passwd	*pw;
 	gid_t		 gid;
 
 	if (uid == (uid_t) -1 || uid == 0)
-		return (0);
+		return;
 
 	pw = getpwuid(uid);
 	if (pw == NULL) {
-		endpwent();
 		errno = ESRCH;
-		return (1);
+		fatal("getpwuid failed");
 	}
 	gid = pw->pw_gid;
 	endpwent();
 
-	if (setgroups(1, &gid) != 0 ||
-	    setresgid(gid, gid, gid) != 0 || setresuid(uid, uid, uid) != 0)
-		return (1);
-
-	return (0);
+	if (setgroups(1, &gid) != 0)
+		fatal("setgroups failed");
+	if (setresgid(gid, gid, gid) != 0)
+		fatal("setresgid failed");
+	if (setresuid(uid, uid, uid) != 0)
+		fatal("setresuid failed");
 }
 
 int
@@ -615,17 +615,17 @@ main(int argc, char **argv)
 
 	act.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &act, NULL) < 0)
-		log_fatal("sigaction");
+		fatal("sigaction failed");
 	if (sigaction(SIGUSR1, &act, NULL) < 0)
-		log_fatal("sigaction");
+		fatal("sigaction failed");
 	if (sigaction(SIGUSR2, &act, NULL) < 0)
-		log_fatal("sigaction");
+		fatal("sigaction failed");
 
 	act.sa_handler = sighandler;
 	if (sigaction(SIGINT, &act, NULL) < 0)
-		log_fatal("sigaction");
+		fatal("sigaction failed");
 	if (sigaction(SIGTERM, &act, NULL) < 0)
-		log_fatal("sigaction");
+		fatal("sigaction failed");
 
 	/* Check lock file. */
 	lock = conf.lock_file;
@@ -704,9 +704,9 @@ main(int argc, char **argv)
 		n = io_polln(ios, ARRAY_LENGTH(&children), &io, INFTIM, NULL);
 		switch (n) {
 		case -1:
-			log_fatalx("parent: child socket error");
+			fatalx("child socket error");
 		case 0:
-			log_fatalx("parent: child socket closed");
+			fatalx("child socket closed");
 		}
 
 		while (!ARRAY_EMPTY(&children)) {
@@ -721,7 +721,7 @@ main(int argc, char **argv)
 
 			/* And handle them if necessary. */
 			if (privsep_recv(child->io, &msg, &msgbuf) != 0)
-				log_fatalx("parent: privsep_recv error");
+				fatalx("privsep_recv error");
 			log_debug3("parent: got message type %d, id %u from "
 			    "child %ld", msg.type, msg.id, (long) child->pid);
 
@@ -732,11 +732,11 @@ main(int argc, char **argv)
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL) != 0)
-				log_fatalx("parent: privsep_send error");
+				fatalx("privsep_send error");
 
 			/* Wait for the child. */
 			if (waitpid(child->pid, &status, 0) == -1)
-				log_fatal("waitpid");
+				fatal("waitpid failed");
 			if (WIFSIGNALED(status)) {
 				res = 1;
 				log_debug2("parent: child %ld got signal %d",
@@ -775,9 +775,9 @@ main(int argc, char **argv)
 	if (sigint || sigterm) {
 		act.sa_handler = SIG_IGN;
 		if (sigaction(SIGINT, &act, NULL) < 0)
-			log_fatal("sigaction");
+			fatal("sigaction failed");
 		if (sigaction(SIGTERM, &act, NULL) < 0)
-			log_fatal("sigaction");
+			fatal("sigaction failed");
 
 		if (sigint)
 			log_warnx("parent: caught SIGINT. stopping");
@@ -800,7 +800,7 @@ main(int argc, char **argv)
 			if ((pid = wait(&status)) == -1) {
 				if (errno == ECHILD)
 					break;
-				log_fatal("wait");
+				fatal("wait failed");
 			}
 			log_debug2("parent: child %ld killed", (long) pid);
 		}

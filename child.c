@@ -43,7 +43,7 @@ child_fork(void)
 
 	switch (pid = fork()) {
 	case -1:
-		log_fatal("fork");
+		fatal("fork failed");
 	case 0:
 		cleanup_flush();
 
@@ -54,11 +54,11 @@ child_fork(void)
 
 		act.sa_handler = SIG_IGN;
 		if (sigaction(SIGINT, &act, NULL) < 0)
-			log_fatal("sigaction");
+			fatal("sigaction failed");
 
 		act.sa_handler = child_sighandler;
 		if (sigaction(SIGTERM, &act, NULL) < 0)
-			log_fatal("sigaction");
+			fatal("sigaction failed");
 
 		return (0);
 	default:
@@ -84,7 +84,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 	struct io	*io;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, fds) != 0)
-		log_fatal("socketpair");
+		fatal("socketpair failed");
 
 	child = xcalloc(1, sizeof *child);
 	child->io = io_create(fds[0], NULL, IO_CRLF);
@@ -100,8 +100,8 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 		io_close(child->io);
 		io_free(child->io);
 
-		if (geteuid() == 0 && dropto(uid) != 0)
-			log_fatal("dropto");
+		if (geteuid() == 0)
+			dropto(uid);
 
 		io = io_create(fds[1], NULL, IO_LF);
 		n = start(child, io);

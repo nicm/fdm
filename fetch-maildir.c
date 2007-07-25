@@ -91,7 +91,7 @@ fetch_maildir_makepaths(struct account *a)
 		}
 
 		if (g.gl_pathc < 1)
-			log_fatalx("negative or zero number of paths");
+			fatalx("glob returned garbage");
 		for (j = 0; j < (u_int) g.gl_pathc; j++) {
 			xasprintf(&path, "%s/cur", g.gl_pathv[j]);
 			ARRAY_ADD(data->paths, path);

@@ -298,7 +298,7 @@ error:
 		close(fd);
 
 	if (unlink(tmp) != 0)
-		log_fatal("unlink");
+		fatal("unlink failed");
 	cleanup_deregister(tmp);
 	return (-1);
 }

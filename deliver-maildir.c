@@ -59,7 +59,7 @@ deliver_maildir_host(void)
 	size_t		first, last;
 
 	if (gethostname(host1, sizeof host1) != 0)
-		log_fatal("gethostname");
+		fatal("gethostname failed");
 	*host2 = '\0';
 
 	last = strcspn(host1, "/:");
@@ -196,7 +196,7 @@ restart:
 		if (errno == EEXIST) {
 			log_debug2("%s: %s: link failed", a->name, src);
 			if (unlink(src) != 0)
-				log_fatal("unlink");
+				fatal("unlink failed");
 			cleanup_deregister(src);
 			goto restart;
 		}
@@ -218,7 +218,7 @@ restart:
 
 error_unlink:
 	if (unlink(src) != 0)
-		log_fatal("unlink");
+		fatal("unlink failed");
 	cleanup_deregister(src);
 
 error_log:

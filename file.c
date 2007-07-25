@@ -91,10 +91,10 @@ rmlock(u_int locks, const char *path)
 		return;
 
 	if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
-		log_fatal("unlink");
+		fatal("unlink failed");
 
 	if (unlink(lock) != 0)
-		log_fatal("unlink");
+		fatal("unlink failed");
 
 	cleanup_deregister(lock);
 }

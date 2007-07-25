@@ -193,7 +193,7 @@ done_mail(struct account *a, struct fetch_ctx *fctx)
 		log_debug("%s: keeping message %u", a->name, mctx->mail->idx);
 		break;
 	default:
-		log_fatalx("invalid decision");
+		fatalx("invalid decision");
 	}
 
 	return (mctx->mail);

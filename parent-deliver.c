@@ -36,15 +36,11 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	struct account			*a = data->account;
 	struct mail			*m = data->mail;
 
-	switch (msg->type) {
-	case MSG_DONE:
-		break;
-	default:
-		log_fatalx("parent_deliver: unexpected message");
-	}
+	if (msg->type != MSG_DONE)
+		fatalx("unexpected message");
 
 	if (msgbuf->buf == NULL || msgbuf->len == 0)
-		log_fatalx("parent_deliver: bad tags");
+		fatalx("bad tags");
 	strb_destroy(&m->tags);
 	m->tags = msgbuf->buf;
 
@@ -63,7 +59,7 @@ parent_deliver(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	child = data->child;
 	if (child->io != NULL && kill(child->pid, 0) == 0) {
 		if (privsep_send(child->io, msg, msgbuf) != 0)
-			log_fatalx("parent_deliver: privsep_send error");
+			fatalx("privsep_send error");
 	} else
 		log_debug2("%s: child %ld missing", a->name, (long) child->pid);
 

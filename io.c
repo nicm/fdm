@@ -52,9 +52,9 @@ io_create(int fd, SSL *ssl, const char *eol)
 
 	/* Set non-blocking. */
 	if ((mode = fcntl(fd, F_GETFL)) == -1)
-		log_fatal("fcntl");
+		fatal("fcntl failed");
 	if (fcntl(fd, F_SETFL, mode|O_NONBLOCK) == -1)
-		log_fatal("fcntl");
+		fatal("fcntl failed");
 
 	io->flags = 0;
 	io->error = NULL;
@@ -122,7 +122,7 @@ io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
 	u_int		 i;
 
 	if (n > IO_POLLFDS)
-		log_fatalx("io_polln: too many fds");
+		fatalx("too many fds");
 
 	/* Check all the ios. */
 	for (i = 0; i < n; i++) {

@@ -98,25 +98,25 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 		close(fd_err[0]);
 
 		if (dup2(fd_in[0], STDIN_FILENO) == -1)
-			log_fatal("dup2(stdin)");
+			fatal("dup2(stdin) failed");
 		if (dup2(fd_out[1], STDOUT_FILENO) == -1)
-			log_fatal("dup2(stdout)");
+			fatal("dup2(stdout) failed");
 		if (dup2(fd_err[1], STDERR_FILENO) == -1)
-			log_fatal("dup2(stderr)");
+			fatal("dup2(stderr) failed");
 
                 if (signal(SIGINT, SIG_DFL) == SIG_ERR)
-			log_fatal("signal");
+			fatal("signal failed");
                 if (signal(SIGTERM, SIG_DFL) == SIG_ERR)
-			log_fatal("signal");
+			fatal("signal failed");
                 if (signal(SIGPIPE, SIG_DFL) == SIG_ERR)
-			log_fatal("signal");
+			fatal("signal failed");
                 if (signal(SIGUSR1, SIG_DFL) == SIG_ERR)
-			log_fatal("signal");
+			fatal("signal failed");
                 if (signal(SIGUSR2, SIG_DFL) == SIG_ERR)
-			log_fatal("signal");
+			fatal("signal failed");
 
 		execl(_PATH_BSHELL, "sh", "-c", s, (char *) NULL);
-		log_fatal("execl");
+		fatal("execl failed");
 	}
 
 	/* Parent. */

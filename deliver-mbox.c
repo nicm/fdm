@@ -171,7 +171,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	sigemptyset(&set);
  	sigaddset(&set, SIGTERM);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 
 	/* Write the from line. */
 	from = make_from(m);
@@ -235,7 +235,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		goto error_unblock;
 
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 
 	if (gzf != NULL)
 		gzclose(gzf);
@@ -248,7 +248,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 error_unblock:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
-		log_fatal("sigprocmask");
+		fatal("sigprocmask failed");
 
 error_log:
 	log_warn("%s: %s", a->name, path);

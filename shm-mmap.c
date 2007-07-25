@@ -105,7 +105,7 @@ shm_create(struct shm *shm, size_t size)
 	char	*path;
 
         if (size == 0)
-                log_fatalx("shm_create: zero size");
+                fatalx("zero size");
 
 	if (mkpath(
 	    shm->name, sizeof shm->name, "%s.XXXXXXXXXX", __progname) != 0)
@@ -146,9 +146,9 @@ shm_destroy(struct shm *shm)
 	shm_close(shm);
 
 	if ((path = shm_path(shm)) == NULL)
-		log_fatal("unlink");
+		fatal("unlink failed");
 	if (unlink(path) != 0)
-		log_fatal("unlink");
+		fatal("unlink failed");
 
 	*shm->name = '\0';
 }
@@ -161,7 +161,7 @@ shm_close(struct shm *shm)
 		return;
 
 	if (munmap(shm->data, shm->size) != 0)
-		log_fatal("munmap");
+		fatal("munmap failed");
 	shm->data = NULL;
 
 	close(shm->fd);
@@ -204,13 +204,13 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	size_t	 newsize = nmemb * size;
 
 	if (size == 0)
-                log_fatalx("shm_resize: zero size");
+                fatalx("zero size");
         if (SIZE_MAX / nmemb < size)
-                log_fatalx("shm_resize: nmemb * size > SIZE_MAX");
+                fatalx("nmemb * size > SIZE_MAX");
 
 #ifndef WITH_MREMAP
 	if (munmap(shm->data, shm->size) != 0)
-		log_fatal("munmap");
+		fatal("munmap failed");
 	shm->data = NULL;
 #endif
 
