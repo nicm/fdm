@@ -91,30 +91,31 @@ deliver_maildir_host(void)
 
 /* Create a new maildir. */
 int
-deliver_maildir_create(struct account *a, const char *path)
+deliver_maildir_create(struct account *a, const char *maildir)
 {
 	struct stat	sb;
 	const char     *msg, *names[] = { "", "/cur", "/new", "/tmp", NULL };
+	char		path[PATH_MAX];
 	u_int		i;
-	
 
 	for (i = 0; names[i] != NULL; i++) {
-		log_debug("%s: creating %s%s", a->name, path, names[i]);
+		if (mkpath(path, sizeof path, "%s%s", maildir, names[i]) != 0)
+			goto error;
+		log_debug("%s: creating %s", a->name, path);
 
-		if (xmkdir(
-		    -1, conf.file_group, DIRMODE, "%s%s", path, names[i]) == 0)
+		if (xmkdir(path, -1, conf.file_group, DIRMODE) != 0)
 			continue;
 		if (errno != EEXIST)
 			goto error;
 
-		if (xstat(&sb, "%s%s", path, names[i]) != 0)
+		if (stat(path, &sb) != 0)
 			goto error;
 		if ((msg = checkmode(&sb, UMASK(DIRMODE))) != NULL)
-			log_warnx("%s: %s%s: %s", a->name, path, names[i], msg);
+			log_warnx("%s: %s: %s", a->name, path, msg);
 		if ((msg = checkowner(&sb, -1)) != NULL)
-			log_warnx("%s: %s%s: %s", a->name, path, names[i], msg);
+			log_warnx("%s: %s: %s", a->name, path, msg);
 		if ((msg = checkgroup(&sb, conf.file_group)) != NULL)
-			log_warnx("%s: %s%s: %s", a->name, path, names[i], msg);
+			log_warnx("%s: %s: %s", a->name, path, msg);
 	}
 
 	return (0);
@@ -131,11 +132,12 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct mail			*m = dctx->mail;
 	struct deliver_maildir_data	*data = ti->data;
 	static u_int			 delivered = 0;
-	char				*host, *path, *name, *src, *dst;
+	char				*host, *name, *path;
+	char				 src[PATH_MAX], dst[PATH_MAX];
 	int	 			 fd;
 	ssize_t			 	 n;
 
-	name = src = dst = NULL;
+	name = NULL;
 	fd = -1;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml);
@@ -160,19 +162,18 @@ restart:
  		xasprintf(&name, "%ld.%ld_%u.%s",
 		    (long) time(NULL), (long) getpid(), delivered, host);
 
-		log_debug3("%s: trying %s/tmp/%s", a->name, path, name);
-		fd = xcreate(-1, conf.file_group,
-		    FILEMODE, O_WRONLY, "%s/tmp/%s", path, name);
-		if (fd == -1 && errno != EEXIST) {
+		if (mkpath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {
 			log_warn("%s: %s/tmp/%s", a->name, path, name);
 			goto error;
 		}
+		log_debug3("%s: trying %s/tmp/%s", a->name, path, name);
+
+		fd = xcreate(src, O_WRONLY, -1, conf.file_group, FILEMODE);
+		if (fd == -1 && errno != EEXIST)
+			goto error_log;
+
 		delivered++;
 	} while (fd == -1);
-
-	/* Create src and dst paths. */
-	xasprintf(&src, "%s/tmp/%s", path, name);
-	xasprintf(&dst, "%s/new/%s", path, name);
 	cleanup_register(src);
 
 	/* Write the message. */
@@ -187,6 +188,8 @@ restart:
 	 * Create the new path and attempt to link it. A failed link jumps
 	 * back to find another name in the tmp directory.
 	 */
+	if (mkpath(dst, sizeof dst, "%s/new/%s", path, name) != 0)
+		goto error_unlink;
 	log_debug2(
 	    "%s: linking .../tmp/%s to .../new/%s", a->name, name, name);
 	if (link(src, dst) != 0) {
@@ -221,16 +224,12 @@ error_unlink:
 		log_fatal("unlink");
 	cleanup_deregister(src);
 
+error_log:
 	log_warn("%s: %s", a->name, src);
 
 error:
 	if (fd != -1)
 		close(fd);
-
-	if (src != NULL)
-		xfree(src);
-	if (dst != NULL)
-		xfree(dst);
 
 	if (name != NULL)
 		xfree(name);

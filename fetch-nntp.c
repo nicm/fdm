@@ -174,7 +174,8 @@ fetch_nntp_load(struct account *a)
 	size_t			 namelen, idlen;
 	u_int			 last, i;
 
-	if ((fd = openlock(data->path, conf.lock_types, O_RDONLY, 0)) == -1) {
+	fd = openlock(data->path, O_RDONLY, conf.lock_types);
+	if (fd == -1) {
 		if (errno == ENOENT)
 			return (0);
 		log_warn("%s: %s", a->name, data->path);
@@ -262,7 +263,7 @@ fetch_nntp_save(struct account *a)
 	FILE			*f = NULL;
 	u_int			 i;
 
-	if (printpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0) {
+	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0) {
 		log_warn("%s: %s: printpath", a->name, data->path);
 		return (-1);
 	}

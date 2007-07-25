@@ -207,32 +207,6 @@ xvsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
 }
 
 /*
- * Print a path. Same as xsnprintf, but return ENAMETOOLONG on truncation.
- */
-int printflike3
-printpath(char *buf, size_t len, const char *fmt, ...)
-{
-	va_list	ap;
-	int	n;
-
-	if (len > INT_MAX) {
-		errno = ENAMETOOLONG;
-		return (1);
-	}
-
-	va_start(ap, fmt);
-	n = xvsnprintf(buf, len, fmt, ap);
-	va_end(ap);
-
-	if ((size_t) n >= len) {
-		errno = ENAMETOOLONG;
-		return (1);
-	}
-
-	return (0);
-}
-
-/*
  * Some systems modify the path in place. This function and xbasename below
  * avoid that by using a temporary buffer.
  */

@@ -30,6 +30,7 @@
 - better website
 - get rid of printpath... (vopen/vmkdir? asprintf wrapper?)
 - audit uses of MAXPATHLEN
+- audit errors and use FATAL/FATALX
 -------------------------------------------------------------------------------
 
 - man page: caches

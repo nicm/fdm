@@ -44,9 +44,9 @@ char	shm_block[BUFSIZ];
 char *
 shm_path(struct shm *shm)
 {
-	static char	path[MAXPATHLEN];
+	static char	path[PATH_MAX];
 
-	if (printpath(path, sizeof path, "%s/%s", conf.tmp_dir, shm->name) != 0)
+	if (mkpath(path, sizeof path, "%s/%s", conf.tmp_dir, shm->name) != 0)
 		return (NULL);
 	return (path);
 }
@@ -107,7 +107,7 @@ shm_create(struct shm *shm, size_t size)
         if (size == 0)
                 log_fatalx("shm_create: zero size");
 
-	if (printpath(
+	if (mkpath(
 	    shm->name, sizeof shm->name, "%s.XXXXXXXXXX", __progname) != 0)
 		return (NULL);
 	if ((path = shm_path(shm)) == NULL)

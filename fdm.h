@@ -116,6 +116,10 @@ extern char	*__progname;
 } while (0)
 #endif
 
+/* Fatal errors. */
+#define FATAL(s) log_fatal("%s: " s, __func__);
+#define FATALX(s) log_fatal("%s: " s, __func__);
+
 /* Apply umask. */
 #define UMASK(n) ((n) & ~conf.file_umask)
 
@@ -911,12 +915,13 @@ struct io 	*connectproxy(struct server *, int, struct proxy *,
 struct io	*connectio(struct server *, int, const char *, int, char **);
 
 /* file.c */
-int		 openlock(const char *, u_int, int, mode_t);
-void		 closelock(int, const char *, u_int);
-int printflike5	 xcreate(uid_t, gid_t, mode_t, int, const char *, ...);
-int printflike2	 xopen(int, const char *, ...);
-int printflike4	 xmkdir(uid_t, gid_t, mode_t, const char *, ...);
-int printflike2	 xstat(struct stat *, const char *, ...);
+int printflike3	 mkpath(char *, size_t, const char *, ...);
+int		 vmkpath(char *, size_t, const char *, va_list);
+int 		 openlock(const char *, int, u_int);
+int 		 createlock(const char *, int, uid_t, gid_t, mode_t, u_int);
+void 		 closelock(int, const char *, u_int);
+int 		 xcreate(const char *, int, uid_t, gid_t, mode_t);
+int		 xmkdir(const char *, uid_t, gid_t, mode_t);
 const char 	*checkmode(struct stat *, mode_t);
 const char 	*checkowner(struct stat *, uid_t);
 const char 	*checkgroup(struct stat *, gid_t);
@@ -976,8 +981,8 @@ int		 imap_disconnect(struct account *, int);
 void		 cleanup_check(void);
 void		 cleanup_flush(void);
 void		 cleanup_purge(void);
-void		 cleanup_register(const char *);
-void		 cleanup_deregister(const char *);
+void 		 cleanup_register(const char *);
+void 		 cleanup_deregister(const char *);
 
 /* strb.c */
 void		 strb_create(struct strb **);

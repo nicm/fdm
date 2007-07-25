@@ -221,7 +221,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 			if (dp->d_type != DT_UNKNOWN)
 				continue;
 
-			if (printpath(entry, sizeof entry, "%s/%s", path,
+			if (mkpath(entry, sizeof entry, "%s/%s", path,
 			    dp->d_name) != 0) {
 				log_warn("%s: %s: printpath", a->name, path);
 				closedir(dirp);
@@ -332,8 +332,7 @@ restart:
 		return (FETCH_AGAIN);
 	}
 
-	if (printpath(name,
-	    sizeof name, "%s/%s", data->path, dp->d_name) != 0) {
+	if (mkpath(name, sizeof name, "%s/%s", data->path, dp->d_name) != 0) {
 		log_warn("%s: %s: printpath", a->name, data->path);
 		return (FETCH_ERROR);
 	}

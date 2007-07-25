@@ -26,38 +26,72 @@
 
 #include "fdm.h"
 
-/*
- * Open a file, locking using the lock types specified. Returns EAGAIN if lock
- * failed.
- */
+int	lockpre(u_int, const char *);
+int	lockpost(u_int, int);
+void	lockdone(u_int, const char *);
+
+/* Make path into buffer. */
 int
-openlock(const char *path, u_int locks, int flags, mode_t mode)
+mkpath(char *buf, size_t len, const char *fmt, ...)
 {
-	char		*lock;
-	int	 	 fd, error;
-	struct flock	 fl;
+	va_list	ap;
+	int	n;
+
+	va_start(ap, fmt);
+	n = vmkpath(buf, len, fmt, ap);
+	va_end(ap);
+
+	return (n);
+}
+
+/* Make path into buffer. */
+int
+vmkpath(char *buf, size_t len, const char *fmt, va_list ap)
+{
+	if ((size_t) xvsnprintf(buf, len, fmt, ap) >= len) {
+		errno = ENAMETOOLONG;
+		return (-1);
+	}
+
+	return (0);
+}
+
+/* Locking before open. */
+int
+lockpre(u_int locks, const char *path)
+{
+	char	lock[PATH_MAX];
+	int	fd;
 
 	if (locks & LOCK_DOTLOCK) {
-		xasprintf(&lock, "%s.lock", path);
- 		fd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
+			return (-1);
+
+		fd = xcreate(path, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
 		if (fd == -1) {
 			if (errno == EEXIST)
 				errno = EAGAIN;
-			xfree(lock);
 			return (-1);
 		}
 		close(fd);
-		cleanup_register(lock);
+	
+		cleanup_register(path);
 	}
 
-	if ((fd = open(path, flags, mode)) == -1)
-		goto error;
+	return (0);
+}
 
+/* Locking after open. */
+int
+lockpost(u_int locks, int fd)
+{
+	struct flock	fl;
+	
 	if (locks & LOCK_FLOCK) {
 		if (flock(fd, LOCK_EX|LOCK_NB) != 0) {
 			if (errno == EWOULDBLOCK)
 				errno = EAGAIN;
-			goto error;
+			return (-1);
 		}
 	}
 
@@ -69,24 +103,84 @@ openlock(const char *path, u_int locks, int flags, mode_t mode)
 		fl.l_whence = SEEK_SET;
 		if (fcntl(fd, F_SETLK, &fl) == -1) {
 			/* fcntl already returns EAGAIN if needed. */
-			goto error;
+			return (-1);
 		}
 	}
 
-	if (locks & LOCK_DOTLOCK)
-		xfree(lock);
+	return (0);
+}
+
+/* Cleanup after locks. */
+void
+lockdone(u_int locks, const char *path)
+{
+	char	lock[PATH_MAX];
+
+	if (locks & LOCK_DOTLOCK) {
+		if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
+			log_fatal("unlink");
+		if (unlink(path) != 0)
+			log_fatal("unlink");
+		
+		cleanup_deregister(path);
+	}
+}
+
+/*
+ * Open a file, locking using the lock types specified. Returns EAGAIN if lock
+ * failed.
+ */
+int
+openlock(const char *path, int flags, u_int locks)
+{
+	int	fd, saved_errno;
+
+	if (lockpre(locks, path) != 0)
+		return (-1);
+
+	if ((fd = open(path, flags, 0)) == -1)
+		goto error;
+
+	if (lockpost(locks, fd) != 0)
+		goto error;
+
 	return (fd);
 
 error:
-	error = errno;
+	saved_errno = errno;
 	close(fd);
-	if (locks & LOCK_DOTLOCK) {
-		if (unlink(lock) != 0)
-			log_fatal("unlink");
-		cleanup_deregister(lock);
-		xfree(lock);
+	lockdone(locks, path);
+	errno = saved_errno;
+	return (-1);
+}
+
+/* Create a locked file. */
+int
+createlock(
+    const char *path, int flags, uid_t uid, gid_t gid, mode_t mode, u_int locks)
+{
+	int	fd, saved_errno;
+
+	if (lockpre(locks, path) != 0)
+		return (-1);
+
+	if ((fd = open(path, flags|O_CREAT|O_EXCL, mode)) == -1)
+		return (-1);
+	if (uid != (uid_t) -1 || gid != (gid_t) -1) {
+		if (fchown(fd, uid, gid) != 0)
+			goto error;
 	}
-	errno = error;
+
+	if (lockpost(locks, fd) != 0)
+		goto error;
+
+	return (fd);
+
+error:
+	saved_errno = errno;
+	close(fd);
+	lockdone(locks, path);
+	errno = saved_errno;
 	return (-1);
 }
 
@@ -94,35 +188,17 @@ error:
 void
 closelock(int fd, const char *path, u_int locks)
 {
-	char	*lock;
-
-	if (locks & LOCK_DOTLOCK) {
-		xasprintf(&lock, "%s.lock", path);
-		if (unlink(lock) != 0)
-			log_fatal("unlink");
-		cleanup_deregister(lock);
-		xfree(lock);
-	}
-
 	if (fd != -1)
 		close(fd);
+
+	lockdone(locks, path);
 }
 
 /* Create a file. */
 int
-xcreate(uid_t uid, gid_t gid, mode_t mode, int flags, const char *fmt, ...)
+xcreate(const char *path, int flags, uid_t uid, gid_t gid, mode_t mode)
 {
-	char	path[PATH_MAX];
-	va_list	ap;
 	int	fd;
-
-	va_start(ap, fmt);
-	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
-		va_end(ap);
-		errno = ENAMETOOLONG;
-		return (-1);
-	}
-	va_end(ap);
 
 	if ((fd = open(path, flags|O_CREAT|O_EXCL, mode)) == -1)
 		return (-1);
@@ -135,65 +211,19 @@ xcreate(uid_t uid, gid_t gid, mode_t mode, int flags, const char *fmt, ...)
 	return (fd);
 }
 
-/* Open a file. */
+/* Make a directory. */
 int
-xopen(int flags, const char *fmt, ...)
+xmkdir(const char *path, uid_t uid, gid_t gid, mode_t mode)
 {
-	char	path[PATH_MAX];
-	va_list	ap;
-
-	va_start(ap, fmt);
-	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
-		va_end(ap);
-		errno = ENAMETOOLONG;
-		return (-1);
-	}
-	va_end(ap);
-
-	return (open(path, flags, 0));
-}
-
-/* Make directory. */
-int
-xmkdir(uid_t uid, gid_t gid, mode_t mode, const char *fmt, ...)
-{
-	char	path[PATH_MAX];
-	va_list	ap;
-
-	va_start(ap, fmt);
-	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
-		va_end(ap);
-		errno = ENAMETOOLONG;
-		return (-1);
-	}
-	va_end(ap);
-
 	if (mkdir(path, mode) != 0)
 		return (-1);
+
 	if (uid != (uid_t) -1 || gid != (gid_t) -1) {
 		if (chown(path, uid, gid) != 0)
 			return (-1);
 	}
 
 	return (0);
-}
-
-/* Stat a file. */
-int
-xstat(struct stat *sb, const char *fmt, ...)
-{
-	char	path[PATH_MAX];
-	va_list	ap;
-
-	va_start(ap, fmt);
-	if ((size_t) xvsnprintf(path, sizeof path, fmt, ap) >= sizeof path) {
-		va_end(ap);
-		errno = ENAMETOOLONG;
-		return (-1);
-	}
-	va_end(ap);
-
-	return (stat(path, sb));
 }
 
 /* Check mode of file. */

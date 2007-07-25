@@ -29,11 +29,11 @@ int	netrc_token(FILE *, char **);
 FILE *
 netrc_open(const char *home, char **cause)
 {
-	char		 path[MAXPATHLEN];
+	char		 path[PATH_MAX];
 	struct stat	 sb;
 	FILE		*f;
 
-	if (printpath(path, sizeof path, "%s/%s", home, ".netrc") != 0) {
+	if (mkpath(path, sizeof path, "%s/%s", home, ".netrc") != 0) {
 		xasprintf(cause, "%s", strerror(errno));
 		return (NULL);
 	}
