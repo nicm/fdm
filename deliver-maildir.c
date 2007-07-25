@@ -103,7 +103,7 @@ deliver_maildir_create(struct account *a, const char *maildir)
 			goto error;
 		log_debug("%s: creating %s", a->name, path);
 
-		if (xmkdir(path, -1, conf.file_group, DIRMODE) != 0)
+		if (xmkdir(path, -1, conf.file_group, DIRMODE) == 0)
 			continue;
 		if (errno != EEXIST)
 			goto error;
@@ -212,9 +212,6 @@ restart:
 	/* Save the mail file as a tag. */
 	add_tag(&m->tags, "mail_file", "%s", dst);
 
-	xfree(src);
-	xfree(dst);
-
 	xfree(name);
 	xfree(path);
 	return (DELIVER_SUCCESS);
@@ -235,7 +232,6 @@ error:
 		xfree(name);
 	if (path != NULL)
 		xfree(path);
-
 	return (DELIVER_FAILURE);
 }
 

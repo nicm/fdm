@@ -36,7 +36,8 @@
 int	 deliver_mbox_deliver(struct deliver_ctx *, struct actitem *);
 void	 deliver_mbox_desc(struct actitem *, char *, size_t);
 
-int	 deliver_mbox_write(int, gzFile, const void *, size_t);
+int	 deliver_mbox_write(FILE *, gzFile, const void *, size_t);
+int	 deliver_mbox_sleep(struct account *, const char *, long long *);
 
 struct deliver deliver_mbox = {
 	"mbox",
@@ -46,23 +47,42 @@ struct deliver deliver_mbox = {
 };
 
 int
-deliver_mbox_write(int fd, gzFile gzf, const void *buf, size_t len)
+deliver_mbox_write(FILE *f, gzFile gzf, const void *buf, size_t len)
 {
-	ssize_t	n;
-
-	if (gzf == NULL)
-		n = write(fd, buf, len);
-	else
-		n = gzwrite(gzf, buf, len);
-
-	if (n < 0)
-		return (-1);
-	if ((size_t) n != len) {
-		errno = EIO;
-		return (-1);
+	if (gzf == NULL) {
+		if (fwrite(buf, len, 1, f) != 1) {
+			errno = EIO;
+			return (-1);
+		}
+	} else {
+		if ((size_t) gzwrite(gzf, buf, len) != len) {
+			errno = EIO;
+			return (-1);
+		}
 	}
 
 	return (0);
+}
+
+int
+deliver_mbox_sleep(struct account *a, const char *path, long long *used)
+{
+	useconds_t	us;
+
+	if (*used == 0)
+		srandom((u_int) getpid());
+
+	us = LOCKSLEEPTIME + (random() % LOCKSLEEPTIME);
+	log_debug3("%s: %s: "
+	    "sleeping %.3f seconds for lock", a->name, path, us / 1000000.0);
+	usleep(us);
+
+	*used += us;
+	if (*used < LOCKTOTALTIME)
+		return (0);
+	log_warnx("%s: %s: couldn't"
+	    " get lock in %.3f seconds", a->name, path, *used / 1000000.0);
+	return (-1);
 }
 
 int
@@ -71,23 +91,23 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
 	struct deliver_mbox_data	*data = ti->data;
-	char				*path, *ptr, *ptr2, *from = NULL;
+	char				*path, *ptr, *lptr, *from = NULL;
 	const char			*msg;
-	size_t	 			 len, len2;
-	int	 			 exists, fd = -1, fd2;
-	int				 res = DELIVER_FAILURE;
-	gzFile				 gzf = NULL;
-	useconds_t			 t;
-	long long			 total;
+	size_t	 			 len, llen;
+	int	 			 fd;
+	FILE				*f;
+	gzFile				 gzf;
+	long long			 used;
 	sigset_t	 		 set, oset;
 	struct stat			 sb;
 
+	f = gzf = NULL;
+	fd = -1;
+
 	path = replacepath(&data->path, m->tags, m, &m->rml);
 	if (path == NULL || *path == '\0') {
-		if (path != NULL)
-			xfree(path);
 		log_warnx("%s: empty path", a->name);
-		goto out;
+		goto error;
 	}
 	if (data->compress) {
 		len = strlen(path);
@@ -102,18 +122,10 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	/* Save the mbox path. */
 	add_tag(&m->tags, "mbox_file", "%s", path);
 
-	/* Create a from line for the mail. */
-	from = make_from(m);
-	log_debug3("%s: using from line: %s", a->name, from);
-
 	/* Check permissions and ownership. */
-	exists = 1;
 	if (stat(path, &sb) != 0) {
-		if (errno != ENOENT) {
-			log_warn("%s: %s", a->name, path);
-			goto out;
-		}
-		exists = 0;
+		if (errno != ENOENT)
+			goto error_log;
 	} else {
 		if ((msg = checkmode(&sb, UMASK(FILEMODE))) != NULL)
 			log_warnx("%s: %s: %s", a->name, path, msg);
@@ -123,49 +135,32 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			log_warnx("%s: %s: %s", a->name, path, msg);
 	}
 
-	total = 0;
+	/* Create or open the mbox. */
+	used = 0;
 	do {
-		fd = openlock(path, O_CREAT|O_WRONLY|O_APPEND, conf.lock_types);
-		if (fd < 0) {
+		fd = createlock(path, O_WRONLY|O_APPEND,
+		    -1, conf.file_group, FILEMODE, conf.lock_types);
+		if (fd == -1 && errno == EEXIST)
+			fd = openlock(path, O_WRONLY|O_APPEND, conf.lock_types);
+		if (fd == -1) {
 			if (errno == EAGAIN) {
-				if (total == 0)
-					srandom((u_int) getpid());
-				t = LOCKSLEEPTIME + (random() % LOCKSLEEPTIME);
-				log_debug3("%s: %s: sleeping %.3f seconds for "
-				    "lock", a->name, path, t / 1000000.0);
-				usleep(t);
-				total += t;
-				if (total > LOCKTOTALTIME) {
-					log_warnx("%s: %s: couldn't get lock "
-					    "in %.3f seconds", a->name, path,
-					    total / 1000000.0);
-					goto out;
-				}
-			} else {
-				log_warn("%s: %s", a->name, path);
-				goto out;
+				if (deliver_mbox_sleep(a, path, &used) != 0)
+					goto error;
+				continue;
 			}
+			goto error_log;
 		}
 	} while (fd < 0);
-	if (!exists && conf.file_group != (gid_t) -1) {
-		if (fchown(fd, (uid_t) -1, conf.file_group) == -1) {
-			log_warn("%s: %s", a->name, path);
-			goto out;
-		}
-	}
 
-	/* Open for compressed writing if necessary. */
+	/* Open gzFile or FILE * for writing. */
 	if (data->compress) {
-		if ((fd2 = dup(fd)) < 0)
-			log_fatal("dup");
-		errno = 0;
-		if ((gzf = gzdopen(fd2, "a")) == NULL) {
-			if (errno == 0)
-				errno = ENOMEM;
-			close(fd2);
-			log_warn("%s: %s", a->name, path);
-			goto out;
+		if ((gzf = gzdopen(fd, "a")) == NULL) {
+			errno = ENOMEM;
+			goto error_log;
 		}
+	} else {
+		if ((f = fdopen(fd, "a")) == NULL)
+			goto error_log;
 	}
 
 	/*
@@ -179,71 +174,96 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		log_fatal("sigprocmask");
 
 	/* Write the from line. */
-	if (deliver_mbox_write(fd, gzf, from, strlen(from)) < 0) {
-		log_warn("%s: %s", a->name, path);
-		goto out2;
+	from = make_from(m);
+	if (deliver_mbox_write(f, gzf, from, strlen(from)) < 0) {
+		xfree(from);
+		goto error_unblock;
 	}
-	if (deliver_mbox_write(fd, gzf, "\n", 1) < 0) {
-		log_warn("%s: %s", a->name, path);
-		goto out2;
+	if (deliver_mbox_write(f, gzf, "\n", 1) < 0) {
+		xfree(from);
+		goto error_unblock;
 	}
+	log_debug3("%s: using from line: %s", a->name, from);
+	xfree(from);
 
-	/* Write the mail. */
+	/* Write the mail, escaping from lines. */
 	line_init(m, &ptr, &len);
 	while (ptr != NULL) {
 		if (ptr != m->data) {
-			/* Skip >s. */
-			ptr2 = ptr;
-			len2 = len;
-			while (*ptr2 == '>' && len2 > 0) {
-				ptr2++;
-				len2--;
+			/* Skip leading >s. */
+			lptr = ptr;
+			llen = len;
+			while (*lptr == '>' && llen > 0) {
+				lptr++;
+				llen--;
 			}
-			if (len2 >= 5 && strncmp(ptr2, "From ", 5) == 0) {
+
+			if (llen >= 5 && strncmp(lptr, "From ", 5) == 0) {
 				log_debug2("%s: quoting from line: %.*s",
 				    a->name, (int) len - 1, ptr);
-				if (deliver_mbox_write(fd, gzf, ">", 1) < 0) {
-					log_warn("%s: %s", a->name, path);
-					goto out2;
-				}
+				if (deliver_mbox_write(f, gzf, ">", 1) < 0)
+					goto error_unblock;
 			}
 		}
 
-		if (deliver_mbox_write(fd, gzf, ptr, len) < 0) {
-			log_warn("%s: %s", a->name, path);
-			goto out2;
-		}
+		if (deliver_mbox_write(f, gzf, ptr, len) < 0)
+			goto error_unblock;
 
 		line_next(m, &ptr, &len);
 	}
-	len = m->data[m->size - 1] == '\n' ? 1 : 2;
-	log_debug3("%s: adding %zu newlines", a->name, len);
-	if (deliver_mbox_write(fd, gzf, "\n\n", len) < 0) {
-		log_warn("%s: %s", a->name, path);
-		goto out2;
+
+	/* Append newlines. */
+	if (m->data[m->size - 1] == '\n') {
+		if (deliver_mbox_write(f, gzf, "\n", 1) < 0)
+			goto error_unblock;
+	} else {
+		if (deliver_mbox_write(f, gzf, "\n\n", 2) < 0)
+			goto error_unblock;
 	}
 
-	if (fsync(fd) != 0) {
-		log_warn("%s: %s", a->name, path);
-		goto out2;
+	/* Flush buffers and sync. */
+	if (gzf == NULL) {
+		if (fflush(f) != 0)
+			goto error_unblock;
+	} else {
+		if (gzflush(gzf, Z_FINISH) != Z_OK) {
+			errno = EIO;
+			goto error_unblock;
+		}
 	}
+	if (fsync(fd) != 0)
+		goto error_unblock;
 
-	res = DELIVER_SUCCESS;
-
-out2:
 	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
 		log_fatal("sigprocmask");
 
-out:
 	if (gzf != NULL)
 		gzclose(gzf);
+	if (f != NULL)
+		fclose(f);
+	closelock(fd, path, conf.lock_types);
+
+	xfree(path);
+	return (DELIVER_SUCCESS);
+
+error_unblock:
+	if (sigprocmask(SIG_SETMASK, &oset, NULL) < 0)
+		log_fatal("sigprocmask");
+
+error_log:
+	log_warn("%s: %s", a->name, path);
+
+error:
+	if (gzf != NULL)
+		gzclose(gzf);
+	if (f != NULL)
+		fclose(f);
 	if (fd != -1)
 		closelock(fd, path, conf.lock_types);
-	if (from != NULL)
-		xfree(from);
+
 	if (path != NULL)
 		xfree(path);
-	return (res);
+	return (DELIVER_FAILURE);
 }
 
 void

@@ -26,9 +26,9 @@
 
 #include "fdm.h"
 
-int	lockpre(u_int, const char *);
-int	lockpost(u_int, int);
-void	lockdone(u_int, const char *);
+int	mklock(u_int, const char *);
+void	rmlock(u_int, const char *);
+int	lockfd(u_int, int);
 
 /* Make path into buffer. */
 int
@@ -56,37 +56,55 @@ vmkpath(char *buf, size_t len, const char *fmt, va_list ap)
 	return (0);
 }
 
-/* Locking before open. */
+/* Make lock file. */
 int
-lockpre(u_int locks, const char *path)
+mklock(u_int locks, const char *path)
 {
 	char	lock[PATH_MAX];
 	int	fd;
 
-	if (locks & LOCK_DOTLOCK) {
-		if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
-			return (-1);
+	if (!(locks & LOCK_DOTLOCK))
+		return (0);
 
-		fd = xcreate(path, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
-		if (fd == -1) {
-			if (errno == EEXIST)
-				errno = EAGAIN;
-			return (-1);
-		}
-		close(fd);
-	
-		cleanup_register(path);
+	if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
+		return (-1);
+
+	fd = xcreate(lock, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
+	if (fd == -1) {
+		if (errno == EEXIST)
+			errno = EAGAIN;
+		return (-1);
 	}
+	close(fd);
 
+	cleanup_register(lock);
 	return (0);
 }
 
-/* Locking after open. */
+/* Remove lock file. */
+void
+rmlock(u_int locks, const char *path)
+{
+	char	lock[PATH_MAX];
+
+	if (!(locks & LOCK_DOTLOCK))
+		return;
+
+	if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
+		log_fatal("unlink");
+
+	if (unlink(lock) != 0)
+		log_fatal("unlink");
+
+	cleanup_deregister(lock);
+}
+
+/* Lock file descriptor. */
 int
-lockpost(u_int locks, int fd)
+lockfd(u_int locks, int fd)
 {
 	struct flock	fl;
-	
+
 	if (locks & LOCK_FLOCK) {
 		if (flock(fd, LOCK_EX|LOCK_NB) != 0) {
 			if (errno == EWOULDBLOCK)
@@ -110,22 +128,6 @@ lockpost(u_int locks, int fd)
 	return (0);
 }
 
-/* Cleanup after locks. */
-void
-lockdone(u_int locks, const char *path)
-{
-	char	lock[PATH_MAX];
-
-	if (locks & LOCK_DOTLOCK) {
-		if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
-			log_fatal("unlink");
-		if (unlink(path) != 0)
-			log_fatal("unlink");
-		
-		cleanup_deregister(path);
-	}
-}
-
 /*
  * Open a file, locking using the lock types specified. Returns EAGAIN if lock
  * failed.
@@ -135,13 +137,11 @@ openlock(const char *path, int flags, u_int locks)
 {
 	int	fd, saved_errno;
 
-	if (lockpre(locks, path) != 0)
+	if (mklock(locks, path) != 0)
 		return (-1);
-
 	if ((fd = open(path, flags, 0)) == -1)
 		goto error;
-
-	if (lockpost(locks, fd) != 0)
+	if (lockfd(locks, fd) != 0)
 		goto error;
 
 	return (fd);
@@ -149,7 +149,7 @@ openlock(const char *path, int flags, u_int locks)
 error:
 	saved_errno = errno;
 	close(fd);
-	lockdone(locks, path);
+	rmlock(locks, path);
 	errno = saved_errno;
 	return (-1);
 }
@@ -161,17 +161,11 @@ createlock(
 {
 	int	fd, saved_errno;
 
-	if (lockpre(locks, path) != 0)
+	if (mklock(locks, path) != 0)
 		return (-1);
-
-	if ((fd = open(path, flags|O_CREAT|O_EXCL, mode)) == -1)
-		return (-1);
-	if (uid != (uid_t) -1 || gid != (gid_t) -1) {
-		if (fchown(fd, uid, gid) != 0)
-			goto error;
-	}
-
-	if (lockpost(locks, fd) != 0)
+	if ((fd = xcreate(path, flags, uid, gid, mode)) == -1)
+		goto error;
+	if (lockfd(locks, fd) != 0)
 		goto error;
 
 	return (fd);
@@ -179,7 +173,7 @@ createlock(
 error:
 	saved_errno = errno;
 	close(fd);
-	lockdone(locks, path);
+	rmlock(locks, path);
 	errno = saved_errno;
 	return (-1);
 }
@@ -188,10 +182,8 @@ error:
 void
 closelock(int fd, const char *path, u_int locks)
 {
-	if (fd != -1)
-		close(fd);
-
-	lockdone(locks, path);
+	close(fd);
+	rmlock(locks, path);
 }
 
 /* Create a file. */
@@ -202,12 +194,11 @@ xcreate(const char *path, int flags, uid_t uid, gid_t gid, mode_t mode)
 
 	if ((fd = open(path, flags|O_CREAT|O_EXCL, mode)) == -1)
 		return (-1);
-
 	if (uid != (uid_t) -1 || gid != (gid_t) -1) {
 		if (fchown(fd, uid, gid) != 0)
 			return (-1);
 	}
-	
+
 	return (fd);
 }
 
