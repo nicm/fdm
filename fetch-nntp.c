@@ -168,26 +168,22 @@ fetch_nntp_load(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
-	int			 fd = -1, fd2;
-	FILE			*f = NULL;
+	int			 fd;
+	FILE			*f;
 	char			*name, *id;
 	size_t			 namelen, idlen;
 	u_int			 last, i;
 
-	fd = openlock(data->path, O_RDONLY, conf.lock_types);
-	if (fd == -1) {
+	f = NULL;
+
+	if ((fd = openlock(data->path, O_RDONLY, conf.lock_types)) == -1) {
 		if (errno == ENOENT)
 			return (0);
 		log_warn("%s: %s", a->name, data->path);
 		goto error;
 	}
-
-	if ((fd2 = dup(fd)) == -1) {
-		log_warn("%s: dup", a->name);
-		goto error;
-	}
-	if ((f = fdopen(fd2, "r")) == NULL) {
-		log_warn("%s: fdopen", a->name);
+	if ((f = fdopen(fd, "r")) == NULL) {
+		log_warn("%s: %s", a->name, data->path);
 		goto error;
 	}
 
@@ -247,7 +243,7 @@ invalid:
 error:
 	if (f != NULL)
 		fclose(f);
-	if (fd != -1)
+        if (fd != -1)
 		closelock(fd, data->path, conf.lock_types);
 	return (-1);
 }
@@ -263,20 +259,14 @@ fetch_nntp_save(struct account *a)
 	FILE			*f = NULL;
 	u_int			 i;
 
-	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0) {
-		log_warn("%s: %s: printpath", a->name, data->path);
-		return (-1);
-	}
-	if ((fd = mkstemp(tmp)) == -1) {
-		log_warn("%s: %s: mkstemp", a->name, tmp);
-		return (-1);
-	}
+	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0)
+		goto error;
+	if ((fd = mkstemp(tmp)) == -1)
+		goto error;
 	cleanup_register(tmp);
 
-	if ((f = fdopen(fd, "r+")) == NULL) {
-		log_warn("%s: fdopen", a->name);
+	if ((f = fdopen(fd, "r+")) == NULL)
 		goto error;
-	}
 	fd = -1;
 
 	for (i = 0; i < ARRAY_LENGTH(&data->groups); i++) {
@@ -287,30 +277,26 @@ fetch_nntp_save(struct account *a)
 		    group->name, group->last, strlen(group->id), group->id);
 	}
 
-	if (fflush(f) != 0) {
-		log_warn("%s: fflush", a->name);
+	if (fflush(f) != 0)
 		goto error;
-	}
-	if (fsync(fileno(f)) != 0) {
-		log_warn("%s: fsync", a->name);
+	if (fsync(fileno(f)) != 0)
 		goto error;
-	}
 	fclose(f);
 	f = NULL;
 
-	if (rename(tmp, data->path) == -1) {
-		log_warn("%s: rename", a->name);
+	if (rename(tmp, data->path) == -1)
 		goto error;
-	}
-
 	cleanup_deregister(tmp);
 	return (0);
 
 error:
+	log_warn("%s: %s", a->name, data->path);
+
 	if (f != NULL)
 		fclose(f);
 	if (fd != -1)
 		close(fd);
+
 	if (unlink(tmp) != 0)
 		log_fatal("unlink");
 	cleanup_deregister(tmp);
