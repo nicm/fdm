@@ -263,8 +263,8 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 			}
 
 			alias = NULL;
-			if (ALIAS_IDX(ch) != -1)
-				alias = aliases[ALIAS_IDX(ch)];
+			if (ALIAS_IDX((u_char) ch) != -1)
+				alias = aliases[ALIAS_IDX((u_char) ch)];
 			if (alias == NULL)
 				continue;
 
