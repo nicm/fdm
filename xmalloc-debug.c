@@ -22,6 +22,7 @@
 
 #include <ctype.h>
 #include <dlfcn.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
