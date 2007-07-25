@@ -101,10 +101,11 @@ deliver_maildir_create(struct account *a, const char *maildir)
 	for (i = 0; names[i] != NULL; i++) {
 		if (mkpath(path, sizeof path, "%s%s", maildir, names[i]) != 0)
 			goto error;
-		log_debug("%s: creating %s", a->name, path);
 
-		if (xmkdir(path, -1, conf.file_group, DIRMODE) == 0)
+		if (xmkdir(path, -1, conf.file_group, DIRMODE) == 0) {
+			log_debug2("%s: creating %s", a->name, path);
 			continue;
+		}
 		if (errno != EEXIST)
 			goto error;
 
