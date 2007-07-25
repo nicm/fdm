@@ -1,3 +1,9 @@
+25 July 2007
+
+* Tidied and refactored much of file.c and deliver-{mbox,maildir}.c.
+* Brought back fatal and fatalx as #defines which prepend __func__ and pass
+  through to log_fatal/log_fatalx.
+
 24 July 2007
 
 * Embedding an undefined macro in a string with ${} is no longer an error, it
