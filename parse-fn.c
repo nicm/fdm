@@ -116,7 +116,7 @@ fmt_replstrs(const char *prefix, struct replstrs *rsp)
 void
 free_replstrs(struct replstrs *rsp)
 {
-	return (free_strings((struct strings *) rsp)); /* XXX */
+	free_strings((struct strings *) rsp); /* XXX */
 }
 
 char *
