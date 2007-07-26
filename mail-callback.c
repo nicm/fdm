@@ -154,7 +154,7 @@ enqueue:
 	ARRAY_INIT(&mctx->stack);
 
 	/* And enqueue it. */
-	TAILQ_INSERT_TAIL(&fctx->matchq, mctx, entry);
+	TAILQ_INSERT_TAIL(mq, mctx, entry);
 	fctx->queued++;
 
 	if (a->fetch->total != NULL && a->fetch->total(a) > 0) {
