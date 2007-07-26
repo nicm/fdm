@@ -21,7 +21,6 @@
 
 #include <sys/param.h>
 #include <sys/cdefs.h>
-#include <sys/dirent.h>
 #include <sys/stat.h>
 
 #ifndef NO_QUEUE_H
