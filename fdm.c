@@ -636,7 +636,7 @@ main(int argc, char **argv)
 			xasprintf(&lock, "%s/%s", conf.info.home, LOCKFILE);
 	}
 	if (*lock != '\0' && !conf.allow_many) {
-		lockfd = open(lock, O_WRONLY|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR);
+		lockfd = xcreate(lock, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
 		if (lockfd == -1 && errno == EEXIST) {
 			log_warnx("already running (%s exists)", lock);
 			exit(1);

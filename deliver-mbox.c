@@ -112,9 +112,8 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	if (data->compress) {
 		len = strlen(path);
 		if (len < 3 || strcmp(path + len - 3, ".gz") != 0) {
-			xasprintf(&ptr, "%s.gz", path);
-			xfree(path);
-			path = ptr;
+			path = xrealloc(path, 1, len + 4);
+			strlcat(path, ".gz", len + 4);
 		}
 	}
 	log_debug2("%s: saving to mbox %s", a->name, path);
