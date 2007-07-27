@@ -526,6 +526,44 @@ The local hostname.
 .Pp
 In addition, the shorthand %% is replaced with a literal %, and %0 to %9 are
 replaced with the result of any bracket expressions in the last regexp.
+.Sh CACHES
+.Xr fdm 1
+can maintain a cache file with a set of user-defined strings.
+In order to use caches,
+.Xr fdm 1
+must have been compiled with them enabled.
+Caches are declared with the
+.Ic cache
+keyword:
+.Bl -tag -width Ds
+.It Xo Ic cache Ar path
+.Op Ic expire Ar age
+.Xc
+.El
+.Pp
+The
+.Ar path
+is the location of the cache file. If the
+.Ic expire
+keyword is specified, items in the cache are removed after they reach the age
+specified.
+.Ar age
+may be given unadorned in seconds, or followed by one of the modifiers:
+.Em seconds ,
+.Em hours ,
+.Em minutes ,
+.Em days ,
+.Em months
+or
+.Em years .
+.Pp
+Caches must be declared before they are used. Items are added to caches using
+the
+.Ic to-cache
+action
+and they are searched using the
+.Ic in-cache
+condition; see below for information on these.
 .Sh ACTIONS
 The
 .Ic action
@@ -656,6 +694,11 @@ Write the mail to
 If
 .Ic add-from
 is specified, an mbox-style "From" line is prepended.
+.It Ic to-cache Ar path Ic key Ar key
+This action adds the string
+.Ar key
+to the cache specified by
+.Ar path .
 .It Ic action Ar name
 This invokes another named action.
 A maximum of five actions may be called in a sequence.
@@ -682,24 +725,17 @@ argument may be one of:
 .Bl -tag -width Ds
 .It Ic all
 Matches all mail.
-.It Xo Op Ic not
-.Ic matched
-.Xc
+.It Ic matched
 Matches only mail that has matched a previous rule and been passed on with
 .Ic continue .
-.It Xo Op Ic not
-.Ic unmatched
-.Xc
+.It Ic unmatched
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
-.It Xo Op Ic not
-.Ic tagged Ar string
-.Xc
+.It Ic tagged Ar string
 Matches mails tagged with
 .Ar string .
-.It Xo Op Ic not
-.Op Ic case
+.It Xo Op Ic case
 .Ar regexp
 .Op Ic in Ic headers | Ic in body
 .Xc
@@ -713,15 +749,15 @@ The
 .Ic case
 keyword forces the regexp to be matched case-sensitively: the default is
 case-insensitive matching.
-.It Xo Op Ic not
-.Ic exec Ar command Op Ic user Ar user
+.It Xo Ic exec Ar command
+.Op Ic user Ar user
 .Ic returns
 .Li (
 .Ar return code ,
 .Ar stdout regexp )
 .Xc
-.It Xo Op Ic not
-.Ic pipe Ar command Op Ic user Ar user
+.It Xo Ic pipe Ar command
+.Op Ic user Ar user
 .Ic returns
 .Li (
 .Ar return code ,
@@ -747,20 +783,17 @@ If a user is specified,
 .Xr fdm 1
 will change to that user before executing the command, otherwise the
 current user (or root if started as root) is used.
-.It Xo Op Ic not
-.Ic size
+.It Xo Ic size
 .Li <
 .Ar number
 .Xc
-.It Xo Op Ic not
-.Ic size
+.It Xo Ic size
 .Li >
 .Ar number
 .Xc
 Compare the mail size with
 .Ar number .
-.It Xo Op Ic not
-.Ic string Ar string Ic to Ar regexp
+.It Xo Ic string Ar string Ic to Ar regexp
 .Xc
 Match
 .Ar string
@@ -776,13 +809,11 @@ condition has yet been seen, or the mail contents has been modified by a
 .Ic rewrite
 action since the last one, this condition will log a warning and evaluate to
 false.
-.It Xo Op Ic not
-.Ic age
+.It Xo Ic age
 .Li <
 .Ar time
 .Xc
-.It Xo Op Ic not
-.Ic age
+.It Xo Ic age
 .Li >
 .Ar time
 .Xc
@@ -799,60 +830,55 @@ The time may be given as a simple number in seconds, or followed by the word
 or
 .Em years
 to specify a time in different units.
-.It Xo Op Ic not
-.Ic attachment Ic count
+.It Ic in-cache Ar path Ic key Ar key
+This condition evaluates to true if the string
+.Ar key
+is in the cache at
+.Ar path .
+.It Xo Ic attachment Ic count
 .Li <
 .Ar number
 .Xc
-.It Xo Op Ic not
-.Ic attachment Ic count
+.It Xo Ic attachment Ic count
 .Li >
 .Ar number
 .Xc
-.It Xo Op Ic not
-.Ic attachment Ic count
+.It Xo Ic attachment Ic count
 .Li ==
 .Ar number
 .Xc
-.It Xo Op Ic not
-.Ic attachment Ic count
+.It Xo Ic attachment Ic count
 .Li !=
 .Ar number
 .Xc
 These conditions match if the mail possesses a number of attachments less
 than, greater than, equal to or not equal to
 .Ar number .
-.It Xo Op Ic not
-.Ic attachment Ic total-size
+.It Xo Ic attachment Ic total-size
 .Li <
 .Ar size
 .Xc
-.It Xo Op Ic not
-.Ic attachment Ic total-size
+.It Xo Ic attachment Ic total-size
 .Li >
 .Ar size
 .Xc
 Matches if the total size of all attachments is smaller or larger than
 .Ar size .
-.It Xo Op Ic not
-.Ic attachment Ic any-size
+.It Xo Ic attachment Ic any-size
 .Li <
 .Ar size
 .Xc
-.It Xo Op Ic not
-.Ic attachment Ic any-size
+.It Xo Ic attachment Ic any-size
 .Li >
 .Ar size
 .Xc
 Compare each individual attachment on a mail to
 .Ar size
 and match if any of them are smaller or larger.
-.It Xo Op Ic not
-.Ic attachment Ic any-type
+.It Xo Ic attachment Ic any-type
 .Ar string
 .Xc
-.It Xo Op Ic not
-.Ic attachment Ic any-name
+.It Xo Ic attachment Ic any-name
 .Ar string
 .Xc
 Match true if any of a mail's attachments possesses a MIME type or filename
@@ -870,9 +896,11 @@ or
 .Ic or
 keywords.
 The conditions are tested from left to right.
-The
+Any condition except
+.Ic all
+may be prefixed by the
 .Ic not
-keyword may be specified to invert the sense of a condition.
+keyword to invert it.
 .Pp
 This command specifies a number of actions to take when a mail matches the
 rule.
