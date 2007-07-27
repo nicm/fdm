@@ -43,10 +43,11 @@ rfc822time(time_t t, char *buf, size_t len)
 
 /*
  * Some mailers, notably AOL's, use the timezone string instead of an offset
- * from UTC. This is highly annoying: since there are duplicate abbreviations
- * it cannot be converted with absolute certainty. As it is only a few clients
- * do this anyway, don't even try particularly hard, just try to look it up
- * using tzset, which catches the few most common abbreviations.
+ * from UTC. A limited set of these are permitted by RFC822, but it is still
+ * highly annoying: others can appear, and since there are duplicate
+ * abbreviations it cannot be converted with absolute certainty. As it is only
+ * a few clients do this anyway, don't even try particularly hard, just try to
+ * look it up using tzset, which catches the few most common abbreviations.
  */
 int
 tzlookup(const char *tz, int *off)
@@ -69,8 +70,9 @@ tzlookup(const char *tz, int *off)
 	tm = localtime(&t);
 
 	/* And work out the timezone. */
-	if (strcmp(tz, tm->tm_zone) == 0)
-		*off = tm->tm_gmtoff;
+	if (strcmp(tz, tm->tm_zone) != 0)
+		goto error;
+	*off = tm->tm_gmtoff;
 
 	/* Restore the old timezone. */
 	if (saved_tz != NULL) {

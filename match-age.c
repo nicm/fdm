@@ -27,8 +27,6 @@
 int	match_age_match(struct mail_ctx *, struct expritem *);
 void	match_age_desc(struct expritem *, char *, size_t);
 
-int	match_age_tzlookup(const char *, int *);
-
 struct match match_age = {
 	"age",
 	match_age_match,
