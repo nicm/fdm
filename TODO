@@ -33,6 +33,3 @@
 - man page: caches
 - man page: $() and %()
 - man page: ifdef/ifndef/endif
-- man page: NNTPS
-- man page: rfc822date and mail_rfc822date
-- man page: update wrt multiple delivery

@@ -82,7 +82,7 @@ Note that
 .Xr fdm 1
 may have a number of messages queued (up to the
 .Ic queue-high
-setting plus one for
+setting, doubled for
 rewrite, per account), so this setting and the
 .Ic queue-high
 option should be set
@@ -427,6 +427,19 @@ unwanted mail, or delivering mail to another maildir or to an mbox.
 .Li }
 .Ic cache Ar cache
 .Xc
+.It Xo Ic nntps Ic server Ar host
+.Op Ic port Ar port
+.Ic group Ar group
+.Ic cache Ar cache
+.Xc
+.It Xo Ic nntps Ic server Ar host
+.Op Ic port Ar port
+.Ic groups
+.Li {
+.Ar group ...
+.Li }
+.Ic cache Ar cache
+.Xc
 An NNTP account.
 Articles are fetched from the specified group or groups and delivered.
 The index and message-id of the last article fetched in each group is
@@ -488,6 +501,8 @@ The current day of the week (0-6, Sunday is 0).
 The current day of the year (000-365).
 .It quarter (%Q)
 The current quarter (1-4).
+.It rfc822date
+The current date in RFC822 format.
 .It mail_hour
 The hour from the mail's date header, if it exists and is valid, otherwise the
 current time.
@@ -503,6 +518,8 @@ The month from the mail's date header.
 The year from the mail's date header.
 .It mail_year2
 The same as two digits.
+.It mail_rfc822date
+The mail's date in RFC822 format.
 .It hostname
 The local hostname.
 .El
