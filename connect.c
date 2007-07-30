@@ -588,7 +588,7 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 		 * If the timeout is too large (EINVAL), keep trying it until
 		 * it reaches a minimum of 30 seconds.
 		 */
-		if (errno != EINVAL || itv.it_value.tv_sec < 30000)
+		if (errno != EINVAL || itv.it_value.tv_sec < 30)
 			fatal("setitimer failed");
 		itv.it_value.tv_sec /= 2;
 	}
