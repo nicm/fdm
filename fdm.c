@@ -608,6 +608,7 @@ main(int argc, char **argv)
 	}
 
 	/* Set up signal handlers. */
+	memset(&act, 0, sizeof act);
 	sigemptyset(&act.sa_mask);
 	sigaddset(&act.sa_mask, SIGINT);
 	sigaddset(&act.sa_mask, SIGTERM);
