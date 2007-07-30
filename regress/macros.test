@@ -39,22 +39,22 @@ set maximum-size %macro
 @1 ^/dev/stdin: undefined macro: %macro at line .$
 
 account "${macro}" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line .$
+@1 ^/dev/stdin: invalid account name at line .$
 account "a${macro}" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line .$
+@0 ^added account "a": fetch=stdin$
 account "${macro}b" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line .$
+@0 ^added account "b": fetch=stdin$
 account "a${macro}b" stdin
-@1 ^/dev/stdin: undefined macro: \$macro at line .$
+@0 ^added account "ab": fetch=stdin$
 
 account "%{macro}" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line .$
+@1 ^/dev/stdin: invalid account name at line .$
 account "a%{macro}" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line .$
+@0 ^added account "a": fetch=stdin$
 account "%{macro}b" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line .$
+@0 ^added account "b": fetch=stdin$
 account "a%{macro}b" stdin
-@1 ^/dev/stdin: undefined macro: %macro at line .$
+@0 ^added account "ab": fetch=stdin$
 
 # ----------------------------------------------------------------------------
 # DEFINED
