@@ -3,7 +3,7 @@
 .PHONY: clean
 
 PROG= fdm
-VERSION= 1.3
+VERSION= 1.4
 DATE= $(shell date +%Y%m%d-%H%M)
 
 DEBUG= 1
@@ -44,8 +44,6 @@ SRCS= fdm.c \
       parent-deliver.c parent-fetch.c \
       y.tab.c parse-fn.c lex.c
 
-DEFS= -DBUILD="\"$(VERSION) ($(DATE))\""
-
 ifeq ($(shell uname),Darwin)
 INCDIRS+= -I/usr/local/include/openssl -Icompat
 SRCS+= compat/strtonum.c
@@ -68,6 +66,9 @@ ifdef DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
 LDFLAGS+= -rdynamic
 LIBS+= -ldl
+DEFS+= -DBUILD="\"$(VERSION) ($(DATE))\""
+else
+DEFS+= -DBUILD="\"$(VERSION)\""
 endif
 #CFLAGS+= -pedantic -std=c99
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2

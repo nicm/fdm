@@ -5,7 +5,7 @@
 	update-index.html upload-index.html
 
 PROG= fdm
-VERSION= 1.3
+VERSION= 1.4
 
 OS!= uname
 REL!= uname -r
@@ -37,7 +37,6 @@ YACC= yacc -d
 
 CC?= cc
 INCDIRS+= -I. -I- -I/usr/local/include
-CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
 .ifdef PROFILE
 # Don't use ccache
 CC= /usr/bin/gcc
@@ -46,6 +45,9 @@ CFLAGS+= -pg -DPROFILE -fprofile-arcs -ftest-coverage -O0
 .ifdef DEBUG
 CFLAGS+= -g -ggdb -DDEBUG
 LDFLAGS+= -Wl,-E
+CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
+.else
+CFLAGS+= -DBUILD="\"$(VERSION)\""
 .endif
 #CFLAGS+= -pedantic -std=c99
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
