@@ -368,8 +368,8 @@ io_push(struct io *io)
 				break;
 			case SSL_ERROR_WANT_WRITE:
 				/*
-				 * A repeat is certain (io->wsize is still !=
-				 * 0) so this can be ignored
+				 * A repeat is certain (buffer still has data)
+				 * so this can be ignored
 				 */
 				break;
 			default:
