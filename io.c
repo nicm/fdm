@@ -33,7 +33,11 @@
 
 #include "fdm.h"
 
-#undef	IO_DEBUG
+#define IO_DEBUG(io, fmt, ...)
+#ifndef IO_DEBUG
+#define IO_DEBUG(io, fmt, ...) \
+	log_debug3("%s: %d, " fmt, __func__, io->fd, ## __VA_ARGS__)
+#endif
 
 int	io_push(struct io *);
 int	io_fill(struct io *);
@@ -273,9 +277,7 @@ io_fill(struct io *io)
 {
 	ssize_t	n;
 
-#ifdef IO_DEBUG
- 	log_debug3("io_fill: in");
-#endif
+	IO_DEBUG(io, "in");
 
 	/* Ensure there is at least some minimum space in the buffer. */
 	buffer_ensure(io->rd, IO_BLOCKSIZE);
@@ -318,15 +320,13 @@ io_fill(struct io *io)
 
 	/* Test for > 0 since SSL_read can return any -ve on error. */
 	if (n > 0) {
-#ifdef IO_DEBUG
-		log_debug3("io_fill: read %zd bytes", n);
-#endif
+		IO_DEBUG(io, "read %zd bytes", n);
 
 		/* Copy out the duplicate fd. Errors are just ignored. */
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "< ", 2);
 			write(io->dup_fd, BUFFER_IN(io->rd), n);
-		}
+ 		}
 
 		/* Adjust the buffer size. */
 		buffer_add(io->rd, n);
@@ -335,9 +335,7 @@ io_fill(struct io *io)
 		io->flags &= ~IOF_NEEDFILL;
 	}
 
-#ifdef IO_DEBUG
-	log_debug3("io_fill: out");
-#endif
+	IO_DEBUG(io, "out");
 
 	return (1);
 }
@@ -348,9 +346,7 @@ io_push(struct io *io)
 {
 	ssize_t	n;
 
-#ifdef IO_DEBUG
- 	log_debug3("io_push: in");
-#endif
+	IO_DEBUG(io, "in");
 
 	/* If nothing to write, return. */
 	if (BUFFER_USED(io->wr) == 0)
@@ -393,9 +389,7 @@ io_push(struct io *io)
 
 	/* Test for > 0 since SSL_write can return any -ve on error. */
 	if (n > 0) {
-#ifdef IO_DEBUG
-		log_debug3("io_push: wrote %zd bytes", n);
-#endif
+		IO_DEBUG(io, "wrote %zd bytes", n);
 
 		/* Copy out the duplicate fd. */
 		if (io->dup_fd != -1) {
@@ -410,9 +404,7 @@ io_push(struct io *io)
 		io->flags &= ~IOF_NEEDPUSH;
 	}
 
-#ifdef IO_DEBUG
-	log_debug3("io_push: out");
-#endif
+	IO_DEBUG(io, "out");
 
 	return (1);
 }
@@ -423,6 +415,9 @@ io_read(struct io *io, size_t len)
 {
 	void	*buf;
 
+ 	IO_DEBUG(io, "in: %zu, rd: used=%zu, free=%zu", len,
+	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
+
 	if (io->error != NULL)
 		return (NULL);
 
@@ -431,6 +426,9 @@ io_read(struct io *io, size_t len)
 
 	buf = xmalloc(len);
 	buffer_read(io->rd, buf, len);
+
+ 	IO_DEBUG(io, "out: %zu, rd: used=%zu, free=%zu", len,
+	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (buf);
 }
@@ -442,10 +440,16 @@ io_read2(struct io *io, void *buf, size_t len)
 	if (io->error != NULL)
 		return (-1);
 
+ 	IO_DEBUG(io, "in: %zu, rd: used=%zu, free=%zu", len,
+	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
+
 	if (BUFFER_USED(io->rd) < len)
 		return (1);
 
 	buffer_read(io->rd, buf, len);
+
+ 	IO_DEBUG(io, "out: %zu, rd: used=%zu, free=%zu", len,
+	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (0);
 }
@@ -457,12 +461,13 @@ io_write(struct io *io, const void *buf, size_t len)
 	if (io->error != NULL)
 		return;
 
+ 	IO_DEBUG(io, "in: %zu, wr: used=%zu, free=%zu", len,
+	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
+
 	buffer_write(io->wr, buf, len);
 
-#ifdef IO_DEBUG
-	log_debug3("io_write: %zu bytes. wsize=%zu wspace=%zu", len, io->wsize,
-	    io->wspace);
-#endif
+ 	IO_DEBUG(io, "out: %zu, wr: used=%zu, free=%zu", len,
+	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
 
 /*
@@ -478,9 +483,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	if (io->error != NULL)
 		return (NULL);
 
-#ifdef IO_DEBUG
-	log_debug3("io_readline2: in: off=%zu used=%zu", io->roff, io->rsize);
-#endif
+ 	IO_DEBUG(io, "in: rd: used=%zu, free=%zu",
+	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	maxlen = BUFFER_USED(io->rd);
 	if (maxlen > IO_MAXLINELEN)
@@ -548,9 +552,8 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	/* Discard the EOL from the buffer. */
 	buffer_remove(io->rd, eollen);
 
-#ifdef IO_DEBUG
-	log_debug3("io_readline2: out: off=%zu used=%zu", io->roff, io->rsize);
-#endif
+ 	IO_DEBUG(io, "out: %zu, rd: used=%zu, free=%zu",
+	    size, BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (*buf);
 }
@@ -598,6 +601,9 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	if (io->error != NULL)
 		return;
 
+ 	IO_DEBUG(io, "in: wr: used=%zu, free=%zu",
+	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
+
 	if (fmt != NULL) {
 		va_copy(aq, ap);
 		n = xvsnprintf(NULL, 0, fmt, aq);
@@ -606,8 +612,12 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		buffer_ensure(io->wr, n + 1);
  		xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
 		buffer_add(io->wr, n);
-	}
+	} else
+		n = 0;
 	io_write(io, io->eol, strlen(io->eol));
+	
+ 	IO_DEBUG(io, "out: %zu, wr: used=%zu, free=%zu",
+	    n + strlen(io->eol), BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
 
 /* Poll until a line is received. */
