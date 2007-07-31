@@ -503,7 +503,7 @@ fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_pop3_data	*data = a->data;
 	struct mail		*m = data->mail;
  	struct fetch_pop3_mail	*aux = m->auxdata;
-	char			*line;
+	char			*line, *ptr;
 	u_int			 n, i;
 
 	line = io_readline2(data->io, &data->lbuf, &data->llen);
@@ -517,14 +517,14 @@ fetch_pop3_uidl(struct account *a, unused struct fetch_ctx *fctx)
 	if (n != data->cur)
 		return (fetch_pop3_bad(a, line));
 
-	line = strchr(line, ' ');
-	if (line == NULL)
+	ptr = strchr(line, ' ');
+	if (ptr == NULL)
 		return (fetch_pop3_bad(a, line));
-	line = strchr(line + 1, ' ');
-	if (line == NULL)
+	ptr = strchr(ptr + 1, ' ');
+	if (ptr == NULL)
 		return (fetch_pop3_bad(a, line));
 
-	aux->uid = xstrdup(line + 1);
+	aux->uid = xstrdup(ptr + 1);
 	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
 		if (strcmp(aux->uid, ARRAY_ITEM(&data->kept, i)) == 0) {
 			/*
