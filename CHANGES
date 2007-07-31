@@ -1,3 +1,9 @@
+31 July 2007
+
+* Accept only ".\r\n" as terminator for POP3 and NNTP, not a '.' followed by
+  anything except '.'.
+* Don't include a leading space in the POP3 UID.
+
 30 July 2007
 
 * fdm 1.3a and 1.3b released.
