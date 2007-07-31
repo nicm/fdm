@@ -277,8 +277,6 @@ io_fill(struct io *io)
 {
 	ssize_t	n;
 
-	IO_DEBUG(io, "in");
-
 	/* Ensure there is at least some minimum space in the buffer. */
 	buffer_ensure(io->rd, IO_BLOCKSIZE);
 
@@ -335,8 +333,6 @@ io_fill(struct io *io)
 		io->flags &= ~IOF_NEEDFILL;
 	}
 
-	IO_DEBUG(io, "out");
-
 	return (1);
 }
 
@@ -345,8 +341,6 @@ int
 io_push(struct io *io)
 {
 	ssize_t	n;
-
-	IO_DEBUG(io, "in");
 
 	/* If nothing to write, return. */
 	if (BUFFER_USED(io->wr) == 0)
@@ -403,8 +397,6 @@ io_push(struct io *io)
 		/* Reset the need flags. */
 		io->flags &= ~IOF_NEEDPUSH;
 	}
-
-	IO_DEBUG(io, "out");
 
 	return (1);
 }
