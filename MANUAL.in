@@ -68,6 +68,7 @@ privilege separation to minimise the amount of code running as the root user.
 ##	Using fdm behind a proxy
 ##	Bug reports and queries
 ##	Frequently asked questions
+##	Known problems
 
 ### Installation
 
@@ -1490,6 +1491,32 @@ action "full-disclosure" {
 }
 match "^List-Id:.*<full-disclosure\\.lists\\.grok\\.org\\.uk>" in headers
 	action "full-disclosure"
+
+### Known problems
+
+%%% POP3, purge-after, keep and duplicate mails
+
+As POP3 has nothing similar to IMAP's expunge, purge-after is implemented by
+disconnecting from and reconnecting to the POP3 server. However, this means
+that all remaining mails are renumbered, and fdm has to start refetching from
+the first. To avoid refetching previously kept mails, fdm records the unique id
+from the POP3 UIDL command and ignores (doesn't download) any mails it has seen
+before.
+
+Unfortunately, when RFC1939 says a "unique id" what it actually means is
+"unique id except it can be a hash, so if there are several identical copies of
+a mail it might actually not be unique at all" (or of course if there is a hash
+collision). This means that if you have two or more identical mails and the
+first one is kept, purge-after may cause the others to never be fetched. Unless
+there is a purge-after setting of one, they are likely to be fetched at some
+point if fdm is run multiple times. And unless the ruleset is such that
+identical mails may be treated differently (adaptive spam filtering, changing
+behaviour depending on the phase of the moon, whatever), identical mails would
+both be kept anyway.
+
+If this issue ever cause a problem in real life it would be very very
+surprising, but at least it can't be said it isn't documented. This problem is
+impossible to work around client-side in fdm anyway.
 
 ================================================================================
 $Id$
