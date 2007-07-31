@@ -123,6 +123,8 @@ ${PROG}:	${OBJS}
 dist:		clean manual
 		grep '^#DEBUG=' Makefile
 		grep '^#DEBUG=' GNUmakefile
+		[ "`(grep '^VERSION' Makefile; grep '^VERSION' GNUmakefile)| \
+			uniq -u`" = "" ]
 		tar -zc \
 			-s '/.*/${PROG}-${VERSION}\/\0/' \
 			-f ${PROG}-${VERSION}.tar.gz ${DISTFILES}

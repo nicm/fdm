@@ -1,5 +1,6 @@
 30 July 2007
 
+* fdm 1.3a and 1.3b released.
 * Change to using setitimer for SSL_connect timeout. OpenBSD, and possibly
   others, limit SO_RCVTIMEO to 327 seconds. Also try smaller timeouts if setting
   the first one fails, to a minimum of 30 seconds. Reported by Steven Mestdagh.
