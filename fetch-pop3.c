@@ -582,10 +582,11 @@ fetch_pop3_line(struct account *a, struct fetch_ctx *fctx)
 		if (line == NULL)
 			return (FETCH_BLOCK);
 
-		if (line[0] == '.' && line[1] == '.')
+		if (line[0] == '.') {
+			if (line[1] == '\0')
+				break;
 			line++;
-		else if (line[0] == '.')
-			break;
+		}
 
 		if (data->flushing)
 			continue;
