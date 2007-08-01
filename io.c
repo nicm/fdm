@@ -276,6 +276,7 @@ int
 io_fill(struct io *io)
 {
 	ssize_t	n;
+	int	error;
 
 	/* Ensure there is at least some minimum space in the buffer. */
 	buffer_ensure(io->rd, IO_BLOCKSIZE);
@@ -283,6 +284,7 @@ io_fill(struct io *io)
 	/* Attempt to read as much as the buffer has available. */
 	if (io->ssl == NULL) {
 		n = read(io->fd, BUFFER_IN(io->rd), BUFFER_FREE(io->rd));
+		IO_DEBUG(io, "read returned %zd", n);
 		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -293,10 +295,11 @@ io_fill(struct io *io)
 		}
 	} else {
 		n = SSL_read(io->ssl, BUFFER_IN(io->rd), BUFFER_FREE(io->rd));
+		IO_DEBUG(io, "SSL_read returned %zd", n);
 		if (n == 0)
 			return (0);
 		if (n < 0) {
-			switch (n = SSL_get_error(io->ssl, n)) {
+			switch (error = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
 				/*
 				 * A repeat is certain (poll on the socket will
@@ -310,7 +313,7 @@ io_fill(struct io *io)
 			default:
 				if (io->error != NULL)
 					xfree(io->error);
-				io->error = sslerror2(n, "SSL_read");
+				io->error = sslerror2(error, "SSL_read");
 				return (-1);
 			}
 		}
@@ -341,6 +344,7 @@ int
 io_push(struct io *io)
 {
 	ssize_t	n;
+	int	error;
 
 	/* If nothing to write, return. */
 	if (BUFFER_USED(io->wr) == 0)
@@ -349,6 +353,7 @@ io_push(struct io *io)
 	/* Write as much as possible. */
 	if (io->ssl == NULL) {
 		n = write(io->fd, BUFFER_OUT(io->wr), BUFFER_USED(io->wr));
+		IO_DEBUG(io, "write returned %zd", n);
 		if (n == 0 || (n == -1 && errno == EPIPE))
 			return (0);
 		if (n == -1 && errno != EINTR && errno != EAGAIN) {
@@ -359,10 +364,11 @@ io_push(struct io *io)
 		}
 	} else {
 		n = SSL_write(io->ssl, BUFFER_OUT(io->wr), BUFFER_USED(io->wr));
+		IO_DEBUG(io, "SSL_write returned %zd", n);
 		if (n == 0)
 			return (0);
 		if (n < 0) {
-			switch (n = SSL_get_error(io->ssl, n)) {
+			switch (error = SSL_get_error(io->ssl, n)) {
 			case SSL_ERROR_WANT_READ:
 				io->flags |= IOF_NEEDPUSH;
 				break;
@@ -375,7 +381,7 @@ io_push(struct io *io)
 			default:
 				if (io->error != NULL)
 					xfree(io->error);
-				io->error = sslerror2(n, "SSL_write");
+				io->error = sslerror2(error, "SSL_write");
 				return (-1);
 			}
 		}
