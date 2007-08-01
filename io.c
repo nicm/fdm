@@ -278,6 +278,7 @@ io_fill(struct io *io)
 	ssize_t	n;
 	int	error;
 
+again:
 	/* Ensure there is at least some minimum space in the buffer. */
 	buffer_ensure(io->rd, IO_BLOCKSIZE);
 
@@ -334,6 +335,8 @@ io_fill(struct io *io)
 
 		/* Reset the need flags. */
 		io->flags &= ~IOF_NEEDFILL;
+
+		goto again;
 	}
 
 	return (1);

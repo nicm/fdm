@@ -1,6 +1,8 @@
 01 August 2007
 
 * fdm 1.3c released.
+* Try to buffer as much as possible when reading, this prevents problems since
+  SSL_read seems to buffer data itself which poll can't know about.
 * Fix a bug with SSL where a "don't stop" error (want read/want write) would
   make fdm think there was data received when there wasn't, resulting in
   spurious new lines and fetching being aborted. This somehow failed to show
