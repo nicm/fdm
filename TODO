@@ -1,7 +1,6 @@
 - SMTP SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
-- look into GSSAPI, POP3's MD5 thing, all that other crap
 - redo chrooting properly (resolver needs to be in parent)
 - fetch from mbox
 - finish regression tests
@@ -28,3 +27,4 @@
   consistent in some way (closed=1, success=0, error=-1)
 - weed is not doing its jobs, check domains
 - better website
+- IMAP CRAM-MD5

@@ -1,6 +1,7 @@
 01 August 2007
 
 * fdm 1.3c released.
+* Wrong size for match buffer in pcre.c. SF.net bug 1765524.
 * Try to buffer as much as possible when reading, this prevents problems since
   SSL_read seems to buffer data itself which poll can't know about.
 * Fix a bug with SSL where a "don't stop" error (want read/want write) would
