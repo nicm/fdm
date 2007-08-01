@@ -36,7 +36,7 @@
 #define IO_DEBUG(io, fmt, ...)
 #ifndef IO_DEBUG
 #define IO_DEBUG(io, fmt, ...) \
-	log_debug3("%s: %d, " fmt, __func__, io->fd, ## __VA_ARGS__)
+	log_debug3("%s: (%d) " fmt, __func__, io->fd, ## __VA_ARGS__)
 #endif
 
 int	io_push(struct io *);
@@ -407,7 +407,7 @@ io_read(struct io *io, size_t len)
 {
 	void	*buf;
 
- 	IO_DEBUG(io, "in: %zu, rd: used=%zu, free=%zu", len,
+ 	IO_DEBUG(io, "in: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	if (io->error != NULL)
@@ -419,7 +419,7 @@ io_read(struct io *io, size_t len)
 	buf = xmalloc(len);
 	buffer_read(io->rd, buf, len);
 
- 	IO_DEBUG(io, "out: %zu, rd: used=%zu, free=%zu", len,
+ 	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (buf);
@@ -432,7 +432,7 @@ io_read2(struct io *io, void *buf, size_t len)
 	if (io->error != NULL)
 		return (-1);
 
- 	IO_DEBUG(io, "in: %zu, rd: used=%zu, free=%zu", len,
+ 	IO_DEBUG(io, "in: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	if (BUFFER_USED(io->rd) < len)
@@ -440,7 +440,7 @@ io_read2(struct io *io, void *buf, size_t len)
 
 	buffer_read(io->rd, buf, len);
 
- 	IO_DEBUG(io, "out: %zu, rd: used=%zu, free=%zu", len,
+ 	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (0);
@@ -453,12 +453,12 @@ io_write(struct io *io, const void *buf, size_t len)
 	if (io->error != NULL)
 		return;
 
- 	IO_DEBUG(io, "in: %zu, wr: used=%zu, free=%zu", len,
+ 	IO_DEBUG(io, "in: %zu bytes, wr: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 
 	buffer_write(io->wr, buf, len);
 
- 	IO_DEBUG(io, "out: %zu, wr: used=%zu, free=%zu", len,
+ 	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
 
@@ -475,15 +475,15 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	if (io->error != NULL)
 		return (NULL);
 
- 	IO_DEBUG(io, "in: rd: used=%zu, free=%zu",
-	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
-
 	maxlen = BUFFER_USED(io->rd);
 	if (maxlen > IO_MAXLINELEN)
 		maxlen = IO_MAXLINELEN;
 	eollen = strlen(io->eol);
 	if (BUFFER_USED(io->rd) < eollen)
 		return (NULL);
+
+ 	IO_DEBUG(io, "in: rd: used=%zu, free=%zu",
+	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	base = ptr = BUFFER_OUT(io->rd);
 	for (;;) {
@@ -505,6 +505,9 @@ io_readline2(struct io *io, char **buf, size_t *len)
 			}
 		}
 		if (ptr == NULL) {
+			IO_DEBUG(io,
+			    "not found (%zu, %d)", maxlen, IO_CLOSED(io));
+
 			/*
 			 * Not found within the length searched. If that was
 			 * the maximum length, this is an error.
@@ -544,7 +547,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	/* Discard the EOL from the buffer. */
 	buffer_remove(io->rd, eollen);
 
- 	IO_DEBUG(io, "out: %zu, rd: used=%zu, free=%zu",
+ 	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu",
 	    size, BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (*buf);
@@ -608,7 +611,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		n = 0;
 	io_write(io, io->eol, strlen(io->eol));
 	
- 	IO_DEBUG(io, "out: %zu, wr: used=%zu, free=%zu",
+ 	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu",
 	    n + strlen(io->eol), BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
 
