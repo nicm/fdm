@@ -94,7 +94,7 @@ It is not necessary to add a user if fdm is always started by a non-root user.
 
 fdm can be built to use PCRE rather than standard regexps. To do so, add -DPCRE
 to the make command:
-	
+
 	$ make -DPCRE
 
 Or PCRE=1 if using GNU make:
@@ -1192,7 +1192,7 @@ These caches should not be confused with the NNTP cache file. Key caches are
 referenced by filename and must be declared before use:
 
 	cache "%h/path/to/cache"
-	
+
 	cache "~/.fdm.db" expire 1 month
 
 If the expiry time is not specified, items are never expired from the cache.
@@ -1432,7 +1432,7 @@ further information if it is required.
 
 A mailing list is available for fdm users, see:
 
-	https://lists.sourceforge.net/lists/listinfo/fdm-users 
+	https://lists.sourceforge.net/lists/listinfo/fdm-users
 
 ### Frequently asked questions
 

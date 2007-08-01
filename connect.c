@@ -584,7 +584,7 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 	memset(&itv, 0, sizeof itv);
 	itv.it_value.tv_sec = timeout / 1000;
 	while (setitimer(ITIMER_REAL, &itv, NULL) != 0) {
-		/* 
+		/*
 		 * If the timeout is too large (EINVAL), keep trying it until
 		 * it reaches a minimum of 30 seconds.
 		 */

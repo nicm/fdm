@@ -81,7 +81,7 @@ shm_expand(struct shm *shm, size_t size)
 	}
 	if (size > 0) {
 		if ((n = write(shm->fd, shm_block, size)) == -1)
-		    return (-1);
+			return (-1);
 		if ((size_t) n != size) {
 			errno = EIO;
 			return (-1);

@@ -616,7 +616,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	} else
 		n = 0;
 	io_write(io, io->eol, strlen(io->eol));
-	
+
  	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu",
 	    n + strlen(io->eol), BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
