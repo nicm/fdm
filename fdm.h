@@ -118,7 +118,7 @@ extern char	*__progname;
 
 /* Fatal errors. */
 #define fatal(msg) log_fatal("%s: %s", __func__, msg);
-#define fatalx(msg) log_fatal("%s: %s", __func__, msg);
+#define fatalx(msg) log_fatalx("%s: %s", __func__, msg);
 
 /* Apply umask. */
 #define UMASK(mask) ((mask) & ~conf.file_umask)
