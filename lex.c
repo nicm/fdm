@@ -130,6 +130,7 @@ static const struct token tokens[] = {
 	{ "maximum-size", TOKMAXSIZE },
 	{ "mb", TOKMEGABYTES },
 	{ "mbox", TOKMBOX },
+	{ "mboxes", TOKMBOXES },
 	{ "megabyte", TOKMEGABYTES },
 	{ "megabytes", TOKMEGABYTES },
 	{ "minute", TOKMINUTES },

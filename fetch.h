@@ -76,6 +76,32 @@ struct fetch_maildir_mail {
 	char		 path[MAXPATHLEN];
 };
 
+/* Fetch mbox data. */
+struct fetch_mbox_data {
+	struct strings	*mboxes;
+
+	struct strings	*paths;
+	u_int		 index;
+
+	int 	         (*state)(struct account *, struct fetch_ctx *);
+	
+	int		 fd;
+	char		*path;
+
+	void		*base;
+	size_t		 size;
+	size_t		 off;
+
+	TAILQ_HEAD(, fetch_mbox_mail) kept;
+};
+
+struct fetch_mbox_mail {
+ 	size_t		 off;
+	size_t		 size;
+
+	TAILQ_ENTRY(fetch_mbox_mail) entry;
+};
+
 /* NNTP group entry. */
 struct fetch_nntp_group {
 	char		*name;
@@ -209,6 +235,9 @@ struct fetch_imap_mail {
 
 /* fetch-maildir.c */
 extern struct fetch 	 fetch_maildir;
+
+/* fetch-mbx.c */
+extern struct fetch 	 fetch_mbox;
 
 /* fetch-stdin.c */
 extern struct fetch 	 fetch_stdin;

@@ -118,8 +118,8 @@ yyerror(const char *fmt, ...)
 %token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
-%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY
-%token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKDROP TOKMAILDIR TOKMBOX
+%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKDROP
+%token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKMAILDIR TOKMBOX TOKMBOXES
 %token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKSIZE TOKMAILDIRS
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
@@ -192,7 +192,7 @@ yyerror(const char *fmt, ...)
 %type  <server> server
 %type  <string> port to folder xstrv strv replstrv retre replpathv val optval
 %type  <strings> domains domainslist headers headerslist accounts accountslist
-%type  <strings> maildirslist maildirs groupslist groups
+%type  <strings> pathslist maildirs mboxes groupslist groups
 %type  <users> users userslist
 %type  <userpass> userpass userpassnetrc
 %type  <uid> uid user
@@ -228,6 +228,8 @@ groupp: TOKGROUP
 /** MAILDIRP */
 maildirp: TOKMAILDIR
         | TOKMAILDIRS
+mboxp: TOKMBOX
+     | TOKMBOXES
 
 /** VAL: <string> (char *) */
 val: TOKVALUE strv
@@ -805,11 +807,11 @@ headerslist: headerslist replstrv
 	     }
 
 /** MAILDIRSLIST: <strings> (struct strings *) */
-maildirslist: maildirslist replpathv
+pathslist: pathslist replpathv
 /**           [$1: maildirslist (struct strings *)] [$2: replpathv (char *)] */
 	   {
 		   if (*$2 == '\0')
-			   yyerror("invalid maildir");
+			   yyerror("invalid path");
 
 		   $$ = $1;
 		   ARRAY_ADD($$, $2);
@@ -818,7 +820,7 @@ maildirslist: maildirslist replpathv
 /**        [$1: replpathv (char *)] */
 	   {
 		   if (*$1 == '\0')
-			   yyerror("invalid maildir");
+			   yyerror("invalid path");
 
 		   $$ = xmalloc(sizeof *$$);
 		   ARRAY_INIT($$);
@@ -830,17 +832,34 @@ maildirs: maildirp replpathv
 /**       [$2: replpathv (char *)] */
 	  {
 		  if (*$2 == '\0')
-			  yyerror("invalid maildir");
+			  yyerror("invalid path");
 
 		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2);
 	  }
-        | maildirp '{' maildirslist '}'
+        | maildirp '{' pathslist '}'
 /**       [$3: maildirslist (struct strings *)] */
 	  {
 		  $$ = weed_strings($3);
 	  }
+
+/** MAILDIRS: <strings> (struct strings *) */
+mboxes: mboxp replpathv
+/**       [$2: replpathv (char *)] */
+        {
+		if (*$2 == '\0')
+			yyerror("invalid path");
+		
+		$$ = xmalloc(sizeof *$$);
+		ARRAY_INIT($$);
+		ARRAY_ADD($$, $2);
+	}
+      | mboxp '{' pathslist '}'
+/**       [$3: mboxslist (struct strings *)] */
+	{
+		$$ = weed_strings($3);
+	}
 
 /** LOCK: <locks> (u_int) */
 lock: LCKFCNTL
@@ -2359,6 +2378,16 @@ fetchtype: poptype server userpassnetrc verify
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->maildirs = $1;
+	   }
+         | mboxes
+/**        [$1: mboxs (struct strings *)] */
+	   {
+		   struct fetch_mbox_data	*data;
+
+		   $$.fetch = &fetch_mbox;
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
+		   data->mboxes = $1;
 	   }
 	 | nntptype server groups TOKCACHE replpathv verify
 /**        [$1: nntptype (int)] [$2: server (struct { ... } server)] */
