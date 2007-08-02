@@ -61,8 +61,7 @@ int	imap_uid1(struct account *, struct fetch_ctx *);
 int	imap_uid2(struct account *, struct fetch_ctx *);
 int	imap_body(struct account *, struct fetch_ctx *);
 int	imap_line(struct account *, struct fetch_ctx *);
-int	imap_done1(struct account *, struct fetch_ctx *);
-int	imap_done2(struct account *, struct fetch_ctx *);
+int	imap_done(struct account *, struct fetch_ctx *);
 int	imap_delete(struct account *, struct fetch_ctx *);
 int	imap_expunge(struct account *, struct fetch_ctx *);
 int	imap_quit1(struct account *, struct fetch_ctx *);
@@ -808,6 +807,7 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	struct mail		*m = data->mail;
 	char			*line;
+	size_t			 used, size, left;
 
 	for (;;) {
 		if (imap_getln(a, IMAP_RAW, &line) != 0)
@@ -817,41 +817,48 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 
 		if (data->flushing)
 			continue;
+
+		/* Check if this line would exceed the expected size. */
+		used = m->size + data->lines;
+		size = strlen(line);
+		if (used + size + 2 > data->size)
+			break;
+
 		if (append_line(m, line) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}
 		data->lines++;
-		if (m->size + data->lines >= data->size)
-			break;
 	}
 
-	data->state = imap_done1;
-	return (FETCH_AGAIN);
-}
-
-/* Done state 1. */
-int
-imap_done1(struct account *a, unused struct fetch_ctx *fctx)
-{
-	struct fetch_imap_data	*data = a->data;
-	char			*line;
-
-	if (imap_getln(a, IMAP_RAW, &line) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-
-	if (strcmp(line, ")") != 0)
+	/*
+	 * Calculate the number of bytes still needed. The current line must
+	 * be those bytes plus a trailing close bracket.
+	 */
+	left = data->size - used;
+	if (size != left + 1 || line[left] != ')' || line[left + 1] != '\0')
 		return (imap_invalid(a, line));
 
-	data->state = imap_done2;
+	/* If there was data left, add it as a new line without trailing \n. */
+	if (left > 0) {
+		line[left] = '\0';
+		if (append_line(m, line) != 0) {
+			log_warn("%s: failed to resize mail", a->name);
+			return (FETCH_ERROR);
+		}	
+		data->lines++;
+
+		/* Wipe out the trailing \n. */
+		m->size--;
+	}
+
+	data->state = imap_done;
 	return (FETCH_AGAIN);
 }
 
-/* Done state 1. */
+/* Done state. */
 int
-imap_done2(struct account *a, struct fetch_ctx *fctx)
+imap_done(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	struct mail		*m = data->mail;
