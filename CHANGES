@@ -1,6 +1,8 @@
 01 August 2007
 
-* Use APOP for POP3 or CRAM-MD5 for IMAP if offered by server.
+* Use APOP for POP3 or CRAM-MD5 for IMAP if offered by server. Note that fdm
+  currently does NOT fall back to plaintext auth if the server offers APOP
+  or CRAM-MD5 but it doesn't work.
 * fdm 1.3c released.
 * Wrong size for match buffer in pcre.c. SF.net bug 1765524.
 * Try to buffer as much as possible when reading, this prevents problems since

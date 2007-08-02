@@ -414,8 +414,6 @@ imap_capability1(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 
 	data->capa = 0;
-	if (strstr(line, "AUTH=DIGEST-MD5") != NULL)
-		data->capa |= IMAP_CAPA_DIGEST_MD5;
 	if (strstr(line, "AUTH=CRAM-MD5") != NULL)
 		data->capa |= IMAP_CAPA_CRAM_MD5;
 
@@ -452,7 +450,7 @@ imap_capability2(struct account *a, unused struct fetch_ctx *fctx)
 	return (FETCH_BLOCK);
 }
 
-/* CRAM-MD5 auth. */
+/* CRAM-MD5 auth state. */
 int
 imap_cram_md5_auth(struct account *a, unused struct fetch_ctx *fctx)
 {
@@ -472,16 +470,18 @@ imap_cram_md5_auth(struct account *a, unused struct fetch_ctx *fctx)
 		ptr++;
 	if (*ptr == '\0')
 		return (imap_invalid(a, line));
-	b64 = imap_base64_decode(ptr);
 
+	b64 = imap_base64_decode(ptr);
 	HMAC(EVP_md5(),
 	    data->pass, strlen(data->pass), b64, strlen(b64), digest, &n);
+	xfree(b64);
+
 	for (i = 0; i < n; i++)
 		xsnprintf(out + i * 2, 3, "%02hhx", digest[i]);
 	xasprintf(&src, "%s %s", data->user, out);
 	b64 = imap_base64_encode(src);
 	xfree(src);
-	
+
 	if (imap_putln(a, "%s", b64) != 0) {
 		xfree(b64);
 		return (FETCH_ERROR);
