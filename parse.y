@@ -446,6 +446,11 @@ time: numv
 expire: TOKEXPIRE time
 /**     [$2: time (long long)] */
 	{
+#if UINT64_MAX < LLONG_MAX
+		if ($2 > UINT64_MAX)
+			yyerror("time too long");
+#endif
+
 		$$ = $2;
 	}
       | /* empty */

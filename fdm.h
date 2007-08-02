@@ -332,7 +332,7 @@ struct cache {
 	struct db	       *db;
 #endif
 	char		       *path;
-	long long		expire;
+	uint64_t		expire;
 
 	TAILQ_ENTRY(cache)	entry;
 };
