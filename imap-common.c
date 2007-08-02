@@ -17,8 +17,17 @@
  */
 
 #include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/nameser.h>
 
+#include <ctype.h>
+#include <resolv.h>
 #include <string.h>
+
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
 
 #include "fdm.h"
 #include "fetch.h"
@@ -31,10 +40,16 @@ int	imap_okay(char *);
 int	imap_parse(struct account *, int, char *);
 int	imap_tag(char *);
 
+char   *imap_base64_encode(char *);
+char   *imap_base64_decode(char *);
+
 int	imap_bad(struct account *, const char *);
 int	imap_invalid(struct account *, const char *);
 
 int	imap_connected(struct account *, struct fetch_ctx *);
+int	imap_capability1(struct account *, struct fetch_ctx *);
+int	imap_capability2(struct account *, struct fetch_ctx *);
+int	imap_cram_md5_auth(struct account *, struct fetch_ctx *);
 int	imap_login(struct account *, struct fetch_ctx *);
 int	imap_user(struct account *, struct fetch_ctx *);
 int	imap_pass(struct account *, struct fetch_ctx *);
@@ -171,6 +186,38 @@ imap_tag(char *line)
 		return (IMAP_TAG_ERROR);
 
 	return (tag);
+}
+
+/* Base64 encode string. */
+char *
+imap_base64_encode(char *in)
+{
+	char	*out;
+	size_t	 size;
+
+	size = (strlen(in) * 2) + 1;
+	out = xcalloc(1, size);
+	if (b64_ntop(in, strlen(in), out, size) < 0) {
+		xfree(out);
+		return (NULL);
+	}
+	return (out);
+}
+
+/* Base64 decode string. */
+char *
+imap_base64_decode(char *in)
+{
+	char	*out;
+	size_t	 size;
+
+	size = (strlen(in) * 4) + 1;
+	out = xcalloc(1, size);
+	if (b64_pton(in, out, size) < 0) {
+		xfree(out);
+		return (NULL);
+	}
+	return (out);
 }
 
 /* Set up on connect. */
@@ -348,10 +395,100 @@ imap_connected(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	}
 
+	if (imap_putln(a, "%u CAPABILITY", ++data->tag) != 0)
+		return (FETCH_ERROR);
+	data->state = imap_capability1;
+	return (FETCH_BLOCK);
+}
+
+/* Capability state 1. Parse capabilities and set flags. */
+int
+imap_capability1(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line;
+
+	if (imap_getln(a, IMAP_UNTAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	data->capa = 0;
+	if (strstr(line, "AUTH=DIGEST-MD5") != NULL)
+		data->capa |= IMAP_CAPA_DIGEST_MD5;
+	if (strstr(line, "AUTH=CRAM-MD5") != NULL)
+		data->capa |= IMAP_CAPA_CRAM_MD5;
+
+	data->state = imap_capability2;
+	return (FETCH_AGAIN);
+}
+
+/* Capability state 2. Check capabilities and choose login type. */
+int
+imap_capability2(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line;
+
+	if (imap_getln(a, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
+
+	if (data->capa & IMAP_CAPA_CRAM_MD5) {
+		if (imap_putln(a,
+		    "%u AUTHENTICATE CRAM-MD5", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		data->state = imap_cram_md5_auth;
+		return (FETCH_BLOCK);
+	}
+
 	if (imap_putln(a,
 	    "%u LOGIN {%zu}", ++data->tag, strlen(data->user)) != 0)
 		return (FETCH_ERROR);
 	data->state = imap_login;
+	return (FETCH_BLOCK);
+}
+
+/* CRAM-MD5 auth. */
+int
+imap_cram_md5_auth(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line, *ptr, *src, *b64;
+	char			 out[EVP_MAX_MD_SIZE * 2 + 1];
+	u_char			 digest[EVP_MAX_MD_SIZE];
+	u_int			 i, n;
+
+	if (imap_getln(a, IMAP_CONTINUE, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	ptr = line +  1;
+	while (isspace((u_char) *ptr))
+		ptr++;
+	if (*ptr == '\0')
+		return (imap_invalid(a, line));
+	b64 = imap_base64_decode(ptr);
+
+	HMAC(EVP_md5(),
+	    data->pass, strlen(data->pass), b64, strlen(b64), digest, &n);
+	for (i = 0; i < n; i++)
+		xsnprintf(out + i * 2, 3, "%02hhx", digest[i]);
+	xasprintf(&src, "%s %s", data->user, out);
+	b64 = imap_base64_encode(src);
+	xfree(src);
+	
+	if (imap_putln(a, "%s", b64) != 0) {
+		xfree(b64);
+		return (FETCH_ERROR);
+	}
+	xfree(b64);
+
+	data->state = imap_pass;
 	return (FETCH_BLOCK);
 }
 

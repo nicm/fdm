@@ -3,10 +3,10 @@
 .PHONY: clean
 
 PROG= fdm
-VERSION= 1.3c
+VERSION= 1.4
 DATE= $(shell date +%Y%m%d-%H%M)
 
-#DEBUG= 1
+DEBUG= 1
 
 PREFIX?= /usr/local
 
@@ -56,6 +56,7 @@ SRCS+= compat/strlcpy.c compat/strlcat.c compat/strtonum.c
 DEFS+= $(shell getconf LFS_CFLAGS) -D_GNU_SOURCE -DWITH_MREMAP \
        -DNO_STRLCPY -DNO_STRLCAT -DNO_STRTONUM -DNO_SETPROCTITLE \
        -DNO_QUEUE_H -DNO_TREE_H
+LIBS+= -lresolv
 # Required for LLONG_MAX and friends
 CFLAGS+= -std=c99
 endif

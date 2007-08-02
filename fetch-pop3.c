@@ -24,6 +24,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <openssl/md5.h>
+
 #include "fdm.h"
 #include "fetch.h"
 
@@ -281,13 +283,33 @@ int
 fetch_pop3_connected(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
-	char			*line;
+	char			*line, *ptr, *src;
+	char			 out[MD5_DIGEST_LENGTH * 2 + 1];
+	u_char			 digest[MD5_DIGEST_LENGTH];
+	u_int			 i;
 
 	line = io_readline2(data->io, &data->lbuf, &data->llen);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 	if (!fetch_pop3_okay(line))
 		return (fetch_pop3_bad(a, line));
+
+	if ((line = strchr(line, '<')) != NULL) {
+		if ((ptr = strchr(line + 1, '>')) != NULL) {
+			*++ptr = '\0';
+
+			xasprintf(&src, "%s%s", line, data->pass);
+			MD5(src, strlen(src), digest);
+			xfree(src);
+			
+			for (i = 0; i < MD5_DIGEST_LENGTH; i++)
+				xsnprintf(out + i * 2, 3, "%02hhx", digest[i]);
+
+			io_writeline(data->io, "APOP %s %s", data->user, out);
+			data->state = fetch_pop3_stat;
+			return (FETCH_BLOCK);
+		}
+	}
 
 	io_writeline(data->io, "USER %s", data->user);
 	data->state = fetch_pop3_user;

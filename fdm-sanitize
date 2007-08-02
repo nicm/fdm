@@ -48,6 +48,12 @@ BEGIN {
 	next;
 }
 
+/> APOP .+/ {
+	print ("> APOP * *");
+	fflush();
+	next;
+}
+
 /> USER .+/ {
 	print ("> USER *");
 	fflush();

@@ -160,6 +160,10 @@ struct fetch_pop3_mail {
 #define IMAP_UNTAGGED 2
 #define IMAP_RAW 3
 
+/* IMAP capabilities. */
+#define IMAP_CAPA_DIGEST_MD5 0x1
+#define IMAP_CAPA_CRAM_MD5 0x2
+
 /* Fetch imap data. */
 struct fetch_imap_data {
 	char		*user;
@@ -168,6 +172,7 @@ struct fetch_imap_data {
 	struct server	 server;
 	char		*pipecmd;
 
+	int		 capa;
 	int		 tag;
 	u_int		 cur;
 	u_int		 num;
