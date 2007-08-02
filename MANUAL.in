@@ -1057,7 +1057,7 @@ This is particularly useful in combination with nested rules (see later):
 bracket expressions in a regexp on the outer rule may be compared on inner
 rules.
 
-Note that %0 to %9 are used only for 'regexp' rules. Regexps are part of
+Note that %0 to %9 are used only for 'regexp' rules. Regexps that are part of
 'command' rules use the 'command0' to 'command9' tags.
 
 %%% Matching by age or size
@@ -1227,6 +1227,10 @@ using the set command:
 
 	set <option> [<value>]
 
+In addition to the options below, some environment variables may be used to
+control fdm. If TMPDIR is present, its value will be used instead of /tmp for
+saving temporary files.
+
 The possible options are:
 
 - maximum-size <size>
@@ -1271,8 +1275,7 @@ option.
 
 - lock-file <path>
 
-This option specifies string which should be the path of the file to use as the
-lock file. For example:
+This option specifies a string to use as the path of the lock file. For example:
 
 	set lock-file "/tmp/my-lock-file"
 
@@ -1358,10 +1361,6 @@ does not attempt to set the group of new files and directories.
 
 This controls the maximum time to wait for a server to send data before closing
 a connection. The default is 900 seconds.
-
-In addition to these options, some environment variables may be used to control
-fdm. If TMPDIR is present, its value will be used instead of /tmp for saving
-temporary files.
 
 - verify-certificates
 

@@ -166,7 +166,7 @@ invalid:
 int
 imap_tag(char *line)
 {
-	long	 	 tag;
+	int	 	 tag;
 	const char	*errstr;
 	char		*ptr;
 
