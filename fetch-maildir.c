@@ -348,7 +348,7 @@ restart:
 	m->shm.fd = -1;
 
 	/* Open the mail. */
-	if (mail_open(m, IO_ROUND(sb.st_size)) != 0) {
+	if (mail_open(m, sb.st_size) != 0) {
 		log_warn("%s: failed to create mail", a->name);
 		mail_destroy(m);
 		return (FETCH_ERROR);

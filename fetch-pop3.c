@@ -578,7 +578,7 @@ fetch_pop3_retr(struct account *a, unused struct fetch_ctx *fctx)
 		return (fetch_pop3_bad(a, line));
 
 	/* Open the mail. */
-	if (mail_open(m, IO_ROUND(data->size)) != 0) {
+	if (mail_open(m, data->size) != 0) {
 		log_warn("%s: failed to create mail", a->name);
 		return (FETCH_ERROR);
 	}
