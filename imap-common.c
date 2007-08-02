@@ -415,7 +415,7 @@ imap_capability1(struct account *a, unused struct fetch_ctx *fctx)
 
 	data->capa = 0;
 	if (strstr(line, "AUTH=CRAM-MD5") != NULL)
-		data->capa |= IMAP_CAPA_CRAM_MD5;
+		data->capa |= IMAP_CAPA_AUTH_CRAM_MD5;
 
 	data->state = imap_capability2;
 	return (FETCH_AGAIN);
@@ -435,7 +435,7 @@ imap_capability2(struct account *a, unused struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	if (data->capa & IMAP_CAPA_CRAM_MD5) {
+	if (data->capa & IMAP_CAPA_AUTH_CRAM_MD5) {
 		if (imap_putln(a,
 		    "%u AUTHENTICATE CRAM-MD5", ++data->tag) != 0)
 			return (FETCH_ERROR);
