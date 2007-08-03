@@ -37,7 +37,6 @@ int	 deliver_mbox_deliver(struct deliver_ctx *, struct actitem *);
 void	 deliver_mbox_desc(struct actitem *, char *, size_t);
 
 int	 deliver_mbox_write(FILE *, gzFile, const void *, size_t);
-int	 deliver_mbox_sleep(struct account *, const char *, long long *);
 
 struct deliver deliver_mbox = {
 	"mbox",
@@ -62,27 +61,6 @@ deliver_mbox_write(FILE *f, gzFile gzf, const void *buf, size_t len)
 	}
 
 	return (0);
-}
-
-int
-deliver_mbox_sleep(struct account *a, const char *path, long long *used)
-{
-	useconds_t	us;
-
-	if (*used == 0)
-		srandom((u_int) getpid());
-
-	us = LOCKSLEEPTIME + (random() % LOCKSLEEPTIME);
-	log_debug3("%s: %s: "
-	    "sleeping %.3f seconds for lock", a->name, path, us / 1000000.0);
-	usleep(us);
-
-	*used += us;
-	if (*used < LOCKTOTALTIME)
-		return (0);
-	log_warnx("%s: %s: couldn't"
-	    " get lock in %.3f seconds", a->name, path, *used / 1000000.0);
-	return (-1);
 }
 
 int
@@ -143,7 +121,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			fd = openlock(path, O_WRONLY|O_APPEND, conf.lock_types);
 		if (fd == -1) {
 			if (errno == EAGAIN) {
-				if (deliver_mbox_sleep(a, path, &used) != 0)
+				if (locksleep(a->name, path, &used) != 0)
 					goto error;
 				continue;
 			}

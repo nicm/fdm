@@ -922,6 +922,7 @@ int		 vmkpath(char *, size_t, const char *, va_list);
 int 		 openlock(const char *, int, u_int);
 int 		 createlock(const char *, int, uid_t, gid_t, mode_t, u_int);
 void 		 closelock(int, const char *, u_int);
+int		 locksleep(const char *, const char *, long long *);
 int 		 xcreate(const char *, int, uid_t, gid_t, mode_t);
 int		 xmkdir(const char *, uid_t, gid_t, mode_t);
 const char 	*checkmode(struct stat *, mode_t);

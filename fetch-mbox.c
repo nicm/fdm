@@ -18,8 +18,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
@@ -143,6 +143,9 @@ fetch_mbox_connect(struct account *a)
 		return (-1);
 	}
 
+	data->fd = -1;
+	data->base = NULL;
+
 	data->state = fetch_mbox_open;
 	return (0);
 }
@@ -162,9 +165,12 @@ fetch_mbox_disconnect(struct account *a, unused int aborted)
 {
 	struct fetch_mbox_data	*data = a->data;
 
-	fetch_mbox_freepaths(a);
+	if (data->base != NULL)
+		munmap(data->base, data->size);
+	if (data->fd != -1)
+		closelock(data->fd, data->path, conf.lock_types);
 
-	/* XXX */
+	fetch_mbox_freepaths(a);
 
 	return (0);
 }
@@ -221,14 +227,64 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_mbox_data	*data = a->data;
 	char			*path;
+	struct stat	         sb;
+	uintmax_t		 size;
+	long long		 used;
 
 	data->path = ARRAY_ITEM(data->paths, data->index);
 
 	log_debug2("%s: trying path: %s", a->name, data->path);
-	/* XXX */
+	if (stat(data->path, &sb) != 0)
+		goto error;
+	if (S_ISDIR(sb.st_mode)) {
+		errno = EISDIR;
+		goto error;
+	}
+	if (sb.st_size < 5) {
+		log_warnx("%s: %s: mbox too small", a->name, data->path);
+		return (FETCH_ERROR);
+	}
+	size = sb.st_size;
+	if (size > SIZE_MAX) {
+		log_warnx("%s: %s: mbox too big", a->name, data->path);
+		return (FETCH_ERROR);
+	}
+	data->size = size;
+	
+	log_debug3("%s: opening mbox, size %ju", a->name, size);
+	used = 0;
+	do {
+		data->fd = openlock(data->path, O_RDWR, conf.lock_types);
+		if (data->fd == -1) {
+			if (errno == EAGAIN) {
+				if (locksleep(a->name, data->path, &used) != 0)
+					return (FETCH_ERROR);
+				continue;
+			}
+			goto error;
+		}
+	} while (data->fd < 0);
+		
+	/* mmap the file. */
+	data->base = mmap(
+	    NULL, data->size, PROT_READ|PROT_WRITE, MAP_SHARED, data->fd, 0);
+	if (data->base == MAP_FAILED) {
+		close(data->fd);
+		goto error;
+	}
+
+	if (strncmp(data->base, "From ", 5) != 0) {
+		close(data->fd);
+		log_warnx("%s: %s: not an mbox", a->name, data->path);
+		return (FETCH_ERROR);
+	}
 
 	data->state = fetch_mbox_mail;
 	return (FETCH_AGAIN);
+
+error:
+	log_warn("%s: %s", a->name, data->path);
+	return (FETCH_ERROR);
 }
 
 /* Mail state. Find and read mail file. */
@@ -240,6 +296,10 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 	struct mail			*m;
 	
 	/* XXX */
+	munmap(data->base, data->size);
+	data->base = NULL;
+	closelock(data->fd, data->path, conf.lock_types);
+	data->fd = -1;
 
 	data->state = fetch_mbox_next;
 	return (FETCH_AGAIN);

@@ -154,6 +154,28 @@ error:
 	return (-1);
 }
 
+/* Sleep for lock. */
+int
+locksleep(const char *hdr, const char *path, long long *used)
+{
+	useconds_t	us;
+
+	if (*used == 0)
+		srandom((u_int) getpid());
+
+	us = LOCKSLEEPTIME + (random() % LOCKSLEEPTIME);
+	log_debug3("%s: %s: "
+	    "sleeping %.3f seconds for lock", hdr, path, us / 1000000.0);
+	usleep(us);
+
+	*used += us;
+	if (*used < LOCKTOTALTIME)
+		return (0);
+	log_warnx("%s: %s: "
+	    "couldn't get lock in %.3f seconds", hdr, path, *used / 1000000.0);
+	return (-1);
+}
+
 /* Create a locked file. */
 int
 createlock(
