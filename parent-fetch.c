@@ -50,7 +50,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 			fatalx("bad tags");
 		m = xcalloc(1, sizeof *m);
 		if (mail_receive(m, msg, 0) != 0) {
-			log_warn("can't receive mail");
+			log_warn("parent: can't receive mail");
 			parent_fetch_error(child, msg);
 			break;
 		}
@@ -67,7 +67,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 			fatalx("bad tags");
 		m = xcalloc(1, sizeof *m);
 		if (mail_receive(m, msg, 0) != 0) {
-			log_warn("can't receive mail");
+			log_warn("parent: can't receive mail");
 			parent_fetch_error(child, msg);
 			break;
 		}

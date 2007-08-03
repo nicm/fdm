@@ -42,6 +42,7 @@ void	fetch_mbox_free(void *);
 
 int	fetch_mbox_make(struct account *);
 int	fetch_mbox_commit(struct account *, struct fetch_mbox_mbox *);
+void	fetch_mbox_dequeue(struct account *, struct fetch_ctx *);
 
 int	fetch_mbox_next(struct account *, struct fetch_ctx *);
 int	fetch_mbox_open(struct account *, struct fetch_ctx *);
@@ -98,6 +99,8 @@ fetch_mbox_make(struct account *a)
 		for (j = 0; j < (u_int) g.gl_pathc; j++) {
 			fmbox = xcalloc(1, sizeof *fmbox);
 			fmbox->path = xstrdup(g.gl_pathv[j]);
+			fmbox->fd = -1;
+			fmbox->base = NULL;
 			ARRAY_ADD(&data->fmboxes, fmbox);
 		}
 	}
@@ -289,18 +292,9 @@ error:
 	return (-1);
 }
 
-/* Fetch mail. */
-int
-fetch_mbox_fetch(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_mbox_data	*data = a->data;
-
-	return (data->state(a, fctx));
-}
-
-/* Next state. Move to next mbox. */
-int
-fetch_mbox_next(struct account *a, struct fetch_ctx *fctx)
+/* Handle done queue. */
+void
+fetch_mbox_dequeue(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_mbox_data	*data = a->data;
 	struct fetch_mbox_mail	*aux;
@@ -321,6 +315,24 @@ fetch_mbox_next(struct account *a, struct fetch_ctx *fctx)
 		}
 		dequeue_mail(a, fctx);
 	}
+}
+
+/* Fetch mail. */
+int
+fetch_mbox_fetch(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_mbox_data	*data = a->data;
+
+	return (data->state(a, fctx));
+}
+
+/* Next state. Move to next mbox. */
+int
+fetch_mbox_next(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_mbox_data	*data = a->data;
+
+	fetch_mbox_dequeue(a, fctx);
 
 	if (!fetch_mbox_completed(a))
 		data->index++;
@@ -343,8 +355,6 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 	long long		 used;
 
 	fmbox = ARRAY_ITEM(&data->fmboxes, data->index);
-	fmbox->fd = -1;
-	fmbox->base = NULL;
 
 	log_debug2("%s: trying path: %s", a->name, fmbox->path);
 	if (stat(fmbox->path, &sb) != 0)
@@ -385,8 +395,10 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 	/* mmap the file. */
 	fmbox->base = mmap(
 	    NULL, fmbox->size, PROT_READ|PROT_WRITE, MAP_SHARED, fmbox->fd, 0);
-	if (fmbox->base == MAP_FAILED)
+	if (fmbox->base == MAP_FAILED) {
+		fmbox->base = NULL;
 		goto error;
+	}
 	data->off = 0;
 
 	ptr = memchr(fmbox->base, '\n', fmbox->size);
@@ -399,10 +411,14 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 
 error:
-	if (fmbox->base != NULL)
+	if (fmbox->base != NULL) {
 		munmap(fmbox->base, fmbox->size);
-	if (fmbox->fd != -1)
+		fmbox->base = NULL;
+	}
+	if (fmbox->fd != -1) {
 		closelock(fmbox->fd, fmbox->path, conf.lock_types);
+		fmbox->fd = -1;
+	}
 	log_warn("%s: %s", a->name, fmbox->path);
 	return (FETCH_ERROR);
 }
@@ -417,6 +433,12 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 	struct mail			*m;
 	char				*line, *ptr;
 	int				 flushing;
+
+	/* 
+	 * Dequeue mail, if not done here likely to run out of file handles
+	 * before opening the next mbox.
+	 */	   
+	fetch_mbox_dequeue(a, fctx);
 
 	/* Find current mbox and check for EOF. */
 	fmbox = ARRAY_ITEM(&data->fmboxes, data->index);

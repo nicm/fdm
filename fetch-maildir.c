@@ -42,6 +42,7 @@ void	fetch_maildir_free(void *);
 
 int	fetch_maildir_makepaths(struct account *);
 void	fetch_maildir_freepaths(struct account *);
+int	fetch_maildir_dequeue(struct account *, struct fetch_ctx *);
 
 int	fetch_maildir_next(struct account *, struct fetch_ctx *);
 int	fetch_maildir_open(struct account *, struct fetch_ctx *);
@@ -137,6 +138,26 @@ fetch_maildir_freepaths(struct account *a)
 		xfree(ARRAY_ITEM(data->paths, i));
 
 	ARRAY_FREEALL(data->paths);
+}
+
+/* Handle done queue. */
+int
+fetch_maildir_dequeue(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_maildir_mail	*aux;
+	struct mail			*m;
+
+	/* Delete mail if any. */
+	while ((m = done_mail(a, fctx)) != NULL) {
+		aux = m->auxdata;
+		if (m->decision == DECISION_DROP && unlink(aux->path) != 0) {
+			log_warn("%s: %s: unlink", a->name, aux->path);
+			return (-1);
+		}
+		dequeue_mail(a, fctx);
+	}
+
+	return (0);
 }
 
 /* Build path list and set initial state. */
@@ -253,18 +274,9 @@ int
 fetch_maildir_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_maildir_data	*data = a->data;
-	struct fetch_maildir_mail	*aux;
-	struct mail			*m;
 
-	/* Delete mail if any. XXX I've forgotten: why here too? */
-	while ((m = done_mail(a, fctx)) != NULL) {
-		aux = m->auxdata;
-		if (m->decision == DECISION_DROP && unlink(aux->path) != 0) {
-			log_warn("%s: %s: unlink", a->name, aux->path);
-			return (FETCH_ERROR);
-		}
-		dequeue_mail(a, fctx);
-	}
+	if (fetch_maildir_dequeue(a, fctx) != 0)
+		return (FETCH_ERROR);
 
 	if (!fetch_maildir_completed(a))
 		data->index++;
@@ -308,15 +320,8 @@ fetch_maildir_mail(struct account *a, struct fetch_ctx *fctx)
 	int				 fd;
 	ssize_t				 n;
 
-	/* Delete mail if any. */
-	while ((m = done_mail(a, fctx)) != NULL) {
-		aux = m->auxdata;
-		if (m->decision == DECISION_DROP && unlink(aux->path) != 0) {
-			log_warn("%s: %s: unlink", a->name, aux->path);
-			return (FETCH_ERROR);
-		}
-		dequeue_mail(a, fctx);
-	}
+	if (fetch_maildir_dequeue(a, fctx) != 0)
+		return (FETCH_ERROR);
 
 restart:
 	/* Read the next dir entry. */
