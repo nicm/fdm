@@ -80,24 +80,31 @@ struct fetch_maildir_mail {
 struct fetch_mbox_data {
 	struct strings	*mboxes;
 
-	struct strings	*paths;
+	ARRAY_DECL(, struct fetch_mbox_mbox *) fmboxes;
 	u_int		 index;
 
 	int 	         (*state)(struct account *, struct fetch_ctx *);
 	
-	int		 fd;
-	char		*path;
-
-	void		*base;
-	size_t		 size;
 	size_t		 off;
 
 	TAILQ_HEAD(, fetch_mbox_mail) kept;
 };
 
+struct fetch_mbox_mbox {
+	char	        *path;
+	u_int		 reference;
+	u_int		 total;
+
+	int		 fd;
+	char		*base;
+	size_t		 size;
+};
+
 struct fetch_mbox_mail {
  	size_t		 off;
 	size_t		 size;
+
+	struct fetch_mbox_mbox *fmbox;
 
 	TAILQ_ENTRY(fetch_mbox_mail) entry;
 };

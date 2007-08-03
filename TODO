@@ -2,7 +2,6 @@
 - auth on http proxying
 - http (hotmail) fetching
 - redo chrooting properly (resolver needs to be in parent)
-- fetch from mbox
 - finish regression tests
 	rules
 	% tokens
@@ -27,3 +26,4 @@
   consistent in some way (closed=1, success=0, error=-1)
 - weed is not doing its jobs, check domains
 - better website
+- document mbox fetch

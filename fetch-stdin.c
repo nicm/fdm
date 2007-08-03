@@ -149,7 +149,7 @@ fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_ERROR);
 		}
 
-		if (append_line(m, line) != 0) {
+		if (append_line(m, line, strlen(line)) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}

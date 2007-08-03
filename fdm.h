@@ -943,7 +943,7 @@ int		 remove_header(struct mail *, const char *);
 char		*find_header(struct mail *, const char *, size_t *, int);
 size_t		 find_body(struct mail *);
 void		 count_lines(struct mail *, u_int *, u_int *);
-int		 append_line(struct mail *, char *);
+int		 append_line(struct mail *, const char *, size_t);
 struct users	*find_users(struct mail *);
 char		*find_address(char *, size_t, size_t *);
 void		 trim_from(struct mail *);

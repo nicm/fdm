@@ -824,7 +824,7 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 		if (used + size + 2 > data->size)
 			break;
 
-		if (append_line(m, line) != 0) {
+		if (append_line(m, line, size) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}
@@ -841,8 +841,7 @@ imap_line(struct account *a, unused struct fetch_ctx *fctx)
 
 	/* If there was data left, add it as a new line without trailing \n. */
 	if (left > 0) {
-		line[left] = '\0';
-		if (append_line(m, line) != 0) {
+		if (append_line(m, line, left) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
 		}	

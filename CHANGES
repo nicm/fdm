@@ -1,3 +1,7 @@
+03 August 2007
+
+* Fetching from mboxes.
+
 02 August 2007
 
 * Handle IMAP mails properly if they have no trailing newline.

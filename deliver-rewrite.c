@@ -92,7 +92,7 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			continue;
 		log_debug3("%s: %s: out: %s", a->name, s, out);
 
-		if (append_line(md, out) != 0) {
+		if (append_line(md, out, strlen(out)) != 0) {
 			log_warnx("%s: %s: failed to resize mail", s, a->name);
 			goto error;
 		}

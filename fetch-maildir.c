@@ -353,7 +353,6 @@ restart:
 		mail_destroy(m);
 		return (FETCH_ERROR);
 	}
-	m->size = 0;
 
 	/* Got a valid entry, start reading it. */
 	log_debug2("%s: reading mail from: %s", a->name, name);
