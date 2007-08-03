@@ -118,6 +118,8 @@ fetch_maildir_makepaths(struct account *a)
 				goto error;
 			}
 		}
+
+		globfree(&g);
 	}
 
 	return (0);

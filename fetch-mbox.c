@@ -103,6 +103,8 @@ fetch_mbox_make(struct account *a)
 			fmbox->base = NULL;
 			ARRAY_ADD(&data->fmboxes, fmbox);
 		}
+
+		globfree(&g);
 	}
 
 	return (0);
@@ -431,7 +433,8 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_mbox_mbox		*fmbox;
 	struct fetch_mbox_mail		*aux;
 	struct mail			*m;
-	char				*line, *ptr;
+	char				*line, *ptr, *lptr;
+	size_t				 llen;
 	int				 flushing;
 
 	/* 
@@ -489,17 +492,26 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 		} else
 			data->off += ptr - line + 1;
 		
-		if (*line == '\n') {
-			/* Empty line. Check if the next is "From ". */
-			if (fmbox->size - data->off >= 5 &&
-			    strncmp(line + 1, "From ", 5) == 0) {
-				/* End of mail. */
-				aux->size = data->off - aux->off - 1;
-				break;
-			}
+		/* Check if the line is "From ". */
+		if (line > fmbox->base &&
+		    ptr - line >= 5 && strncmp(line, "From ", 5) == 0) {
+			/* End of mail. */
+			aux->size = (line - fmbox->base) - aux->off;
+			break;
 		}
 
-		/* XXX Trim >s from From */
+		/* Trim >s from From. */
+		if (*line == '>') {
+			lptr = line;
+			llen = ptr - line;
+			while (*lptr == '>' && llen > 0) {
+				lptr++;
+				llen--;
+			}
+			
+			if (llen >= 5 && strncmp(lptr, "From ", 5) == 0)
+				line++;
+		}
 
 		if (flushing)
 			continue;
@@ -512,6 +524,17 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 			flushing = 1;
 	}
 	fmbox->total++;
+
+	/*
+	 * Check if there was a blank line between the mails and remove it if
+	 * so.
+	 */
+	if (aux->size >= 2 &&
+	    fmbox->base[aux->off + aux->size - 1] == '\n' &&
+	    fmbox->base[aux->off + aux->size - 2] == '\n') {
+		aux->size -= 2;
+		m->size -= 2;
+	}
 	
 	/* Tag mail. */
 	default_tags(&m->tags, NULL);
