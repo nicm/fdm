@@ -16,8 +16,6 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef DB
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -29,38 +27,31 @@
 
 int	db_item(TDB_CONTEXT *, TDB_DATA, TDB_DATA, void *);
 
-struct db *
+TDB_CONTEXT *
 db_open(char *path)
 {
-	struct db	*db;
-	TDB_CONTEXT	*tdb;
+	TDB_CONTEXT	*db;
 
 #ifndef DB_UNSAFE
-	tdb = tdb_open(path, 0, 0, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
+	db = tdb_open(path, 0, 0, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
 #else
-	tdb = tdb_open(path, 0, TDB_NOLOCK, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
+	db = tdb_open(path, 0, TDB_NOLOCK, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
 #endif
-	if (tdb == NULL)
-		return (NULL);
-
-	db = xcalloc(1, sizeof *db);
-	db->tdb = tdb;
 	return (db);
 }
 
 void
-db_close(struct db *db)
+db_close(TDB_CONTEXT *db)
 {
-	tdb_close(db->tdb);
-	xfree(db);
+	tdb_close(db);
 }
 
 int
-db_add(struct db *db, char *k)
+db_add(TDB_CONTEXT *db, char *k)
 {
-	TDB_DATA	key, value;
-	struct dbitem	v;
-	uint64_t	tim;
+	TDB_DATA		key, value;
+	struct cacheitem	v;
+	uint64_t		tim;
 
 	memset(&v, 0, sizeof v);
 	tim = time(NULL);
@@ -72,31 +63,31 @@ db_add(struct db *db, char *k)
 	value.dptr = (char *) &v;
 	value.dsize = sizeof v;
 
-	return (tdb_store(db->tdb, key, value, TDB_REPLACE));
+	return (tdb_store(db, key, value, TDB_REPLACE));
 }
 
 int
-db_contains(struct db *db, char *k)
+db_contains(TDB_CONTEXT *db, char *k)
 {
 	TDB_DATA	key;
 
 	key.dptr = k;
 	key.dsize = strlen(k);
 
-	return (tdb_exists(db->tdb, key));
+	return (tdb_exists(db, key));
 }
 
 int
-db_size(struct db *db)
+db_size(TDB_CONTEXT *db)
 {
-	return (tdb_traverse(db->tdb, NULL, NULL));
+	return (tdb_traverse(db, NULL, NULL));
 }
 
 int
 db_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
 {
-	uint64_t	*lim = ptr;
-	struct dbitem	 v;
+	uint64_t	       *lim = ptr;
+	struct cacheitem	v;
 
  	if (value.dsize != sizeof v)
 		return (-1);
@@ -108,7 +99,7 @@ db_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
 }
 
 int
-db_expire(struct db *db, uint64_t age)
+db_expire(TDB_CONTEXT *db, uint64_t age)
 {
 	uint64_t	lim;
 
@@ -117,9 +108,7 @@ db_expire(struct db *db, uint64_t age)
 		return (0);
 	lim -= age;
 
-	if (tdb_traverse(db->tdb, db_item, &lim) == -1)
+	if (tdb_traverse(db, db_item, &lim) == -1)
 		return (-1);
 	return (0);
 }
-
-#endif /* DB */

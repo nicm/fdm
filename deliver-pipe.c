@@ -66,9 +66,7 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 	s = replacepath(&data->cmd, m->tags, m, &m->rml);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
-		if (s != NULL)
-			xfree(s);
-                return (DELIVER_FAILURE);
+		goto error;
         }
 
 	if (pipef)
@@ -80,11 +78,8 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 		cmd = cmd_start(s, CMD_IN|CMD_ONCE, m->data, m->size, &cause);
 	} else
 		cmd = cmd_start(s, 0, NULL, 0, &cause);
-	if (cmd == NULL) {
-		log_warnx("%s: %s: %s", a->name, s, cause);
-		xfree(cause);
-		goto error;
-	}
+	if (cmd == NULL)
+		goto error_cause;
 	log_debug3("%s: %s: started", a->name, s);
 
 	llen = IO_LINESIZE;
@@ -94,10 +89,8 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 		status = cmd_poll(
 		    cmd, NULL, &err, &lbuf, &llen, conf.timeout, &cause);
 		if (status == -1) {
-			log_warnx("%s: %s: %s", a->name, s, cause);
-			xfree(cause);
 			xfree(lbuf);
-			goto error;
+			goto error_cause;
 		}
        		if (status == 0 && err != NULL)
 				log_warnx("%s: %s: %s", a->name, s, err);
@@ -115,8 +108,14 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 	xfree(s);
 	return (DELIVER_SUCCESS);
 
+error_cause:
+	log_warnx("%s: %s: %s", a->name, s, cause);
+	xfree(cause);
+
 error:
-	cmd_free(cmd);
-	xfree(s);
+	if (cmd != NULL)
+		cmd_free(cmd);
+	if (s != NULL)
+		xfree(s);
 	return (DELIVER_FAILURE);
 }

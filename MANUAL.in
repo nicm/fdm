@@ -71,7 +71,11 @@ privilege separation to minimise the amount of code running as the root user.
 
 ### Installation
 
-Installing fdm is simple. Download the source tarball, and run:
+fdm depends on the Trivial Database library (TDB), available at:
+
+	http://sourceforge.net/projects/tdb/
+
+Ensure it is installed, then download the source tarball and build fdm with:
 
 	$ tar -zxvf fdm-?.?.tar.gz
 	$ cd fdm-?.?
@@ -1176,15 +1180,7 @@ matching bracket expressions):
 
 fdm has builtin support for maintaining a cache of string keys, including
 appending to a cache, checking if a key is present in a cache, and expiring
-keys from a cache once they reach a certain age. This feature requires the
-Trivial Database library (TDB, http://sourceforge.net/projects/tdb/) and for
-fdm to be built with:
-
-	$ make -DDB
-
-or if using GNU make:
-
-	$ make DB=1
+keys from a cache once they reach a certain age.
 
 These caches should not be confused with the NNTP cache file. Key caches are
 referenced by filename and must be declared before use:

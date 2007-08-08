@@ -77,19 +77,12 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
-ifdef DB
-DEFS+= -DDB
-LIBS+= -ltdb
-ifdef DB_UNSAFE
-DEFS+= -DDB_UNSAFE
-endif
-endif
 ifdef PCRE
 DEFS+= -DPCRE
 LIBS+= -lpcre
 endif
 
-LIBS+= -lssl -lz
+LIBS+= -lssl -ltdb -lz
 
 CLEANFILES= $(PROG) y.tab.c y.tab.h $(OBJS) .depend
 

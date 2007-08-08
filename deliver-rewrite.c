@@ -48,16 +48,14 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct mail			*md = &dctx->wr_mail;
         char				*s, *cause, *out, *err;
 	int	 			 status;
-	struct cmd			*cmd;
+	struct cmd			*cmd = NULL;
 	char				*lbuf;
 	size_t				 llen;
 
 	s = replacepath(&data->cmd, m->tags, m, &m->rml);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
-		if (s != NULL)
-			xfree(s);
-                return (DELIVER_FAILURE);
+		goto error;
         }
 
 	log_debug2("%s: rewriting using \"%s\"", a->name, s);
@@ -65,11 +63,8 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	md->size = 0;
 
 	cmd = cmd_start(s, CMD_IN|CMD_OUT|CMD_ONCE, m->data, m->size, &cause);
-	if (cmd == NULL) {
-		log_warnx("%s: %s: %s", a->name, s, cause);
-		xfree(cause);
-		goto error;
-	}
+	if (cmd == NULL)
+		goto error_cause;
 	log_debug3("%s: %s: started", a->name, s);
 
 	llen = IO_LINESIZE;
@@ -79,10 +74,8 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		status = cmd_poll(
 		    cmd, &out, &err, &lbuf, &llen, conf.timeout, &cause);
 		if (status == -1) {
-			log_warnx("%s: %s: %s", a->name, s, cause);
-			xfree(cause);
 			xfree(lbuf);
-			goto error;
+			goto error_cause;
 		}
 		if (status != 0)
 			continue;
@@ -120,9 +113,15 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	xfree(s);
 	return (DELIVER_SUCCESS);
 
+error_cause:
+	log_warnx("%s: %s: %s", a->name, s, cause);
+	xfree(cause);
+	
 error:
-	cmd_free(cmd);
-	xfree(s);
+	if (cmd != NULL)
+		cmd_free(cmd);
+	if (s != NULL)
+		xfree(s);
 	return (DELIVER_FAILURE);
 }
 

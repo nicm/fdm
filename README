@@ -4,6 +4,8 @@ local mail from stdin, and deliver it in various ways.
 As of fdm 0.9, the caching has been changed, so Berkeley DB is no longer
 required.
 
+As of fdm 1.4, TDB is a required dependency.
+
 See the included MANUAL file and the fdm(1) and fdm.conf(5) man pages for
 installation and usage instructions. They are online at:
 

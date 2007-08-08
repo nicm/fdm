@@ -464,9 +464,6 @@ expire: TOKEXPIRE time
 cache: TOKCACHE replpathv expire
 /**    [$2: replpathv (char *)] [$3: expire (long long)] */
        {
-#ifndef DB
-	       yyerror("caches not compiled in");
-#else
 	       struct cache	*cache;
 
 	       TAILQ_FOREACH(cache, &conf.caches, entry) {
@@ -481,7 +478,6 @@ cache: TOKCACHE replpathv expire
 	       TAILQ_INSERT_TAIL(&conf.caches, cache, entry);
 
 	       log_debug2("added cache \"%s\": expire %lld", cache->path, $3);
-#endif /* DB */
        }
 
 /** SET */
@@ -1320,9 +1316,6 @@ actitem: TOKPIPE strv
        | TOKTOCACHE replpathv TOKKEY strv
 /**      [$2: replpathv (char *)] [$4: strv (char *)] */
 	 {
-#ifndef DB
-		 yyerror("caches not compiled in");
-#else
 		 struct deliver_to_cache_data	*data;
 
 		 if (*$2 == '\0')
@@ -1338,7 +1331,6 @@ actitem: TOKPIPE strv
 
 		 data->key.str = $4;
 		 data->path = $2;
-#endif /* DB */
 	 }
        | actions
 /**      [$1: actions (struct replstrs *)] */
@@ -1757,9 +1749,6 @@ expritem: not icase replstrv area
 	| not TOKINCACHE replpathv TOKKEY strv
 /**       [$1: not (int)] [$3: replpathv (char *)] [$5: strv (char *)] */
 	  {
-#ifndef DB
-		  yyerror("caches not compiled in");
-#else
 		  struct match_in_cache_data	*data;
 
 		  if (*$3 == '\0')
@@ -1777,7 +1766,6 @@ expritem: not icase replstrv area
 
 		  data->key.str = $5;
 		  data->path = $3;
-#endif /* DB */
 	  }
         | not TOKMATCHED
 /**       [$1: not (int)] */

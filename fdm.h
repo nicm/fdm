@@ -39,11 +39,9 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <tdb.h>
 #include <regex.h>
 
-#ifdef DB
-#include <tdb.h>
-#endif
 #ifdef PCRE
 #include <pcre.h>
 #endif
@@ -328,25 +326,17 @@ struct rmlist {
 
 /* Cache data. */
 struct cache {
-#ifdef DB
-	struct db	       *db;
-#endif
+	TDB_CONTEXT	       *db;
+
 	char		       *path;
 	uint64_t		expire;
 
 	TAILQ_ENTRY(cache)	entry;
 };
-
-/* Database structs. */
-#ifdef DB
-struct db {
-	TDB_CONTEXT		*tdb;
-};
-struct dbitem {
+struct cacheitem {
 	uint64_t 		 tim;
 	uint32_t		 pad[4];
 } __packed;
-#endif
 
 /* A single mail. */
 struct mail {
@@ -881,9 +871,7 @@ struct child 	*child_start(struct children *, uid_t, int (*)(struct child *,
     		     struct msgbuf *), void *);
 
 /* child-fetch.c */
-#ifdef DB
 int		 open_cache(struct account *, struct cache *);
-#endif
 int		 child_fetch(struct child *, struct io *);
 void		 fetch_free1(struct mail_ctx *);
 
@@ -960,14 +948,12 @@ int		mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
 int		mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
 /* db-tdb.c */
-#ifdef DB
-struct db      *db_open(char *);
-void		db_close(struct db *);
-int		db_add(struct db *, char *);
-int		db_contains(struct db *, char *);
-int		db_size(struct db *);
-int		db_expire(struct db *, uint64_t);
-#endif
+TDB_CONTEXT    *db_open(char *);
+void		db_close(TDB_CONTEXT *);
+int		db_add(TDB_CONTEXT *, char *);
+int		db_contains(TDB_CONTEXT *, char *);
+int		db_size(TDB_CONTEXT *);
+int		db_expire(TDB_CONTEXT *, uint64_t);
 
 /* imap-common.c */
 int		 imap_connect(struct account *);

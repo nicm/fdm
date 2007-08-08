@@ -33,16 +33,6 @@ struct deliver deliver_to_cache = {
 	deliver_to_cache_desc
 };
 
-#ifndef DB
-int
-deliver_to_cache_deliver(struct deliver_ctx *dctx, unused struct actitem *ti)
-{
-	struct account	*a = dctx->account;
-
-	log_warnx("%s: caches not enabled", a->name);
-	return (DELIVER_FAILURE);
-}
-#else
 int
 deliver_to_cache_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
@@ -80,7 +70,6 @@ error:
 		xfree(key);
 	return (DELIVER_FAILURE);
 }
-#endif
 
 void
 deliver_to_cache_desc(struct actitem *ti, char *buf, size_t len)

@@ -48,7 +48,6 @@ double	time_polling = 0.0;
 double	time_blocked = 0.0;
 #endif
 
-#ifdef DB
 int
 open_cache(struct account *a, struct cache *cache)
 {
@@ -65,7 +64,7 @@ open_cache(struct account *a, struct cache *cache)
 	n = db_size(cache->db);
 	log_debug3("%s: opened cache %s: %d keys", a->name, cache->path, n);
 
-	if (cache->expire < 0)
+	if (cache->expire == 0)
 		return (0);
 	if (db_expire(cache->db, cache->expire) != 0) {
 		log_warnx("%s: %s: expiry failed", a->name, cache->path);
@@ -77,7 +76,6 @@ open_cache(struct account *a, struct cache *cache)
 
 	return (0);
 }
-#endif
 
 int
 child_fetch(struct child *child, struct io *io)
@@ -391,9 +389,7 @@ fetch_account(struct account *a, struct io *io, double tim)
 	struct msgbuf	 msgbuf;
 	int		 error;
 	u_int		 n, last;
-#ifdef DB
 	struct cache	*cache;
-#endif
 
 	log_debug2("%s: fetching", a->name);
 
@@ -454,12 +450,10 @@ fetch_account(struct account *a, struct io *io, double tim)
 	}
 
 	/* Close caches. */
-#ifdef DB
 	TAILQ_FOREACH(cache, &conf.caches, entry) {
 		if (cache->db != NULL)
 			db_close(cache->db);
 	}
-#endif
 
 	/* Report error and free queues. */
 	if (error == FETCH_ERROR) {

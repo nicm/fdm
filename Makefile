@@ -55,10 +55,6 @@ CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
-.ifdef DB
-CFLAGS+= -DDB
-LIBS+= -ltdb
-.endif
 .ifdef PCRE
 CFLAGS+= -DPCRE
 LIBS+= -lpcre
@@ -97,7 +93,7 @@ LDFLAGS+= -L/usr/local/lib
 .ifdef PROFILE
 LDFLAGS+= -pg
 .endif
-LIBS+= -lssl -lcrypto -lz
+LIBS+= -lssl -lcrypto -ltdb -lz
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/}
 
