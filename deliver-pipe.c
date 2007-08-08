@@ -59,7 +59,7 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 	struct deliver_pipe_data	*data = ti->data;
         char				*s, *cause, *err;
 	int				 status;
-	struct cmd			*cmd;
+	struct cmd			*cmd = NULL;
 	char				*lbuf;
 	size_t				 llen;
 
