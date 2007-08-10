@@ -35,28 +35,12 @@ struct deliver deliver_stdout = {
 };
 
 int
-deliver_stdout_deliver(struct deliver_ctx *dctx, struct actitem *ti)
+deliver_stdout_deliver(struct deliver_ctx *dctx, unused struct actitem *ti)
 {
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
-	struct deliver_stdout_data	*data = ti->data;
-        char				*from;
 
 	log_debug2("%s: writing to stdout", a->name);
-
-	if (data->add_from) {
-		from = make_from(m);
-		log_debug3("%s: using from line: %s", a->name, from);
-
-		if (fwrite(from, strlen(from), 1, stdout) != 1) {
-			log_warn("%s: fwrite", a->name);
-			return (DELIVER_FAILURE);
-		}
-		if (fputc('\n', stdout) == EOF) {
-			log_warn("%s: fputc", a->name);
-			return (DELIVER_FAILURE);
-		}
-	}
 
 	if (fwrite(m->data, m->size, 1, stdout) != 1) {
 		log_warn("%s: fwrite", a->name);
@@ -68,9 +52,7 @@ deliver_stdout_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 }
 
 void
-deliver_stdout_desc(struct actitem *ti, char *buf, size_t len)
+deliver_stdout_desc(unused struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_stdout_data	*data = ti->data;
-
-	xsnprintf(buf, len, "stdout%s", data->add_from ? " add-from" : "");
+	strlcpy(buf, "stdout", len);
 }

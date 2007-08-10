@@ -857,10 +857,7 @@ Examples are:
 
 %%% stdout
 
-fdm can write mails directly to stdout, optionally prepending an mbox-style
-'From' line:
-
-	action "sofrom" stdout add-from
+fdm can write mails directly to stdout, using the 'stdout' action:
 
 	action "so" stdout
 

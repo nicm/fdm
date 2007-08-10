@@ -127,8 +127,8 @@ yyerror(const char *fmt, ...)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKNNTPS TOKCACHE
 %token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
-%token TOKADDFROM TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKVERIFYCERTS
-%token TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY
+%token TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKVERIFYCERTS TOKEXPIRE
+%token TOKTOCACHE TOKINCACHE TOKKEY
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -182,7 +182,7 @@ yyerror(const char *fmt, ...)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled keep execpipe compress addfrom verify
+%type  <flag> cont icase not disabled keep execpipe compress verify
 %type  <flag> poptype imaptype nntptype
 %type  <gid> gid
 %type  <locks> lock locklist
@@ -1104,16 +1104,6 @@ compress: TOKCOMPRESS
 		  $$ = 0;
 	  }
 
-/** ADDFROM: <flag> (int) */
-addfrom: TOKADDFROM
-	 {
-		 $$ = 1;
-	 }
-       | /* empty */
-	 {
-		 $$ = 0;
-	 }
-
 /** ACTITEM: <actitem> (struct actitem *) */
 actitem: TOKPIPE strv
 /**      [$2: strv (char *)] */
@@ -1283,18 +1273,10 @@ actitem: TOKPIPE strv
 		 data->server.ai = NULL;
 		 data->to.str = $3;
 	 }
-       | TOKSTDOUT addfrom
-/**      [$2: addfrom (int)] */
+       | TOKSTDOUT
 	 {
-		 struct deliver_stdout_data	*data;
-
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_stdout;
-
-		 data = xcalloc(1, sizeof *data);
-		 $$->data = data;
-
-		 data->add_from = $2;
 	 }
        | TOKTAG strv optval
 /**      [$2: strv (char *)] [$3: optval (char *)] */

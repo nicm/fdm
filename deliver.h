@@ -80,11 +80,6 @@ struct deliver_mbox_data {
 	int		compress;
 };
 
-/* Deliver stdout data. */
-struct deliver_stdout_data {
-	int		add_from;
-};
-
 /* Deliver add-header data. */
 struct deliver_add_header_data {
 	struct replstr	hdr;

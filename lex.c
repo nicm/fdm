@@ -62,7 +62,6 @@ static const struct token tokens[] = {
 	{ "accounts", TOKACCOUNTS },
 	{ "action", TOKACTION },
 	{ "actions", TOKACTIONS },
-	{ "add-from", TOKADDFROM },
 	{ "add-header", TOKADDHEADER },
 	{ "age", TOKAGE },
 	{ "all", TOKALL },
