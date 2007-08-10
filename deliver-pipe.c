@@ -40,20 +40,6 @@ struct deliver deliver_pipe = {
 int
 deliver_pipe_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
-	return (do_pipe(dctx, ti, 1));
-}
-
-void
-deliver_pipe_desc(struct actitem *ti, char *buf, size_t len)
-{
-	struct deliver_pipe_data	*data = ti->data;
-
-	xsnprintf(buf, len, "pipe \"%s\"", data->cmd.str);
-}
-
-int
-do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
-{
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
 	struct deliver_pipe_data	*data = ti->data;
@@ -69,15 +55,13 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 		goto error;
         }
 
-	if (pipef)
+	if (data->pipe) {
 		log_debug2("%s: piping to \"%s\"", a->name, s);
-	else
-		log_debug2("%s: executing \"%s\"", a->name, s);
-
-	if (pipef) {
 		cmd = cmd_start(s, CMD_IN|CMD_ONCE, m->data, m->size, &cause);
-	} else
+	} else {
+		log_debug2("%s: executing \"%s\"", a->name, s);
 		cmd = cmd_start(s, 0, NULL, 0, &cause);
+	}
 	if (cmd == NULL)
 		goto error_cause;
 	log_debug3("%s: %s: started", a->name, s);
@@ -93,7 +77,7 @@ do_pipe(struct deliver_ctx *dctx, struct actitem *ti, int pipef)
 			goto error_cause;
 		}
        		if (status == 0 && err != NULL)
-				log_warnx("%s: %s: %s", a->name, s, err);
+			log_warnx("%s: %s: %s", a->name, s, err);
 	} while (status == 0);
 	status--;
 
@@ -118,4 +102,15 @@ error:
 	if (s != NULL)
 		xfree(s);
 	return (DELIVER_FAILURE);
+}
+
+void
+deliver_pipe_desc(struct actitem *ti, char *buf, size_t len)
+{
+	struct deliver_pipe_data	*data = ti->data;
+
+	if (data->pipe)
+		xsnprintf(buf, len, "pipe \"%s\"", data->cmd.str);
+	else
+		xsnprintf(buf, len, "exec \"%s\"", data->cmd.str);
 }

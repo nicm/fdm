@@ -392,14 +392,13 @@ free_action(struct action *t)
 void
 free_actitem(struct actitem *ti)
 {
-	if (ti->deliver == &deliver_pipe || ti->deliver == &deliver_exec) {
+	if (ti->deliver == &deliver_pipe) {
 		struct deliver_pipe_data		*data = ti->data;
 		xfree(data->cmd.str);
 	} else if (ti->deliver == &deliver_rewrite) {
 		struct deliver_rewrite_data		*data = ti->data;
 		xfree(data->cmd.str);
-	} else if (ti->deliver == &deliver_write ||
-	    ti->deliver == &deliver_append) {
+	} else if (ti->deliver == &deliver_write) {
 		struct deliver_write_data		*data = ti->data;
 		xfree(data->path.str);
 	} else if (ti->deliver == &deliver_maildir) {

@@ -1,5 +1,7 @@
 10 August 2007
 
+* Combine append into write and exec into pipe even more to get rid of
+  deliver-append.c and deliver-exec.c.
 * add-from on stdout delivery is gone, an acceptable from line can be prepended
   using rewrite.
 

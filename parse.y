@@ -182,7 +182,7 @@ yyerror(const char *fmt, ...)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled keep execpipe compress verify
+%type  <flag> cont icase not disabled keep execpipe writeappend compress verify
 %type  <flag> poptype imaptype nntptype
 %type  <gid> gid
 %type  <locks> lock locklist
@@ -1105,7 +1105,7 @@ compress: TOKCOMPRESS
 	  }
 
 /** ACTITEM: <actitem> (struct actitem *) */
-actitem: TOKPIPE strv
+actitem: execpipe strv
 /**      [$2: strv (char *)] */
 	 {
 		 struct deliver_pipe_data	*data;
@@ -1119,22 +1119,7 @@ actitem: TOKPIPE strv
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
-		 data->cmd.str = $2;
-	 }
-       | TOKEXEC strv
-/**      [$2: strv (char *)] */
-	 {
-		 struct deliver_pipe_data	*data;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid command");
-
-		 $$ = xcalloc(1, sizeof *$$);
-		 $$->deliver = &deliver_exec;
-
-		 data = xcalloc(1, sizeof *data);
-		 $$->data = data;
-
+		 data->pipe = $1;
 		 data->cmd.str = $2;
 	 }
        | TOKREWRITE strv
@@ -1153,7 +1138,7 @@ actitem: TOKPIPE strv
 
 		 data->cmd.str = $2;
 	 }
-       | TOKWRITE strv
+       | writeappend strv
 /**      [$2: strv (char *)] */
 	 {
 		 struct deliver_write_data	*data;
@@ -1167,22 +1152,7 @@ actitem: TOKPIPE strv
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
-		 data->path.str = $2;
-	 }
-       | TOKAPPEND strv
-/**      [$2: strv (char *)] */
-	 {
-		 struct deliver_write_data	*data;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid path");
-
-		 $$ = xcalloc(1, sizeof *$$);
-		 $$->deliver = &deliver_append;
-
-		 data = xcalloc(1, sizeof *data);
-		 $$->data = data;
-
+		 data->append = $1;
 		 data->path.str = $2;
 	 }
        | TOKMAILDIR strv
@@ -1598,6 +1568,16 @@ execpipe: TOKEXEC
 	  {
 		  $$ = 1;
 	  }
+
+/** WRITEAPPEND: <flag> (int) */
+writeappend: TOKWRITE
+	     {
+		     $$ = 0;
+	     }
+           | TOKAPPEND
+	     {
+		     $$ = 1;
+	     }
 
 /** EXPROP: <exprop> (enum exprop) */
 exprop: TOKAND

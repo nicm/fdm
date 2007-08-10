@@ -94,6 +94,7 @@ struct deliver_remove_header_data {
 /* Deliver write data. */
 struct deliver_write_data {
 	struct replpath	path;
+	int		append;
 };
 
 /* Deliver maildir data. */
@@ -109,6 +110,7 @@ struct deliver_rewrite_data {
 /* Deliver pipe data. */
 struct deliver_pipe_data {
 	struct replpath	cmd;
+	int		pipe;
 };
 
 /* Deliver tag data. */
@@ -139,10 +141,6 @@ extern struct deliver	 deliver_tag;
 
 /* deliver-pipe.c */
 extern struct deliver 	 deliver_pipe;
-int	 		 do_pipe(struct deliver_ctx *, struct actitem *, int);
-
-/* deliver-exec.c */
-extern struct deliver 	 deliver_exec;
 
 /* deliver-drop.c */
 extern struct deliver 	 deliver_drop;
@@ -164,10 +162,6 @@ extern struct deliver 	 deliver_mbox;
 
 /* deliver-write.c */
 extern struct deliver 	 deliver_write;
-int	 		 do_write(struct deliver_ctx *, struct actitem *, int);
-
-/* deliver-append.c */
-extern struct deliver 	 deliver_append;
 
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;

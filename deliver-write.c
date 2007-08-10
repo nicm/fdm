@@ -40,20 +40,6 @@ struct deliver deliver_write = {
 int
 deliver_write_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
-	return (do_write(dctx, ti, 0));
-}
-
-void
-deliver_write_desc(struct actitem *ti, char *buf, size_t len)
-{
-	struct deliver_write_data	*data = ti->data;
-
-	xsnprintf(buf, len, "write \"%s\"", data->path.str);
-}
-
-int
-do_write(struct deliver_ctx *dctx, struct actitem *ti, int appendf)
-{
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
 	struct deliver_write_data	*data = ti->data;
@@ -68,12 +54,13 @@ do_write(struct deliver_ctx *dctx, struct actitem *ti, int appendf)
                 return (DELIVER_FAILURE);
         }
 
-	if (appendf)
+	if (data->append) {
 		log_debug2("%s: appending to %s", a->name, path);
-	else
+		f = fopen(path, "a");
+	} else {
 		log_debug2("%s: writing to %s", a->name, path);
-
-        f = fopen(path, appendf ? "a" : "w");
+		f = fopen(path, "w");
+	}
         if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, path);
 		goto error;
@@ -98,4 +85,16 @@ do_write(struct deliver_ctx *dctx, struct actitem *ti, int appendf)
 error:
 	xfree(path);
 	return (DELIVER_FAILURE);
+}
+
+
+void
+deliver_write_desc(struct actitem *ti, char *buf, size_t len)
+{
+	struct deliver_write_data	*data = ti->data;
+
+	if (data->append)
+		xsnprintf(buf, len, "append \"%s\"", data->path.str);
+	else
+		xsnprintf(buf, len, "write \"%s\"", data->path.str);
 }
