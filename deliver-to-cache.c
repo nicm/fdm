@@ -42,7 +42,6 @@ deliver_to_cache_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	char				*key;
 	struct cache			*cache;
 
-
 	key = replacestr(&data->key, m->tags, m, &m->rml);
 	if (key == NULL || *key == '\0') {
 		log_warnx("%s: empty key", a->name);
