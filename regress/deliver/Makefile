@@ -2,15 +2,13 @@
 
 CLEANFILES= *~
 
-TESTFILES!= echo *.test
+TESTFILES!= echo *.sh
 
 TARGETS=
 .for n in ${TESTFILES}
 TARGETS+= ${n}
 ${n}:
-		@echo ${n}:
-		@HOME=. awk -v CMD="../fdm -vvvnf /dev/stdin" \
-			-v DEBUG=${DEBUG} -f test.awk ${n}
+		@HOME=. FDM=../../fdm sh ${n}
 .endfor
 
 .MAIN:		all
@@ -20,7 +18,6 @@ ${n}:
 all:		regress
 
 regress:	${TARGETS}
-		cd deliver && ${MAKE}
 
 clean:
 		rm -f ${CLEANFILES}
