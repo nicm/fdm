@@ -1,6 +1,6 @@
 # $Id$
 
-CLEANFILES= *~
+CLEANFILES= *~ *.in *.out *.data *.conf
 
 TESTFILES!= echo *.sh
 
