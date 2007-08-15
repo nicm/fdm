@@ -156,6 +156,7 @@ struct fetch_pop3_data {
 	char		*user;
 	char		*pass;
 	struct server	 server;
+	int		 apop;
 
 	u_int		 cur;
 	u_int		 num;

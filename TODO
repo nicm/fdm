@@ -22,4 +22,7 @@
   decreasing size order, but with longer queue necessary
 - weed is not doing its jobs, check domains
 - better website
+- generic flags on account so that no-verify/no-apop don't have to be in the
+  right order
 - document mbox fetch
+- document no-apop

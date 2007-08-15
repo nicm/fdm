@@ -1,3 +1,9 @@
+15 August 2007
+
+* A few POP3 servers supply an APOP cookie and then refuse the APOP command.
+  Handle them with a "no-apop" flag to POP3 account statements to disable
+  APOP. Reported by Frank Terbeck.
+
 10 August 2007
 
 * Combine append into write and exec into pipe even more to get rid of

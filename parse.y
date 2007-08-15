@@ -128,7 +128,7 @@ yyerror(const char *fmt, ...)
 %token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
 %token TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKVERIFYCERTS TOKEXPIRE
-%token TOKTOCACHE TOKINCACHE TOKKEY
+%token TOKTOCACHE TOKINCACHE TOKKEY TOKNOAPOP
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -183,7 +183,7 @@ yyerror(const char *fmt, ...)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont icase not disabled keep execpipe writeappend compress verify
-%type  <flag> poptype imaptype nntptype
+%type  <flag> apop poptype imaptype nntptype
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -228,6 +228,7 @@ groupp: TOKGROUP
 /** MAILDIRP */
 maildirp: TOKMAILDIR
         | TOKMAILDIRS
+/** MBOXP */
 mboxp: TOKMBOX
      | TOKMBOXES
 
@@ -802,9 +803,9 @@ headerslist: headerslist replstrv
 		     ARRAY_ADD($$, $1);
 	     }
 
-/** MAILDIRSLIST: <strings> (struct strings *) */
+/** PATHSLIST: <strings> (struct strings *) */
 pathslist: pathslist replpathv
-/**           [$1: maildirslist (struct strings *)] [$2: replpathv (char *)] */
+/**        [$1: pathslist (struct strings *)] [$2: replpathv (char *)] */
 	   {
 		   if (*$2 == '\0')
 			   yyerror("invalid path");
@@ -835,24 +836,24 @@ maildirs: maildirp replpathv
 		  ARRAY_ADD($$, $2);
 	  }
         | maildirp '{' pathslist '}'
-/**       [$3: maildirslist (struct strings *)] */
+/**       [$3: pathslist (struct strings *)] */
 	  {
 		  $$ = weed_strings($3);
 	  }
 
-/** MAILDIRS: <strings> (struct strings *) */
+/** MBOXES: <strings> (struct strings *) */
 mboxes: mboxp replpathv
-/**       [$2: replpathv (char *)] */
+/**     [$2: replpathv (char *)] */
         {
 		if (*$2 == '\0')
 			yyerror("invalid path");
-		
+
 		$$ = xmalloc(sizeof *$$);
 		ARRAY_INIT($$);
 		ARRAY_ADD($$, $2);
 	}
       | mboxp '{' pathslist '}'
-/**       [$3: mboxslist (struct strings *)] */
+/**     [$3: pathslist (struct strings *)] */
 	{
 		$$ = weed_strings($3);
 	}
@@ -1106,7 +1107,7 @@ compress: TOKCOMPRESS
 
 /** ACTITEM: <actitem> (struct actitem *) */
 actitem: execpipe strv
-/**      [$2: strv (char *)] */
+/**      [$1: execpipe (int)] [$2: strv (char *)] */
 	 {
 		 struct deliver_pipe_data	*data;
 
@@ -1139,7 +1140,7 @@ actitem: execpipe strv
 		 data->cmd.str = $2;
 	 }
        | writeappend strv
-/**      [$2: strv (char *)] */
+/**      [$1: writeappend (int)] [$2: strv (char *)] */
 	 {
 		 struct deliver_write_data	*data;
 
@@ -2121,6 +2122,16 @@ verify: TOKNOVERIFY
 		$$ = 1;
 	}
 
+/** APOP: <flag> (int) */
+apop: TOKNOAPOP
+      {
+	      $$ = 0;
+      }
+    | /* empty */
+      {
+	      $$ = 1;
+      }
+
 /** POPTYPE: <flag> (int) */
 poptype: TOKPOP3
          {
@@ -2219,9 +2230,10 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server userpassnetrc verify
+fetchtype: poptype server userpassnetrc verify apop
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] [$4: verify (int)] */
+/**        [$5: apop (int)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2252,6 +2264,7 @@ fetchtype: poptype server userpassnetrc verify
 		   else
 			   data->server.port = xstrdup("pop3");
 		   data->server.ai = NULL;
+		   data->apop = $5;
 	   }
          | imaptype server userpassnetrc folder verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
@@ -2330,7 +2343,7 @@ fetchtype: poptype server userpassnetrc verify
 		   data->maildirs = $1;
 	   }
          | mboxes
-/**        [$1: mboxs (struct strings *)] */
+/**        [$1: mboxes (struct strings *)] */
 	   {
 		   struct fetch_mbox_data	*data;
 
