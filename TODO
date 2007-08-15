@@ -18,8 +18,6 @@
 - refactor & clean up privsep mail transfer code
 - is there any reason struct mail shouldn't point to a struct account?
 - cumulative effect of a compound action sucks
-- fetch smallest/largest mails first. best pattern? probably 1 small, then in
-  decreasing size order, but with longer queue necessary
 - weed is not doing its jobs, check domains
 - better website
 - generic flags on account so that no-verify/no-apop don't have to be in the
