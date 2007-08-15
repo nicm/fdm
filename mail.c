@@ -208,7 +208,8 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 {
 	va_list		 ap;
 	char		*hdr, *ptr;
-	size_t		 hdrlen, len, off, newlines;
+	size_t		 hdrlen, len, off;
+	u_int		 newlines;
 
 	newlines = 1;
 	if (before != NULL) {
@@ -219,7 +220,7 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 		off = ptr - m->data;
 	} else {
 		/* Insert at the end. */
-		if (m->body == 0 || m->body == 1) {
+		if (m->body == 0) {
 			/*
 			 * Creating the headers section. Insert at the start,
 			 * and add an extra newline.
@@ -227,7 +228,10 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 			off = 0;
 			newlines++;
 		} else {
-			/* Insert before the start of the body. */
+			/*
+			 * Body points just after the blank line. Insert before
+			 * the blank line.
+			 */
 			off = m->body - 1;
 		}
 	}
@@ -322,7 +326,7 @@ find_body(struct mail *m)
 			line_next(m, &ptr, &len);
 			/* If no next line, body is end of mail. */
 			if (ptr == NULL)
-				return (m->size - 1);
+				return (m->size);
 			/* Otherwise, body is start of line after separator. */
 			return (ptr - m->data);
 		}

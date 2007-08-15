@@ -1,3 +1,10 @@
+16 August 2007
+
+* Clarify headers/body again. The body offset is now the first byte of the
+  body, so a mail of a single blank line has size == body == 1 (so, body
+  size == 0 rather than 1). "\nBody" always had body == 1 and not having
+  "\n" the same was confusing me.
+
 15 August 2007
 
 * A few POP3 servers supply an APOP cookie and then refuse the APOP command.
