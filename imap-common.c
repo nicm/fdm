@@ -870,9 +870,9 @@ imap_done(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
+	data->mail = NULL;
 	if (enqueue_mail(a, fctx, m) != 0)
 		return (FETCH_ERROR);
-	data->mail = NULL;
 
 	data->state = imap_next;
 	return (FETCH_AGAIN);
