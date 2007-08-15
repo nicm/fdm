@@ -2230,7 +2230,7 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server userpassnetrc verify apop
+fetchtype: poptype server userpassnetrc apop verify
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] [$4: verify (int)] */
 /**        [$5: apop (int)] */
@@ -2255,7 +2255,7 @@ fetchtype: poptype server userpassnetrc verify apop
 		   }
 
 		   data->server.ssl = $1;
-		   data->server.verify = $4;
+		   data->server.verify = $5;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2264,7 +2264,7 @@ fetchtype: poptype server userpassnetrc verify apop
 		   else
 			   data->server.port = xstrdup("pop3");
 		   data->server.ai = NULL;
-		   data->apop = $5;
+		   data->apop = $4;
 	   }
          | imaptype server userpassnetrc folder verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */

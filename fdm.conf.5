@@ -361,6 +361,7 @@ for details.
 .Op Ic port Ar port
 .Op Ic user Ar user
 .Op Ic pass Ar pass
+.Op Ic no-apop
 .Op Ic no-verify
 .Xc
 These statements define a POP3 or POP3S account.
@@ -382,6 +383,10 @@ The port option may be either a string which will be looked up in the
 database, or a number.
 If it is omitted, the default port (110 for POP3, 995 for POP3S) is used.
 The
+.Ic no-apop
+flag forces
+.Xr fdm 1
+not to use the POP3 APOP command for authentication, and the
 .Ic no-verify
 keyword instructs
 .Xr fdm 1

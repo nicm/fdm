@@ -564,6 +564,13 @@ Examples of a POP3 account definition are:
 Note that the server string is enclosed in double quotes even if it is an IP,
 and don't forget to escape any " and \ characters in passwords!
 
+fdm will attempt to use APOP to obscure the password, if the server offers it.
+If the server advertises itself as supporting APOP but subsequently refuses
+to accept it, fdm will not retry with a cleartext password. Use of APOP can be
+disabled for an account using the 'no-apop' flag, for example:
+
+	account "acct" pop3 server "server" user "bob" pass "pass" no-apop
+
 POP3S is specified in exactly the same way, except using the 'pop3s' keyword
 for the type, and the default port is 'pop3s' rather than 'pop3':
 
