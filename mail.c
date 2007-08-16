@@ -191,9 +191,6 @@ remove_header(struct mail *m, const char *hdr)
 	if ((ptr = find_header(m, hdr, &len, 0)) == NULL)
 		return (-1);
 
-	/* Include the \n. */
-	len++;
-
 	/* Remove the header. */
 	memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
 	m->size -= len;

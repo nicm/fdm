@@ -62,9 +62,6 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		log_debug3("%s: found header to remove: %.*s", a->name,
 		    (int) len, ptr);
 
-		/* Include the \n. */
-		len++;
-
 		/* Remove the header. */
 		memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
 		m->size -= len;
