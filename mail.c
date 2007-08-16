@@ -307,6 +307,60 @@ find_header(struct mail *m, const char *hdr, size_t *len, int value)
 	return (ptr);
 }
 
+/* Match a header. Same as find_header but uses fnmatch. */
+char *
+match_header(struct mail *m, const char *patt, size_t *len, int value)
+{
+	char	*ptr, *last, *hdr;
+	size_t	 hdrlen;
+
+	line_init(m, &ptr, len);
+	while (ptr != NULL) {
+		if (ptr >= m->data + m->body)
+			return (NULL);
+
+		if ((last = memchr(ptr, ':', *len)) != NULL) {
+			hdrlen = last - ptr;
+			if (hdrlen <= INT_MAX) {
+				xasprintf(&hdr, "%.*s", (int) hdrlen, ptr);
+
+				if (fnmatch(patt, hdr, FNM_CASEFOLD) == 0)
+					break;
+
+				xfree(hdr);
+			}
+		}
+		
+		line_next(m, &ptr, len);
+	}
+	if (ptr == NULL)
+		return (NULL);
+	xfree(hdr);
+
+	/* If the entire header is wanted, return it. */
+	if (!value)
+		return (ptr);
+
+	/* Include the : in the length. */
+	hdrlen++;
+
+	/* Otherwise skip the header and following spaces. */
+	ptr += hdrlen;
+	*len -= hdrlen;
+	while (*len > 0 && isspace((u_char) *ptr)) {
+		ptr++;
+		(*len)--;
+	}
+
+	/* And trim newlines. */
+	while (*len > 0 && ptr[*len - 1] == '\n')
+		(*len)--;
+
+	if (len == 0)
+		return (NULL);
+	return (ptr);
+}
+
 /*
  * Find offset of body. The body is the offset of the first octet after the
  * separator (\n\n), or zero.
