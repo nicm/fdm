@@ -397,6 +397,7 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 	/* mmap the file. */
 	fmbox->base = mmap(
 	    NULL, fmbox->size, PROT_READ|PROT_WRITE, MAP_SHARED, fmbox->fd, 0);
+	madvise(fmbox->base, fmbox->size, MADV_SEQUENTIAL);
 	if (fmbox->base == MAP_FAILED) {
 		fmbox->base = NULL;
 		goto error;
