@@ -36,7 +36,7 @@ test_run() {
 
     diff -u $TEST.out $TEST.data
     RESULT=$?
-    if [ $? -eq 0 ]; then
+    if [ $RESULT -eq 0 ]; then
 	echo "$0: PASSED"
     else
 	echo "$0: FAILED"
