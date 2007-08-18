@@ -147,6 +147,7 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 		switch (io_before_poll(io, &pfds[i])) {
 		case 0:
 			/* Found a closed io. */
+			xfree(pfds);
 			return (0);
 		case -1:
 			goto error;
@@ -156,6 +157,8 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 	/* Do the poll. */
 	error = poll(pfds, n, timeout);
 	if (error == 0 || error == -1) {
+		xfree(pfds);
+
 		if (error == 0) {
 			if (timeout == 0) {
 				errno = EAGAIN;
@@ -186,11 +189,13 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 			goto error;
 	}
 	
+	xfree(pfds);
 	return (1);
 
 error:
 	if (cause != NULL)
 		*cause = xstrdup(io->error);
+	xfree(pfds);
 	return (-1);
 }
 
