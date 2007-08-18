@@ -38,7 +38,7 @@
 
 #include "fdm.h"
 
-#ifdef DEBUG
+#if defined(__OpenBSD__) && defined(DEBUG)
 const char		*malloc_options = "AFGJPRX";
 #endif
 
@@ -240,7 +240,8 @@ main(int argc, char **argv)
 	pid_t		 pid;
 	struct children	 children, dead_children;
 	struct child	*child;
-	struct io      **ios, *io;
+	struct io       *rio;
+	struct iolist	 iol;
 	double		 tim;
 	struct sigaction act;
 	struct msg	 msg;
@@ -689,20 +690,21 @@ main(int argc, char **argv)
 	tim = get_time();
 
 	res = 0;
-	ios = NULL;
+	ARRAY_INIT(&iol);
 	while (!ARRAY_EMPTY(&children)) {
 		if (sigint || sigterm)
 			break;
 
 		/* Fill the io list. */
-		ios = xrealloc(ios, ARRAY_LENGTH(&children), sizeof **ios);
+		ARRAY_CLEAR(&iol);
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i);
-			ios[i] = child->io;
+			ARRAY_ADD(&iol, child->io);
 		}
 
 		/* Poll the io list. */
-		n = io_polln(ios, ARRAY_LENGTH(&children), &io, INFTIM, NULL);
+		n = io_polln(
+		    ARRAY_DATA(&iol), ARRAY_LENGTH(&iol), &rio, INFTIM, NULL);
 		switch (n) {
 		case -1:
 			fatalx("child socket error");
@@ -761,8 +763,7 @@ main(int argc, char **argv)
 			ARRAY_ADD(&dead_children, child);
 		}
 	}
-	if (ios != NULL)
-		xfree(ios);
+	ARRAY_FREE(&iol);
 
 	/* Free the dead children. */
 	for (i = 0; i < ARRAY_LENGTH(&dead_children); i++) {

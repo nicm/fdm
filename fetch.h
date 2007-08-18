@@ -40,6 +40,7 @@ struct fetch_ctx {
 	int	 		 holding; /* holding fetch until queues drop */
 
 	struct io	        *io;
+	struct iolist		 iol;
 };
 
 /* Fetch functions. */
@@ -47,7 +48,7 @@ struct fetch {
 	const char	*name;
 
  	int		 (*connect)(struct account *);
-	void		 (*fill)(struct account *, struct io **, u_int *n);
+	void		 (*fill)(struct account *, struct iolist *);
  	u_int		 (*total)(struct account *);
 	int		 (*completed)(struct account *);
 	int		 (*closed)(struct account *);

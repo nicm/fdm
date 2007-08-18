@@ -293,16 +293,17 @@ int
 imap_poll(struct account *a, u_int *total)
 {
 	struct fetch_imap_data	*data = a->data;
-	struct io		*rio, *iop[IO_POLLFDS];
+	struct io		*rio;
+	struct iolist		 iol;
 	char			*cause;
-	u_int		 	 n;
 	int		 	 timeout;
 
+	ARRAY_INIT(&iol);
 	for (;;) {
 		timeout = 0;
 		switch (imap_fetch(a, NULL)) {
 		case FETCH_ERROR:
-			return (-1);
+			goto error;
 		case FETCH_BLOCK:
 			timeout = conf.timeout;
 			break;
@@ -314,27 +315,33 @@ imap_poll(struct account *a, u_int *total)
 			break;
 		if (data->state == imap_next) {
 			if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
-				return (-1);
+				goto error;
 			data->state = imap_quit1;
 		}
 
-		n = 0;
-		a->fetch->fill(a, iop, &n);
-		switch (io_polln(iop, n, &rio, timeout, &cause)) {
+		ARRAY_CLEAR(&iol);
+		a->fetch->fill(a, &iol);
+		switch (io_polln(ARRAY_DATA(&iol),
+		    ARRAY_LENGTH(&iol), &rio, timeout, &cause)) {
 		case 0:
 			log_warnx("%s: connection closed", a->name);
-			return (-1);
+			goto error;
 		case -1:
 			if (errno == EAGAIN)
 				break;
 			log_warnx("%s: %s", a->name, cause);
 			xfree(cause);
-			return (-1);
+			goto error;
 		}
 	}
+	ARRAY_FREE(&iol);
 
 	*total = data->total;
 	return (0);
+
+error:
+	ARRAY_FREE(&iol);
+	return (-1);
 }
 
 /* Purge deleted mail. */

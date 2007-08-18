@@ -39,6 +39,9 @@
 	log_debug3("%s: (%d) " fmt, __func__, io->fd, ## __VA_ARGS__)
 #endif
 
+int	io_before_poll(struct io *, struct pollfd *);
+int	io_after_poll(struct io *, struct pollfd *);
+
 int	io_push(struct io *);
 int	io_fill(struct io *);
 
@@ -116,156 +119,171 @@ io_close(struct io *io)
 	close(io->fd);
 }
 
+/* Poll the io. */
+int
+io_poll(struct io *io, int timeout, char **cause)
+{
+	return (io_polln(&io, 1, NULL, timeout, cause));
+}
+
 /* Poll multiple IOs. */
 int
-io_polln(struct io **ios, u_int n, struct io **rio, int timeout, char **cause)
+io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 {
 	struct io	*io;
-	struct pollfd    pfds[IO_POLLFDS], *pfd;
+	struct pollfd   *pfds;
 	int		 error;
 	u_int		 i;
 
-	if (n > IO_POLLFDS)
-		fatalx("too many fds");
-
-	/* Check all the ios. */
+	/* Fill in all the pollfds. */
+	pfds = xcalloc(n, sizeof *pfds);
 	for (i = 0; i < n; i++) {
-		io = *rio = ios[i];
+		io = iop[i];
+		if (rio != NULL)
+			*rio = io;
 		if (io == NULL)
 			continue;
-		if (io->error != NULL) {
-			if (cause != NULL)
-				*cause = xstrdup(io->error);
-			return (-1);
-		}
-		if (IO_CLOSED(io))
+		
+		switch (io_before_poll(io, &pfds[i])) {
+		case 0:
+			/* Found a closed io. */
 			return (0);
-	}
-
-	/* Create the poll structure. */
-	memset(pfds, 0, sizeof pfds);
-	for (i = 0; i < n; i++) {
- 		pfd = &pfds[i];
-
-		io = *rio = ios[i];
-		if (io == NULL) {
-			pfd->fd = -1;
-			continue;
+		case -1:
+			goto error;
 		}
-
-		if (io->ssl != NULL)
-			pfd->fd = SSL_get_fd(io->ssl);
-		else
-			pfd->fd = io->fd;
-		pfd->events = 0;
-		if (io->rd != NULL)
-			pfd->events |= POLLIN;
-		if (io->wr != NULL && (BUFFER_USED(io->wr) != 0 ||
-		    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH|IOF_MUSTWR)) != 0))
-			pfd->events |= POLLOUT;
 	}
 
 	/* Do the poll. */
 	error = poll(pfds, n, timeout);
 	if (error == 0 || error == -1) {
-		if (error == 0 && timeout == 0) {
-			errno = EAGAIN;
-			return (-1);
-		}
-		if (error == 0)
+		if (error == 0) {
+			if (timeout == 0) {
+				errno = EAGAIN;
+				return (-1);
+			}
 			errno = ETIMEDOUT;
-		*rio = NULL;
+		}
+
 		if (errno == EINTR)
 			return (1);
+
+		if (rio != NULL)
+			*rio = NULL;
 		if (cause != NULL)
 			xasprintf(cause, "io: poll: %s", strerror(errno));
 		return (-1);
 	}
 
-	/* And check all the ios. */
+	/* Check all the ios. */
 	for (i = 0; i < n; i++) {
-		pfd = &pfds[i];
-
-		io = *rio = ios[i];
+		io = iop[i];
+ 		if (rio != NULL)
+			*rio = io;
 		if (io == NULL)
 			continue;
 
-		/* Close on POLLERR or POLLNVAL hard. */
-		if (pfd->revents & (POLLERR|POLLNVAL)) {
-			io->flags |= IOF_CLOSED;
-			continue;
-		}
-		/* Close on POLLHUP but only if there is nothing to read. */
-		if (pfd->revents & POLLHUP && (pfd->revents & POLLIN) == 0) {
-			io->flags |= IOF_CLOSED;
-			continue;
-		}
-
-		if ((io->flags & (IOF_NEEDPUSH|IOF_NEEDFILL)) != 0) {
-			/*
-			 * If a repeated read/write is necessary, the socket
-			 * must be ready for both reading and writing
-			 */
-			if (pfd->revents & (POLLOUT|POLLIN)) {
-				if (io->flags & IOF_NEEDPUSH) {
-					switch (io_push(io)) {
-					case 0:
-						io->flags |= IOF_CLOSED;
-						continue;
-					case -1:
-						goto error;
-					}
-				}
-				if (io->flags & IOF_NEEDFILL) {
-					switch (io_fill(io)) {
-					case 0:
-						io->flags |= IOF_CLOSED;
-						continue;
-					case -1:
-						goto error;
-					}
-				}
-			}
-			continue;
-		}
-
-		/* Otherwise try to read and write. */
-		if (io->wr != NULL && pfd->revents & POLLOUT) {
-			switch (io_push(io)) {
-			case 0:
-				io->flags |= IOF_CLOSED;
-				continue;
-			case -1:
-				goto error;
-			}
-		}
-		if (io->rd != NULL && pfd->revents & POLLIN) {
-			switch (io_fill(io)) {
-			case 0:
-				io->flags |= IOF_CLOSED;
-				continue;
-			case -1:
-				goto error;
-			}
-		}
+		if (io_after_poll(io, &pfds[i]) == -1)
+			goto error;
 	}
-
+	
 	return (1);
 
 error:
 	if (cause != NULL)
 		*cause = xstrdup(io->error);
-
 	return (-1);
 }
 
-/* Poll the io. */
+/* Set up an io for polling. */
 int
-io_poll(struct io *io, int timeout, char **cause)
+io_before_poll(struct io *io, struct pollfd *pfd)
 {
-	struct io	*rio;
+	/* Check for errors or closure. */
+	if (io->error != NULL)
+		return (-1);
+	if (IO_CLOSED(io))
+		return (0);
 
-	return (io_polln(&io, 1, &rio, timeout, cause));
+	/* Fill in pollfd. */
+	memset(pfd, 0, sizeof *pfd);
+	if (io->ssl != NULL)
+		pfd->fd = SSL_get_fd(io->ssl);
+	else
+		pfd->fd = io->fd;
+	if (io->rd != NULL)
+		pfd->events |= POLLIN;
+	if (io->wr != NULL && (BUFFER_USED(io->wr) != 0 ||
+	    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH|IOF_MUSTWR)) != 0))
+		pfd->events |= POLLOUT;	
+
+	return (1);
+}
+
+/* Handle io after polling. */
+int
+io_after_poll(struct io *io, struct pollfd *pfd)
+{
+	/* Close on POLLERR or POLLNVAL hard. */
+	if (pfd->revents & (POLLERR|POLLNVAL)) {
+		io->flags |= IOF_CLOSED;
+		return (0);
+	}
+	/* Close on POLLHUP but only if there is nothing to read. */
+	if (pfd->revents & POLLHUP && (pfd->revents & POLLIN) == 0) {
+		io->flags |= IOF_CLOSED;
+		return (0);
+	}
+
+	/* Check for repeated read/write. */
+	if ((io->flags & (IOF_NEEDPUSH|IOF_NEEDFILL)) != 0) {
+		/*
+		 * If a repeated read/write is necessary, the socket must be
+		 * ready for both reading and writing
+		 */
+		if (pfd->revents & (POLLOUT|POLLIN)) {
+			if (io->flags & IOF_NEEDPUSH) {
+				switch (io_push(io)) {
+				case 0:
+					io->flags |= IOF_CLOSED;
+					return (0);
+				case -1:
+					return (-1);
+				}
+			}
+			if (io->flags & IOF_NEEDFILL) {
+				switch (io_fill(io)) {
+				case 0:
+					io->flags |= IOF_CLOSED;
+					return (0);
+				case -1:
+					return (-1);
+				}
+			}
+		}
+		return (1);
+	}
+
+	/* Otherwise try to read and write. */
+	if (io->wr != NULL && pfd->revents & POLLOUT) {
+		switch (io_push(io)) {
+		case 0:
+			io->flags |= IOF_CLOSED;
+			return (0);
+		case -1:
+			return (-1);
+		}
+	}
+	if (io->rd != NULL && pfd->revents & POLLIN) {
+		switch (io_fill(io)) {
+		case 0:
+			io->flags |= IOF_CLOSED;
+			return (0);
+		case -1:
+			return (-1);
+		}
+	}
+
+	return (1);
 }
 
 /*

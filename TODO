@@ -10,6 +10,7 @@
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
+- more attachment stuff: remove-attachment, write-/pipe-attachment etc
 - get only read/unread mail (IMAP only, probably) (read-only, unread-only)
   flags to account line
 - handle multiple header instances when looking for users (other places?)

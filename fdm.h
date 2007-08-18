@@ -49,8 +49,6 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#include "array.h"
-
 /* Forward declarations. */
 struct fetch_ctx; 	/* fetch.h */
 
@@ -178,6 +176,9 @@ extern char	*__progname;
 
 /* Account name match. */
 #define name_match(p, n) (fnmatch(p, n, 0) == 0)
+
+#include "array.h"
+#include "io.h"
 
 /* Macros in configuration file. */
 struct macro {
@@ -658,71 +659,6 @@ struct conf {
 };
 extern struct conf		 conf;
 
-/* Buffer macros. */
-#define BUFFER_USED(b) ((b)->size)
-#define BUFFER_FREE(b) ((b)->space - (b)->off - (b)->size)
-#define BUFFER_IN(b) ((b)->base + (b)->off + (b)->size)
-#define BUFFER_OUT(b) ((b)->base + (b)->off)
-
-/* Buffer structure. */
-struct buffer {
-	u_char		*base;		/* buffer start */
-	size_t		 space;		/* total size of buffer */
-
-	size_t		 size;		/* size of data in buffer */
-	size_t		 off;		/* offset of data in buffer */
-};
-
-/* Limits at which to fail. */
-#define IO_MAXLINELEN (1024 * 1024) 		/* 1 MB */
-
-/* IO line endings. */
-#define IO_CRLF "\r\n"
-#define IO_CR   "\r"
-#define IO_LF   "\n"
-
-/* Amount to attempt to append to the buffer each time. */
-#define IO_BLOCKSIZE 16384
-
-/* Initial line buffer length. */
-#define IO_LINESIZE 256
-
-/* Amount to poll after in io_update. */
-#define IO_FLUSHSIZE (2 * IO_BLOCKSIZE)
-
-/* Maximum number of pollfds. */
-#define IO_POLLFDS 256
-
-/* IO macros. */
-#define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
-#define IO_CLOSED(io) ((io)->flags & IOF_CLOSED)
-#define IO_ERROR(io) ((io)->error)
-#define IO_RDSIZE(io) (BUFFER_USED((io)->rd))
-#define IO_WRSIZE(io) (BUFFER_USED((io)->wr))
-
-/* IO structure. */
-struct io {
-	int		 fd;
-	int		 dup_fd;	/* duplicate all data to this fd */
-	SSL		*ssl;
-
-	char		*error;
-
-	int		 flags;
-#define IOF_NEEDFILL 0x1
-#define IOF_NEEDPUSH 0x2
-#define IOF_CLOSED 0x4
-#define IOF_MUSTWR 0x8
-
-	struct buffer	*rd;
-	struct buffer	*wr;
-
-	char		*lbuf;		/* line buffer */
-	size_t		 llen;		/* line buffer size */
-
-	const char	*eol;
-};
-
 /* Command flags. */
 #define CMD_IN  0x1
 #define CMD_OUT 0x2
@@ -994,43 +930,7 @@ void		 update_tags(struct strb **);
 char 		*replacestr(struct replstr *, struct strb *, struct mail *,
     		     struct rmlist *);
 char 		*replacepath(struct replpath *, struct strb *, struct mail *,
-    		     struct rmlist *);
-
-/* buffer.c */
-struct buffer 	*buffer_create(size_t);
-void		 buffer_destroy(struct buffer *);
-void		 buffer_clear(struct buffer *);
-void		 buffer_ensure(struct buffer *, size_t);
-void		 buffer_add(struct buffer *, size_t);
-void		 buffer_reverse_add(struct buffer *, size_t);
-void		 buffer_remove(struct buffer *, size_t);
-void		 buffer_reverse_remove(struct buffer *, size_t);
-void		 buffer_insert_range(struct buffer *, size_t, size_t);
-void		 buffer_delete_range(struct buffer *, size_t, size_t);
-void		 buffer_write(struct buffer *, const void *, size_t);
-void		 buffer_read(struct buffer *, void *, size_t);
-
-/* io.c */
-struct io	*io_create(int, SSL *, const char *);
-void		 io_readonly(struct io *);
-void		 io_writeonly(struct io *);
-void		 io_free(struct io *);
-void		 io_close(struct io *);
-int		 io_polln(struct io **, u_int, struct io **, int, char **);
-int		 io_poll(struct io *, int, char **);
-int		 io_read2(struct io *, void *, size_t);
-void 		*io_read(struct io *, size_t);
-void		 io_write(struct io *, const void *, size_t);
-char 		*io_readline2(struct io *, char **, size_t *);
-char 		*io_readline(struct io *);
-void printflike2 io_writeline(struct io *, const char *, ...);
-void		 io_vwriteline(struct io *, const char *, va_list);
-int		 io_pollline2(struct io *, char **, char **, size_t *, int,
-		     char **);
-int		 io_pollline(struct io *, char **, int, char **);
-int		 io_flush(struct io *, int, char **);
-int		 io_wait(struct io *, size_t, int, char **);
-int		 io_update(struct io *, int, char **);
+   		     struct rmlist *);
 
 /* log.c */
 void		 log_open(FILE *, int, int);

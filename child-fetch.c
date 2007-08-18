@@ -175,14 +175,14 @@ poll_account(struct account *a)
 int
 fetch_poll(struct account *a, struct fetch_ctx *fctx)
 {
-	struct io	*rio, *iop[IO_POLLFDS];
+	struct io	*rio;
 	char		*cause;
-	u_int		 n;
 	int		 timeout, error;
 	double		 tim;
 
-	n = 1;
-	iop[0] = fctx->io;
+	/* Initialise list. */
+	ARRAY_CLEAR(&fctx->iol);
+	ARRAY_ADD(&fctx->iol, fctx->io);
 
 	/*
 	 * If the queues are empty and the fetch finished and closed, must be
@@ -223,14 +223,14 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	 * If the fetch isn't holding for queue changes, fill in its io list.
 	 */
 	if (error != FETCH_HOLD && a->fetch->fill != NULL)
-		a->fetch->fill(a, iop, &n);
+		a->fetch->fill(a, &fctx->iol);
 
 	/*
 	 * If that didn't add any fds and we're not blocked for the parent then
 	 * skip the poll entirely and tell the caller not to loop to us again
 	 * immediately.
 	 */
-	if (n == 1 && fctx->blocked == 0)
+	if (ARRAY_LENGTH(&fctx->iol) == 1 && fctx->blocked == 0)
 		return (FETCH_AGAIN);
 
 	/*
@@ -243,9 +243,10 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 		timeout = conf.timeout;
 
 	log_debug3("%s: polling %u fds, timeout=%d, error=%d",
-	    a->name, n, timeout, error);
+	    a->name, ARRAY_LENGTH(&fctx->iol), timeout, error);
 	tim = get_time();
-	switch (io_polln(iop, n, &rio, timeout, &cause)) {
+	switch (io_polln(ARRAY_DATA(&fctx->iol),
+	    ARRAY_LENGTH(&fctx->iol), &rio, timeout, &cause)) {
 	case 0:
 		if (rio == fctx->io)
 			fatalx("parent socket closed");
@@ -362,6 +363,8 @@ fetch_free(struct fetch_ctx *fctx)
 {
 	struct mail_ctx	*mctx;
 
+	ARRAY_FREE(&fctx->iol);
+
 	while (!TAILQ_EMPTY(&fctx->matchq)) {
 		mctx = TAILQ_FIRST(&fctx->matchq);
 		TAILQ_REMOVE(&fctx->matchq, mctx, entry);
@@ -397,6 +400,7 @@ fetch_account(struct account *a, struct io *io, double tim)
 	TAILQ_INIT(&fctx.matchq);
  	TAILQ_INIT(&fctx.deliverq);
  	TAILQ_INIT(&fctx.doneq);
+	ARRAY_INIT(&fctx.iol);
 	fctx.queued = fctx.dropped = fctx.kept = 0;
 	fctx.io = io;
 

@@ -24,7 +24,7 @@
 #include "fetch.h"
 
 int	fetch_imappipe_connect(struct account *);
-void	fetch_imappipe_fill(struct account *, struct io **, u_int *n);
+void	fetch_imappipe_fill(struct account *, struct iolist *);
 int	fetch_imappipe_disconnect(struct account *, int);
 void	fetch_imappipe_desc(struct account *, char *, size_t);
 
@@ -138,16 +138,16 @@ fetch_imappipe_connect(struct account *a)
 
 /* Fill io list. */
 void
-fetch_imappipe_fill(struct account *a, struct io **iop, u_int *n)
+fetch_imappipe_fill(struct account *a, struct iolist *iol)
 {
 	struct fetch_imap_data	*data = a->data;
 
 	if (data->cmd->io_in != NULL)
-		iop[(*n)++] = data->cmd->io_in;
+		ARRAY_ADD(iol, data->cmd->io_in);
 	if (data->cmd->io_out != NULL)
-		iop[(*n)++] = data->cmd->io_out;
+		ARRAY_ADD(iol, data->cmd->io_out);
 	if (data->cmd->io_err != NULL)
-		iop[(*n)++] = data->cmd->io_err;
+		ARRAY_ADD(iol, data->cmd->io_err);
 }
 
 /* Close connection and clean up. */

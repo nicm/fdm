@@ -24,7 +24,7 @@
 #include "fetch.h"
 
 int	fetch_imap_connect(struct account *);
-void	fetch_imap_fill(struct account *, struct io **, u_int *);
+void	fetch_imap_fill(struct account *, struct iolist *);
 int	fetch_imap_disconnect(struct account *, int);
 void	fetch_imap_desc(struct account *, char *, size_t);
 
@@ -120,11 +120,11 @@ fetch_imap_connect(struct account *a)
 
 /* Fill io list. */
 void
-fetch_imap_fill(struct account *a, struct io **iop, u_int *n)
+fetch_imap_fill(struct account *a, struct iolist *iol)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	iop[(*n)++] = data->io;
+	ARRAY_ADD(iol, data->io);
 }
 
 /* Close connection and clean up. */
