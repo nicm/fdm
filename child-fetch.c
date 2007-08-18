@@ -181,8 +181,8 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	double		 tim;
 
 	/* Initialise list. */
-	ARRAY_CLEAR(&fctx->iol);
-	ARRAY_ADD(&fctx->iol, fctx->io);
+	ARRAY_CLEAR(&fctx->iolist);
+	ARRAY_ADD(&fctx->iolist, fctx->io);
 
 	/*
 	 * If the queues are empty and the fetch finished and closed, must be
@@ -223,14 +223,14 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 	 * If the fetch isn't holding for queue changes, fill in its io list.
 	 */
 	if (error != FETCH_HOLD && a->fetch->fill != NULL)
-		a->fetch->fill(a, &fctx->iol);
+		a->fetch->fill(a, &fctx->iolist);
 
 	/*
 	 * If that didn't add any fds and we're not blocked for the parent then
 	 * skip the poll entirely and tell the caller not to loop to us again
 	 * immediately.
 	 */
-	if (ARRAY_LENGTH(&fctx->iol) == 1 && fctx->blocked == 0)
+	if (ARRAY_LENGTH(&fctx->iolist) == 1 && fctx->blocked == 0)
 		return (FETCH_AGAIN);
 
 	/*
@@ -243,10 +243,10 @@ fetch_poll(struct account *a, struct fetch_ctx *fctx)
 		timeout = conf.timeout;
 
 	log_debug3("%s: polling %u fds, timeout=%d, error=%d",
-	    a->name, ARRAY_LENGTH(&fctx->iol), timeout, error);
+	    a->name, ARRAY_LENGTH(&fctx->iolist), timeout, error);
 	tim = get_time();
-	switch (io_polln(ARRAY_DATA(&fctx->iol),
-	    ARRAY_LENGTH(&fctx->iol), &rio, timeout, &cause)) {
+	switch (io_polln(ARRAY_DATA(&fctx->iolist),
+	    ARRAY_LENGTH(&fctx->iolist), &rio, timeout, &cause)) {
 	case 0:
 		if (rio == fctx->io)
 			fatalx("parent socket closed");
@@ -363,7 +363,7 @@ fetch_free(struct fetch_ctx *fctx)
 {
 	struct mail_ctx	*mctx;
 
-	ARRAY_FREE(&fctx->iol);
+	ARRAY_FREE(&fctx->iolist);
 
 	while (!TAILQ_EMPTY(&fctx->matchq)) {
 		mctx = TAILQ_FIRST(&fctx->matchq);
@@ -400,7 +400,7 @@ fetch_account(struct account *a, struct io *io, double tim)
 	TAILQ_INIT(&fctx.matchq);
  	TAILQ_INIT(&fctx.deliverq);
  	TAILQ_INIT(&fctx.doneq);
-	ARRAY_INIT(&fctx.iol);
+	ARRAY_INIT(&fctx.iolist);
 	fctx.queued = fctx.dropped = fctx.kept = 0;
 	fctx.io = io;
 
@@ -460,10 +460,9 @@ fetch_account(struct account *a, struct io *io, double tim)
 	}
 
 	/* Report error and free queues. */
-	if (error == FETCH_ERROR) {
+	if (error == FETCH_ERROR)
 		log_warnx("%s: fetching error. aborted", a->name);
-		fetch_free(&fctx);
-	}
+	fetch_free(&fctx);
 
 	tim = get_time() - tim;
 	n = fctx.dropped + fctx.kept;

@@ -40,7 +40,7 @@ struct fetch_ctx {
 	int	 		 holding; /* holding fetch until queues drop */
 
 	struct io	        *io;
-	struct iolist		 iol;
+	struct iolist		 iolist;
 };
 
 /* Fetch functions. */
