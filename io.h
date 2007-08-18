@@ -51,9 +51,6 @@ struct buffer {
 /* Amount to poll after in io_update. */
 #define IO_FLUSHSIZE (2 * IO_BLOCKSIZE)
 
-/* Maximum number of pollfds. */
-#define IO_POLLFDS 256
-
 /* IO macros. */
 #define IO_ROUND(n) (((n / IO_BLOCKSIZE) + 1) * IO_BLOCKSIZE)
 #define IO_CLOSED(io) ((io)->flags & IOF_CLOSED)
