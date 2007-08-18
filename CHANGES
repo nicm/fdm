@@ -1,3 +1,8 @@
+18 August 2007
+
+* Make SMTP delivery work again (blank lines were failing a length check in
+  buffer_add from io_write). SF bug 1776786.
+
 16 August 2007
 
 * Remove header action now allows fnmatch patterns.

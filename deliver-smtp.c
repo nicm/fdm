@@ -142,7 +142,8 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 				goto error;
 			line_init(m, &ptr, &len);
 			while (ptr != NULL) {
-				io_write(io, ptr, len - 1);
+				if (len > 1)
+					io_write(io, ptr, len - 1);
 				io_writeline(io, NULL);
 
 				/* Update if necessary. */
