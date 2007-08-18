@@ -419,13 +419,13 @@ fetch_account(struct account *a, struct io *io, double tim)
 			msgp = &msg;
 		}
 
-		/* Match a mail. */
+		/* Match mail. */
 		if (fetch_match(a, &fctx, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
 		}
 
-		/* Deliver a mail. */
+		/* Deliver mail. */
 		if (fetch_deliver(a, &fctx, msgp, &msgbuf) != 0) {
 			error = FETCH_ERROR;
 			break;
