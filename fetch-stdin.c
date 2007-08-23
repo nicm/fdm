@@ -28,141 +28,124 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	 fetch_stdin_connect(struct account *);
-int	 fetch_stdin_completed(struct account *);
-int	 fetch_stdin_fetch(struct account *, struct fetch_ctx *fctx);
-int	 fetch_stdin_disconnect(struct account *, int);
-void	 fetch_stdin_desc(struct account *, char *, size_t);
+void	fetch_stdin_abort(struct account *);
+u_int	fetch_stdin_total(struct account *);
+void	fetch_stdin_desc(struct account *, char *, size_t);
+
+int	fetch_stdin_state_init(struct account *, struct fetch_ctx *);
+int	fetch_stdin_state_mail(struct account *, struct fetch_ctx *);
+int	fetch_stdin_state_exit(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_stdin = {
 	"stdin",
-	fetch_stdin_connect,
+	fetch_stdin_state_init,
+
 	NULL,
 	NULL,
-	fetch_stdin_completed,
+	fetch_stdin_abort,
 	NULL,
-	fetch_stdin_fetch,
-	NULL,
-	NULL,
-	NULL,
-	fetch_stdin_disconnect,
 	fetch_stdin_desc
 };
 
-int
-fetch_stdin_connect(struct account *a)
+/* Abort; close stdin. */
+void
+fetch_stdin_abort(unused struct account *a)
 {
-	struct fetch_stdin_data	*data = a->data;
+	close(STDIN_FILENO);
+}
 
-	data->llen = IO_LINESIZE;
-	data->lbuf = xmalloc(data->llen);
-
+/* Initialise stdin fetch. */
+int
+fetch_stdin_state_init(struct account *a, struct fetch_ctx *fctx)
+{
+	/* Check stdin is valid. */
 	if (isatty(STDIN_FILENO)) {
 		log_warnx("%s: stdin is a tty. ignoring", a->name);
-		return (-1);
+		return (FETCH_ERROR);
 	}
-
 	if (fcntl(STDIN_FILENO, F_GETFL) == -1) {
 		if (errno != EBADF)
 			fatal("fcntl failed");
 		log_warnx("%s: stdin is invalid", a->name);
-		return (-1);
-	}
-
-	data->io = io_create(STDIN_FILENO, NULL, IO_LF);
-	if (conf.debug > 3 && !conf.syslog)
-		data->io->dup_fd = STDOUT_FILENO;
-
-	data->complete = 0;
-
-	return (0);
-}
-
-int
-fetch_stdin_completed(struct account *a)
-{
-	struct fetch_stdin_data	*data = a->data;
-
-	return (data->complete);
-}
-
-int
-fetch_stdin_disconnect(struct account *a, unused int aborted)
-{
-	struct fetch_stdin_data	*data = a->data;
-
-	if (data->io != NULL)
-		io_free(data->io);
-
-	close(STDIN_FILENO);
-
-	xfree(data->lbuf);
-
-	return (0);
-}
-
-int
-fetch_stdin_fetch(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_stdin_data	*data = a->data;
-	struct mail		*m;
-	int		 	 error;
-	char			*line, *cause;
-
-	/* Flush deleted once complete. */
-	if (data->complete) {
-		while (done_mail(a, fctx) != NULL)
-			dequeue_mail(a, fctx);
-		return (FETCH_HOLD);
-	}
-
-	/* Initialise the mail. */
-	m = xcalloc(1, sizeof *m);
-	if (mail_open(m, IO_BLOCKSIZE) != 0) {
-		log_warn("%s: failed to create mail", a->name);
 		return (FETCH_ERROR);
 	}
-	m->size = 0;
 
-	m->auxdata = NULL;
-	m->auxfree = NULL;
+	fctx->state = fetch_stdin_state_mail;
+	return (FETCH_AGAIN);
+}
+
+/* Fetch mail from stdin. */
+int
+fetch_stdin_state_mail(struct account *a, struct fetch_ctx *fctx)
+{
+	struct mail	*m = fctx->mail;
+	struct io	*io;
+	char		*line, *cause;
+
+	/* Open io for stdin. */
+	io = io_create(STDIN_FILENO, NULL, IO_LF);
+	if (conf.debug > 3 && !conf.syslog)
+		io->dup_fd = STDOUT_FILENO;
+
+	/* Initialise the mail. */
+	if (mail_open(m, IO_BLOCKSIZE) != 0) {
+		log_warn("%s: failed to create mail", a->name);
+		goto error;
+	}
+	m->size = 0;
 
 	/* Add default tags. */
 	default_tags(&m->tags, NULL);
 
+	/* Loop reading the mail. */
 	for (;;) {
 		/*
 		 * There can only be one mail on stdin so reentrancy is
 		 * irrelevent. This is a good thing since we want to check for
 		 * close which means end of mail.
 		 */
-		error = io_pollline2(data->io,
-		    &line, &data->lbuf, &data->llen, conf.timeout, &cause);
-		if (error == 0) {
+		switch (io_pollline2(io,
+		    &line, &fctx->lbuf, &fctx->llen, conf.timeout, &cause)) {
+		case 0:
 			/* Normal close is fine. */
-			break;
-		} else if (error == -1) {
+			goto out;
+		case -1:
 			if (errno == EAGAIN)
 				continue;
 			log_warnx("%s: %s", a->name, cause);
 			xfree(cause);
-			return (FETCH_ERROR);
+			goto error;
 		}
 
 		if (append_line(m, line, strlen(line)) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
-			return (FETCH_ERROR);
+			goto error;
 		}
 		if (m->size > conf.max_size)
 			break;
 	}
 
-	/* Enqueue the mail. */
-	if (enqueue_mail(a, fctx, m) != 0)
-		return (FETCH_ERROR);
+out:
+	if (io != NULL)
+		io_free(io);
+	
+	fctx->state = fetch_stdin_state_exit;
+	return (FETCH_MAIL);
 
-	data->complete = 1;
-	return (FETCH_HOLD);
+
+error:
+	if (io != NULL)
+		io_free(io);
+
+	return (FETCH_ERROR);
+}
+
+/* Fetch finished; return exit. */
+int
+fetch_stdin_state_exit(unused struct account *a, unused struct fetch_ctx *fctx)
+{
+	close(STDIN_FILENO);
+	return (FETCH_EXIT);
 }
 
 void

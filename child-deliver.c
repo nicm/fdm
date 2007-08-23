@@ -25,10 +25,10 @@
 #include "fdm.h"
 #include "match.h"
 
-int	child_deliver(struct child *child, struct io *io);
+int	child_deliver(struct child *, struct io *);
 
 int
-child_deliver(struct child *child, struct io *io)
+child_deliver(struct child *child, struct io *pio)
 {
 	struct child_deliver_data	*data = child->data;
 	struct account			*a = data->account;
@@ -65,9 +65,9 @@ child_deliver(struct child *child, struct io *io)
 	msgbuf.buf = m->tags;
 	msgbuf.len = STRB_SIZE(m->tags);
 
-	if (privsep_send(io, &msg, &msgbuf) != 0)
+	if (privsep_send(pio, &msg, &msgbuf) != 0)
 		fatalx("privsep_send error");
-	if (privsep_recv(io, &msg, NULL) != 0)
+	if (privsep_recv(pio, &msg, NULL) != 0)
 		fatalx("privsep_recv error");
 	if (msg.type != MSG_EXIT)
 		fatalx("unexpected message");

@@ -23,29 +23,25 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_imappipe_connect(struct account *);
 void	fetch_imappipe_fill(struct account *, struct iolist *);
-int	fetch_imappipe_disconnect(struct account *, int);
 void	fetch_imappipe_desc(struct account *, char *, size_t);
 
+int	fetch_imappipe_connect(struct account *);
+void	fetch_imappipe_disconnect(struct account *);
 int	fetch_imappipe_putln(struct account *, const char *, va_list);
-int	fetch_imappipe_getln(struct account *, char **);
-int	fetch_imappipe_closed(struct account *);
-void	fetch_imappipe_close(struct account *);
+int	fetch_imappipe_getln(struct account *, struct fetch_ctx *, char **);
+
+int	fetch_imappipe_state_init(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_imappipe = {
-	"imappipe",
-	fetch_imappipe_connect,
+	"imap",
+	fetch_imappipe_state_init,
+
 	fetch_imappipe_fill,
+	imap_commit,	/* from imap-common.c */
+	imap_abort,	/* from imap-common.c */
 	imap_total,	/* from imap-common.c */
-	imap_completed,	/* from imap-common.c */
-	imap_closed,	/* from imap-common.c */
-	imap_fetch,	/* from imap-common.c */
-	imap_poll,	/* from imap-common.c */
-	imap_purge,	/* from imap-common.c */
-	imap_close,	/* from imap-common.c */
-	fetch_imappipe_disconnect,
-	fetch_imappipe_desc,
+	fetch_imappipe_desc
 };
 
 /* Write line to server. */
@@ -61,13 +57,13 @@ fetch_imappipe_putln(struct account *a, const char *fmt, va_list ap)
 
 /* Get line from server. */
 int
-fetch_imappipe_getln(struct account *a, char **line)
+fetch_imappipe_getln(struct account *a, struct fetch_ctx *fctx, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*out, *err, *cause;
 
 	switch (cmd_poll(
-	    data->cmd, &out, &err, &data->lbuf, &data->llen, 0, &cause)) {
+	    data->cmd, &out, &err, &fctx->lbuf, &fctx->llen, 0, &cause)) {
 	case 0:
 		break;
 	case -1:
@@ -87,55 +83,6 @@ fetch_imappipe_getln(struct account *a, char **line)
 	return (0);
 }
 
-/* Return if connection is closed. */
-int
-fetch_imappipe_closed(struct account *a)
-{
-	struct fetch_imap_data	*data = a->data;
-
-	return (data->cmd == NULL);
-}
-
-/* Close connection. */
-void
-fetch_imappipe_close(struct account *a)
-{
-	struct fetch_imap_data	*data = a->data;
-
-	cmd_free(data->cmd);
-	data->cmd = NULL;
-}
-
-/* Connect to server and set up callback functions. */
-int
-fetch_imappipe_connect(struct account *a)
-{
-	struct fetch_imap_data	*data = a->data;
-	char			*cause;
-
-	if (imap_connect(a) != 0)
-		return (-1);
-
-	data->cmd = cmd_start(data->pipecmd, CMD_IN|CMD_OUT, NULL, 0, &cause);
-	if (data->cmd == NULL) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (-1);
-	}
-	if (conf.debug > 3 && !conf.syslog) {
-		data->cmd->io_in->dup_fd = STDOUT_FILENO;
-		data->cmd->io_out->dup_fd = STDOUT_FILENO;
-	}
-
-	data->getln = fetch_imappipe_getln;
-	data->putln = fetch_imappipe_putln;
-	data->closed = fetch_imappipe_closed;
-	data->close = fetch_imappipe_close;
-	data->src = NULL;
-
-	return (0);
-}
-
 /* Fill io list. */
 void
 fetch_imappipe_fill(struct account *a, struct iolist *iol)
@@ -150,16 +97,52 @@ fetch_imappipe_fill(struct account *a, struct iolist *iol)
 		ARRAY_ADD(iol, data->cmd->io_err);
 }
 
-/* Close connection and clean up. */
+/* Connect to server. */
 int
-fetch_imappipe_disconnect(struct account *a, int aborted)
+fetch_imappipe_connect(struct account *a)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*cause;
+
+	data->cmd = cmd_start(data->pipecmd, CMD_IN|CMD_OUT, NULL, 0, &cause);
+	if (data->cmd == NULL) {
+		log_warnx("%s: %s", a->name, cause);
+		xfree(cause);
+		return (-1);
+	}
+	if (conf.debug > 3 && !conf.syslog) {
+		data->cmd->io_in->dup_fd = STDOUT_FILENO;
+		data->cmd->io_out->dup_fd = STDOUT_FILENO;
+	}
+
+	return (0);
+}
+
+/* Close connection. */
+void
+fetch_imappipe_disconnect(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
 	if (data->cmd != NULL)
 		cmd_free(data->cmd);
+}
 
-	return (imap_disconnect(a, aborted));
+/* IMAP over pipe initial state. */
+int
+fetch_imappipe_state_init(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	data->connect = fetch_imappipe_connect;
+	data->getln = fetch_imappipe_getln;
+	data->putln = fetch_imappipe_putln;
+	data->disconnect = fetch_imappipe_disconnect;
+
+	data->src = NULL;
+
+	fctx->state = imap_state_connect;
+	return (FETCH_AGAIN);
 }
 
 void

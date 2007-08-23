@@ -29,49 +29,58 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_nntp_connect(struct account *);
 void	fetch_nntp_fill(struct account *, struct iolist *);
-int	fetch_nntp_completed(struct account *);
-int	fetch_nntp_closed(struct account *);
-int	fetch_nntp_fetch(struct account *, struct fetch_ctx *);
-int	fetch_nntp_close(struct account *);
-int	fetch_nntp_disconnect(struct account *, int);
+void	fetch_nntp_abort(struct account *);
+u_int	fetch_nntp_total(struct account *);
 void	fetch_nntp_desc(struct account *, char *, size_t);
 
 int	fetch_nntp_code(char *);
-int	fetch_nntp_check(struct account *, char **, int *, u_int, ...);
+int	fetch_nntp_check(
+	    struct account *, struct fetch_ctx *, char **, int *, u_int, ...);
 int	fetch_nntp_parse223(char *, u_int *, char **);
 
 int	fetch_nntp_load(struct account *);
 int	fetch_nntp_save(struct account *);
 
-int	fetch_nntp_reset(struct account *);
+int	fetch_nntp_bad(struct account *, const char *);
 int	fetch_nntp_invalid(struct account *, const char *);
 
-int	fetch_nntp_connected(struct account *, struct fetch_ctx *);
-int	fetch_nntp_switch(struct account *, struct fetch_ctx *);
-int	fetch_nntp_group(struct account *, struct fetch_ctx *);
-int	fetch_nntp_stat(struct account *, struct fetch_ctx *);
-int	fetch_nntp_wait(struct account *, struct fetch_ctx *);
-int	fetch_nntp_next(struct account *, struct fetch_ctx *);
-int	fetch_nntp_article(struct account *, struct fetch_ctx *);
-int	fetch_nntp_line(struct account *, struct fetch_ctx *);
-int	fetch_nntp_quit(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_connect(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_connected(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_switch(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_group(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_reset(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_stat(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_wait(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_next(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_article(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_line(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_quit(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_nntp = {
 	"nntp",
-	fetch_nntp_connect,
+	fetch_nntp_state_connect,
+	
 	fetch_nntp_fill,
 	NULL,
-	fetch_nntp_completed,
-	fetch_nntp_closed,
-	fetch_nntp_fetch,
+	fetch_nntp_abort,
 	NULL,
-	fetch_nntp_save,
-	fetch_nntp_close,
-	fetch_nntp_disconnect,
 	fetch_nntp_desc
 };
+
+int
+fetch_nntp_bad(struct account *a, const char *line)
+{
+	log_warnx("%s: unexpected data: %s", a->name, line);
+	return (FETCH_ERROR);
+}
+
+int
+fetch_nntp_invalid(struct account *a, const char *line)
+{
+	log_warnx("%s: invalid response: %s", a->name, line);
+	return (FETCH_ERROR);
+}
 
 /* Extract code from line. */
 int
@@ -97,23 +106,23 @@ fetch_nntp_code(char *line)
 }
 
 /*
- * Retrieve a line and check the line is one of a list of codes. Returns 0
- * for success, -1 for error, or a NULL line when more data is needed. 1xx
- * codes are completely ignored.
+ * Get line from server and check against list of codes.  Returns -1 on error,
+ * 0 on success, a NULL line when out of data.
  */
 int
-fetch_nntp_check(struct account *a, char **line, int *codep, u_int n, ...)
+fetch_nntp_check(struct account *a,
+    struct fetch_ctx *fctx, char **line, int *codep, u_int n, ...)
 {
 	struct fetch_nntp_data	*data = a->data;
 	va_list			 ap;
 	u_int			 i;
 	int			 code;
-
+	
 	if (codep == NULL)
 		codep = &code;
 
 	do {
-		*line = io_readline2(data->io, &data->lbuf, &data->llen);
+		*line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 		if (*line == NULL)
 			return (0);
 
@@ -254,7 +263,7 @@ fetch_nntp_save(struct account *a)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
-	char			 tmp[MAXPATHLEN];
+	char			*path = NULL, tmp[MAXPATHLEN];
 	int			 fd = -1;
 	FILE			*f = NULL;
 	u_int			 i;
@@ -263,7 +272,8 @@ fetch_nntp_save(struct account *a)
 		goto error;
 	if ((fd = mkstemp(tmp)) == -1)
 		goto error;
-	cleanup_register(tmp);
+	path = tmp;
+	cleanup_register(path);
 
 	if ((f = fdopen(fd, "r+")) == NULL)
 		goto error;
@@ -284,9 +294,9 @@ fetch_nntp_save(struct account *a)
 	fclose(f);
 	f = NULL;
 
-	if (rename(tmp, data->path) == -1)
+	if (rename(path, data->path) == -1)
 		goto error;
-	cleanup_deregister(tmp);
+	cleanup_deregister(path);
 	return (0);
 
 error:
@@ -297,35 +307,68 @@ error:
 	if (fd != -1)
 		close(fd);
 
-	if (unlink(tmp) != 0)
-		fatal("unlink failed");
-	cleanup_deregister(tmp);
+	if (path != NULL) {
+		if (unlink(tmp) != 0)
+			fatal("unlink failed");
+		cleanup_deregister(path);
+	}
 	return (-1);
+}
+
+/* Fill io list. */
+void
+fetch_nntp_fill(struct account *a, struct iolist *iol)
+{
+	struct fetch_nntp_data	*data = a->data;	
+
+	if (data->io != NULL)
+		ARRAY_ADD(iol, data->io);
+}
+
+/* Abort fetch and free everything. */
+void
+fetch_nntp_abort(struct account *a)
+{
+	struct fetch_nntp_data	*data = a->data;
+	struct fetch_nntp_group	*group;
+	u_int			 i;
+
+	if (data->io != NULL) {
+		io_close(data->io);
+		io_free(data->io);
+		data->io = NULL;
+	}
+
+	for (i = 0; i < ARRAY_LENGTH(&data->groups); i++) {
+		group = ARRAY_ITEM(&data->groups, i);
+		xfree(group->name);
+		if (group->id != NULL)
+			xfree(group->id);
+		xfree(group);
+	}
+	ARRAY_FREE(&data->groups);
 }
 
 /* Connect to NNTP server. */
 int
-fetch_nntp_connect(struct account *a)
+fetch_nntp_state_connect(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	u_int			 i;
 	char			*cause;
 
-	data->llen = IO_LINESIZE;
-	data->lbuf = xmalloc(data->llen);
-
 	/* Initialise and load groups array. */
 	ARRAY_INIT(&data->groups);
 	for (i = 0; i < ARRAY_LENGTH(data->names); i++) {
-		group = xmalloc(sizeof *group);
+		group = xcalloc(1, sizeof *group);
 		group->name = xstrdup(ARRAY_ITEM(data->names, i));
 		group->id = NULL;
 		group->ignore = 0;
 		ARRAY_ADD(&data->groups, group);
 	}
 	if (fetch_nntp_load(a) != 0)
-		return (-1);
+		return (FETCH_ERROR);
 
 	/* Find the first active group, if any. */
 	data->group = 0;
@@ -333,7 +376,7 @@ fetch_nntp_connect(struct account *a)
 		data->group++;
 		if (data->group == ARRAY_LENGTH(&data->groups)) {
 			log_warnx("%s: no groups found", a->name);
-			return (-1);
+			return (FETCH_ERROR);
 		}
 	}
 
@@ -348,92 +391,67 @@ fetch_nntp_connect(struct account *a)
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
 
-	data->state = fetch_nntp_connected;
-	return (0);
+	fctx->state = fetch_nntp_state_connected;
+	return (FETCH_BLOCK);
 }
 
-/* Fill io array. */
-void
-fetch_nntp_fill(struct account *a, struct iolist *iol)
+/* Connected state. */
+int
+fetch_nntp_state_connected(struct account *a, struct fetch_ctx *fctx)
+{
+	char	*line;
+
+	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 200) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	fctx->state = fetch_nntp_state_group;
+	return (FETCH_AGAIN);
+}
+
+/*
+ * Switch to the next group. Missed out the first time since connect already
+ * finds the first group.
+ */
+int
+fetch_nntp_state_switch(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 
-	ARRAY_ADD(iol, data->io);
+	/* Find the next group. */
+	do {
+		data->group++;
+
+		if (data->group == ARRAY_LENGTH(&data->groups)) {
+			fctx->state = fetch_nntp_state_quit;
+			return (FETCH_BLOCK);
+		}
+	} while (ARRAY_ITEM(&data->groups, data->group)->ignore);
+		
+	fctx->state = fetch_nntp_state_group;
+	return (FETCH_AGAIN);
 }
 
-/* Return if fetch is complete. */
+/* Group state. */
 int
-fetch_nntp_completed(struct account *a)
-{
-	struct fetch_nntp_data	*data = a->data;
-
-	return (data->group >= ARRAY_LENGTH(&data->groups));
-}
-
-/* Return if fetch is closed. */
-int
-fetch_nntp_closed(struct account *a)
-{
-	struct fetch_nntp_data	*data = a->data;
-
-	return (data->closef && data->io == NULL);
-}
-
-/* Clean up and disconnect. */
-int
-fetch_nntp_disconnect(struct account *a, int aborted)
+fetch_nntp_state_group(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
-	u_int			 i;
 
-	if (!aborted)
-		fetch_nntp_save(a);
+	group = ARRAY_ITEM(&data->groups, data->group);
 
-	if (data->mail != NULL)
-		mail_destroy(data->mail);
+	log_debug("%s: fetching group: %s", a->name, group->name);
 
-	if (data->io != NULL) {
-		io_close(data->io);
-		io_free(data->io);
-	}
-
-	for (i = 0; i < ARRAY_LENGTH(&data->groups); i++) {
-		group = ARRAY_ITEM(&data->groups, i);
-		xfree(group->name);
-		if (group->id != NULL)
-			xfree(group->id);
-		xfree(group);
-	}
-	ARRAY_FREE(&data->groups);
-
-	xfree(data->lbuf);
-
-	return (0);
+	io_writeline(data->io, "GROUP %s", group->name);
+	fctx->state = fetch_nntp_state_stat;
+	return (FETCH_BLOCK);
 }
 
-/* Fetch mail. */
+/* Reset state. */
 int
-fetch_nntp_fetch(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_nntp_data	*data = a->data;
-
-	return (data->state(a, fctx));
-}
-
-/* Close down connection. */
-int
-fetch_nntp_close(struct account *a)
-{
-	struct fetch_nntp_data	*data = a->data;
-
-	data->closef = 1;
-
-	return (0);
-}
-
-int
-fetch_nntp_reset(struct account *a)
+fetch_nntp_state_reset(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
@@ -448,98 +466,22 @@ fetch_nntp_reset(struct account *a)
 	}
 	group->last = 0;
 
-	data->state = fetch_nntp_group;
+	fctx->state = fetch_nntp_state_group;
 	return (FETCH_AGAIN);
 }
 
+/* Stat state. */
 int
-fetch_nntp_invalid(struct account *a, const char *line)
-{
-	log_warnx("%s: invalid response: %s", a->name, line);
-	return (FETCH_ERROR);
-}
-
-/* Connected state. */
-int
-fetch_nntp_connected(struct account *a, unused struct fetch_ctx *fctx)
-{
-	struct fetch_nntp_data	*data = a->data;
-	char			*line;
-
-	if (fetch_nntp_check(a, &line, NULL, 1, 200) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-
-	data->state = fetch_nntp_group;
-	return (FETCH_AGAIN);
-}
-
-/*
- * State to switch to the next group. This is the idle state when
- * complete. Missed out the first time since connect already finds the first
- * group.
- */
-int
-fetch_nntp_switch(struct account *a, unused struct fetch_ctx *fctx)
-{
-	struct fetch_nntp_data	*data = a->data;
-
-	/* Dequeue mail if any to be deleted. */
-	while (done_mail(a, fctx) != NULL)
-		dequeue_mail(a, fctx);
-
-	/* Close if requested. */
-	if (data->closef) {
-		io_writeline(data->io, "QUIT");
-		data->state = fetch_nntp_quit;
-		return (FETCH_BLOCK);
-	}
-
-	/* Find the next group. */
-	do {
-		if (!fetch_nntp_completed(a))
-			data->group++;
-		if (fetch_nntp_completed(a))
-			break;
-	} while (ARRAY_ITEM(&data->groups, data->group)->ignore);
-
-	/* Hold if complete. */
-	if (fetch_nntp_completed(a))
-		return (FETCH_HOLD);
-
-	data->state = fetch_nntp_group;
-	return (FETCH_AGAIN);
-}
-
-
-/* GROUP state. */
-int
-fetch_nntp_group(struct account *a, unused struct fetch_ctx *fctx)
-{
-	struct fetch_nntp_data	*data = a->data;
-	struct fetch_nntp_group	*group;
-
-	group = ARRAY_ITEM(&data->groups, data->group);
-	log_debug("%s: fetching group: %s", a->name, group->name);
-
-	io_writeline(data->io, "GROUP %s", group->name);
-	data->state = fetch_nntp_stat;
-	return (FETCH_BLOCK);
-}
-
-/* STAT state. */
-int
-fetch_nntp_stat(struct account *a, unused struct fetch_ctx *fctx)
+fetch_nntp_state_stat(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
 	char			*line;
 	u_int			 n;
-
+	
 	group = ARRAY_ITEM(&data->groups, data->group);
 
-	if (fetch_nntp_check(a, &line, NULL, 1, 211) != 0)
+	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 211) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
@@ -547,26 +489,27 @@ fetch_nntp_stat(struct account *a, unused struct fetch_ctx *fctx)
 	if (sscanf(line, "211 %u %*u %u", &group->size, &n) != 2)
 		return (fetch_nntp_invalid(a, line));
 	if (group->last > n) {
-		log_warnx("%s: new last %u is less than old %u", a->name, n,
-		    group->last);
-		return (fetch_nntp_reset(a));
+		log_warnx("%s: "
+		    "new last %u is less than old %u", a->name, n, group->last);
+		fctx->state = fetch_nntp_state_reset;
+		return (FETCH_AGAIN);
 	}
 	group->size = n - group->last;
 
 	if (group->last != 0) {
 		io_writeline(data->io, "STAT %u", group->last);
-		data->state = fetch_nntp_wait;
+		fctx->state = fetch_nntp_state_wait;
 		return (FETCH_BLOCK);
 	} else {
 		io_writeline(data->io, "NEXT");
-		data->state = fetch_nntp_next;
+		fctx->state = fetch_nntp_state_next;
 		return (FETCH_BLOCK);
 	}
 }
 
 /* Wait state. Wait for and check STAT response. */
 int
-fetch_nntp_wait(struct account *a, unused struct fetch_ctx *fctx)
+fetch_nntp_state_wait(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
@@ -575,7 +518,7 @@ fetch_nntp_wait(struct account *a, unused struct fetch_ctx *fctx)
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
-	if (fetch_nntp_check(a, &line, NULL, 1, 223) != 0)
+	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 223) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
@@ -589,19 +532,20 @@ fetch_nntp_wait(struct account *a, unused struct fetch_ctx *fctx)
 	}
 	if (strcmp(id, group->id) != 0) {
 		xfree(id);
-		return (fetch_nntp_reset(a));
+		fctx->state = fetch_nntp_state_reset;
+		return (FETCH_AGAIN);
 	}
 	log_debug2("%s: last message found: %u %s", a->name, group->last, id);
 	xfree(id);
 
 	io_writeline(data->io, "NEXT");
-	data->state = fetch_nntp_next;
+	fctx->state = fetch_nntp_state_next;
 	return (FETCH_BLOCK);
 }
 
-/* NEXT state. Now we are fetching mail. */
+/* Next state. Now we are fetching mail. */
 int
-fetch_nntp_next(struct account *a, unused struct fetch_ctx *fctx)
+fetch_nntp_state_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
 	struct fetch_nntp_group	*group;
@@ -611,18 +555,14 @@ fetch_nntp_next(struct account *a, unused struct fetch_ctx *fctx)
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
-	/* Dequeue mail here too. */
-	while (done_mail(a, fctx) != NULL)
-		dequeue_mail(a, fctx);
-
-	if (fetch_nntp_check(a, &line, &code, 2, 223, 421) != 0)
+	if (fetch_nntp_check(a, fctx, &line, &code, 2, 223, 421) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
 	if (code == 421) {
 		/* Finished this group. Switch to the next. */
-		data->state = fetch_nntp_switch;
+		fctx->state = fetch_nntp_state_switch;
 		return (FETCH_AGAIN);
 	}
 
@@ -639,29 +579,29 @@ fetch_nntp_next(struct account *a, unused struct fetch_ctx *fctx)
 	group->id = id;
 
 	io_writeline(data->io, "ARTICLE");
-	data->state = fetch_nntp_article;
+	fctx->state = fetch_nntp_state_article;
 	return (FETCH_BLOCK);
 }
 
-/* ARTICLE state. */
+/* Article state. */
 int
-fetch_nntp_article(struct account *a, unused struct fetch_ctx *fctx)
+fetch_nntp_state_article(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct mail		*m;
+	struct fetch_nntp_group	*group;
+	struct mail		*m = fctx->mail;
 	char			*line;
 	int			 code;
 
-	if (fetch_nntp_check(a, &line, &code, 2, 220, 423, 430) != 0)
+	group = ARRAY_ITEM(&data->groups, data->group);
+
+	if (fetch_nntp_check(a, fctx, &line, &code, 2, 220, 423, 430) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
 	if (code == 423 || code == 430)
 		return (FETCH_AGAIN);
-
-	/* Create a new mail. */
-	m = data->mail = xcalloc(1, sizeof *data->mail);
 
 	/* Open the mail. */
 	if (mail_open(m, IO_BLOCKSIZE) != 0) {
@@ -670,36 +610,40 @@ fetch_nntp_article(struct account *a, unused struct fetch_ctx *fctx)
 	}
 	m->size = 0;
 
+	/* Tag mail. */
+	default_tags(&m->tags, group->name);
+	add_tag(&m->tags, "group", "%s", group->name);
+	add_tag(&m->tags, "server", "%s", data->server.host);
+	add_tag(&m->tags, "port", "%s", data->server.port);
+
 	data->flushing = 0;
 
-	data->state = fetch_nntp_line;
+	fctx->state = fetch_nntp_state_line;
 	return (FETCH_AGAIN);
 }
-
+ 
 /* Line state. */
 int
-fetch_nntp_line(struct account *a, struct fetch_ctx *fctx)
+fetch_nntp_state_line(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_nntp_data	*data = a->data;
-	struct fetch_nntp_group	*group;
-	struct mail		*m = data->mail;
+	struct mail		*m = fctx->mail;
 	char			*line;
 
-	group = ARRAY_ITEM(&data->groups, data->group);
-
 	for (;;) {
-		line = io_readline2(data->io, &data->lbuf, &data->llen);
+		line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 		if (line == NULL)
 			return (FETCH_BLOCK);
-
+		
 		if (line[0] == '.') {
 			if (line[1] == '\0')
 				break;
 			line++;
 		}
-
+		
 		if (data->flushing)
 			continue;
+		
 		if (append_line(m, line, strlen(line)) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
@@ -708,39 +652,26 @@ fetch_nntp_line(struct account *a, struct fetch_ctx *fctx)
 			data->flushing = 1;
 	}
 
-	/* Tag mail. */
-	default_tags(&m->tags, group->name);
-	add_tag(&m->tags, "group", "%s", group->name);
-	add_tag(&m->tags, "server", "%s", data->server.host);
-	add_tag(&m->tags, "port", "%s", data->server.port);
-
-	data->mail = NULL;
-	if (enqueue_mail(a, fctx, m) != 0)
-		return (FETCH_ERROR);
-
 	io_writeline(data->io, "NEXT");
-	data->state = fetch_nntp_next;
-	return (FETCH_BLOCK);
+	fctx->state = fetch_nntp_state_next;
+	return (FETCH_MAIL);
 }
 
-/* QUIT state. */
+/* Quit state. */
 int
-fetch_nntp_quit(struct account *a, unused struct fetch_ctx *fctx)
+fetch_nntp_state_quit(struct account *a, struct fetch_ctx *fctx)
 {
-	struct fetch_nntp_data	*data = a->data;
-	char			*line;
+	char	*line;
 
-	if (fetch_nntp_check(a, &line, NULL, 1, 205) != 0)
+	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 205) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
-	io_close(data->io);
-	io_free(data->io);
-	data->io = NULL;
+	fetch_nntp_save(a);
 
-	data->state = fetch_nntp_switch;
-	return (FETCH_AGAIN);
+	fetch_nntp_abort(a);
+	return (FETCH_EXIT);
 }
 
 void

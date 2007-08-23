@@ -2326,11 +2326,7 @@ fetchtype: poptype server userpassnetrc apop verify
 	   }
 	 | TOKSTDIN
 	   {
-		   struct fetch_stdin_data	*data;
-
 		   $$.fetch = &fetch_stdin;
-		   data = xcalloc(1, sizeof *data);
-		   $$.data = data;
 	   }
          | maildirs
 /**        [$1: maildirs (struct strings *)] */

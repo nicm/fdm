@@ -1,3 +1,11 @@
+23 August 2007
+
+* Yet another fetch reorganisation to try to make it clearer. Move tracking
+  completed mail into fetch code, move mail and state stuff outside, and
+  simplify the API and data structures. Also change the way the fetch poll loop
+  works and fix some potential problems with IMAP-over-pipe. Hopefully few
+  regressions...
+
 18 August 2007
 
 * Tidy up io code a little, break some big functions and split headers stuff

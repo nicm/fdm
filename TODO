@@ -23,11 +23,8 @@
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order
 - document mbox fetch
-- the fetch stuff is still verbose, ugly and overcomplicated; try (again) to
-  think of a good way to do it... fetch needs to:
-        - receive mail (and enqueue it or return it)
-        - process done mail
-        - purge
-        - handle asynch abort
-  should consume all data (can lose FETCH_AGAIN/FETCH_BLOCK bollocks)
-  must hang around waiting for queues to drain before QUIT
+- remove-headers { ... }
+- pop3 over pipe
+- pop3/imap tests via pipe and coprocess
+- aio for fetch maildir
+- fetch from gzipped mbox

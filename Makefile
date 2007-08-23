@@ -25,7 +25,7 @@ SRCS= fdm.c \
       deliver-write.c \
       fetch-imap.c fetch-imappipe.c fetch-maildir.c fetch-nntp.c fetch-pop3.c \
       fetch-stdin.c fetch-mbox.c imap-common.c \
-      mail-callback.c mail-state.c mail-time.c mail.c file.c \
+      mail-state.c mail-time.c mail.c file.c \
       match-age.c match-attachment.c match-command.c match-in-cache.c \
       match-matched.c match-regexp.c match-size.c match-string.c \
       match-tagged.c match-unmatched.c \

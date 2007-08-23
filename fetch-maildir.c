@@ -31,35 +31,32 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_maildir_connect(struct account *);
-int	fetch_maildir_completed(struct account *);
-int	fetch_maildir_fetch(struct account *, struct fetch_ctx *);
-int	fetch_maildir_poll(struct account *, u_int *);
-int	fetch_maildir_disconnect(struct account *, int);
+int	fetch_maildir_commit(struct account *, struct mail *);
+void	fetch_maildir_abort(struct account *);
+u_int	fetch_maildir_total(struct account *);
 void	fetch_maildir_desc(struct account *, char *, size_t);
 
 void	fetch_maildir_free(void *);
 
 int	fetch_maildir_makepaths(struct account *);
 void	fetch_maildir_freepaths(struct account *);
-int	fetch_maildir_dequeue(struct account *, struct fetch_ctx *);
 
-int	fetch_maildir_next(struct account *, struct fetch_ctx *);
-int	fetch_maildir_open(struct account *, struct fetch_ctx *);
-int	fetch_maildir_mail(struct account *, struct fetch_ctx *);
+int	fetch_maildir_poll(struct account *);
+
+int	fetch_maildir_state_init(struct account *, struct fetch_ctx *);
+int	fetch_maildir_state_build(struct account *, struct fetch_ctx *);
+int	fetch_maildir_state_next(struct account *, struct fetch_ctx *);
+int	fetch_maildir_state_open(struct account *, struct fetch_ctx *);
+int	fetch_maildir_state_mail(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_maildir = {
 	"maildir",
-	fetch_maildir_connect,
+	fetch_maildir_state_init,
+
 	NULL,
-	NULL,
-	fetch_maildir_completed,
-	NULL,
-	fetch_maildir_fetch,
-	fetch_maildir_poll,
-	NULL,
-	NULL,
-	fetch_maildir_disconnect,
+	fetch_maildir_commit,
+	fetch_maildir_abort,
+	fetch_maildir_total,
 	fetch_maildir_desc
 };
 
@@ -142,82 +139,9 @@ fetch_maildir_freepaths(struct account *a)
 	ARRAY_FREEALL(data->paths);
 }
 
-/* Handle done queue. */
+/* Count maildir total. */
 int
-fetch_maildir_dequeue(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_maildir_mail	*aux;
-	struct mail			*m;
-
-	/* Delete mail if any. */
-	while ((m = done_mail(a, fctx)) != NULL) {
-		aux = m->auxdata;
-		if (m->decision == DECISION_DROP && unlink(aux->path) != 0) {
-			log_warn("%s: %s: unlink", a->name, aux->path);
-			return (-1);
-		}
-		dequeue_mail(a, fctx);
-	}
-
-	return (0);
-}
-
-/* Build path list and set initial state. */
-int
-fetch_maildir_connect(struct account *a)
-{
-	struct fetch_maildir_data	*data = a->data;
-
-	if (fetch_maildir_makepaths(a) != 0)
-		return (-1);
-	data->index = 0;
-
-	if (ARRAY_EMPTY(data->paths)) {
-		log_warnx("%s: no maildirs found", a->name);
-		return (-1);
-	}
-
-	data->dirp = NULL;
-
-	data->state = fetch_maildir_open;
-	return (0);
-}
-
-/* Check if all paths completed. */
-int
-fetch_maildir_completed(struct account *a)
-{
-	struct fetch_maildir_data	*data = a->data;
-
-	return (data->index >= ARRAY_LENGTH(data->paths));
-}
-
-/* Clean up and free data. */
-int
-fetch_maildir_disconnect(struct account *a, unused int aborted)
-{
-	struct fetch_maildir_data	*data = a->data;
-
-	if (data->dirp != NULL)
-		closedir(data->dirp);
-
-	fetch_maildir_freepaths(a);
-
-	return (0);
-}
-
-/* Fetch mail. */
-int
-fetch_maildir_fetch(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_maildir_data	*data = a->data;
-
-	return (data->state(a, fctx));
-}
-
-/* Poll for maildir total. */
-int
-fetch_maildir_poll(struct account *a, u_int *n)
+fetch_maildir_poll(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 	u_int				 i;
@@ -226,7 +150,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 	struct dirent			*dp;
 	struct stat			 sb;
 
-	*n = 0;
+	data->total = 0;
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++) {
 		path = ARRAY_ITEM(data->paths, i);
 
@@ -238,7 +162,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 
 		while ((dp = readdir(dirp)) != NULL) {
 			if (dp->d_type == DT_REG) {
-				(*n)++;
+				data->total++;
 				continue;
 			}
 			if (dp->d_type != DT_UNKNOWN)
@@ -259,7 +183,7 @@ fetch_maildir_poll(struct account *a, u_int *n)
 			if (!S_ISREG(sb.st_mode))
 				continue;
 
-			(*n)++;
+			data->total++;
 		}
 
 		if (closedir(dirp) != 0) {
@@ -271,76 +195,139 @@ fetch_maildir_poll(struct account *a, u_int *n)
 	return (0);
 }
 
-/* Next state. Move to next path. */
+/* Commit mail. */
 int
-fetch_maildir_next(struct account *a, struct fetch_ctx *fctx)
+fetch_maildir_commit(struct account *a, struct mail *m)
+{
+	struct fetch_maildir_mail	*aux;
+
+	aux = m->auxdata;
+	if (m->decision == DECISION_DROP && unlink(aux->path) != 0) {
+		log_warn("%s: %s: unlink", a->name, aux->path);
+		return (FETCH_ERROR);
+	}
+
+	return (FETCH_AGAIN);
+}
+
+/* Abort fetch. */
+void
+fetch_maildir_abort(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
 
-	if (fetch_maildir_dequeue(a, fctx) != 0)
+	if (data->dirp != NULL)
+		closedir(data->dirp);
+	fetch_maildir_freepaths(a);
+}
+
+/* Return total mails. */
+u_int
+fetch_maildir_total(struct account *a)
+{
+	struct fetch_maildir_data	*data = a->data;
+
+	return (data->total);
+}
+
+/* Initialise maildir fetch context. */
+int
+fetch_maildir_state_init(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_maildir_data	*data = a->data;
+
+	if (fetch_maildir_makepaths(a) != 0)
 		return (FETCH_ERROR);
+	if (ARRAY_EMPTY(data->paths)) {
+		log_warnx("%s: no maildirs found", a->name);
+		return (-1);
+	}
 
-	if (!fetch_maildir_completed(a))
+	data->index = 0;
+	data->dirp = NULL;
+
+	/* Poll counts mails and exits. */
+	if (fctx->flags & FETCH_POLL) {
+		if (fetch_maildir_poll(a) != 0)
+			return (FETCH_ERROR);
+		fetch_maildir_freepaths(a);
+		return (FETCH_EXIT);
+	}
+
+	fctx->state = fetch_maildir_state_open;
+	return (0);
+}
+
+/* Next state. Move to next path. */
+int
+fetch_maildir_state_next(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_maildir_data	*data = a->data;
+
+	if (data->index <= ARRAY_LENGTH(data->paths))
 		data->index++;
-	if (fetch_maildir_completed(a))
-		return (FETCH_HOLD);
 
-	data->state = fetch_maildir_open;
+	if (data->index == ARRAY_LENGTH(data->paths)) {
+		fetch_maildir_freepaths(a);
+		return (FETCH_EXIT);
+	}
+
+	fctx->state = fetch_maildir_state_open;
 	return (FETCH_AGAIN);
 }
 
 /* Open state. */
 int
-fetch_maildir_open(struct account *a, unused struct fetch_ctx *fctx)
+fetch_maildir_state_open(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_maildir_data	*data = a->data;
+	char				*path;
 
-	data->path = ARRAY_ITEM(data->paths, data->index);
+ 	path = ARRAY_ITEM(data->paths, data->index);
 
 	/* Open the directory. */
-	log_debug2("%s: trying path: %s", a->name, data->path);
-	if ((data->dirp = opendir(data->path)) == NULL) {
-		log_warn("%s: %s: opendir", a->name, data->path);
+	log_debug2("%s: trying path: %s", a->name, path);
+	if ((data->dirp = opendir(path)) == NULL) {
+		log_warn("%s: %s: opendir", a->name, path);
 		return (FETCH_ERROR);
 	}
 
-	data->state = fetch_maildir_mail;
+	fctx->state = fetch_maildir_state_mail;
 	return (FETCH_AGAIN);
 }
 
 /* Mail state. Find and read mail file. */
 int
-fetch_maildir_mail(struct account *a, struct fetch_ctx *fctx)
+fetch_maildir_state_mail(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_maildir_data	*data = a->data;
+	struct mail			*m = fctx->mail;
 	struct fetch_maildir_mail	*aux;
-	struct mail			*m;
 	struct dirent			*dp;
-	char	       			*maildir, name[MAXPATHLEN];
+	char	       			*path, *maildir, name[MAXPATHLEN];
 	struct stat			 sb;
 	uintmax_t			 size;
 	int				 fd;
 	ssize_t				 n;
 
-	if (fetch_maildir_dequeue(a, fctx) != 0)
-		return (FETCH_ERROR);
+ 	path = ARRAY_ITEM(data->paths, data->index);
 
 restart:
 	/* Read the next dir entry. */
 	dp = readdir(data->dirp);
 	if (dp == NULL) {
 		if (closedir(data->dirp) != 0) {
-			log_warn("%s: %s: closedir", a->name, data->path);
+			log_warn("%s: %s: closedir", a->name, path);
 			return (FETCH_ERROR);
 		}
 		data->dirp = NULL;
 
-		data->state = fetch_maildir_next;
+		fctx->state = fetch_maildir_state_next;
 		return (FETCH_AGAIN);
 	}
 
-	if (mkpath(name, sizeof name, "%s/%s", data->path, dp->d_name) != 0) {
-		log_warn("%s: %s: printpath", a->name, data->path);
+	if (mkpath(name, sizeof name, "%s/%s", path, dp->d_name) != 0) {
+		log_warn("%s: %s: printpath", a->name, path);
 		return (FETCH_ERROR);
 	}
 	if (stat(name, &sb) != 0) {
@@ -350,14 +337,9 @@ restart:
 	if (!S_ISREG(sb.st_mode))
 		goto restart;
 
-	/* Create a new mail. */
-	m = xcalloc(1, sizeof *m);
-	m->shm.fd = -1;
-
 	/* Open the mail. */
 	if (mail_open(m, sb.st_size) != 0) {
 		log_warn("%s: failed to create mail", a->name);
-		mail_destroy(m);
 		return (FETCH_ERROR);
 	}
 
@@ -366,21 +348,20 @@ restart:
 	size = sb.st_size;
 	if (sb.st_size <= 0) {
 		m->size = 0;
-		goto out;
+		return (FETCH_MAIL);
 	} else if (size > SIZE_MAX || size > conf.max_size) {
 		m->size = SIZE_MAX;
-		goto out;
+		return (FETCH_MAIL);
 	}
 
 	/* Open the file. */
 	if ((fd = open(name, O_RDONLY, 0)) == -1) {
 		log_warn("%s: %s: open", a->name, name);
-		mail_destroy(m);
 		return (FETCH_ERROR);
 	}
 
 	/* Add the tags. */
-	maildir = xbasename(xdirname(data->path));
+	maildir = xbasename(xdirname(path));
 	default_tags(&m->tags, maildir);
 	add_tag(&m->tags, "maildir", "%s", maildir);
 
@@ -394,18 +375,14 @@ restart:
 	if ((n = read(fd, m->data, size)) == -1 || (size_t) n != size) {
 		close(fd);
 		log_warn("%s: %s: read", a->name, name);
-		mail_destroy(m);
 		return (FETCH_ERROR);
 	}
 	close(fd);
+
 	log_debug2("%s: read %ju bytes", a->name, size);
 	m->size = size;
 
-out:
-	/* And queue the mail. */
-	if (enqueue_mail(a, fctx, m) != 0)
-		return (FETCH_ERROR);
-	return (FETCH_AGAIN);
+	return (FETCH_MAIL);
 }
 
 void

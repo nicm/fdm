@@ -32,34 +32,30 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	fetch_mbox_connect(struct account *);
-int	fetch_mbox_completed(struct account *);
-int	fetch_mbox_fetch(struct account *, struct fetch_ctx *);
-int	fetch_mbox_disconnect(struct account *, int);
+int	fetch_mbox_commit(struct account *, struct mail *);
+void	fetch_mbox_abort(struct account *);
+u_int	fetch_mbox_total(struct account *);
 void	fetch_mbox_desc(struct account *, char *, size_t);
 
 void	fetch_mbox_free(void *);
 
 int	fetch_mbox_make(struct account *);
-int	fetch_mbox_commit(struct account *, struct fetch_mbox_mbox *);
-void	fetch_mbox_dequeue(struct account *, struct fetch_ctx *);
+int	fetch_mbox_save(struct account *, struct fetch_mbox_mbox *);
 
-int	fetch_mbox_next(struct account *, struct fetch_ctx *);
-int	fetch_mbox_open(struct account *, struct fetch_ctx *);
-int	fetch_mbox_mail(struct account *, struct fetch_ctx *);
+int	fetch_mbox_state_init(struct account *, struct fetch_ctx *);
+int	fetch_mbox_state_next(struct account *, struct fetch_ctx *);
+int	fetch_mbox_state_open(struct account *, struct fetch_ctx *);
+int	fetch_mbox_state_mail(struct account *, struct fetch_ctx *);
+int	fetch_mbox_state_exit(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_mbox = {
 	"mbox",
-	fetch_mbox_connect,
+	fetch_mbox_state_init,
+
 	NULL,
+	fetch_mbox_commit,
+	fetch_mbox_abort,
 	NULL,
-	fetch_mbox_completed,
-	NULL,
-	fetch_mbox_fetch,
-	NULL,
-	NULL,
-	NULL,
-	fetch_mbox_disconnect,
 	fetch_mbox_desc
 };
 
@@ -121,67 +117,9 @@ error:
 	return (-1);
 }
 
-/* Set initial state. */
+/* Save mbox changes. */
 int
-fetch_mbox_connect(struct account *a)
-{
-	struct fetch_mbox_data	*data = a->data;
-	
-	if (fetch_mbox_make(a) != 0)
-		return (-1);
-	data->index = 0;
-
-	if (ARRAY_EMPTY(&data->fmboxes)) {
-		log_warnx("%s: no mboxes found", a->name);
-		return (-1);
-	}
-
-	TAILQ_INIT(&data->kept);
-
-	data->state = fetch_mbox_open;
-	return (0);
-}
-
-/* Check if all mboxes completed. */
-int
-fetch_mbox_completed(struct account *a)
-{
-	struct fetch_mbox_data	*data = a->data;
-
-	return (data->index >= ARRAY_LENGTH(&data->fmboxes));
-}
-
-/* Clean up and free data. */
-int
-fetch_mbox_disconnect(struct account *a, int aborted)
-{
-	struct fetch_mbox_data	*data = a->data;
-	struct fetch_mbox_mbox	*fmbox;
-	u_int			 i;
-
-	for (i = 0; i < ARRAY_LENGTH(&data->fmboxes); i++) {
-		fmbox = ARRAY_ITEM(&data->fmboxes, i);
-
-		/* Commit changes if not aborted. */
-		if (!aborted && fetch_mbox_commit(a, fmbox) != 0)
-			aborted = 1;
-
-		if (fmbox->base != NULL)
-			munmap(fmbox->base, fmbox->size);
-		if (fmbox->fd != -1)
-			closelock(fmbox->fd, fmbox->path, conf.lock_types);
-
-		xfree(fmbox->path);
-		xfree(fmbox);
-	}
-	ARRAY_FREE(&data->fmboxes);
-
-	return (0);
-}
-
-/* Commit mbox changes. */
-int
-fetch_mbox_commit(struct account *a, struct fetch_mbox_mbox *fmbox)
+fetch_mbox_save(struct account *a, struct fetch_mbox_mbox *fmbox)
 {
 	struct fetch_mbox_data	*data = a->data;
 	struct fetch_mbox_mail	*aux, *this;
@@ -190,7 +128,7 @@ fetch_mbox_commit(struct account *a, struct fetch_mbox_mbox *fmbox)
 	ssize_t			 n;
 	struct iovec		 iov[2];
 
-	log_debug2("%s: %s: committing mbox: %u kept, %u total",
+	log_debug2("%s: %s: saving mbox: %u kept, %u total",
 	    a->name, fmbox->path, fmbox->reference, fmbox->total);
 	fd = -1;
 
@@ -294,60 +232,72 @@ error:
 	return (-1);
 }
 
-/* Handle done queue. */
-void
-fetch_mbox_dequeue(struct account *a, struct fetch_ctx *fctx)
+/* Commit mail. */
+int
+fetch_mbox_commit(struct account *a, struct mail *m)
 {
 	struct fetch_mbox_data	*data = a->data;
-	struct fetch_mbox_mail	*aux;
-	struct mail	       	*m;
+	struct fetch_mbox_mail	*aux = m->auxdata;
 
-	/* Delete mail if any. */
-	while ((m = done_mail(a, fctx)) != NULL) {
-		if (m->decision != DECISION_DROP) {
-			aux = m->auxdata;
-
-			/*
-			 * Add to kept list and reset callback to prevent free.
-			 * Kept entries are used when committing changes to
-			 * mboxes.
-			 */
-			TAILQ_INSERT_TAIL(&data->kept, aux, entry);
-			m->auxfree = NULL;
-		}
-		dequeue_mail(a, fctx);
+	if (m->decision != DECISION_DROP) {
+		/*
+		 * Add to kept list and reset callback to prevent free. Kept
+		 * entries are used when saving changes to mboxes.
+		 */
+		TAILQ_INSERT_TAIL(&data->kept, aux, entry);
+		m->auxfree = NULL;
 	}
+
+	return (FETCH_AGAIN);
 }
 
-/* Fetch mail. */
-int
-fetch_mbox_fetch(struct account *a, struct fetch_ctx *fctx)
+/* Abort fetching. */
+void
+fetch_mbox_abort(struct account *a)
 {
 	struct fetch_mbox_data	*data = a->data;
+	struct fetch_mbox_mbox	*fmbox;
+	u_int			 i;
+	
+	for (i = 0; i < ARRAY_LENGTH(&data->fmboxes); i++) {
+		fmbox = ARRAY_ITEM(&data->fmboxes, i);
+		
+		if (fmbox->base != NULL)
+			munmap(fmbox->base, fmbox->size);
+		if (fmbox->fd != -1)
+			closelock(fmbox->fd, fmbox->path, conf.lock_types);
 
-	return (data->state(a, fctx));
+		xfree(fmbox->path);
+		xfree(fmbox);
+	}
+
+	ARRAY_FREE(&data->fmboxes);
 }
 
-/* Next state. Move to next mbox. */
+/* Initial state. */
 int
-fetch_mbox_next(struct account *a, struct fetch_ctx *fctx)
+fetch_mbox_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_mbox_data	*data = a->data;
+	
+	if (fetch_mbox_make(a) != 0)
+		return (FETCH_ERROR);
+	if (ARRAY_EMPTY(&data->fmboxes)) {
+		log_warnx("%s: no mboxes found", a->name);
+		return (-1);
+	}
 
-	fetch_mbox_dequeue(a, fctx);
+	data->index = 0;
 
-	if (!fetch_mbox_completed(a))
-		data->index++;
-	if (fetch_mbox_completed(a))
-		return (FETCH_HOLD);
+	TAILQ_INIT(&data->kept);
 
-	data->state = fetch_mbox_open;
+	fctx->state = fetch_mbox_state_open;
 	return (FETCH_AGAIN);
 }
 
 /* Open state. */
 int
-fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
+fetch_mbox_state_open(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_mbox_data	*data = a->data;
 	struct fetch_mbox_mbox	*fmbox;
@@ -366,7 +316,7 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 		goto error;
 	}
 	if (sb.st_size == 0) {
-		data->state = fetch_mbox_next;
+		fctx->state = fetch_mbox_state_next;
 		return (FETCH_AGAIN);
 	}
 	if (sb.st_size < 5) {
@@ -410,7 +360,7 @@ fetch_mbox_open(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	}
 
-	data->state = fetch_mbox_mail;
+	fctx->state = fetch_mbox_state_mail;
 	return (FETCH_AGAIN);
 
 error:
@@ -426,34 +376,42 @@ error:
 	return (FETCH_ERROR);
 }
 
+/* Next state. Move to next mbox. */
+int
+fetch_mbox_state_next(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_mbox_data	*data = a->data;
+
+	if (data->index < ARRAY_LENGTH(&data->fmboxes))
+		data->index++;
+
+	if (data->index == ARRAY_LENGTH(&data->fmboxes)) {
+		fctx->state = fetch_mbox_state_exit;
+		return (FETCH_AGAIN);
+	}
+
+	fctx->state = fetch_mbox_state_open;
+	return (FETCH_AGAIN);
+}
+
 /* Mail state. Find and read mail file. */
 int
-fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
+fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_mbox_data		*data = a->data;
+	struct mail			*m = fctx->mail;
 	struct fetch_mbox_mbox		*fmbox;
 	struct fetch_mbox_mail		*aux;
-	struct mail			*m;
 	char				*line, *ptr, *lptr;
 	size_t				 llen;
 	int				 flushing;
 
-	/* 
-	 * Dequeue mail, if not done here likely to run out of file handles
-	 * before opening the next mbox.
-	 */	   
-	fetch_mbox_dequeue(a, fctx);
-
 	/* Find current mbox and check for EOF. */
 	fmbox = ARRAY_ITEM(&data->fmboxes, data->index);
 	if (data->off == fmbox->size) {
-		data->state = fetch_mbox_next;
+		fctx->state = fetch_mbox_state_next;
 		return (FETCH_AGAIN);
 	}
-
-	/* Create a new mail. */
-	m = xcalloc(1, sizeof *m);
-	m->shm.fd = -1;
 
 	/* Open the mail. */
 	if (mail_open(m, IO_BLOCKSIZE) != 0) {
@@ -471,6 +429,9 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 		fatalx("reference count overflow");
 	m->auxdata = aux;
 	m->auxfree = fetch_mbox_free;
+
+	/* Tag mail. */
+	default_tags(&m->tags, NULL);
 
 	/*
 	 * We start at a "From " line and include it in the mail (it can be
@@ -537,13 +498,23 @@ fetch_mbox_mail(struct account *a, struct fetch_ctx *fctx)
 		m->size -= 2;
 	}
 	
-	/* Tag mail. */
-	default_tags(&m->tags, NULL);
+	return (FETCH_MAIL);
+}
 
-	if (enqueue_mail(a, fctx, m) != 0)
-		return (FETCH_ERROR);
+/* Clean up and free data. */
+int
+fetch_mbox_state_exit(struct account *a, unused struct fetch_ctx *fctx)
+{
+	struct fetch_mbox_data	*data = a->data;
+	u_int			 i;
 
-	return (FETCH_AGAIN);
+	for (i = 0; i < ARRAY_LENGTH(&data->fmboxes); i++) {
+		if (fetch_mbox_save(a, ARRAY_ITEM(&data->fmboxes, i)) != 0)
+			return (FETCH_ERROR);
+	}
+		
+	fetch_mbox_abort(a);	
+	return (FETCH_EXIT);
 }
 
 void

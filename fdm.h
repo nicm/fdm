@@ -49,9 +49,6 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-/* Forward declarations. */
-struct fetch_ctx; 	/* fetch.h */
-
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
 #define SYSCONFFILE	"/etc/fdm.conf"
@@ -809,14 +806,6 @@ struct child 	*child_start(struct children *, uid_t, int (*)(struct child *,
 /* child-fetch.c */
 int		 open_cache(struct account *, struct cache *);
 int		 child_fetch(struct child *, struct io *);
-void		 fetch_free1(struct mail_ctx *);
-
-/* mail-callback.c */
-int		 enqueue_mail(struct account *, struct fetch_ctx *,
-		     struct mail *);
-struct mail 	*done_mail(struct account *, struct fetch_ctx *);
-void		 dequeue_mail(struct account *, struct fetch_ctx *);
-int		 can_purge(struct account *, struct fetch_ctx *);
 
 /* child-deliver.c */
 int		 child_deliver(struct child *, struct io *);
@@ -877,31 +866,20 @@ u_int		 fill_wrapped(struct mail *);
 void		 set_wrapped(struct mail *, char);
 
 /* mail-time.c */
-char   	       *rfc822time(time_t, char *, size_t);
-int		mailtime(struct mail *, time_t *);
+char		*rfc822time(time_t, char *, size_t);
+int		 mailtime(struct mail *, time_t *);
 
 /* mail-state.c */
-int		mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
-int		mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
+int		 mail_match(struct mail_ctx *, struct msg *, struct msgbuf *);
+int		 mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 
 /* db-tdb.c */
-TDB_CONTEXT    *db_open(char *);
-void		db_close(TDB_CONTEXT *);
-int		db_add(TDB_CONTEXT *, char *);
-int		db_contains(TDB_CONTEXT *, char *);
-int		db_size(TDB_CONTEXT *);
-int		db_expire(TDB_CONTEXT *, uint64_t);
-
-/* imap-common.c */
-int		 imap_connect(struct account *);
-u_int		 imap_total(struct account *);
-int		 imap_completed(struct account *);
-int		 imap_closed(struct account *);
-int		 imap_fetch(struct account *, struct fetch_ctx *);
-int		 imap_poll(struct account *, u_int *);
-int		 imap_purge(struct account *);
-int		 imap_close(struct account *);
-int		 imap_disconnect(struct account *, int);
+TDB_CONTEXT	*db_open(char *);
+void		 db_close(TDB_CONTEXT *);
+int		 db_add(TDB_CONTEXT *, char *);
+int		 db_contains(TDB_CONTEXT *, char *);
+int		 db_size(TDB_CONTEXT *);
+int		 db_expire(TDB_CONTEXT *, uint64_t);
 
 /* cleanup.c */
 void		 cleanup_check(void);

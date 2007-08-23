@@ -20,43 +20,37 @@
 #define FETCH_H
 
 /* Fetch return codes. */
-#define FETCH_ERROR 0
-#define FETCH_COMPLETE 1
-#define FETCH_AGAIN 2		/* may poll but must not block */
-#define FETCH_BLOCK 3		/* may block if necessary */
-#define FETCH_HOLD 4		/* don't need to poll at all */
+#define FETCH_AGAIN 1
+#define FETCH_BLOCK 2
+#define FETCH_ERROR 3
+#define FETCH_MAIL 4
+#define FETCH_EXIT 5
+
+/* Fetch flags. */
+#define FETCH_PURGE 0x1
+#define FETCH_EMPTY 0x2
+#define FETCH_POLL 0x4
 
 /* Fetch context. */
 struct fetch_ctx {
-	struct mail_queue 	 matchq;
-	struct mail_queue 	 deliverq;
-	struct mail_queue	 doneq;
+	int 	         (*state)(struct account *, struct fetch_ctx *);
+	int		 flags;
+	
+	struct mail	*mail;
 
-	u_int		  	 dropped;
-	u_int		  	 kept;
-
-	u_int			 queued;  /* number of mails queued */
-	u_int			 blocked; /* blocked for parent */
-	int	 		 holding; /* holding fetch until queues drop */
-
-	struct io	        *io;
-	struct iolist		 iolist;
+	size_t		 llen;
+	char		*lbuf;
 };
 
 /* Fetch functions. */
 struct fetch {
 	const char	*name;
+	int		 (*first)(struct account *, struct fetch_ctx *);
 
- 	int		 (*connect)(struct account *);
 	void		 (*fill)(struct account *, struct iolist *);
- 	u_int		 (*total)(struct account *);
-	int		 (*completed)(struct account *);
-	int		 (*closed)(struct account *);
-	int	 	 (*fetch)(struct account *, struct fetch_ctx *);
-	int	 	 (*poll)(struct account *, u_int *);
-	int		 (*purge)(struct account *);
-	int		 (*close)(struct account *);
-	int		 (*disconnect)(struct account *, int);
+	int		 (*commit)(struct account *, struct mail *);
+	void		 (*abort)(struct account *);
+	u_int		 (*total)(struct account *);
 	void		 (*desc)(struct account *, char *, size_t);
 };
 
@@ -64,13 +58,11 @@ struct fetch {
 struct fetch_maildir_data {
 	struct strings	*maildirs;
 
+	u_int		 total;
+
 	struct strings	*paths;
 	u_int		 index;
-
-	int 	         (*state)(struct account *, struct fetch_ctx *);
-
 	DIR		*dirp;
-	char		*path;
 };
 
 struct fetch_maildir_mail {
@@ -83,8 +75,6 @@ struct fetch_mbox_data {
 
 	ARRAY_DECL(, struct fetch_mbox_mbox *) fmboxes;
 	u_int		 index;
-
-	int 	         (*state)(struct account *, struct fetch_ctx *);
 	
 	size_t		 off;
 
@@ -130,24 +120,7 @@ struct fetch_nntp_data {
 	u_int		 group;
 	ARRAY_DECL(, struct fetch_nntp_group *) groups;
 
-	int 	         (*state)(struct account *, struct fetch_ctx *);
-	int		 closef;
-
-	struct mail	*mail;
 	int		 flushing;
-
-	size_t		 llen;
-	char		*lbuf;
-
-	struct io	*io;
-};
-
-/* Fetch stdin data. */
-struct fetch_stdin_data {
-	int		 complete;
-
-	size_t		 llen;
-	char		*lbuf;
 
 	struct io	*io;
 };
@@ -161,20 +134,15 @@ struct fetch_pop3_data {
 
 	u_int		 cur;
 	u_int		 num;
+
 	u_int		 total;
+	u_int		 committed;
 
-	int 	         (*state)(struct account *, struct fetch_ctx *);
 	struct strings	 kept;
-	int		 purgef;
-	int		 closef;
+	TAILQ_HEAD(, fetch_pop3_mail) dropped;
 
-	struct mail	*mail;
 	int		 flushing;
-
 	size_t		 size;
-
-	size_t		 llen;
-	char		*lbuf;
 
 	struct io	*io;
 };
@@ -182,21 +150,9 @@ struct fetch_pop3_data {
 struct fetch_pop3_mail {
 	char		*uid;
 	u_int		 idx;
+
+	TAILQ_ENTRY(fetch_pop3_mail) entry;
 };
-
-/* IMAP tag types. */
-#define IMAP_TAG_NONE -1
-#define IMAP_TAG_CONTINUE -2
-#define IMAP_TAG_ERROR -3
-
-/* IMAP line types. */
-#define IMAP_TAGGED 0
-#define IMAP_CONTINUE 1
-#define IMAP_UNTAGGED 2
-#define IMAP_RAW 3
-
-/* IMAP capabilities. */
-#define IMAP_CAPA_AUTH_CRAM_MD5 0x1
 
 /* Fetch imap data. */
 struct fetch_imap_data {
@@ -208,38 +164,38 @@ struct fetch_imap_data {
 
 	int		 capa;
 	int		 tag;
+
 	u_int		 cur;
 	u_int		 num;
+
 	u_int		 total;
+	u_int		 committed;
 
-	int 	         (*state)(struct account *, struct fetch_ctx *);
 	u_int	 	 uid;
+
 	ARRAY_DECL(, u_int) kept;
-	int		 purgef;
-	int		 closef;
+	TAILQ_HEAD(, fetch_imap_mail) dropped;
 
-	struct mail	*mail;
 	int		 flushing;
-
 	size_t		 size;
 	u_int		 lines;
 
-	size_t		 llen;
-	char		*lbuf;
-
-	char		*src;
-	int		 (*getln)(struct account *, char **);
-	int		 (*putln)(struct account *, const char *, va_list);
-	int		 (*closed)(struct account *);
-	void		 (*close)(struct account *);
-
 	struct io	*io;
 	struct cmd	*cmd;
+
+	char		*src;
+	int		 (*connect)(struct account *);
+	void		 (*disconnect)(struct account *);
+	int		 (*getln)(
+			      struct account *, struct fetch_ctx *, char **);
+	int		 (*putln)(struct account *, const char *, va_list);
 };
 
 struct fetch_imap_mail {
 	u_int		 uid;
 	u_int		 idx;
+
+	TAILQ_ENTRY(fetch_imap_mail) entry;
 };
 
 /* fetch-maildir.c */
@@ -262,5 +218,11 @@ extern struct fetch 	 fetch_imap;
 
 /* fetch-imappipe.c */
 extern struct fetch 	 fetch_imappipe;
+
+/* imap-common.c */
+int	imap_state_connect(struct account *, struct fetch_ctx *);
+int	imap_commit(struct account *, struct mail *);
+void	imap_abort(struct account *);
+u_int	imap_total(struct account *);
 
 #endif
