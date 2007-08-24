@@ -36,52 +36,42 @@ set domain ""
 set domain "domain"
 @0 ^domains are: "domain"$
 set domain { "domain1" "domain2" }
-@1 ^/dev/stdin: syntax error at line .$
+@0 ^domains are: "domain1" "domain2"$
 set domain { }
 @1 ^/dev/stdin: syntax error at line .$
 set domains "domain"
-@1 ^/dev/stdin: syntax error at line .$
+@0 ^domains are: "domain"$
 set domains { "" }
-@1 ^/dev/stdin: invalid domain at line .$
+@1 ^/dev/stdin: empty string in list at line .$
 set domains { "domain" }
 @0 ^domains are: "domain"$
 set domains { "domain1" "domain2" }
 @0 ^domains are: "domain1" "domain2"$
 set domains { }
 @1 ^/dev/stdin: syntax error at line .$
-set domains { "domain1" "domain2" "domain1" }
-@0 ^domains are: "domain1" "domain2"$
-set domains { "domain1" "domain2" "domain1" "domain2" }
-@0 ^domains are: "domain1" "domain2"$
-set domains { "domain1" "domain1" "domain2" }
-@0 ^domains are: "domain1" "domain2"$
-set domains { "domain1" "domain1" "domain2" "domain2" }
-@0 ^domains are: "domain1" "domain2"$
+set domains { "domain1" "domain2" "domain1"  }
+@0 ^domains are: "domain1" "domain2" "domain1"$
 
 set header ""
 @1 ^/dev/stdin: invalid header at line .$
 set header "header"
 @0 ^headers are: "header"$
 set header { "header1" "header2" }
-@1 ^/dev/stdin: syntax error at line .$
+@0 ^headers are: "header1" "header2"$
 set header { }
 @1 ^/dev/stdin: syntax error at line .$
 set headers "header"
-@1 ^/dev/stdin: syntax error at line .$
+@0 ^headers are: "header"$
 set headers { "" }
-@1 ^/dev/stdin: invalid header at line .$
+@1 ^/dev/stdin: empty string in list at line .$
 set headers { "header" }
 @0 ^headers are: "header"$
 set headers { "header1" "header2" }
 @0 ^headers are: "header1" "header2"$
 set headers { }
 @1 ^/dev/stdin: syntax error at line .$
-set headers { "header1" "header2" "header1" "header2" }
-@0 ^headers are: "header1" "header2"$
-set headers { "header1" "header1" "header2" }
-@0 ^headers are: "header1" "header2"$
-set headers { "header1" "header1" "header2" "header2" }
-@0 ^headers are: "header1" "header2"$
+set headers { "header1" "header2" "header1"  }
+@0 ^headers are: "header1" "header2" "header1"$
 
 set unmatched-mail drop
 @0 ^options are:.*unmatched-mail=drop

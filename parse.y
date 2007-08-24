@@ -187,12 +187,13 @@ yyerror(const char *fmt, ...)
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
-%type  <replstrs> actions actionslist rmheaders rmheaderslist
+%type  <replstrs> replstrslist
+%type  <replstrs> actions rmheaders
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder xstrv strv replstrv retre replpathv val optval
-%type  <strings> domains domainslist headers headerslist accounts accountslist
-%type  <strings> pathslist maildirs mboxes groupslist groups
+%type  <strings> stringslist pathslist
+%type  <strings> domains headers accounts maildirs mboxes groups
 %type  <users> users userslist
 %type  <userpass> userpass userpassnetrc
 %type  <uid> uid user
@@ -712,35 +713,37 @@ defmacro: STRMACRO '=' strv
 		  }
 	  }
 
-/** DOMAINS: <strings> (struct strings *) */
-domains: domainp replstrv
-/**      [$2: replstrv (char *)] */
-	 {
-		 char	*cp;
+/** REPLSTRSLIST: <replstrs> (struct replstrs *) */
+replstrslist: replstrslist strv
+/**           [$1: replstrslist (struct replstrs *)] [$2: strv (char *)] */
+ 	      {
+		      if (*$2 == '\0')
+			      yyerror("empty string in list");
 
-		 if (*$2 == '\0')
-			 yyerror("invalid domain");
+		      $$ = $1;
+		      ARRAY_EXPAND($$, 1);
+		      ARRAY_LAST($$).str = $2;
+	      }
+	    | strv
+/**           [$1: strv (char *)] */
+	      {
+		      if (*$1 == '\0')
+			     yyerror("empty string in list");
 
-		 $$ = xmalloc(sizeof *$$);
-		 ARRAY_INIT($$);
-		 for (cp = $2; *cp != '\0'; cp++)
-			 *cp = tolower((u_char) *cp);
-		 ARRAY_ADD($$, $2);
-	 }
-       | domainp '{' domainslist '}'
-/**      [$3: domainslist (struct strings *)] */
-	 {
-		 $$ = $3;
-	 }
+		      $$ = xmalloc(sizeof *$$);
+		      ARRAY_INIT($$);
+		      ARRAY_EXPAND($$, 1);
+		      ARRAY_LAST($$).str = $1;
+	      }
 
-/** DOMAINSLIST: <strings> (struct strings *) */
-domainslist: domainslist replstrv
-/**          [$1: domainslist (struct strings *)] [$2: replstrv (char *)] */
+/** STRINGSLIST: <strings> (struct strings *) */
+stringslist: stringslist replstrv
+/**          [$1: stringslist (struct strings *)] [$2: replstrv (char *)] */
 	     {
 		     char	*cp;
 
 		     if (*$2 == '\0')
-			     yyerror("invalid domain");
+			     yyerror("empty string in list");
 
 		     $$ = $1;
 		     for (cp = $2; *cp != '\0'; cp++)
@@ -753,104 +756,13 @@ domainslist: domainslist replstrv
 		     char	*cp;
 
 		     if (*$1 == '\0')
-			     yyerror("invalid domain");
+			     yyerror("empty string in list");
 
 		     $$ = xmalloc(sizeof *$$);
 		     ARRAY_INIT($$);
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((u_char) *cp);
 		     ARRAY_ADD($$, $1);
-	     }
-
-/** HEADERS: <strings> (struct strings *) */
-headers: headerp replstrv
-/**      [$2: replstrv (char *)] */
-	 {
-		 char	*cp;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid header");
-
-		 $$ = xmalloc(sizeof *$$);
-		 ARRAY_INIT($$);
-		 for (cp = $2; *cp != '\0'; cp++)
-			 *cp = tolower((u_char) *cp);
-		 ARRAY_ADD($$, $2);
-	 }
-       | headerp '{' headerslist '}'
-/**      [$3: headerslist (struct strings *)] */
-	 {
-		 $$ = $3;
-	 }
-
-/** HEADERSLIST: <strings> (struct strings *) */
-headerslist: headerslist replstrv
-/**          [$1: headerslist (struct strings *)] [$2: replstrv (char *)] */
-	     {
-		     char	*cp;
-
-		     if (*$2 == '\0')
-			     yyerror("invalid header");
-
-		     $$ = $1;
-		     for (cp = $2; *cp != '\0'; cp++)
-			     *cp = tolower((u_char) *cp);
-		     ARRAY_ADD($$, $2);
-	     }
-	   | replstrv
-/**          [$1: replstrv (char *)] */
-	     {
-		     char	*cp;
-
-		     if (*$1 == '\0')
-			     yyerror("invalid header");
-
-		     $$ = xmalloc(sizeof *$$);
-		     ARRAY_INIT($$);
-		     for (cp = $1; *cp != '\0'; cp++)
-			     *cp = tolower((u_char) *cp);
-		     ARRAY_ADD($$, $1);
-	     }
-
-/** RMHEADERS: <replstrs> (struct replstrs *) */
-rmheaders: rmheaderp strv
-/**        [$2: strv (char *)] */
-	   {
-		   if (*$2 == '\0')
-			   yyerror("invalid header");
-
-		   $$ = xmalloc(sizeof *$$);
-		   ARRAY_INIT($$);
-		   ARRAY_EXPAND($$, 1);
-		   ARRAY_LAST($$).str = $2;
-	   }
-	 | rmheaderp '{' rmheaderslist '}'
-/**        [$3: rmheaderslist (struct replstrs *)] */
-	   {
-		   $$ = $3;
-	   }
-
-/** RMHEADERSLIST: <replstrs> (struct replstrs *) */
-rmheaderslist: rmheaderslist strv
-/**            [$1: rmheaderslist (struct replstrs *)] [$2: strv (char *)] */
-	     {
-		     if (*$2 == '\0')
-			     yyerror("invalid header");
-
-		     $$ = $1;
-		     ARRAY_EXPAND($$, 1);
-		     ARRAY_LAST($$).str = $2;
-	     }
-	   | replstrv
-/**          [$1: replstrv (char *)] */
-	     {
-		     if (*$1 == '\0')
-			     yyerror("invalid header");
-
-		     $$ = xmalloc(sizeof *$$);
-		     ARRAY_INIT($$);
-		     ARRAY_EXPAND($$, 1);
-		     ARRAY_LAST($$).str = $1;
 	     }
 
 /** PATHSLIST: <strings> (struct strings *) */
@@ -872,6 +784,81 @@ pathslist: pathslist replpathv
 		   $$ = xmalloc(sizeof *$$);
 		   ARRAY_INIT($$);
 		   ARRAY_ADD($$, $1);
+	   }
+
+/** USERSLIST: <users> (struct { ... } users) */
+userslist: userslist uid
+/**        [$1: userslist (struct { ... } users)] [$2: uid (uid_t)] */
+	   {
+		   $$ = $1;
+		   ARRAY_ADD($$.users, $2);
+	   }
+	 | uid
+/**        [$1: uid (uid_t)] */
+	   {
+		   $$.users = xmalloc(sizeof *$$.users);
+		   ARRAY_INIT($$.users);
+		   ARRAY_ADD($$.users, $1);
+	   }
+
+/** DOMAINS: <strings> (struct strings *) */
+domains: domainp replstrv
+/**      [$2: replstrv (char *)] */
+	 {
+		 char	*cp;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid domain");
+
+		 $$ = xmalloc(sizeof *$$);
+		 ARRAY_INIT($$);
+		 for (cp = $2; *cp != '\0'; cp++)
+			 *cp = tolower((u_char) *cp);
+		 ARRAY_ADD($$, $2);
+	 }
+       | domainp '{' stringslist '}'
+/**      [$3: stringslist (struct strings *)] */
+	 {
+		 $$ = $3;
+	 }
+
+/** HEADERS: <strings> (struct strings *) */
+headers: headerp replstrv
+/**      [$2: replstrv (char *)] */
+	 {
+		 char	*cp;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid header");
+
+		 $$ = xmalloc(sizeof *$$);
+		 ARRAY_INIT($$);
+		 for (cp = $2; *cp != '\0'; cp++)
+			 *cp = tolower((u_char) *cp);
+		 ARRAY_ADD($$, $2);
+	 }
+       | headerp '{' stringslist '}'
+/**      [$3: stringslist (struct strings *)] */
+	 {
+		 $$ = $3;
+	 }
+
+/** RMHEADERS: <replstrs> (struct replstrs *) */
+rmheaders: rmheaderp strv
+/**        [$2: strv (char *)] */
+	   {
+		   if (*$2 == '\0')
+			   yyerror("invalid header");
+
+		   $$ = xmalloc(sizeof *$$);
+		   ARRAY_INIT($$);
+		   ARRAY_EXPAND($$, 1);
+		   ARRAY_LAST($$).str = $2;
+	   }
+	 | rmheaderp '{' replstrslist '}'
+/**        [$3: replstrslist (struct replstrs *)] */
+	   {
+		   $$ = $3;
 	   }
 
 /** MAILDIRS: <strings> (struct strings *) */
@@ -1038,21 +1025,6 @@ users: /* empty */
 	       $$.users = $$.users;
 	       $$.find_uid = 0;
        }
-
-/** USERSLIST: <users> (struct { ... } users) */
-userslist: userslist uid
-/**        [$1: userslist (struct { ... } users)] [$2: uid (uid_t)] */
-	   {
-		   $$ = $1;
-		   ARRAY_ADD($$.users, $2);
-	   }
-	 | uid
-/**        [$1: uid (uid_t)] */
-	   {
-		   $$.users = xmalloc(sizeof *$$.users);
-		   ARRAY_INIT($$.users);
-		   ARRAY_ADD($$.users, $1);
-	   }
 
 /** ICASE: <flag> (int) */
 icase: TOKCASE
@@ -1436,7 +1408,6 @@ defaction: TOKACTION replstrv users actitem
 		   xfree($2);
 	   }
 
-
 /** ACCOUNTS: <strings> (struct strings *) */
 accounts: /* empty */
 	  {
@@ -1454,36 +1425,11 @@ accounts: /* empty */
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2);
 	  }
-	| accountp '{' accountslist '}'
-/**       [$3: accountslist (struct strings *)] */
+	| accountp '{' stringslist '}'
+/**       [$3: stringslist (struct strings *)] */
 	  {
 		  $$ = $3;
 	  }
-
-/** ACCOUNTSLIST: <strings> (struct strings *) */
-accountslist: accountslist replstrv
-/**           [$1: accountslist (struct strings *)] [$2: replstrv (char *)] */
- 	      {
-		      if (*$2 == '\0')
-			      yyerror("invalid account name");
-		      if (!have_accounts($2))
-			      yyerror("no matching accounts: %s", $2);
-
-		      $$ = $1;
-		      ARRAY_ADD($$, $2);
-	      }
-	    | replstrv
-/**           [$1: replstrv (char *)] */
-	      {
-		      if (*$1 == '\0')
-			      yyerror("invalid account name");
-		      if (!have_accounts($1))
-			      yyerror("no matching accounts: %s", $1);
-
-		      $$ = xmalloc(sizeof *$$);
-		      ARRAY_INIT($$);
-		      ARRAY_ADD($$, $1);
-	      }
 
 /** ACTIONS: <replstrs> (struct replstrs *) */
 actions: actionp strv
@@ -1497,34 +1443,11 @@ actions: actionp strv
 		 ARRAY_EXPAND($$, 1);
 		 ARRAY_LAST($$).str = $2;
 	 }
-       | actionp '{' actionslist '}'
-/**      [$3: actionslist (struct replstrs *)] */
+       | actionp '{' replstrslist '}'
+/**      [$3: replstrslist (struct replstrs *)] */
          {
 		 $$ = $3;
 	 }
-
-/** ACTIONSLIST: <replstrs> (struct replstrs *) */
-actionslist: actionslist strv
-/**          [$1: actionslist (struct replstrs *)] [$2: strv (char *)] */
-	     {
-		     if (*$2 == '\0')
-			     yyerror("invalid action name");
-
-		     $$ = $1;
-		     ARRAY_EXPAND($$, 1);
-		     ARRAY_LAST($$).str = $2;
-	     }
-	   | strv
-/**          [$1: strv (char *)] */
-	     {
-		     if (*$1 == '\0')
-			     yyerror("invalid action name");
-
-		     $$ = xmalloc(sizeof *$$);
-		     ARRAY_INIT($$);
-		     ARRAY_EXPAND($$, 1);
-		     ARRAY_LAST($$).str = $1;
-	     }
 
 /** CONT: <flag> (int) */
 cont: /* empty */
@@ -1924,7 +1847,6 @@ expritem: not icase replstrv area
 		  data->value.str.str = $4;
 	  }
 
-
 /** EXPRLIST: <expr> (struct expr *) */
 exprlist: exprlist exprop expritem
 /**       [$1: exprlist (struct expr *)] [$2: exprop (enum exprop)] */
@@ -2100,58 +2022,19 @@ folder: /* empty */
 		$$ = $2;
 	}
 
-/** GROUPSLIST: <strings> (struct strings *) */
-groupslist: groupslist replstrv
-/**         [$1: groupslist (struct strings *)] [$2: replstrv (char *)] */
- 	    {
-		    char		*cp;
-
-		    if (*$2 == '\0')
-			    yyerror("invalid group");
-
-		    $$ = $1;
-
-		    for (cp = $2; *cp != '\0'; cp++)
-			    *cp = tolower((u_char) *cp);
-
-		    ARRAY_ADD($$, $2);
-	    }
-	  | replstrv
-/**         [$1: replstrv (char *)] */
-	    {
-		    char		*cp;
-
-		    if (*$1 == '\0')
-			    yyerror("invalid group");
-
-		    $$ = xmalloc(sizeof *$$);
-		    ARRAY_INIT($$);
-
-		    for (cp = $1; *cp != '\0'; cp++)
-			    *cp = tolower((u_char) *cp);
-
-		    ARRAY_ADD($$, $1);
-	    }
-
 /** GROUPS: <strings> (struct strings *) */
 groups: groupp replstrv
 /**     [$2: replstrv (char *)] */
 	{
-		char			*cp;
-
 		if (*$2 == '\0')
 			yyerror("invalid group");
 
 		$$ = xmalloc(sizeof *$$);
 		ARRAY_INIT($$);
-
-		for (cp = $2; *cp != '\0'; cp++)
-			*cp = tolower((u_char) *cp);
-
 		ARRAY_ADD($$, $2);
 	}
-      | groupp '{' groupslist '}'
-/**     [$3: groupslist (struct strings *)] */
+      | groupp '{' stringslist '}'
+/**     [$3: stringslist (struct strings *)] */
         {
 		$$ = $3;
 	}
