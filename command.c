@@ -178,45 +178,23 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	size_t		 len;
 	ssize_t		 n;
 
-	/* Retrieve a line if possible. */
+	/* Reset return pointers. */
 	if (err != NULL)
 		*err = NULL;
 	if (out != NULL)
 		*out = NULL;
-	if (cmd->io_err != NULL) {
-		if (lbuf != NULL)
-			*err = io_readline2(cmd->io_err, lbuf, llen);
-		else
-			*err = io_readline(cmd->io_err);
-		if (*err != NULL) {
-			/* Strip CR if the line is terminated by one. */
-			len = strlen(*err);
-			if (len > 0 && (*err)[len - 1] == '\r')
-				(*err)[len - 1] = '\0';
-			return (0);
-		}
-	}
-	if (cmd->io_out != NULL) {
-		if (lbuf != NULL)
-			*out = io_readline2(cmd->io_out, lbuf, llen);
-		else
-			*out = io_readline(cmd->io_out);
-		if (*out != NULL) {
-			/* Strip CR if the line is terminated by one. */
-			len = strlen(*out);
-			if (len > 0 && (*out)[len - 1] == '\r')
-				(*out)[len - 1] = '\0';
-			return (0);
-		}
-	}
+
+	/* If everything is closed, skip to check the child. */
+	if (cmd->io_in == NULL && cmd->io_out == NULL && cmd->io_err != NULL)
+		goto all_closed;
 
 	/*
 	 * Handle fixed buffer. We can't just write everything in cmd_start
 	 * as the child may block waiting for us to read. So, write as much
 	 * as possible here while still polling the others. If CMD_ONCE is set
-	 * the stdin io is closed when the buffer is done.
+	 * stdin is closed when the buffer is done.
 	 */
-	if (cmd->len != 0) {
+	if (cmd->len != 0 && cmd->io_in != NULL && !IO_CLOSED(cmd->io_in)) {
 		switch (n = write(cmd->io_in->fd, cmd->buf, cmd->len)) {
 		case 0:
 			errno = EPIPE;
@@ -224,12 +202,12 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 		case -1:
 			if (errno == EINTR || errno == EAGAIN)
 				break;
-			/*
-			 * Ignore closed input (rely on child returning non-
-			 * zero on error) unless CMD_ONCE is clear (it will
-			 * be needed later).
+			/* 
+			 * Ignore closed input, rely on child returning non-
+			 * zero on error and caller checking before writing to
+			 * it.
 			 */
-			if (errno == EPIPE && cmd->flags & CMD_ONCE) {
+			if (errno == EPIPE) {
 				cmd->len = 0;
 				break;
 			}
@@ -250,7 +228,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 		}
 	}
 
-	/* If anything is open, try and poll it. */
+	/* If there is still anything open, try and poll it. */
 	if (cmd->io_in != NULL || cmd->io_out != NULL || cmd->io_err != NULL) {
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
@@ -258,10 +236,26 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 		switch (io_polln(ios, 3, &io, timeout, cause)) {
 		case -1:
 			if (errno == EAGAIN)
-				return (0);
+				break;
 			return (-1);
 		case 0:
-			/* If the closed io is empty, free it. */
+			/*
+			 * Check for closed.
+			 *
+			 * It'd be nice for closed input to be an error, but we
+			 * can't tell the difference between error and normal
+			 * child exit, so just free it and rely on the caller
+			 * to handle it.
+			 *
+			 * The child could cause trouble if it buggered around
+			 * in sufficiently stupid ways, but the worst is that
+			 * we'd timeout.
+			 */
+			if (io == cmd->io_in) {
+				io_close(cmd->io_in);
+				io_free(cmd->io_in);
+				cmd->io_in = NULL;
+			}
 			if (io == cmd->io_out && IO_RDSIZE(cmd->io_out) == 0) {
 				io_close(cmd->io_out);
 				io_free(cmd->io_out);
@@ -276,45 +270,51 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 		}
 	}
 
-	/* Check if the child is still alive. */
-	if (cmd->pid != -1) {
-		switch (waitpid(cmd->pid, &cmd->status, WNOHANG)) {
-		case -1:
-			if (errno == ECHILD)
-				break;
-			xasprintf(cause, "waitpid: %s", strerror(errno));
-			return (-1);
-		case 0:
-			break;
-		default:
-			cmd->pid = -1;
-			/* Do at least one poll before finishing. */
-			return (0);
+	/* Retrieve a line if possible. */
+	if (cmd->io_err != NULL) {
+		if (lbuf != NULL)
+			*err = io_readline2(cmd->io_err, lbuf, llen);
+		else
+			*err = io_readline(cmd->io_err);
+		if (*err != NULL) {
+			/* Strip CR if the line is terminated by one. */
+			len = strlen(*err);
+			if (len > 0 && (*err)[len - 1] == '\r')
+				(*err)[len - 1] = '\0';
+		}
+	}
+	if (cmd->io_out != NULL) {
+		if (lbuf != NULL)
+			*out = io_readline2(cmd->io_out, lbuf, llen);
+		else
+			*out = io_readline(cmd->io_out);
+		if (*out != NULL) {
+			/* Strip CR if the line is terminated by one. */
+			len = strlen(*out);
+			if (len > 0 && (*out)[len - 1] == '\r')
+				(*out)[len - 1] = '\0';
 		}
 	}
 
- 	/*
-	 * A closed input is an error, unless writing once or the child has
-	 * died.
-	 */
-	if (cmd->io_in != NULL && IO_CLOSED(cmd->io_in) &&
-	    cmd->pid != -1 && !(cmd->flags & CMD_ONCE)) {
-		xasprintf(cause, "%s", strerror(EPIPE));
-		return (-1);
-	}
+	return (0);
 
+all_closed:
 	/*
-	 * If the child isn't dead, or there is data left in the buffers,
-	 * return with 0 now to get called again.
+	 * Everything is closed. Check the child. XXX This will use 100% CPU
+	 * if there is no poll in caller... setitimer...
 	 */
-	if (cmd->pid != -1)
+	switch (waitpid(cmd->pid, &cmd->status, WNOHANG)) {
+	case -1:
+		if (errno == ECHILD) 
+			return (0);
+		xasprintf(cause, "waitpid: %s", strerror(errno));
+		return (-1);
+	case 0:
 		return (0);
-	if (cmd->io_out != NULL && IO_RDSIZE(cmd->io_out) > 0)
-		return (0);
-	if (cmd->io_err != NULL && IO_RDSIZE(cmd->io_err) > 0)
-		return (0);
-
-	/* Child is dead, everything is empty. Sort out what to return. */
+	}
+	cmd->pid = -1;
+	
+	/* Child is dead, sort out what to return. */
 	if (WIFSIGNALED(cmd->status)) {
 		xasprintf(cause, "child got signal: %d", WTERMSIG(cmd->status));
 		return (-1);
