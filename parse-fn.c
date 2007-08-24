@@ -30,81 +30,9 @@
 #include "match.h"
 
 void
-free_strings(struct strings *sp)
+free_replstrs(struct replstrs *rsp)
 {
-	u_int	i;
-
-	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
-		xfree(ARRAY_ITEM(sp, i));
-	}
-	ARRAY_FREE(sp);
-}
-
-struct strings *
-weed_strings(struct strings *sp)
-{
-	u_int	 i, j;
-	char	*s;
-
-	if (ARRAY_LENGTH(sp) == 0)
-		return (sp);
-
-	for (i = 0; i < ARRAY_LENGTH(sp) - 1; i++) {
-		s = ARRAY_ITEM(sp, i);
-		if (s == NULL)
-			continue;
-
-		for (j = i + 1; j < ARRAY_LENGTH(sp); j++) {
-			if (ARRAY_ITEM(sp, j) == NULL)
-				continue;
-
-			if (strcmp(s, ARRAY_ITEM(sp, j)) == 0) {
-				xfree(ARRAY_ITEM(sp, j));
-				ARRAY_ITEM(sp, j) = NULL;
-			}
-		}
-	}
-
-	i = 0;
-	while (i < ARRAY_LENGTH(sp)) {
-		if (ARRAY_ITEM(sp, i) == NULL)
-			ARRAY_REMOVE(sp, i);
-		else
-			i++;
-	}
-
-	return (sp);
-}
-
-struct users *
-weed_users(struct users *up)
-{
-	u_int	i, j;
-	uid_t	uid;
-
-	if (ARRAY_LENGTH(up) == 0)
-		return (up);
-
-	for (i = 0; i < ARRAY_LENGTH(up) - 1; i++) {
-		uid = ARRAY_ITEM(up, i);
-		if (uid == (uid_t) -1)
-			continue;
-
-		for (j = i + 1; j < ARRAY_LENGTH(up); j++) {
-			if (ARRAY_ITEM(up, j) == uid)
-				ARRAY_ITEM(up, j) = -1;
-		}
-	}
-
-	i = 0;
-	while (i < ARRAY_LENGTH(up)) {
-		if (ARRAY_ITEM(up, i) == (uid_t) -1)
-			ARRAY_REMOVE(up, i);
-		else
-			i++;
-	}
-
-	return (up);
+	free_strings((struct strings *) rsp); /* XXX */
 }
 
 char *
@@ -114,9 +42,14 @@ fmt_replstrs(const char *prefix, struct replstrs *rsp)
 }
 
 void
-free_replstrs(struct replstrs *rsp)
+free_strings(struct strings *sp)
 {
-	free_strings((struct strings *) rsp); /* XXX */
+	u_int	i;
+
+	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
+		xfree(ARRAY_ITEM(sp, i));
+	}
+	ARRAY_FREE(sp);
 }
 
 char *

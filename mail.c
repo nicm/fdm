@@ -473,7 +473,7 @@ find_users(struct mail *m)
 		xfree(users);
 		return (NULL);
 	}
-	return (weed_users(users));
+	return (users);
 }
 
 char *

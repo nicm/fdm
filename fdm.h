@@ -745,8 +745,6 @@ struct account	*find_account(char *);
 struct action  	*find_action(char *);
 struct actions	*match_actions(const char *);
 struct macro	*find_macro(const char *);
-struct strings 	*weed_strings(struct strings *);
-struct users	*weed_users(struct users *);
 void		 find_netrc(const char *, char **, char **);
 void		 free_account(struct account *);
 void		 free_action(struct action *);

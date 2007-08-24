@@ -730,7 +730,7 @@ domains: domainp replstrv
        | domainp '{' domainslist '}'
 /**      [$3: domainslist (struct strings *)] */
 	 {
-		 $$ = weed_strings($3);
+		 $$ = $3;
 	 }
 
 /** DOMAINSLIST: <strings> (struct strings *) */
@@ -780,7 +780,7 @@ headers: headerp replstrv
        | headerp '{' headerslist '}'
 /**      [$3: headerslist (struct strings *)] */
 	 {
-		 $$ = weed_strings($3);
+		 $$ = $3;
 	 }
 
 /** HEADERSLIST: <strings> (struct strings *) */
@@ -888,7 +888,7 @@ maildirs: maildirp replpathv
         | maildirp '{' pathslist '}'
 /**       [$3: pathslist (struct strings *)] */
 	  {
-		  $$ = weed_strings($3);
+		  $$ = $3;
 	  }
 
 /** MBOXES: <strings> (struct strings *) */
@@ -905,7 +905,7 @@ mboxes: mboxp replpathv
       | mboxp '{' pathslist '}'
 /**     [$3: pathslist (struct strings *)] */
 	{
-		$$ = weed_strings($3);
+		$$ = $3;
 	}
 
 /** LOCK: <locks> (u_int) */
@@ -1035,7 +1035,7 @@ users: /* empty */
 /**    [$3: userslist (struct { ... } users)] */
        {
 	       $$ = $3;
-	       $$.users = weed_users($$.users);
+	       $$.users = $$.users;
 	       $$.find_uid = 0;
        }
 
@@ -1457,7 +1457,7 @@ accounts: /* empty */
 	| accountp '{' accountslist '}'
 /**       [$3: accountslist (struct strings *)] */
 	  {
-		  $$ = weed_strings($3);
+		  $$ = $3;
 	  }
 
 /** ACCOUNTSLIST: <strings> (struct strings *) */
@@ -2153,7 +2153,7 @@ groups: groupp replstrv
       | groupp '{' groupslist '}'
 /**     [$3: groupslist (struct strings *)] */
         {
-		$$ = weed_strings($3);
+		$$ = $3;
 	}
 
 /** VERIFY: <flag> (int) */
