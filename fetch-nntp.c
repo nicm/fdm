@@ -424,6 +424,7 @@ fetch_nntp_state_switch(struct account *a, struct fetch_ctx *fctx)
 		data->group++;
 
 		if (data->group == ARRAY_LENGTH(&data->groups)) {
+			io_writeline(data->io, "QUIT");
 			fctx->state = fetch_nntp_state_quit;
 			return (FETCH_BLOCK);
 		}
