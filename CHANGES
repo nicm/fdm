@@ -1,5 +1,7 @@
 24 August 2007
 
+* Don't even try to check for command child exit until its std{in,out,err} are
+  closed. Hopefully fixes problems seen on Linux by Frank Terbeck.
 * Be more consistent about lists when parsing configuration file.
 * Don't try to strip duplicates from any lists instead of trying for some of
   them and not others.
