@@ -143,7 +143,7 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 			*rio = io;
 		if (io == NULL)
 			continue;
-		
+
 		switch (io_before_poll(io, &pfds[i])) {
 		case 0:
 			/* Found a closed io. */
@@ -188,7 +188,7 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 		if (io_after_poll(io, &pfds[i]) == -1)
 			goto error;
 	}
-	
+
 	xfree(pfds);
 	return (1);
 
@@ -219,7 +219,7 @@ io_before_poll(struct io *io, struct pollfd *pfd)
 		pfd->events |= POLLIN;
 	if (io->wr != NULL && (BUFFER_USED(io->wr) != 0 ||
 	    (io->flags & (IOF_NEEDFILL|IOF_NEEDPUSH|IOF_MUSTWR)) != 0))
-		pfd->events |= POLLOUT;	
+		pfd->events |= POLLOUT;
 
 	return (1);
 }

@@ -128,7 +128,7 @@ fetch_stdin_state_mail(struct account *a, struct fetch_ctx *fctx)
 out:
 	if (io != NULL)
 		io_free(io);
-	
+
 	fctx->state = fetch_stdin_state_exit;
 	return (FETCH_MAIL);
 

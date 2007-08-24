@@ -116,7 +116,7 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 error_cause:
 	log_warnx("%s: %s: %s", a->name, s, cause);
 	xfree(cause);
-	
+
 error:
 	if (cmd != NULL)
 		cmd_free(cmd);

@@ -258,10 +258,10 @@ fetch_mbox_abort(struct account *a)
 	struct fetch_mbox_data	*data = a->data;
 	struct fetch_mbox_mbox	*fmbox;
 	u_int			 i;
-	
+
 	for (i = 0; i < ARRAY_LENGTH(&data->fmboxes); i++) {
 		fmbox = ARRAY_ITEM(&data->fmboxes, i);
-		
+
 		if (fmbox->base != NULL)
 			munmap(fmbox->base, fmbox->size);
 		if (fmbox->fd != -1)
@@ -279,7 +279,7 @@ int
 fetch_mbox_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_mbox_data	*data = a->data;
-	
+
 	if (fetch_mbox_make(a) != 0)
 		return (FETCH_ERROR);
 	if (ARRAY_EMPTY(&data->fmboxes)) {
@@ -329,7 +329,7 @@ fetch_mbox_state_open(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	}
 	fmbox->size = size;
-	
+
 	log_debug3("%s: opening mbox, size %ju", a->name, size);
 	used = 0;
 	do {
@@ -343,7 +343,7 @@ fetch_mbox_state_open(struct account *a, struct fetch_ctx *fctx)
 			goto error;
 		}
 	} while (fmbox->fd < 0);
-		
+
 	/* mmap the file. */
 	fmbox->base = mmap(
 	    NULL, fmbox->size, PROT_READ|PROT_WRITE, MAP_SHARED, fmbox->fd, 0);
@@ -453,7 +453,7 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 			data->off = fmbox->size;
 		} else
 			data->off += ptr - line + 1;
-		
+
 		/* Check if the line is "From ". */
 		if (line > fmbox->base &&
 		    ptr - line >= 5 && strncmp(line, "From ", 5) == 0) {
@@ -470,7 +470,7 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 				lptr++;
 				llen--;
 			}
-			
+
 			if (llen >= 5 && strncmp(lptr, "From ", 5) == 0)
 				line++;
 		}
@@ -497,7 +497,7 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 		aux->size -= 2;
 		m->size -= 2;
 	}
-	
+
 	return (FETCH_MAIL);
 }
 
@@ -512,8 +512,8 @@ fetch_mbox_state_exit(struct account *a, unused struct fetch_ctx *fctx)
 		if (fetch_mbox_save(a, ARRAY_ITEM(&data->fmboxes, i)) != 0)
 			return (FETCH_ERROR);
 	}
-		
-	fetch_mbox_abort(a);	
+
+	fetch_mbox_abort(a);
 	return (FETCH_EXIT);
 }
 

@@ -22,9 +22,9 @@
 - better website
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order
-- document mbox fetch
-- remove-headers { ... }
 - pop3 over pipe
 - pop3/imap tests via pipe and coprocess
 - aio for fetch maildir
 - fetch from gzipped mbox
+- document mbox fetch
+- document remove-headers { ... }

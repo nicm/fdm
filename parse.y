@@ -126,9 +126,9 @@ yyerror(const char *fmt, ...)
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKNNTPS TOKCACHE
 %token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKSTDOUT TOKNOVERIFY
-%token TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKVERIFYCERTS TOKEXPIRE
-%token TOKTOCACHE TOKINCACHE TOKKEY TOKNOAPOP
+%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKREMOVEHEADERS
+%token TOKSTDOUT TOKNOVERIFY TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW
+%token TOKVERIFYCERTS TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY TOKNOAPOP
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -187,7 +187,7 @@ yyerror(const char *fmt, ...)
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
-%type  <replstrs> actions actionslist
+%type  <replstrs> actions actionslist rmheaders rmheaderslist
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder xstrv strv replstrv retre replpathv val optval
@@ -231,6 +231,15 @@ maildirp: TOKMAILDIR
 /** MBOXP */
 mboxp: TOKMBOX
      | TOKMBOXES
+/** RMHEADERP */
+rmheaderp: TOKREMOVEHEADER
+         | TOKREMOVEHEADERS
+/** HEADERP */
+headerp: TOKHEADER
+       | TOKHEADERS
+/** DOMAINP */
+domainp: TOKDOMAIN
+       | TOKDOMAINS
 
 /** VAL: <string> (char *) */
 val: TOKVALUE strv
@@ -704,7 +713,7 @@ defmacro: STRMACRO '=' strv
 	  }
 
 /** DOMAINS: <strings> (struct strings *) */
-domains: TOKDOMAIN replstrv
+domains: domainp replstrv
 /**      [$2: replstrv (char *)] */
 	 {
 		 char	*cp;
@@ -718,7 +727,7 @@ domains: TOKDOMAIN replstrv
 			 *cp = tolower((u_char) *cp);
 		 ARRAY_ADD($$, $2);
 	 }
-       | TOKDOMAINS '{' domainslist '}'
+       | domainp '{' domainslist '}'
 /**      [$3: domainslist (struct strings *)] */
 	 {
 		 $$ = weed_strings($3);
@@ -754,7 +763,7 @@ domainslist: domainslist replstrv
 	     }
 
 /** HEADERS: <strings> (struct strings *) */
-headers: TOKHEADER replstrv
+headers: headerp replstrv
 /**      [$2: replstrv (char *)] */
 	 {
 		 char	*cp;
@@ -768,7 +777,7 @@ headers: TOKHEADER replstrv
 			 *cp = tolower((u_char) *cp);
 		 ARRAY_ADD($$, $2);
 	 }
-       | TOKHEADERS '{' headerslist '}'
+       | headerp '{' headerslist '}'
 /**      [$3: headerslist (struct strings *)] */
 	 {
 		 $$ = weed_strings($3);
@@ -801,6 +810,47 @@ headerslist: headerslist replstrv
 		     for (cp = $1; *cp != '\0'; cp++)
 			     *cp = tolower((u_char) *cp);
 		     ARRAY_ADD($$, $1);
+	     }
+
+/** RMHEADERS: <replstrs> (struct replstrs *) */
+rmheaders: rmheaderp strv
+/**        [$2: strv (char *)] */
+	   {
+		   if (*$2 == '\0')
+			   yyerror("invalid header");
+
+		   $$ = xmalloc(sizeof *$$);
+		   ARRAY_INIT($$);
+		   ARRAY_EXPAND($$, 1);
+		   ARRAY_LAST($$).str = $2;
+	   }
+	 | rmheaderp '{' rmheaderslist '}'
+/**        [$3: rmheaderslist (struct replstrs *)] */
+	   {
+		   $$ = $3;
+	   }
+
+/** RMHEADERSLIST: <replstrs> (struct replstrs *) */
+rmheaderslist: rmheaderslist strv
+/**            [$1: rmheaderslist (struct replstrs *)] [$2: strv (char *)] */
+	     {
+		     if (*$2 == '\0')
+			     yyerror("invalid header");
+
+		     $$ = $1;
+		     ARRAY_EXPAND($$, 1);
+		     ARRAY_LAST($$).str = $2;
+	     }
+	   | replstrv
+/**          [$1: replstrv (char *)] */
+	     {
+		     if (*$1 == '\0')
+			     yyerror("invalid header");
+
+		     $$ = xmalloc(sizeof *$$);
+		     ARRAY_INIT($$);
+		     ARRAY_EXPAND($$, 1);
+		     ARRAY_LAST($$).str = $1;
 	     }
 
 /** PATHSLIST: <strings> (struct strings *) */
@@ -1172,14 +1222,10 @@ actitem: execpipe strv
 
 		 data->path.str = $2;
 	 }
-       | TOKREMOVEHEADER strv
-/**      [$2: strv (char *)] */
+       | rmheaders
+/**      [$1: rmheaders (struct replstrs *)] */
 	 {
 		 struct deliver_remove_header_data *data;
-		 char				*cp;
-
-		 if (*$2 == '\0')
-			 yyerror("invalid header");
 
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_remove_header;
@@ -1187,9 +1233,7 @@ actitem: execpipe strv
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
-		 for (cp = $2; *cp != '\0'; cp++)
-			 *cp = tolower((u_char) *cp);
-		 data->hdr.str = $2;
+		 data->hdrs = $1;
 	 }
        | TOKADDHEADER strv val
 /**      [$2: strv (char *)] [$3: val (char *)] */
@@ -2232,8 +2276,8 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
 fetchtype: poptype server userpassnetrc apop verify
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
-/**        [$3: userpassnetrc (struct { ... } userpass)] [$4: verify (int)] */
-/**        [$5: apop (int)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] [$4: apop (int)] */
+/**        [$5: verify (int)] */
            {
 		   struct fetch_pop3_data	*data;
 

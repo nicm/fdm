@@ -406,7 +406,8 @@ free_actitem(struct actitem *ti)
 		xfree(data->path.str);
 	} else if (ti->deliver == &deliver_remove_header) {
 		struct deliver_remove_header_data	*data = ti->data;
-		xfree(data->hdr.str);
+		free_replstrs(data->hdrs);
+		ARRAY_FREEALL(data->hdrs);
 	} else if (ti->deliver == &deliver_add_header) {
 		struct deliver_add_header_data		*data = ti->data;
 		xfree(data->hdr.str);

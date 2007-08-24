@@ -60,7 +60,7 @@ int	fetch_nntp_state_quit(struct account *, struct fetch_ctx *);
 struct fetch fetch_nntp = {
 	"nntp",
 	fetch_nntp_state_connect,
-	
+
 	fetch_nntp_fill,
 	NULL,
 	fetch_nntp_abort,
@@ -117,7 +117,7 @@ fetch_nntp_check(struct account *a,
 	va_list			 ap;
 	u_int			 i;
 	int			 code;
-	
+
 	if (codep == NULL)
 		codep = &code;
 
@@ -319,7 +319,7 @@ error:
 void
 fetch_nntp_fill(struct account *a, struct iolist *iol)
 {
-	struct fetch_nntp_data	*data = a->data;	
+	struct fetch_nntp_data	*data = a->data;
 
 	if (data->io != NULL)
 		ARRAY_ADD(iol, data->io);
@@ -429,7 +429,7 @@ fetch_nntp_state_switch(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_BLOCK);
 		}
 	} while (ARRAY_ITEM(&data->groups, data->group)->ignore);
-		
+
 	fctx->state = fetch_nntp_state_group;
 	return (FETCH_AGAIN);
 }
@@ -479,7 +479,7 @@ fetch_nntp_state_stat(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_nntp_group	*group;
 	char			*line;
 	u_int			 n;
-	
+
 	group = ARRAY_ITEM(&data->groups, data->group);
 
 	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 211) != 0)
@@ -622,7 +622,7 @@ fetch_nntp_state_article(struct account *a, struct fetch_ctx *fctx)
 	fctx->state = fetch_nntp_state_line;
 	return (FETCH_AGAIN);
 }
- 
+
 /* Line state. */
 int
 fetch_nntp_state_line(struct account *a, struct fetch_ctx *fctx)
@@ -635,16 +635,16 @@ fetch_nntp_state_line(struct account *a, struct fetch_ctx *fctx)
 		line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 		if (line == NULL)
 			return (FETCH_BLOCK);
-		
+
 		if (line[0] == '.') {
 			if (line[1] == '\0')
 				break;
 			line++;
 		}
-		
+
 		if (data->flushing)
 			continue;
-		
+
 		if (append_line(m, line, strlen(line)) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);

@@ -35,7 +35,7 @@
 struct fetch_ctx {
 	int 	         (*state)(struct account *, struct fetch_ctx *);
 	int		 flags;
-	
+
 	struct mail	*mail;
 
 	size_t		 llen;
@@ -75,7 +75,7 @@ struct fetch_mbox_data {
 
 	ARRAY_DECL(, struct fetch_mbox_mbox *) fmboxes;
 	u_int		 index;
-	
+
 	size_t		 off;
 
 	TAILQ_HEAD(, fetch_mbox_mail) kept;

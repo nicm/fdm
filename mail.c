@@ -330,7 +330,7 @@ match_header(struct mail *m, const char *patt, size_t *len, int value)
 				xfree(hdr);
 			}
 		}
-		
+
 		line_next(m, &ptr, len);
 	}
 	if (ptr == NULL)

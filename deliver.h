@@ -88,7 +88,7 @@ struct deliver_add_header_data {
 
 /* Deliver remove-header data. */
 struct deliver_remove_header_data {
-	struct replstr	hdr;
+	struct replstrs	*hdrs;
 };
 
 /* Deliver write data. */

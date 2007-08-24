@@ -41,48 +41,53 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct deliver_remove_header_data	*data = ti->data;
 	char					*ptr, *hdr;
 	size_t				  	 len, off, wrap;
-	u_int					 i;
+	u_int					 i, j;
 
-	hdr = replacestr(&data->hdr, m->tags, m, &m->rml);
-	if (hdr == NULL || *hdr == '\0') {
-		if (hdr != NULL)
-			xfree(hdr);
-		log_warnx("%s: empty header", a->name);
-		return (DELIVER_FAILURE);
-	}
-	log_debug2("%s: removing header: %s", a->name, hdr);
 
-	ARRAY_FREE(&m->wrapped);
-	m->wrapchar = '\0';
-	fill_wrapped(m);
+	for (j = 0; j < ARRAY_LENGTH(data->hdrs); j++) {
+		hdr = replacestr(
+		    &ARRAY_ITEM(data->hdrs, j), m->tags, m, &m->rml);
+		if (hdr == NULL || *hdr == '\0') {
+			if (hdr != NULL)
+				xfree(hdr);
+			log_warnx("%s: empty header", a->name);
+			return (DELIVER_FAILURE);
+		}
+		log_debug2("%s: removing header: %s", a->name, hdr);
 
-	set_wrapped(m, ' ');
+		ARRAY_FREE(&m->wrapped);
+		m->wrapchar = '\0';
+		fill_wrapped(m);
 
-	while ((ptr = match_header(m, hdr, &len, 0)) != NULL) {
-		log_debug3("%s: found header to remove: %.*s", a->name,
-		    (int) len, ptr);
+		set_wrapped(m, ' ');
 
-		/* Remove the header. */
-		memmove(ptr, ptr + len, m->size - len - (ptr - m->data));
-		m->size -= len;
-		m->body -= len;
+		while ((ptr = match_header(m, hdr, &len, 0)) != NULL) {
+			log_debug3("%s: found header to remove: %.*s", a->name,
+			    (int) len, ptr);
 
-		/* Fix up the wrapped array. */
-		off = ptr - m->data;
-		i = 0;
-		while (i < ARRAY_LENGTH(&m->wrapped)) {
-			wrap = ARRAY_ITEM(&m->wrapped, i);
-			if (wrap >= off + len) {
-				ARRAY_SET(&m->wrapped, i, wrap - len);
-				i++;
-			} else if (wrap >= off)
-				ARRAY_REMOVE(&m->wrapped, i);
-			else
-				i++;
+			/* Remove the header. */
+			memmove(
+			    ptr, ptr + len, m->size - len - (ptr - m->data));
+			m->size -= len;
+			m->body -= len;
+
+			/* Fix up the wrapped array. */
+			off = ptr - m->data;
+			i = 0;
+			while (i < ARRAY_LENGTH(&m->wrapped)) {
+				wrap = ARRAY_ITEM(&m->wrapped, i);
+				if (wrap >= off + len) {
+					ARRAY_SET(&m->wrapped, i, wrap - len);
+					i++;
+				} else if (wrap >= off)
+					ARRAY_REMOVE(&m->wrapped, i);
+				else
+					i++;
+			}
 		}
 	}
 
-	/* invalidate the match data since stuff may have moved */
+	/* Invalidate the match data since stuff may have moved. */
 	m->rml.valid = 0;
 
 	set_wrapped(m, '\n');
@@ -93,6 +98,9 @@ void
 deliver_remove_header_desc(struct actitem *ti, char *buf, size_t len)
 {
 	struct deliver_remove_header_data	*data = ti->data;
+	char					*hdrs;
 
-	xsnprintf(buf, len, "remove-header \"%s\"", data->hdr.str);
+	hdrs = fmt_replstrs("remove-headers ", data->hdrs);
+	strlcpy(buf, hdrs, len);
+	xfree(hdrs);
 }

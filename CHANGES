@@ -1,3 +1,7 @@
+24 August 2007
+
+* remove-header now accepts a list of headers in {}.
+
 23 August 2007
 
 * Yet another fetch reorganisation to try to make it clearer. Move tracking

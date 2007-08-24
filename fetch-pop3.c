@@ -56,7 +56,7 @@ int	fetch_pop3_state_uidl(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_retr(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_line(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_quit(struct account *, struct fetch_ctx *);
- 
+
 struct fetch fetch_pop3 = {
 	"pop3",
 	fetch_pop3_state_init,
@@ -224,7 +224,7 @@ fetch_pop3_state_connected(struct account *a, struct fetch_ctx *fctx)
 			xasprintf(&src, "%s%s", line, data->pass);
 			MD5(src, strlen(src), digest);
 			xfree(src);
-			
+
 			for (i = 0; i < MD5_DIGEST_LENGTH; i++)
 				xsnprintf(out + i * 2, 3, "%02hhx", digest[i]);
 
@@ -317,7 +317,7 @@ fetch_pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
 	/* Handle dropped mail here. */
 	if (!TAILQ_EMPTY(&data->dropped)) {
 		aux = TAILQ_FIRST(&data->dropped);
-		
+
 		io_writeline(data->io, "DELE %u", aux->idx);
 		fctx->state = fetch_pop3_state_delete;
 		return (FETCH_BLOCK);
@@ -337,7 +337,7 @@ fetch_pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
 	if (data->cur <= data->num)
 		data->cur++;
 
-	/* 
+	/*
 	 * If this is the last mail, wait until everything has been committed
 	 * back, then quit.
 	 */
@@ -536,16 +536,16 @@ fetch_pop3_state_line(struct account *a, struct fetch_ctx *fctx)
 		line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 		if (line == NULL)
 			return (FETCH_BLOCK);
-		
+
 		if (line[0] == '.') {
 			if (line[1] == '\0')
 				break;
 			line++;
 		}
-		
+
 		if (data->flushing)
 			continue;
-		
+
 		if (append_line(m, line, strlen(line)) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			return (FETCH_ERROR);
@@ -564,7 +564,7 @@ fetch_pop3_state_quit(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	char			*line;
-	
+
 	line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 	if (line == NULL)
 		return (FETCH_BLOCK);
