@@ -160,7 +160,6 @@ static const struct token tokens[] = {
 	{ "rewrite", TOKREWRITE },
 	{ "second", TOKSECONDS },
 	{ "seconds", TOKSECONDS },
-	{ "seconds", TOKSECONDS },
 	{ "server", TOKSERVER },
 	{ "set", TOKSET },
 	{ "size", TOKSIZE },
