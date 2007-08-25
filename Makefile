@@ -18,7 +18,7 @@ SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
       child-deliver.c child-fetch.c child.c \
       pcre.c re.c privsep.c replace.c shm-mmap.c strb.c db-tdb.c \
-      xmalloc-debug.c xmalloc.c \
+      xmalloc-debug.c xmalloc.c timer.c \
       deliver-add-header.c deliver-drop.c deliver-keep.c deliver-maildir.c \
       deliver-mbox.c deliver-pipe.c deliver-remove-header.c deliver-rewrite.c \
       deliver-smtp.c deliver-stdout.c deliver-tag.c deliver-to-cache.c \

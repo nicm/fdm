@@ -1,5 +1,6 @@
 25 August 2007
 
+* Break timer stuff off into timer.c.
 * Fix queue-high == 1 to not hang after first mail.
 
 24 August 2007

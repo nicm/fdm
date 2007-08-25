@@ -240,16 +240,10 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 			return (-1);
 		case 0:
 			/*
-			 * Check for closed.
-			 *
-			 * It'd be nice for closed input to be an error, but we
-			 * can't tell the difference between error and normal
-			 * child exit, so just free it and rely on the caller
-			 * to handle it.
-			 *
-			 * The child could cause trouble if it buggered around
-			 * in sufficiently stupid ways, but the worst is that
-			 * we'd timeout.
+			 * Check for closed. It'd be nice for closed input to
+			 * be an error, but we can't tell the difference
+			 * between error and normal child exit, so just free it
+			 * and rely on the caller to handle it.
 			 */
 			if (io == cmd->io_in) {
 				io_close(cmd->io_in);
@@ -299,22 +293,19 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	return (0);
 
 all_closed:
-	/*
-	 * Everything is closed. Check the child. XXX This will use 100% CPU
-	 * if there is no poll in caller... setitimer...
-	 */
-	switch (waitpid(cmd->pid, &cmd->status, WNOHANG)) {
-	case -1:
-		if (errno == ECHILD)
+	/* Everything is closed. Check the child. */
+	timer_set(timeout / 1000);
+	if (waitpid(cmd->pid, &cmd->status, 0) == -1) {
+		timer_cancel();
+		if (errno == EINTR && timer_expired())
 			return (0);
 		xasprintf(cause, "waitpid: %s", strerror(errno));
 		return (-1);
-	case 0:
-		return (0);
 	}
-	cmd->pid = -1;
+	timer_cancel();
 
 	/* Child is dead, sort out what to return. */
+	cmd->pid = -1;
 	if (WIFSIGNALED(cmd->status)) {
 		xasprintf(cause, "child got signal: %d", WTERMSIG(cmd->status));
 		return (-1);

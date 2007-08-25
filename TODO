@@ -27,3 +27,4 @@
 - fetch from gzipped mbox
 - document mbox fetch
 - document remove-headers { ... }
+- all timeouts should be in seconds or milliseconds, decide which and make it so

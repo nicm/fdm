@@ -18,7 +18,6 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <netinet/in.h>
 
 #include <errno.h>
@@ -44,9 +43,6 @@ int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
 #endif
 SSL    *makessl(struct server *, int, int, int, char **);
-
-void	sslhandler(int);
-int	ssltimedout;
 
 char *
 sslerror(const char *fn)
@@ -531,22 +527,12 @@ httpproxy(struct server *srv,
 }
 #endif /* NO_PROXY */
 
-/* Signal handler for SIGALRM setitimer timeout. */
-void
-sslhandler(int sig)
-{
-	if (sig == SIGALRM)
-		ssltimedout = 1;
-}
-
 SSL *
 makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 {
-	SSL_CTX		*ctx;
-	SSL		*ssl;
-	int	 	 n, mode;
-	struct itimerval itv;
-	struct sigaction act;
+	SSL_CTX	*ctx;
+	SSL	*ssl;
+	int	 n, mode;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
         SSL_CTX_set_options(ctx, SSL_OP_ALL);
@@ -574,31 +560,14 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 		fatal("fcntl failed");
 
 	/* Set the timeout. */
-	memset(&act, 0, sizeof act);
-	sigemptyset(&act.sa_mask);
-
-	act.sa_handler = sslhandler;
-	if (sigaction(SIGALRM, &act, NULL) != 0)
-		fatal("sigaction failed");
-
-	memset(&itv, 0, sizeof itv);
-	itv.it_value.tv_sec = timeout / 1000;
-	while (setitimer(ITIMER_REAL, &itv, NULL) != 0) {
-		/*
-		 * If the timeout is too large (EINVAL), keep trying it until
-		 * it reaches a minimum of 30 seconds.
-		 */
-		if (errno != EINVAL || itv.it_value.tv_sec < 30)
-			fatal("setitimer failed");
-		itv.it_value.tv_sec /= 2;
-	}
+	timer_set(timeout / 1000);
 
 	/* Connect with SSL.  */
 	SSL_set_connect_state(ssl);
 	if ((n = SSL_connect(ssl)) < 1) {
-		if (ssltimedout) {
-			xasprintf(
-			    cause, "SSL_connect: %s", strerror(ETIMEDOUT));
+		timer_cancel();
+		if (timer_expired()) {
+			xasprintf(cause, "SSL_connect: %s", strerror(ETIMEDOUT));
 			goto error;
 		}
 		*cause = sslerror2(SSL_get_error(ssl, n), "SSL_connect");
@@ -610,13 +579,7 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 		fatal("fcntl failed");
 
 	/* Clear the timeout. */
-	memset(&itv, 0, sizeof itv);
-	if (setitimer(ITIMER_REAL, &itv, NULL) != 0)
-		fatal("setitimer failed");
-
-	act.sa_handler = SIG_DFL;
-	if (sigaction(SIGALRM, &act, NULL) != 0)
-		fatal("sigaction failed");
+	timer_cancel();
 
 	/* Verify certificate. */
 	if (verify && sslverify(srv, ssl, cause) != 0)

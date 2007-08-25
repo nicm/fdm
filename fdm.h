@@ -818,6 +818,11 @@ int		 parent_fetch(struct child *, struct msg *, struct msgbuf *);
 /* parent-deliver.c */
 int		 parent_deliver(struct child *, struct msg *, struct msgbuf *);
 
+/* timer.c */
+int		 timer_expired(void);
+void		 timer_set(int);
+void		 timer_cancel(void);
+
 /* connect.c */
 char 		*sslerror(const char *);
 char		*sslerror2(int, const char *);
