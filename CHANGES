@@ -1,3 +1,7 @@
+25 August 2007
+
+* Fix queue-high == 1 to not hang after first mail.
+
 24 August 2007
 
 * Don't even try to check for command child exit until its std{in,out,err} are

@@ -36,7 +36,7 @@
 int	fetch_account(struct account *, struct io *, int, double);
 int	fetch_match(struct account *, struct msg *, struct msgbuf *);
 int	fetch_deliver(struct account *, struct msg *, struct msgbuf *);
-int	fetch_poll(struct account *, struct iolist *, struct io *);
+int	fetch_poll(struct account *, struct iolist *, struct io *, int);
 int	fetch_purge(struct account *);;
 void	fetch_free(void);
 void	fetch_free1(struct mail_ctx *);
@@ -153,34 +153,17 @@ child_fetch(struct child *child, struct io *pio)
 }
 
 int
-fetch_poll(struct account *a, struct iolist *iol, struct io *pio)
+fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 {
 	struct io	*rio;
 	char		*cause;
-	int		 timeout;
 	double		 tim;
-	u_int		 n;
 
-	n = ARRAY_LENGTH(iol);
-
-	/*
-	 * If that didn't add any fds and we're not blocked for the parent then
-	 * skip the poll entirely.
-	 */
-	if (n == 1 && fetch_blocked == 0)
-		return (0);
-
-	/*
-	 * If the queues are empty, or everything is blocked waiting for the
-	 * parent, then let poll block.
-	 */
-	timeout = 0;
-	if (fetch_blocked == fetch_queued || fetch_queued == 0)
-		timeout = conf.timeout;
-
-	log_debug3("%s: polling: %u, timeout=%d", a->name, n, timeout);
+	log_debug3(
+	    "%s: polling: %u, timeout=%d", a->name, ARRAY_LENGTH(iol), timeout);
 	tim = get_time();
-	switch (io_polln(ARRAY_DATA(iol), n, &rio, timeout, &cause)) {
+	switch (io_polln(
+	    ARRAY_DATA(iol), ARRAY_LENGTH(iol), &rio, timeout, &cause)) {
 	case 0:
 		if (rio == pio)
 			fatalx("parent socket closed");
@@ -334,7 +317,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 	struct cache	*cache;
 	struct iolist 	 iol;
 	u_int		 n;
-	int		 aborted = 0;
+	int		 aborted, timeout;
 
 	log_debug2("%s: fetching", a->name);
 
@@ -356,6 +339,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 
 	ARRAY_INIT(&iol);
 
+	aborted = 0;
 	for (;;) {
 		fetch_blocked = 0;
 
@@ -378,6 +362,12 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 		/* Check for purge and set flag if necessary. */
 		if (fetch_purge(a))
 			fctx.flags |= FETCH_PURGE;
+
+		/* Update the holding flag. */
+		if (fetch_queued <= (u_int) conf.queue_low)
+			fetch_holding = 0;
+		if (fetch_queued >= (u_int) conf.queue_high)
+			fetch_holding = 1;
 
 		/* If not holding and not finished, call the fetch handler. */
 		if (!fetch_holding && !fetch_complete) {
@@ -417,25 +407,24 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 		if (fetch_complete && fetch_queued == 0)
 			goto finished;
 
-		/* Update the holding flag. */
-		if (fetch_holding && fetch_queued <= (u_int) conf.queue_low) {
-			fetch_holding = 0;
-			/* Jump back to call fetch. */
-			continue;
-		}
-		if (fetch_queued >= (u_int) conf.queue_high)
-			fetch_holding = 1;
-
-		/* Prepare io list. */
+		/* Prepare for poll. */
 		ARRAY_CLEAR(&iol);
 		ARRAY_ADD(&iol, pio);
 		if (a->fetch->fill != NULL)
 			a->fetch->fill(a, &iol);
 
+		/* 
+		 * If everything is blocked, or if the queues are empty,
+		 * block waiting for data.
+		 */
+		timeout = 0;
+		if (fetch_blocked == fetch_queued || fetch_queued == 0)
+			timeout = conf.timeout;
+
 		/* Poll for fetch data or privsep messages. */
 		log_debug3("%s: queued %u; blocked %u; flags 0x%02x", a->name,
 		    fetch_queued, fetch_blocked, fctx.flags);
-		if (fetch_poll(a, &iol, pio) != 0)
+		if (fetch_poll(a, &iol, pio, timeout) != 0)
 			goto abort;
 	}
 
