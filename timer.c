@@ -30,10 +30,9 @@ void			timer_handler(int);
 
 /* Signal handler for SIGALRM setitimer timeout. */
 void
-timer_handler(int sig)
+timer_handler(unused int sig)
 {
-	if (sig == SIGALRM)
-		timer_value = 1;
+	timer_value = 1;
 }
 
 /* Return timer state. */
