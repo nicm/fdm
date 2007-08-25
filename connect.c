@@ -567,7 +567,8 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 	if ((n = SSL_connect(ssl)) < 1) {
 		timer_cancel();
 		if (timer_expired()) {
-			xasprintf(cause, "SSL_connect: %s", strerror(ETIMEDOUT));
+			xasprintf(
+			    cause, "SSL_connect: %s", strerror(ETIMEDOUT));
 			goto error;
 		}
 		*cause = sslerror2(SSL_get_error(ssl, n), "SSL_connect");
