@@ -414,12 +414,17 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 			a->fetch->fill(a, &iol);
 
 		/* 
-		 * If everything is blocked, or if the queues are empty,
-		 * block waiting for data.
+		 * Work out timeout. If the queues are empty, we can block,
+		 * unless this fetch type doesn't have any sockets to poll -
+		 * then we would block forever. Otherwise, if the queues are
+		 * non-empty, we can block unless there are mails that aren't
+		 * blocked (these mails can continue to be processed).
 		 */
-		timeout = 0;
-		if (fetch_blocked == fetch_queued || fetch_queued == 0)
-			timeout = conf.timeout;
+		timeout = conf.timeout;
+		if (fetch_queued == 0 && ARRAY_LENGTH(&iol) == 1)
+			timeout = 0;
+		else if (fetch_queued != 0 && fetch_blocked != fetch_queued)
+			timeout = 0;
 
 		/* Poll for fetch data or privsep messages. */
 		log_debug3("%s: queued %u; blocked %u; flags 0x%02x", a->name,
