@@ -27,6 +27,12 @@
 
 #include "fdm.h"
 
+#define CMD_DEBUG(io, fmt, ...)
+#ifndef CMD_DEBUG
+#define CMD_DEBUG(cmt, fmt, ...) \
+	log_debug3("%s: (%d) " fmt, __func__, cmd->pid, ## __VA_ARGS__)
+#endif
+
 /* Start a command. */
 struct cmd *
 cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
@@ -91,6 +97,9 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 		goto error;
 	case 0:
 		/* Child. */
+		cmd->pid = getpid();
+		CMD_DEBUG(cmd, "started (child)");
+
 		if (fd_in[1] != -1)
 			close(fd_in[1]);
 		if (fd_out[0] != -1)
@@ -117,6 +126,14 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 
 		execl(_PATH_BSHELL, "sh", "-c", s, (char *) NULL);
 		fatal("execl failed");
+	}
+	CMD_DEBUG(cmd, "started (parent)");
+
+	/* XXX Check if the child has actually started. */
+	if (kill(cmd->pid, 0) != 0) {
+		if (errno != ESRCH)
+			fatal("kill");
+		CMD_DEBUG(cmd, "child not running");
 	}
 
 	/* Parent. */
@@ -177,16 +194,17 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	struct io	*io, *ios[3];
 	size_t		 len;
 	ssize_t		 n;
+	pid_t		 pid;
+	int		 flags;
+
+	CMD_DEBUG(cmd, 
+	    "in=%p, out=%p, err=%p", cmd->io_in, cmd->io_out, cmd->io_err);
 
 	/* Reset return pointers. */
 	if (err != NULL)
 		*err = NULL;
 	if (out != NULL)
 		*out = NULL;
-
-	/* If everything is closed, skip to check the child. */
-	if (cmd->io_in == NULL && cmd->io_out == NULL && cmd->io_err != NULL)
-		goto all_closed;
 
 	/*
 	 * Handle fixed buffer. We can't just write everything in cmd_start
@@ -195,11 +213,15 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	 * stdin is closed when the buffer is done.
 	 */
 	if (cmd->len != 0 && cmd->io_in != NULL && !IO_CLOSED(cmd->io_in)) {
-		switch (n = write(cmd->io_in->fd, cmd->buf, cmd->len)) {
+		CMD_DEBUG(cmd, "writing, %zu left", cmd->len);
+		n = write(cmd->io_in->fd, cmd->buf, cmd->len);
+		CMD_DEBUG(cmd, "write returned %zd (errno=%d)", n, errno);
+		switch (n) {
 		case 0:
 			errno = EPIPE;
 			/* FALLTHROUGH */
 		case -1:
+		
 			if (errno == EINTR || errno == EAGAIN)
 				break;
 			/*
@@ -220,19 +242,56 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 		}
 		if (cmd->len == 0) {
 			if (cmd->flags & CMD_ONCE) {
+				CMD_DEBUG(cmd, "write finished, closing");
 				io_close(cmd->io_in);
 				io_free(cmd->io_in);
 				cmd->io_in = NULL;
-			} else
+			} else {
+				CMD_DEBUG(cmd, "write finished");
 				cmd->io_in->flags &= ~IOF_MUSTWR;
+			}
 		}
 	}
 
-	/* If there is still anything open, try and poll it. */
+	/* Retrieve and return a line if possible. */
+	if (cmd->io_err != NULL) {
+		CMD_DEBUG(cmd, "err has %zu bytes", IO_RDSIZE(cmd->io_err));
+		if (lbuf != NULL)
+			*err = io_readline2(cmd->io_err, lbuf, llen);
+		else
+			*err = io_readline(cmd->io_err);
+		if (*err != NULL) {
+			/* Strip CR if the line is terminated by one. */
+			len = strlen(*err);
+			if (len > 0 && (*err)[len - 1] == '\r')
+				(*err)[len - 1] = '\0';
+			return (0);
+		}
+	}
+	if (cmd->io_out != NULL) {
+		CMD_DEBUG(cmd, "out has %zu bytes", IO_RDSIZE(cmd->io_out));
+		if (lbuf != NULL)
+			*out = io_readline2(cmd->io_out, lbuf, llen);
+		else
+			*out = io_readline(cmd->io_out);
+		if (*out != NULL) {
+			/* Strip CR if the line is terminated by one. */
+			len = strlen(*out);
+			if (len > 0 && (*out)[len - 1] == '\r')
+				(*out)[len - 1] = '\0';
+			return (0);
+		}
+	}
+
+	/*
+	 * No lines available. If there is anything open, try and poll it and
+	 * then return.
+	 */
 	if (cmd->io_in != NULL || cmd->io_out != NULL || cmd->io_err != NULL) {
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
 		ios[2] = cmd->io_err;
+		CMD_DEBUG(cmd, "polling, timeout=%d", timeout);
 		switch (io_polln(ios, 3, &io, timeout, cause)) {
 		case -1:
 			if (errno == EAGAIN)
@@ -246,65 +305,50 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 			 * and rely on the caller to handle it.
 			 */
 			if (io == cmd->io_in) {
+				CMD_DEBUG(cmd, "closing in");
 				io_close(cmd->io_in);
 				io_free(cmd->io_in);
 				cmd->io_in = NULL;
 			}
 			if (io == cmd->io_out && IO_RDSIZE(cmd->io_out) == 0) {
+				CMD_DEBUG(cmd, "closing out");
 				io_close(cmd->io_out);
 				io_free(cmd->io_out);
 				cmd->io_out = NULL;
 			}
 			if (io == cmd->io_err && IO_RDSIZE(cmd->io_err) == 0) {
+				CMD_DEBUG(cmd, "closing err");
 				io_close(cmd->io_err);
 				io_free(cmd->io_err);
 				cmd->io_err = NULL;
 			}
 			break;
 		}
+
+		return (0);
 	}
 
-	/* Retrieve a line if possible. */
-	if (cmd->io_err != NULL) {
-		if (lbuf != NULL)
-			*err = io_readline2(cmd->io_err, lbuf, llen);
-		else
-			*err = io_readline(cmd->io_err);
-		if (*err != NULL) {
-			/* Strip CR if the line is terminated by one. */
-			len = strlen(*err);
-			if (len > 0 && (*err)[len - 1] == '\r')
-				(*err)[len - 1] = '\0';
-		}
-	}
-	if (cmd->io_out != NULL) {
-		if (lbuf != NULL)
-			*out = io_readline2(cmd->io_out, lbuf, llen);
-		else
-			*out = io_readline(cmd->io_out);
-		if (*out != NULL) {
-			/* Strip CR if the line is terminated by one. */
-			len = strlen(*out);
-			if (len > 0 && (*out)[len - 1] == '\r')
-				(*out)[len - 1] = '\0';
-		}
-	}
-
-	return (0);
-
-all_closed:
 	/* Everything is closed. Check the child. */
-	timer_set(timeout / 1000);
-	if (waitpid(cmd->pid, &cmd->status, 0) == -1) {
+	CMD_DEBUG(cmd, "waiting for child, timeout=%d", timeout);
+	flags = WNOHANG;
+	if (timeout != 0) {
+		flags = 0;
+		timer_set(timeout / 1000);
+	}
+	pid = waitpid(cmd->pid, &cmd->status, flags);
+	if (timeout != 0)
 		timer_cancel();
-		if (errno == EINTR && timer_expired())
-			return (0);
+	if (pid == -1) {
+		if (timeout != 0 && errno == EINTR && timer_expired())
+			errno = ETIMEDOUT;
 		xasprintf(cause, "waitpid: %s", strerror(errno));
 		return (-1);
 	}
-	timer_cancel();
+	if (pid == 0)
+		return (0);
 
 	/* Child is dead, sort out what to return. */
+	CMD_DEBUG(cmd, "child exited, status=%d", cmd->status);
 	cmd->pid = -1;
 	if (WIFSIGNALED(cmd->status)) {
 		xasprintf(cause, "child got signal: %d", WTERMSIG(cmd->status));
