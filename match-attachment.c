@@ -49,7 +49,7 @@ match_attachment_match(struct mail_ctx *mctx, struct expritem *ei)
 		if (m->attach != NULL)
 			attach_log(m->attach, "%s: attachment", a->name);
 		else
-			log_debug("%s: no attachments", a->name);
+			log_debug3("%s: no attachments", a->name);
 		m->attach_built = 1;
 	}
 
