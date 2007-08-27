@@ -116,7 +116,7 @@ extern char	*__progname;
 /* Apply umask. */
 #define UMASK(mask) ((mask) & ~conf.file_umask)
 
-/* Convert a file mode. */
+/* Convert a file mode for %o%o%o printf. */
 #define MODE(m) \
 	(m & S_IRUSR ? 4 : 0) + (m & S_IWUSR ? 2 : 0) + (m & S_IXUSR ? 1 : 0), \
     	(m & S_IRGRP ? 4 : 0) +	(m & S_IWGRP ? 2 : 0) +	(m & S_IXGRP ? 1 : 0), \
@@ -289,7 +289,7 @@ struct strb {
 
 #define STRB_ENTBASE(sb) (STRB_BASE(sb) + (sb)->str_size)
 #define STRB_ENTOFF(sb, n) ((n) * (sizeof (struct strbent)))
-#define STRB_ENTSIZE(sb) STRB_ENTOFF(sb, sb->ent_max)
+#define STRB_ENTSIZE(sb) STRB_ENTOFF(sb, (sb)->ent_max)
 
 #define STRB_ENTRY(sb, n) ((void *) (STRB_ENTBASE(sb) + STRB_ENTOFF(sb, n)))
 #define STRB_SIZE(sb) (STRBOFFSET + (sb)->str_size + STRB_ENTSIZE((sb)))
@@ -354,7 +354,7 @@ struct mail {
 	size_t			 off;
 
 	size_t	 	 	 size;		/* size of mail */
-	size_t	 	 	 space;		/* size of malloc'd area */
+	size_t	 	 	 space;		/* size of allocated area */
 
 	size_t		 	 body;		/* offset of body */
 
@@ -429,7 +429,7 @@ struct msgdata {
 	int	 		 	 error;
 	struct mail		 	 mail;
 
-	/* these only work so long as they aren't moved in either process */
+	/* These only work so long as they aren't moved in either process. */
 	struct account			*account;
 	struct actitem			*actitem;
 	struct match_command_data	*cmddata;
