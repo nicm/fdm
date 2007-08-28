@@ -894,6 +894,8 @@ Or to remove all instances of a header from mail:
 
 	action "rmhdr" remove-header "x-stupid-header"
 
+	action "remove-headers" remove-headers { "X-*" "Another-Header" }
+
 %%% Tagging
 
 Mails may be assigned one of more tags manually using the tag action type. For

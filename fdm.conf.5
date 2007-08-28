@@ -708,7 +708,14 @@ Add a header
 with contents
 .Ar value .
 .It Ic remove-header Ar name
-Remove all occurances of header
+.It Xo Ic remove-headers
+.Li {
+.Ar name ...
+.Li }
+.Xc
+Remove all occurances of headers matching the
+.Xr fnmatch 3
+pattern
 .Ar name .
 .It Ic stdout
 Write the mail to
