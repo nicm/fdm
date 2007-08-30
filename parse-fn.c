@@ -56,91 +56,58 @@ char *
 fmt_strings(const char *prefix, struct strings *sp)
 {
 	char	*buf, *s;
-	size_t	 slen, len;
+	size_t	 len;
 	ssize_t	 off;
 	u_int	 i;
 
-	if (ARRAY_LENGTH(sp) == 0) {
-		if (prefix != NULL)
-			return (xstrdup(prefix));
-		return (xstrdup(""));
-	}
-	if (ARRAY_LENGTH(sp) == 1) {
-		s = ARRAY_FIRST(sp);
-		if (prefix != NULL)
-			xasprintf(&buf, "%s\"%s\"", prefix, s);
-		else
-			xasprintf(&buf, "\"%s\"", s);
-		return (buf);
-	}
-
 	len = BUFSIZ;
 	buf = xmalloc(len);
-	off = 0;
-	if (prefix != NULL) {
-		ENSURE_SIZE(buf, len, strlen(prefix));
-		off = strlcpy(buf, prefix, len);
-	}
+
+	ENSURE_SIZE(buf, len, strlen(prefix) + 1);
+	off = xsnprintf(buf, len, "%s", prefix);
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
-		s = ARRAY_ITEM(sp, i);
-		slen = strlen(s);
-
-		ENSURE_FOR(buf, len, off, slen + 4);
-		xsnprintf(buf + off, len - off, "\"%s\" ", s);
-		off += slen + 3;
+		s = ARRAY_ITEM(sp, i);	
+		ENSURE_SIZE(buf, len, off + strlen(s) + 4);
+		off += xsnprintf(buf + off, len - off, "\"%s\" ", s);
 	}
-
-	buf[off - 1] = '\0';
-
+	
+	if (off == 0) {
+		ENSURE_SIZE(buf, len, off + 1);
+		buf[off] = '\0';
+	} else
+		buf[off - 1] = '\0';
 	return (buf);
-
 }
 
 char *
 fmt_users(const char *prefix, struct users *up)
 {
 	char	*buf;
-	size_t	 uidlen, len;
-	ssize_t	 off;
-	u_int	 i;
+	size_t	 len;
 	uid_t	 uid;
-
-	if (ARRAY_LENGTH(up) == 0) {
-		if (prefix != NULL)
-			return (xstrdup(prefix));
-		return (xstrdup(""));
-	}
-	if (ARRAY_LENGTH(up) == 1) {
-		uid = ARRAY_FIRST(up);
-		if (prefix != NULL)
-			xasprintf(&buf, "%s%lu", prefix, (u_long) uid);
-		else
-			xasprintf(&buf, "%lu", (u_long) uid);
-		return (buf);
-	}
+	ssize_t	 off, uidlen;
+	u_int	 i;
 
 	len = BUFSIZ;
 	buf = xmalloc(len);
-	off = 0;
-	if (prefix != NULL) {
-		ENSURE_SIZE(buf, len, strlen(prefix));
-		off = strlcpy(buf, prefix, len);
-	}
+
+	ENSURE_SIZE(buf, len, strlen(prefix) + 1);
+	off = xsnprintf(buf, len, "%s", prefix);
 
 	for (i = 0; i < ARRAY_LENGTH(up); i++) {
 		uid = ARRAY_ITEM(up, i);
-		uidlen = xsnprintf(NULL, 0, "%lu", (u_long) uid);
-
-		ENSURE_FOR(buf, len, off, uidlen + 2);
-		xsnprintf(buf + off, len - off, "%lu ", (u_long) uid);
-		off += uidlen + 1;
+		uidlen = xsnprintf(NULL, 0, "%lu ", (u_long) uid);
+		ENSURE_SIZE(buf, len, off + uidlen + 1);
+		off += xsnprintf(buf + off, len - off, "%lu ", (u_long) uid);
 	}
-
-	buf[off - 1] = '\0';
-
+	
+	if (off == 0) {
+		ENSURE_SIZE(buf, len, off + 1);
+		buf[off] = '\0';
+	} else
+		buf[off - 1] = '\0';
 	return (buf);
-
 }
 
 struct account *
@@ -243,7 +210,7 @@ print_rule(struct rule *r)
 		log_debug2("added rule %u:%s matches=%slambda=%s", r->idx,
 		    su, s, desc);
 	} else if (r->actions != NULL) {
-		ss = fmt_replstrs(NULL, r->actions);
+		ss = fmt_replstrs("", r->actions);
 		log_debug2("added rule %u:%s matches=%sactions=%s", r->idx,
 		    su, s, ss);
 		xfree(ss);
@@ -284,7 +251,7 @@ make_actlist(struct actlist *tl, char *buf, size_t len)
 			ti->deliver->desc(ti, desc, sizeof desc);
 		else {
 			data = ti->data;
-			s = fmt_replstrs(NULL, data->actions);
+			s = fmt_replstrs("", data->actions);
 			xsnprintf(desc, sizeof desc, "action %s", s);
 			xfree(s);
 		}

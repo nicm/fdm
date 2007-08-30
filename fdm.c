@@ -481,7 +481,7 @@ main(int argc, char **argv)
 		ARRAY_ADD(conf.headers, xstrdup("to"));
 		ARRAY_ADD(conf.headers, xstrdup("cc"));
 	}
-	strs = fmt_strings(NULL, conf.headers);
+	strs = fmt_strings("", conf.headers);
 	log_debug2("headers are: %s", strs);
 	xfree(strs);
 	if (conf.domains == NULL) {
@@ -497,7 +497,7 @@ main(int argc, char **argv)
 			ARRAY_ADD(conf.domains, ptr);
 		}
 	}
-	strs = fmt_strings(NULL, conf.domains);
+	strs = fmt_strings("", conf.domains);
 	log_debug2("domains are: %s", strs);
 	xfree(strs);
 
