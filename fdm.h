@@ -171,8 +171,9 @@ extern char	*__progname;
 /* Number of matches to use. */
 #define NPMATCH 10
 
-/* Account name match. */
-#define name_match(p, n) (fnmatch(p, n, 0) == 0)
+/* Account and action name match. */
+#define account_match(p, n) (fnmatch(p, n, 0) == 0)
+#define action_match(p, n) (fnmatch(p, n, 0) == 0)
 
 #include "array.h"
 #include "io.h"
@@ -578,7 +579,6 @@ TAILQ_HEAD(rules, rule);
 struct rule {
 	u_int			 idx;
 
-	struct strings		*accounts;
 	struct expr		*expr;
 
 	struct users		*users;
@@ -687,6 +687,7 @@ enum cmp {
 struct file {
 	FILE		*f;
 	int		 line;
+	int		 rule_line; /* XXX */
 	const char	*path;
 };
 ARRAY_DECL(files, struct file *);
@@ -733,6 +734,7 @@ extern struct file     *parse_file;
 extern struct strb     *parse_tags;
 int	 		parse_conf(const char *);
 __dead printflike1 void yyerror(const char *, ...);
+printflike1 void 	yywarn(const char *, ...);
 
 /* parse-fn.c */
 char		*expand_path(const char *);

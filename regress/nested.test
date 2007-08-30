@@ -9,22 +9,22 @@ match "abc" { match "def" action "action" }
 @0
 match "abc" accounts { } { match "def" action "action" }
 @1 ^/dev/stdin: syntax error at line .$
-match "abc" accounts { "account" } { match "def" action "action" }
-@- ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
+match "abc" and accounts { "account" } { match "def" action "action" }
+@- ^added rule 0: matches=regexp "abc" in any and account "account" nested$
 @- ^added rule 1: matches=regexp "def" in any actions="action"$
 @0
-match "abc" account "account" { match "def" action "action" }
-@- ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
+match "abc" and account "account" { match "def" action "action" }
+@- ^added rule 0: matches=regexp "abc" in any and account "account" nested$
 @- ^added rule 1: matches=regexp "def" in any actions="action"$
 @0
 
 match "abc" { }
 @0 ^added rule 0: matches=regexp "abc" in any nested$
-match "abc" accounts { } { }
+match "abc" and accounts { } { }
 @1 ^/dev/stdin: syntax error at line .$
-match "abc" account "account" { }
-@0 ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
-match "abc" accounts { "account" } { }
-@0 ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
-match "abc" account "account" { }
-@0 ^added rule 0: accounts="account" matches=regexp "abc" in any nested$
+match "abc" and account "account" { }
+@0 ^added rule 0: matches=regexp "abc" in any and account "account" nested$
+match "abc" and accounts { "account" } { }
+@0 ^added rule 0: matches=regexp "abc" in any and account "account" nested$
+match "abc" and account "account" { }
+@0 ^added rule 0: matches=regexp "abc" in any and account "account" nested$

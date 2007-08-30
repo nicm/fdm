@@ -523,7 +523,7 @@ fetch_mbox_desc(struct account *a, char *buf, size_t len)
 	struct fetch_mbox_data	*data = a->data;
 	char			*mboxes;
 
-	mboxes = fmt_strings("mboxes ", data->mboxes);
+	mboxes = fmt_strings("mbox ", data->mboxes);
 	strlcpy(buf, mboxes, len);
 	xfree(mboxes);
 }

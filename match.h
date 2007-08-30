@@ -54,6 +54,11 @@ struct match_attachment_data {
 	} value;
 };
 
+/* Match account data. */
+struct match_account_data {
+	struct replstrs	*accounts;
+};
+
 /* Match age data. */
 struct match_age_data {
 	long long	 time;
@@ -103,6 +108,12 @@ struct match_in_cache_data {
 
 /* match-age.c */
 extern struct match	 match_age;
+
+/* match-all.c */
+extern struct match	 match_all;
+
+/* match-account.c */
+extern struct match	 match_account;
 
 /* match-attachment.c */
 extern struct match	 match_attachment;

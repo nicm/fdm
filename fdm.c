@@ -163,7 +163,7 @@ check_incl(const char *name)
 		return (1);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.incl); i++) {
-		if (name_match(ARRAY_ITEM(&conf.incl, i), name))
+		if (account_match(ARRAY_ITEM(&conf.incl, i), name))
 			return (1);
 	}
 
@@ -179,7 +179,7 @@ check_excl(const char *name)
 		return (0);
 
 	for (i = 0; i < ARRAY_LENGTH(&conf.excl); i++) {
-		if (name_match(ARRAY_ITEM(&conf.excl, i), name))
+		if (account_match(ARRAY_ITEM(&conf.excl, i), name))
 			return (1);
 	}
 

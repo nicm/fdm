@@ -24,6 +24,8 @@
 - pop3 over pipe
 - pop3/imap tests via pipe and coprocess
 - fetch from gzipped mbox
-- document mbox fetch
 - all timeouts should be in seconds or milliseconds, decide which and make it so
-- why shouldn't account check be a proper match?
+- expritems/fetch/etc should know how to free themselves
+- wrap other uses of fnmatch in macros
+- document mbox fetch
+- document all/account changes

@@ -161,7 +161,7 @@ have_accounts(char *name)
 	struct account	*a;
 
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (name_match(name, a->name))
+		if (account_match(name, a->name))
 			return (1);
 	}
 
@@ -190,7 +190,7 @@ match_actions(const char *name)
 	ARRAY_INIT(ta);
 
 	TAILQ_FOREACH(t, &conf.actions, entry) {
-		if (name_match(name, t->name))
+		if (action_match(name, t->name))
 			ARRAY_ADD(ta, t);
 	}
 
@@ -214,50 +214,41 @@ void
 print_rule(struct rule *r)
 {
 	struct expritem	*ei;
-	char		 s[BUFSIZ], *sa, *su, *ss, desc[DESCBUFSIZE];
+	char		 s[BUFSIZ], *su, *ss, desc[DESCBUFSIZE];
 
-	if (r->expr == NULL)
-		strlcpy(s, "all ", sizeof s);
-	else {
-		*s = '\0';
-		TAILQ_FOREACH(ei, r->expr, entry) {
-			switch (ei->op) {
-			case OP_AND:
-				strlcat(s, "and ", sizeof s);
-				break;
-			case OP_OR:
-				strlcat(s, "or ", sizeof s);
-				break;
-			case OP_NONE:
-				break;
-			}
-			if (ei->inverted)
-				strlcat(s, "not ", sizeof s);
-			ei->match->desc(ei, desc, sizeof desc);
-			strlcat(s, desc, sizeof s);
-			strlcat(s, " ", sizeof s);
+	*s = '\0';
+	TAILQ_FOREACH(ei, r->expr, entry) {
+		switch (ei->op) {
+		case OP_AND:
+			strlcat(s, "and ", sizeof s);
+			break;
+		case OP_OR:
+			strlcat(s, "or ", sizeof s);
+			break;
+		case OP_NONE:
+			break;
 		}
+		if (ei->inverted)
+			strlcat(s, "not ", sizeof s);
+		ei->match->desc(ei, desc, sizeof desc);
+		strlcat(s, desc, sizeof s);
+		strlcat(s, " ", sizeof s);
 	}
-	if (r->accounts != NULL)
-		sa = fmt_strings(" accounts=", r->accounts);
-	else
-		sa = xstrdup("");
 	if (r->users != NULL)
 		su = fmt_users(" users=", r->users);
 	else
 		su = xstrdup("");
 	if (r->lambda != NULL) {
 		make_actlist(r->lambda->list, desc, sizeof desc);
-		log_debug2("added rule %u:%s%s matches=%slambda=%s", r->idx,
-		    sa, su, s, desc);
+		log_debug2("added rule %u:%s matches=%slambda=%s", r->idx,
+		    su, s, desc);
 	} else if (r->actions != NULL) {
 		ss = fmt_replstrs(NULL, r->actions);
-		log_debug2("added rule %u:%s%s matches=%sactions=%s", r->idx,
-		    sa, su, s, ss);
+		log_debug2("added rule %u:%s matches=%sactions=%s", r->idx,
+		    su, s, ss);
 		xfree(ss);
 	} else
-		log_debug2("added rule %u:%s matches=%snested", r->idx, sa, s);
-	xfree(sa);
+		log_debug2("added rule %u: matches=%snested", r->idx, s);
 	xfree(su);
 }
 
@@ -381,10 +372,6 @@ free_rule(struct rule *r)
 	struct rule	*rr;
 	struct expritem	*ei;
 
-	if (r->accounts != NULL) {
-		free_strings(r->accounts);
-		ARRAY_FREEALL(r->accounts);
-	}
 	if (r->users != NULL)
 		ARRAY_FREEALL(r->users);
 	if (r->actions != NULL) {
@@ -412,6 +399,9 @@ free_rule(struct rule *r)
 		if (ei->match == &match_regexp) {
 			struct match_regexp_data	*data = ei->data;
 			re_free(&data->re);
+		} else if (ei->match == &match_account) {
+			struct match_account_data	*data = ei->data;
+			free_replstrs(data->accounts);
 		} else if (ei->match == &match_command) {
 			struct match_command_data	*data = ei->data;
 			xfree(data->cmd.str);

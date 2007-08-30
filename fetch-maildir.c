@@ -391,7 +391,7 @@ fetch_maildir_desc(struct account *a, char *buf, size_t len)
 	struct fetch_maildir_data	*data = a->data;
 	char				*maildirs;
 
-	maildirs = fmt_strings("maildirs ", data->maildirs);
+	maildirs = fmt_strings("maildir ", data->maildirs);
 	strlcpy(buf, maildirs, len);
 	xfree(maildirs);
 }

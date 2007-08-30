@@ -56,12 +56,10 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 {
 	struct account	*a = mctx->account;
 	struct mail	*m = mctx->mail;
-	struct strings	*aa;
 	struct expritem	*ei;
 	struct users	*users;
-	u_int		 i;
 	int		 should_free, this = -1, error = MAIL_CONTINUE;
-	char		*an, desc[DESCBUFSIZE];
+	char		 desc[DESCBUFSIZE];
 
 	set_wrapped(m, ' ');
 
@@ -130,31 +128,6 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	 */
 	if (mctx->expritem == NULL) {
 		/*
-		 * Check rule account list.
-		 */
-		aa = mctx->rule->accounts;
-		if (aa != NULL && !ARRAY_EMPTY(aa)) {
-			for (i = 0; i < ARRAY_LENGTH(aa); i++) {
-				an = ARRAY_ITEM(aa, i);
-				if (name_match(an, a->name))
-					break;
-			}
-			if (i == ARRAY_LENGTH(aa)) {
-				mctx->result = 0;
-				goto skip;
-			}
-		}
-
-		/*
-		 * No expression. Must be an "all" rule, treat it as always
-		 * true.
-		 */
-		if (mctx->rule->expr == NULL || TAILQ_EMPTY(mctx->rule->expr)) {
-			mctx->result = 1;
-			goto skip;
-		}
-
-		/*
 		 * Start the expression.
 		 */
 		mctx->result = 0;
@@ -209,7 +182,6 @@ next_expritem:
 	if (mctx->expritem != NULL)
 		return (MAIL_CONTINUE);
 
-skip:
 	log_debug3("%s: finished rule %u, result %d", a->name, mctx->rule->idx,
 	    mctx->result);
 

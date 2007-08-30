@@ -45,8 +45,7 @@ struct rule	*parse_rule;
 struct files	 parse_filestack;
 struct file	*parse_file;
 
-int			yyparse(void);
-__dead printflike1 void	yyerror(const char *, ...);
+int		 yyparse(void);
 
 int
 parse_conf(const char *path)
@@ -110,6 +109,20 @@ yyerror(const char *fmt, ...)
 	va_end(ap);
 
 	exit(1);
+}
+
+printflike1 void
+yywarn(const char *fmt, ...)
+{
+	va_list	ap;
+	char   *s;
+
+	xasprintf(&s,
+	    "%s: %s at line %d", parse_file->path, fmt, parse_file->rule_line);
+
+	va_start(ap, fmt);
+	log_vwrite(NULL, LOG_CRIT, s, ap);
+	va_end(ap);
 }
 %}
 
@@ -178,7 +191,7 @@ yyerror(const char *fmt, ...)
 %type  <actlist> actlist
 %type  <area> area
 %type  <cmp> cmp cmp2
-%type  <expr> expr exprlist match
+%type  <expr> expr exprlist
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
@@ -188,12 +201,12 @@ yyerror(const char *fmt, ...)
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
 %type  <replstrs> replstrslist
-%type  <replstrs> actions rmheaders
+%type  <replstrs> actions rmheaders accounts accounts2
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to folder xstrv strv replstrv retre replpathv val optval
 %type  <strings> stringslist pathslist
-%type  <strings> domains headers accounts maildirs mboxes groups
+%type  <strings> domains headers maildirs mboxes groups
 %type  <users> users userslist
 %type  <userpass> userpass userpassnetrc
 %type  <uid> uid user
@@ -1392,13 +1405,20 @@ defaction: TOKACTION replstrv users actitem
 		   xfree($2);
 	   }
 
-/** ACCOUNTS: <strings> (struct strings *) */
-accounts: /* empty */
+/** ACCOUNTS2: <replstrs> (struct replstrs *) */
+accounts2: /* empty */
 	  {
 		  $$ = NULL;
 	  }
-        | accountp replstrv
-/**       [$2: replstrv (char *)] */
+	| accounts
+/**       [$1: accounts (struct replstrs *)] */
+	  {
+		  $$ = $1;
+	  }
+
+/** ACCOUNTS: <replstrs> (struct replstrs *) */
+accounts: accountp strv
+/**       [$2: strv (char *)] */
 	  {
 		  if (*$2 == '\0')
 			  yyerror("invalid account name");
@@ -1407,10 +1427,11 @@ accounts: /* empty */
 
 		  $$ = xmalloc(sizeof *$$);
 		  ARRAY_INIT($$);
-		  ARRAY_ADD($$, $2);
+		  ARRAY_EXPAND($$, 1);
+		  ARRAY_LAST($$).str = $2;
 	  }
-	| accountp '{' stringslist '}'
-/**       [$3: stringslist (struct strings *)] */
+	| accountp '{' replstrslist '}'
+/**       [$3: replstrslist (struct replstrs *)] */
 	  {
 		  $$ = $3;
 	  }
@@ -1542,7 +1563,14 @@ exprop: TOKAND
 	}
 
 /** EXPRITEM: <expritem> (struct expritem *) */
-expritem: not icase replstrv area
+expritem: not TOKALL
+/**       [$1: not (int)] */
+	  {
+		  $$ = xcalloc(1, sizeof *$$);
+		  $$->match = &match_all;
+		  $$->inverted = $1;
+	  }
+	| not icase replstrv area
 /**       [$1: not (int)] [$2: icase (int)] [$3: replstrv (char *)] */
 /**       [$4: area (enum area)] */
           {
@@ -1565,6 +1593,20 @@ expritem: not icase replstrv area
 		  if (re_compile(&data->re, $3, flags, &cause) != 0)
 			  yyerror("%s", cause);
 		  xfree($3);
+	  }
+        | not accounts
+/**       [$1: not (int)] [$2: accounts (struct replstrs *)] */
+	  {
+		  struct match_account_data	*data;
+
+		  $$ = xcalloc(1, sizeof *$$);
+		  $$->match = &match_account;
+		  $$->inverted = $1;
+
+		  data = xcalloc(1, sizeof *data);
+		  $$->data = data;
+
+		  data->accounts = $2;
 	  }
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
@@ -1868,17 +1910,6 @@ expr: expritem
 	      TAILQ_INSERT_HEAD($$, $1, entry);
       }
 
-/** MATCH: <expr> (struct expr *) */
-match: TOKMATCH expr
-/**    [$2: expr (struct expr *)] */
-       {
-	       $$ = $2;
-       }
-     | TOKMATCH TOKALL
-       {
-	       $$ = NULL;
-       }
-
 /** PERFORM: <rule> (struct rule *) */
 perform: users actionp actitem cont
 /**      [$1: users (struct { ... } users)] [$3: actitem (struct actitem *)] */
@@ -1982,14 +2013,38 @@ close: '}'
        }
 
 /** RULE */
-rule: match accounts perform
-/**   [$1: match (struct expr *)] [$2: accounts (struct strings *)] */
-/**   [$3: perform (struct rule *)] */
+rule: TOKMATCH expr accounts2 perform
+/**   [$2: expr (struct expr *)] [$3: accounts2 (struct replstrs *)] */
+/**   [$4: perform (struct rule *)] */
       {
-	      $3->accounts = $2;
-	      $3->expr = $1;
+	      struct expritem		*ei;
+	      struct match_account_data	*data;
+	      
+	      $4->expr = $2;
 
-	      print_rule($3);
+	      /* Prepend an accounts rule to the expression. */
+	      if ($3 != NULL) {
+		      yywarn("match ... accounts ... is deprecated");
+		      yywarn("please use the 'accounts' match condition");
+
+		      if ($4->expr == NULL) {
+			      $4->expr = xmalloc(sizeof *$4->expr);
+			      TAILQ_INIT($4->expr);
+		      } else
+			      TAILQ_FIRST($4->expr)->op = OP_AND;
+
+		      ei = xcalloc(1, sizeof *ei);
+		      ei->match = &match_account;
+		      ei->op = OP_NONE;
+		      TAILQ_INSERT_HEAD($4->expr, ei, entry);
+
+		      data = xcalloc(1, sizeof *data);
+		      ei->data = data;
+
+		      data->accounts = $3;
+	      }
+
+	      print_rule($4);
       }
 
 /** FOLDER: <string> (char *) */
