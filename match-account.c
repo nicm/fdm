@@ -55,9 +55,9 @@ match_account_match(struct mail_ctx *mctx, struct expritem *ei)
 			xfree(s);
 			return (MATCH_TRUE);
 		}
+		xfree(s);
 	}
 
-	xfree(s);
 	return (MATCH_FALSE);
 }
 
