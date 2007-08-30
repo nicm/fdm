@@ -189,7 +189,6 @@ struct macro {
 		MACRO_NUMBER,
 		MACRO_STRING
 	} type;
-	int			 fixed;
 
 	TAILQ_ENTRY(macro)	 entry;
 };

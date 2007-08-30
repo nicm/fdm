@@ -35,6 +35,7 @@
 
 struct strb	*parse_tags;
 struct macros	 parse_macros;
+struct macro	*parse_last;	/* last command-line argument macro */
 
 u_int		 parse_ruleidx;
 u_int		 parse_actionidx;
@@ -71,9 +72,10 @@ parse_conf(const char *path, struct strings *macros)
 	default_tags(&parse_tags, NULL);
 
 	TAILQ_INIT(&parse_macros);
+	parse_last = NULL;
 	for (i = 0; i < ARRAY_LENGTH(macros); i++) {
-		macro = extract_macro(ARRAY_ITEM(macros, i));
-		TAILQ_INSERT_TAIL(&parse_macros, macro, entry);
+		parse_last = extract_macro(ARRAY_ITEM(macros, i));
+		TAILQ_INSERT_TAIL(&parse_macros, parse_last, entry);
 	}
 
 	parse_file->line++;
@@ -694,24 +696,25 @@ defmacro: STRMACRO '=' strv
 /**       [$3: strv (char *)] */
      	  {
 		  struct macro	*macro;
-		  
+
 		  if (strlen($1) > MAXNAMESIZE)
 			  yyerror("macro name too long: %s", $1);
 
-		  if ((macro = find_macro($1)) == NULL) {
-			  macro = xmalloc(sizeof *macro);
-			  macro->fixed = 0;
-			  strlcpy(macro->name, $1, sizeof macro->name);
+		  macro = xmalloc(sizeof *macro);
+		  strlcpy(macro->name, $1, sizeof macro->name);
+		  macro->type = MACRO_STRING;
+		  macro->value.str = $3;
+
+		  if (parse_last == NULL)
 			  TAILQ_INSERT_HEAD(&parse_macros, macro, entry);
-		  } else if (!macro->fixed)
-			  xfree(macro->value.str);
-		  if (!macro->fixed) {
-			  macro->type = MACRO_STRING;
-			  macro->value.str = $3;
-			  log_debug3("added macro \"%s\": \"%s\"", macro->name,
-			      macro->value.str);
-			  xfree($1);
+		  else {
+			  TAILQ_INSERT_AFTER(
+			      &parse_macros, parse_last, macro, entry);
 		  }
+
+		  log_debug3("added macro \"%s\": \"%s\"", macro->name,
+		      macro->value.str);
+		  xfree($1);
 	  }
         | NUMMACRO '=' numv
 /**       [$3: numv (long long)] */
@@ -721,19 +724,21 @@ defmacro: STRMACRO '=' strv
 		  if (strlen($1) > MAXNAMESIZE)
 			  yyerror("macro name too long: %s", $1);
 
-		  if ((macro = find_macro($1)) == NULL) {
-			  macro = xmalloc(sizeof *macro);
-			  macro->fixed = 0;
-			  strlcpy(macro->name, $1, sizeof macro->name);
+		  macro = xmalloc(sizeof *macro);
+		  strlcpy(macro->name, $1, sizeof macro->name);
+		  macro->type = MACRO_NUMBER;
+		  macro->value.num = $3;
+
+		  if (parse_last == NULL)
 			  TAILQ_INSERT_HEAD(&parse_macros, macro, entry);
+		  else {
+			  TAILQ_INSERT_AFTER(
+			      &parse_macros, parse_last, macro, entry);
 		  }
-		  if (!macro->fixed) {
-			  macro->type = MACRO_NUMBER;
-			  macro->value.num = $3;
-			  log_debug3("added macro \"%s\": %lld", macro->name,
-			      macro->value.num);
-			  xfree($1);
-		  }
+
+		  log_debug3("added macro \"%s\": %lld", macro->name,
+		      macro->value.num);
+		  xfree($1);
 	  }
 
 /** REPLSTRSLIST: <replstrs> (struct replstrs *) */
@@ -2029,7 +2034,7 @@ rule: TOKMATCH expr accounts2 perform
       {
 	      struct expritem		*ei;
 	      struct match_account_data	*data;
-	      
+
 	      $4->expr = $2;
 
 	      /* Prepend an accounts rule to the expression. */

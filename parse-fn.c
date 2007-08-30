@@ -178,7 +178,6 @@ extract_macro(char *s)
 		yyerror("macro name too long: %s", s);
 
 	macro = xmalloc(sizeof *macro);
-	macro->fixed = 1;
 	strlcpy(macro->name, s, sizeof macro->name);
 
 	switch (*s) {
