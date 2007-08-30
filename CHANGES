@@ -1,5 +1,8 @@
 30 August 2007
 
+* Fixed silly bug in replace.c. Using the base rather than data offset for %0-%9
+  so they pointed at the wrong data if a from line had been trimmed. Found by
+  Jo Fahlke, reported via Frank Terbeck through a Debian bug report.
 * Move command-line macro parsing into parse.y/parse-fn.c and make it actually
   work again. Found by Jo Fahlke, reported via Frank Terbeck.
 * account and all tokens are now normal match conditions. So, you can do useless

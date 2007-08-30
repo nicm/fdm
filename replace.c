@@ -257,7 +257,7 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 				if (!rml->list[idx].valid)
 					continue;
 
-				tptr = m->base + rml->list[idx].so;
+				tptr = m->data + rml->list[idx].so;
 				tlen = rml->list[idx].eo - rml->list[idx].so;
 				break;
 			}
