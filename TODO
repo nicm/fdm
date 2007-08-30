@@ -21,11 +21,10 @@
 - better website
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order
+- fetch from compressed mbox: have to change fetch-mbox to not use mmap
 - pop3 over pipe
 - pop3/imap tests via pipe and coprocess
-- fetch from gzipped mbox
 - all timeouts should be in seconds or milliseconds, decide which and make it so
 - expritems/fetch/etc should know how to free themselves
-- wrap other uses of fnmatch in macros
 - document mbox fetch
 - document all/account changes
