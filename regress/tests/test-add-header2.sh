@@ -1,10 +1,9 @@
 #!/bin/sh
 # $Id$
 
-. ./test-deliver.subr && test_init
+. ./test.subr && test_init
 
 cat <<EOF|test_in
-
 Body
 EOF
 

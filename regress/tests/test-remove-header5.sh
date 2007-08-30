@@ -1,7 +1,7 @@
 #!/bin/sh
 # $Id$
 
-. ./test-deliver.subr && test_init
+. ./test.subr && test_init
 
 cat <<EOF|test_in
 Header: Test
@@ -15,5 +15,5 @@ cat <<EOF|test_out
 EOF
 
 cat <<EOF|test_run
-match all action remove-headers { "Header" "Header2" } continue
+match all action remove-header "Header*" continue
 EOF

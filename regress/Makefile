@@ -20,7 +20,7 @@ ${n}:
 all:		regress
 
 regress:	${TARGETS}
-		cd deliver && ${MAKE}
+		cd tests && ${MAKE}
 
 clean:
 		rm -f ${CLEANFILES}

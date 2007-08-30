@@ -43,7 +43,9 @@ test_run() {
 	echo "$0: FAILED"
     fi
 
-    rm -f $TEST.in $TEST.out $TEST.conf $TEST.data
+    if [ "$DEBUG" == "" ]; then
+	    rm -f $TEST.in $TEST.out $TEST.conf $TEST.data
+    fi
 
     exit $RESULT
 }
