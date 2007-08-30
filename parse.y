@@ -123,6 +123,8 @@ yywarn(const char *fmt, ...)
 	va_start(ap, fmt);
 	log_vwrite(NULL, LOG_CRIT, s, ap);
 	va_end(ap);
+
+	xfree(s);
 }
 %}
 
