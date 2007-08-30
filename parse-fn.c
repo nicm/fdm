@@ -402,6 +402,7 @@ free_rule(struct rule *r)
 		} else if (ei->match == &match_account) {
 			struct match_account_data	*data = ei->data;
 			free_replstrs(data->accounts);
+			ARRAY_FREEALL(data->accounts);
 		} else if (ei->match == &match_command) {
 			struct match_command_data	*data = ei->data;
 			xfree(data->cmd.str);
