@@ -165,6 +165,48 @@ match_actions(const char *name)
 }
 
 struct macro *
+extract_macro(char *s)
+{
+	struct macro	*macro;
+	char		*ptr;
+	const char	*errstr;
+
+	ptr = strchr(s, '=');
+	if (ptr != NULL)
+		*ptr++ = '\0';
+	if (strlen(s) > MAXNAMESIZE)
+		yyerror("macro name too long: %s", s);
+
+	macro = xmalloc(sizeof *macro);
+	macro->fixed = 1;
+	strlcpy(macro->name, s, sizeof macro->name);
+
+	switch (*s) {
+	case '$':
+		macro->type = MACRO_STRING;
+		if (ptr == NULL)
+			macro->value.str = xstrdup("");
+		else
+			macro->value.str = xstrdup(ptr);
+		break;
+	case '%':
+		macro->type = MACRO_NUMBER;
+		if (ptr == NULL)
+			macro->value.num = 0;
+		else {
+			macro->value.num = strtonum(ptr, 0, LLONG_MAX, &errstr);
+			if (errstr != NULL)
+				yyerror("number is %s: %s", errstr, ptr);
+		}
+		break;
+	default:
+		yyerror("invalid macro: %s", s);
+	}
+
+	return (macro);
+}
+
+struct macro *
 find_macro(const char *name)
 {
 	struct macro	*macro;

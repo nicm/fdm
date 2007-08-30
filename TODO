@@ -28,4 +28,3 @@
 - expritems/fetch/etc should know how to free themselves
 - document mbox fetch
 - document all/account changes
-- fix -D

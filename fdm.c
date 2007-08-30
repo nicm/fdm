@@ -247,7 +247,7 @@ main(int argc, char **argv)
 	struct msg	 msg;
 	struct msgbuf	 msgbuf;
 	size_t		 off;
-	struct macro	*macro;
+	struct strings	 macros;
 	struct child_fetch_data *cfd;
 #ifdef DEBUG
 	struct rule	*r;
@@ -275,48 +275,14 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
 
+	ARRAY_INIT(&macros);
         while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:?")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, xstrdup(optarg));
 			break;
 		case 'D':
-			if (*optarg != '$' && *optarg != '%') {
-				log_warnx("invalid macro: %s", optarg);
-				exit(1);
-			}
-			ptr = strchr(optarg, '=');
-			if (ptr != NULL)
-				*ptr++ = '\0';
-			if (strlen(optarg) > MAXNAMESIZE) {
-				log_warnx("macro name too long: %s", optarg);
-				exit(1);
-			}
-
-			macro = xmalloc(sizeof *macro);
-			macro->fixed = 1;
-			strlcpy(macro->name, optarg, sizeof macro->name);
-			TAILQ_INSERT_HEAD(&parse_macros, macro, entry);
-
-			if (*optarg == '$') {
-				macro->type = MACRO_STRING;
-				if (ptr == NULL)
-					macro->value.str = xstrdup("");
-				else
-					macro->value.str = xstrdup(ptr);
-				break;
-			}
-
-			macro->type = MACRO_NUMBER;
-			if (ptr == NULL) {
-				macro->value.num = 0;
-				break;
-			}
-			macro->value.num = strtonum(ptr, 0, LLONG_MAX, &errstr);
-			if (errstr != NULL) {
-				log_warnx("number is %s: %s", errstr, ptr);
-				exit(1);
-			}
+			ARRAY_ADD(&macros, optarg);
 			break;
                 case 'f':
                         conf.conf_file = xstrdup(optarg);
@@ -425,10 +391,11 @@ main(int argc, char **argv)
 	}
 	if (geteuid() != 0 && (sb.st_mode & (S_IROTH|S_IWOTH)) != 0)
 		log_warnx("%s: world readable or writable", conf.conf_file);
-        if (parse_conf(conf.conf_file) != 0) {
+        if (parse_conf(conf.conf_file, &macros) != 0) {
                 log_warn("%s", conf.conf_file);
 		exit(1);
 	}
+	ARRAY_FREE(&macros);
 	log_debug2("configuration loaded");
 
 	/* Sort out queue limits. */

@@ -48,10 +48,11 @@ struct file	*parse_file;
 int		 yyparse(void);
 
 int
-parse_conf(const char *path)
+parse_conf(const char *path, struct strings *macros)
 {
 	struct macro	*macro;
 	FILE		*f;
+	u_int		 i;
 
         if ((f = fopen(path, "r")) == NULL)
                 return (-1);
@@ -63,14 +64,19 @@ parse_conf(const char *path)
 	parse_file = xmalloc(sizeof *parse_file);
 
 	parse_file->f = f;
-	parse_file->line = 1;
+	parse_file->line = 0;
 	parse_file->path = path;
 
 	strb_create(&parse_tags);
 	default_tags(&parse_tags, NULL);
 
 	TAILQ_INIT(&parse_macros);
+	for (i = 0; i < ARRAY_LENGTH(macros); i++) {
+		macro = extract_macro(ARRAY_ITEM(macros, i));
+		TAILQ_INSERT_TAIL(&parse_macros, macro, entry);
+	}
 
+	parse_file->line++;
         yyparse();
 
 	if (!ARRAY_EMPTY(&parse_rulestack))
@@ -688,15 +694,16 @@ defmacro: STRMACRO '=' strv
 /**       [$3: strv (char *)] */
      	  {
 		  struct macro	*macro;
+		  
+		  if (strlen($1) > MAXNAMESIZE)
+			  yyerror("macro name too long: %s", $1);
 
 		  if ((macro = find_macro($1)) == NULL) {
 			  macro = xmalloc(sizeof *macro);
-			  if (strlen($1) > MAXNAMESIZE)
-				  yyerror("macro name too long: %s", $1);
 			  macro->fixed = 0;
 			  strlcpy(macro->name, $1, sizeof macro->name);
 			  TAILQ_INSERT_HEAD(&parse_macros, macro, entry);
-		  } else
+		  } else if (!macro->fixed)
 			  xfree(macro->value.str);
 		  if (!macro->fixed) {
 			  macro->type = MACRO_STRING;
@@ -711,10 +718,11 @@ defmacro: STRMACRO '=' strv
 	  {
 		  struct macro	*macro;
 
+		  if (strlen($1) > MAXNAMESIZE)
+			  yyerror("macro name too long: %s", $1);
+
 		  if ((macro = find_macro($1)) == NULL) {
 			  macro = xmalloc(sizeof *macro);
-			  if (strlen($1) > MAXNAMESIZE)
-				  yyerror("macro name too long: %s", $1);
 			  macro->fixed = 0;
 			  strlcpy(macro->name, $1, sizeof macro->name);
 			  TAILQ_INSERT_HEAD(&parse_macros, macro, entry);

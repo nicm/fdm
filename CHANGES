@@ -1,5 +1,7 @@
 30 August 2007
 
+* Move command-line macro parsing into parse.y/parse-fn.c and make it actually
+  work again. Found by Jo Fahlke, reported via Frank Terbeck.
 * account and all tokens are now normal match conditions. So, you can do useless
   stuff like:
 
