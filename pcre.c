@@ -60,8 +60,8 @@ int
 re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
     char **cause)
 {
-	int		res, pm[NPMATCH * 3];
-	u_int		i, j;
+	int	res, pm[NPMATCH * 3];
+	u_int	i, j;
 
 	if (len > INT_MAX)
 		fatalx("buffer too big");

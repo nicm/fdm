@@ -57,9 +57,9 @@ attach_visit(struct attach *atr, u_int *n)
 void printflike2
 attach_log(struct attach *atr, const char *fmt, ...)
 {
-	va_list	 	 ap;
-	char		*prefix;
-	u_int		 n;
+	va_list	ap;
+	char   *prefix;
+	u_int	n;
 
 	va_start(ap, fmt);
 	xvasprintf(&prefix, fmt, ap);
