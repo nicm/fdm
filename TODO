@@ -13,7 +13,6 @@
 - more attachment stuff: remove-attachment, write-/pipe-attachment etc
 - get only read/unread mail (IMAP only, probably) (read-only, unread-only)
   flags to account line
-- handle multiple header instances when looking for users (other places?)
 - deliver to IMAP folder
 - refactor & clean up privsep mail transfer code
 - is there any reason struct mail shouldn't point to a struct account?
