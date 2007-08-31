@@ -307,7 +307,7 @@ io_fill(struct io *io)
 
 again:
 	/* Ensure there is at least some minimum space in the buffer. */
-	buffer_ensure(io->rd, IO_BLOCKSIZE);
+	buffer_ensure(io->rd, IO_WATERMARK);
 
 	/* Attempt to read as much as the buffer has available. */
 	if (io->ssl == NULL) {

@@ -42,8 +42,9 @@ struct buffer {
 #define IO_CR   "\r"
 #define IO_LF   "\n"
 
-/* Amount to attempt to append to the buffer each time. */
+/* Initial block size of buffer and minimum amount to try to read. */
 #define IO_BLOCKSIZE 16384
+#define IO_WATERMARK 12288
 
 /* Initial line buffer length. */
 #define IO_LINESIZE 256
