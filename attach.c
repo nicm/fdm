@@ -155,7 +155,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	hdr++;
 
 	/*
-	 * Now follows a set of attributes of the form name=value, seperated
+	 * Now follows a set of attributes of the form name=value, separated
 	 * by semicolons, possibly crossing multiple lines and possibly with
 	 * the value enclosed in quotes.
 	 */
