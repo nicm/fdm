@@ -25,6 +25,5 @@
 - pop3 over pipe
 - pop3/imap tests via pipe and coprocess
 - all timeouts should be in seconds or milliseconds, decide which and make it so
-- expritems/fetch/etc should know how to free themselves
 - document mbox fetch
 - document all/account changes
