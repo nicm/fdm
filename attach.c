@@ -117,7 +117,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 	*value = NULL;
 
 	len = m->size - (hdr - m->data);
-	if (len < 13 && strncasecmp(hdr, "content-type:", 13) != 0)
+	if (len < 13 || strncasecmp(hdr, "content-type:", 13) != 0)
 		goto error;
 	len -= 13;
 	hdr += 13;
