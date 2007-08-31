@@ -434,7 +434,7 @@ find_users(struct mail *m)
 	users = xmalloc(sizeof *users);
 	ARRAY_INIT(users);
 
-	hdr = data = NULL;
+	line = NULL;
 	line_init(m, &ptr, &len);
 	while (ptr != NULL) {
 		if (ptr >= m->data + m->body)
