@@ -158,16 +158,6 @@ extern char	*__progname;
 #define TIME_MONTH 2419200LL
 #define TIME_YEAR 29030400LL
 
-/* Valid email address chars. */
-#define isaddr(c) ( 							\
-	((c) >= 'a' && (c) <= 'z') || 					\
-	((c) >= 'A' && (c) <= 'Z') ||					\
-	((c) >= '0' && (c) <= '9') ||					\
-	(c) == '&' || (c) == '*' || (c) == '+' || (c) == '?' ||	 	\
-	(c) == '-' || (c) == '.' || (c) == '=' || (c) == '/' ||		\
-	(c) == '^' || (c) == '{' || (c) == '}' || (c) == '~' || 	\
-	(c) == '_' || (c) == '@' || (c) == '\'')
-
 /* Number of matches to use. */
 #define NPMATCH 10
 

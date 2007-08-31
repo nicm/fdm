@@ -427,45 +427,75 @@ find_users(struct mail *m)
 {
 	struct passwd	*pw;
 	struct users	*users;
+	char		*ptr, *last, *data, *hdr, *dom, *aptr, *dptr, *line;
 	u_int	 	 i, j;
-	char		*hdr, *ptr, *dptr, *dom;
 	size_t	 	 len, alen;
 
 	users = xmalloc(sizeof *users);
 	ARRAY_INIT(users);
 
-	for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-		hdr = ARRAY_ITEM(conf.headers, i);
-		if (*hdr == '\0')
-			continue;
+	hdr = data = NULL;
+	line_init(m, &ptr, &len);
+	while (ptr != NULL) {
+		if (ptr >= m->data + m->body)
+			break;
+		if (len > INT_MAX)
+			goto next;
+		xasprintf(&line, "%.*s", (int) len, ptr);
 
-		hdr = find_header(m, hdr, &len, 1);
-		if (hdr == NULL || len == 0)
-			continue;
+		/* Find separator. */
+		data = strchr(line, ':');
+		if (data == NULL)
+			goto next;
+		*data++ = '\0';
+		while (isspace((u_char) *data))
+			data++;
+		while ((last = strrchr(data, '\n')) != NULL)
+			*last = '\0';
 
-		while (len > 0) {
-			ptr = find_address(hdr, len, &alen);
-			if (ptr == NULL)
+		/* Is this in the list of headers? */
+		for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
+			hdr = ARRAY_ITEM(conf.headers, i);
+			if (*hdr == '\0')
+				continue;	
+			if (fnmatch(hdr, line, FNM_CASEFOLD) == 0)
 				break;
+		}
+		if (i == ARRAY_LENGTH(conf.headers))
+			goto next;
 
-			dptr = ((char *) memchr(ptr, '@', alen)) + 1;
+		/* Yes, try to find addresses. */
+		while (*data != '\0') {
+			aptr = find_address(data, strlen(data), &alen);
+			if (aptr == NULL || alen > INT_MAX)
+				break;
+			data = aptr + alen;
+
+			xasprintf(&aptr, "%.*s", (int) alen, aptr);
+			dptr = memchr(aptr, '@', alen);
+			*dptr++ = '\0';
+
 			for (j = 0; j < ARRAY_LENGTH(conf.domains); j++) {
 				dom = ARRAY_ITEM(conf.domains, j);
 				if (fnmatch(dom, dptr, FNM_CASEFOLD) != 0)
 					continue;
 
-				*--dptr = '\0';
-				pw = getpwnam(ptr);
+				pw = getpwnam(aptr);
 				if (pw != NULL)
 					ARRAY_ADD(users, pw->pw_uid);
 				endpwent();
-				*dptr++ = '@';
 				break;
 			}
 
-			len -= (ptr - hdr) + alen;
-			hdr = ptr + alen;
+			xfree(aptr);
 		}
+
+	next:
+		if (line != NULL)
+			xfree(line);
+		line = NULL;
+
+		line_next(m, &ptr, &len);
 	}
 
 	if (ARRAY_EMPTY(users)) {
@@ -477,52 +507,91 @@ find_users(struct mail *m)
 }
 
 char *
-find_address(char *hdr, size_t len, size_t *alen)
+find_address(char *buf, size_t len, size_t *alen)
 {
-	char	*ptr;
-	size_t	 off, pos;
+	char	*ptr, *hdr, *first, *last;
 
-	for (off = 0; off < len; off++) {
-		switch (hdr[off]) {
-		case '"':
-			off++;
-			while (off < len && hdr[off] != '"')
-				off++;
-			if (off < len)
-				off++;
-			break;
-		case '<':
-			off++;
-			ptr = memchr(hdr + off, '>', len - off);
-			if (ptr == NULL)
+	/*
+	 * RFC2822 email addresses are stupidly complicated, so we just do a
+	 * naive match which is good enough for 99% of addresses used now. This
+	 * code is pretty inefficient.
+	 */
+
+	/* Duplicate the header as a string to work on it. */
+	if (len == 0 || len > INT_MAX)
+		return (NULL);
+	xasprintf(&hdr, "%.*s", (int) len, buf);
+
+	/* First, replace any sections in "s with spaces. */
+	ptr = hdr;
+	while (*ptr != '\0') {
+		if (*ptr == '"') {
+			while (*ptr != '"' && *ptr != '\0')
+				*ptr++ = ' ';
+			if (*ptr == '\0')
 				break;
-			*alen = ptr - (hdr + off);
-			for (pos = 0; pos < *alen; pos++) {
-				if (!isaddr(hdr[off + pos]))
-					break;
-			}
-			if (pos != *alen)
-				break;
-			ptr = hdr + off;
-			if (*alen == 0 || memchr(ptr, '@', *alen) == NULL)
-				break;
-			if (ptr[0] == '@' || ptr[*alen - 1] == '@')
-				break;
-			return (ptr);
 		}
+		ptr++;
 	}
 
-	/* No address found. try the whole header. */
-	*alen = 0;
-	for (*alen = 0; *alen < len; (*alen)++) {
-		if (!isaddr(hdr[*alen]))
+	/* 
+	 * Now, look for sections matching:
+	 * 	[< ][A-Za-z0-9._%+-]+@[A-Za-z0-9.\[\]-]+[> ,;].
+	 */
+#define isfirst(c) ((c) == '<' || (c) == ' ')
+#define islast(c) ((c) == '>' || (c) == ' ' || (c) == ',' || (c) == ';')
+#define isuser(c) (isalnum(c) || \
+	(c) == '.' || (c) == '_' || (c) == '%' || (c) == '+' || (c) == '-')
+#define isdomain(c) (isalnum(c) || \
+	(c) == '.' || (c) == '-' || (c) == '[' || (c) == ']')
+	ptr = hdr + 1;
+	for (;;) {
+		/* Find an @. */
+		if ((ptr = strchr(ptr, '@')) == NULL)
 			break;
+		
+		/* Find the end. */
+		last = ptr + 1;
+		while (*last != '\0' && isdomain((u_char) *last))
+			last++;
+		if (*last != '\0' && !islast((u_char) *last)) {
+			ptr = last + 1;
+			continue;
+		}
+
+		/* Find the start. */
+		first = ptr - 1;
+		while (first != hdr && isuser((u_char) *first))
+			first--;
+		if (first != hdr && !isfirst((u_char) *first)) {
+			ptr = last + 1;
+			continue;
+		}
+		
+		/* If the last is > the first must be < and vice versa. */
+		if (*last == '>' && *first != '<') {
+			ptr = last + 1;
+			continue;
+		}
+		if (*first == '<' && *last != '>') {
+			ptr = last + 1;
+			continue;
+		}
+
+		/* If not right at the start, strip first character. */
+		if (first != hdr)
+			first++;
+
+		/* Free header copy. */
+		xfree(hdr);
+
+		/* Have last and first, return the address. */
+		*alen = last - first;
+		return (buf + (first - hdr));
 	}
-	if (*alen == 0 || memchr(hdr + off, '@', *alen) == NULL)
-		return (NULL);
-	if (hdr[off] == '@' || hdr[*alen - 1] == '@')
-		return (NULL);
-	return (hdr);
+
+	xfree(hdr);
+	return (NULL);
 }
 
 void

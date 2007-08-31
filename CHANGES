@@ -1,3 +1,8 @@
+31 August 2007
+
+* Rewrote user header searching and address matching to clean up the code and
+  work with multiple headers, also fix some fnmatch problems.
+
 30 August 2007
 
 * Fixed silly bug in replace.c. Using the base rather than data offset for %0-%9

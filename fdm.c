@@ -460,7 +460,7 @@ main(int argc, char **argv)
 			ARRAY_ADD(conf.domains, ptr);
 		}
 		if (conf.info.addr != NULL) {
-			ptr = xstrdup(conf.info.addr);
+			xasprintf(&ptr, "\\[%s\\]", conf.info.addr);
 			ARRAY_ADD(conf.domains, ptr);
 		}
 	}

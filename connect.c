@@ -165,7 +165,7 @@ getaddrs(const char *host, char **fqdn, char **addr)
 
 	if (addr != NULL && getnameinfo(ai->ai_addr,
 	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NUMERICHOST) == 0)
-		xasprintf(addr, "[%s]", ni);
+		xasprintf(addr, "%s", ni);
 
 	if (fqdn != NULL && getnameinfo(ai->ai_addr,
 	    ai->ai_addrlen, ni, sizeof ni, NULL, 0, NI_NAMEREQD) == 0)
