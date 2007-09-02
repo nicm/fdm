@@ -108,10 +108,13 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 
 		if (dup2(fd_in[0], STDIN_FILENO) == -1)
 			fatal("dup2(stdin) failed");
+		close(fd_in[0]);
 		if (dup2(fd_out[1], STDOUT_FILENO) == -1)
 			fatal("dup2(stdout) failed");
+		close(fd_out[1]);
 		if (dup2(fd_err[1], STDERR_FILENO) == -1)
 			fatal("dup2(stderr) failed");
+		close(fd_err[1]);
 
                 if (signal(SIGINT, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
@@ -253,40 +256,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 		}
 	}
 
-	/* Retrieve and return a line if possible. */
-	if (cmd->io_err != NULL) {
-		CMD_DEBUG(cmd, "err has %zu bytes", IO_RDSIZE(cmd->io_err));
-		if (lbuf != NULL)
-			*err = io_readline2(cmd->io_err, lbuf, llen);
-		else
-			*err = io_readline(cmd->io_err);
-		if (*err != NULL) {
-			/* Strip CR if the line is terminated by one. */
-			len = strlen(*err);
-			if (len > 0 && (*err)[len - 1] == '\r')
-				(*err)[len - 1] = '\0';
-			return (0);
-		}
-	}
-	if (cmd->io_out != NULL) {
-		CMD_DEBUG(cmd, "out has %zu bytes", IO_RDSIZE(cmd->io_out));
-		if (lbuf != NULL)
-			*out = io_readline2(cmd->io_out, lbuf, llen);
-		else
-			*out = io_readline(cmd->io_out);
-		if (*out != NULL) {
-			/* Strip CR if the line is terminated by one. */
-			len = strlen(*out);
-			if (len > 0 && (*out)[len - 1] == '\r')
-				(*out)[len - 1] = '\0';
-			return (0);
-		}
-	}
-
-	/*
-	 * No lines available. If there is anything open, try and poll it and
-	 * then return.
-	 */
+	/* No lines available. If there is anything open, try and poll it. */
 	if (cmd->io_in != NULL || cmd->io_out != NULL || cmd->io_err != NULL) {
 		ios[0] = cmd->io_in;
 		ios[1] = cmd->io_out;
@@ -324,9 +294,45 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 			}
 			break;
 		}
-
-		return (0);
 	}
+
+	/*
+	 * Retrieve and return a line if possible. This must be after the 
+	 * poll otherwise it'll get screwed up by external poll, like so:
+	 *	- no data buffered so test for line finds nothing
+	 *	- all sockets polled here, the data being waited for has 
+	 *	  arrived, it is read and buffered and the function returns
+	 *	- the external poll blocks, but since the data being waited
+	 *	  on has already arrived, doesn't wake up
+	 * Maybe an EXTERNALPOLL flag to eliminate the double-poll would clear
+	 * things up? Just an IO_CLOSED check here...
+	 */
+	if (cmd->io_err != NULL) {
+		CMD_DEBUG(cmd, "err has %zu bytes", IO_RDSIZE(cmd->io_err));
+		*err = io_readline2(cmd->io_err, lbuf, llen);
+		if (*err != NULL) {
+			/* Strip CR if the line is terminated by one. */
+			len = strlen(*err);
+			if (len > 0 && (*err)[len - 1] == '\r')
+				(*err)[len - 1] = '\0';
+			return (0);
+		}
+	}
+	if (cmd->io_out != NULL) {
+		CMD_DEBUG(cmd, "out has %zu bytes", IO_RDSIZE(cmd->io_out));
+		*out = io_readline2(cmd->io_out, lbuf, llen);
+		if (*out != NULL) {
+			/* Strip CR if the line is terminated by one. */
+			len = strlen(*out);
+			if (len > 0 && (*out)[len - 1] == '\r')
+				(*out)[len - 1] = '\0';
+			return (0);
+		}
+	}
+
+	/* If anything is still open, return now and don't check the child. */
+	if (cmd->io_in != NULL || cmd->io_out != NULL || cmd->io_err != NULL)
+		return (0);
 
 	/* Everything is closed. Check the child. */
 	CMD_DEBUG(cmd, "waiting for child, timeout=%d", timeout);

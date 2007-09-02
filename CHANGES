@@ -1,3 +1,8 @@
+02 September 2007
+
+* More changes to io.c/command.c to fix issues on Linux introduced by fixes to
+  IMAP-over-pipe. Hopefully all working now.
+
 31 August 2007
 
 * Rewrote user header searching and address matching to clean up the code and

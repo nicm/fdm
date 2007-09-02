@@ -141,9 +141,6 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 		io = iop[i];
 		if (rio != NULL)
 			*rio = io;
-		if (io == NULL)
-			continue;
-
 		switch (io_before_poll(io, &pfds[i])) {
 		case 0:
 			/* Found a closed io. */
@@ -182,9 +179,6 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 		io = iop[i];
  		if (rio != NULL)
 			*rio = io;
-		if (io == NULL)
-			continue;
-
 		if (io_after_poll(io, &pfds[i]) == -1)
 			goto error;
 	}
@@ -203,6 +197,13 @@ error:
 int
 io_before_poll(struct io *io, struct pollfd *pfd)
 {
+	/* If io is NULL, don't let poll do anything with this one. */
+	if (io == NULL) {
+		memset(pfd, 0, sizeof *pfd);
+		pfd->fd = -1;
+		return (1);
+	}
+
 	/* Check for errors or closure. */
 	if (io->error != NULL)
 		return (-1);
@@ -230,6 +231,10 @@ io_before_poll(struct io *io, struct pollfd *pfd)
 int
 io_after_poll(struct io *io, struct pollfd *pfd)
 {
+	/* Ignore NULL ios. */
+	if (io == NULL)
+		return (1);
+
 	IO_DEBUG(io, "poll out: 0x%03x", pfd->revents);
 
 	/* Close on POLLERR or POLLNVAL hard. */
