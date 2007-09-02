@@ -15,7 +15,7 @@
 
 	match all and all or all ...
 
-  And, more importantly, matching accounts now CHANGES to require an operator
+  AND, more importantly, matching accounts now CHANGES to require an operator
   and follow the normal left-to-right precedence. So:
 
 	match all account "a*" ...
