@@ -458,6 +458,8 @@ free_account(struct account *a)
 
 	if (a->fetch == &fetch_pop3) {
 		struct fetch_pop3_data		*data = a->data;
+		if (data->path != NULL)
+			xfree(data->path);
 		xfree(data->user);
 		xfree(data->pass);
 		xfree(data->server.host);

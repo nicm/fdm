@@ -923,6 +923,7 @@ __dead void	 log_fatalx(const char *, ...);
 /* xmalloc.c */
 void		*ensure_size(void *, size_t *, size_t, size_t);
 void		*ensure_for(void *, size_t *, size_t, size_t);
+char		*xmemstrdup(const char *, size_t);
 char		*xstrdup(const char *);
 void		*xcalloc(size_t, size_t);
 void		*xmalloc(size_t);

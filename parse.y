@@ -150,8 +150,9 @@ yywarn(const char *fmt, ...)
 %token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKNNTPS TOKCACHE
 %token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKREMOVEHEADERS
-%token TOKSTDOUT TOKNOVERIFY TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW
-%token TOKVERIFYCERTS TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY TOKNOAPOP
+%token TOKSTDOUT TOKNOVERIFY TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKNOAPOP
+%token TOKVERIFYCERTS TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY TOKNEWONLY
+%token TOKOLDONLY
 %token LCKFLOCK LCKFCNTL LCKDOTLOCK
 
 %union
@@ -176,6 +177,11 @@ yywarn(const char *fmt, ...)
 	struct expritem		*expritem;
 	struct strings		*strings;
 	struct replstrs		*replstrs;
+	enum fetch_only		 only;
+	struct {
+		char		*path;
+		enum fetch_only	 only;
+	} poponly;
 	uid_t			 uid;
 	gid_t			 gid;
 	struct {
@@ -210,6 +216,8 @@ yywarn(const char *fmt, ...)
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
+%type  <only> only imaponly
+%type  <poponly> poponly
 %type  <replstrs> replstrslist
 %type  <replstrs> actions rmheaders accounts accounts2
 %type  <rule> perform
@@ -2113,6 +2121,16 @@ apop: TOKNOAPOP
 	      $$ = 1;
       }
 
+/** ONLY: <only> (enum fetch_only) */
+only: TOKNEWONLY
+      {
+	      $$ = FETCH_ONLY_NEW;
+      }
+    | TOKOLDONLY
+      {
+	      $$ = FETCH_ONLY_OLD;
+      }
+
 /** POPTYPE: <flag> (int) */
 poptype: TOKPOP3
          {
@@ -2210,11 +2228,35 @@ userpass: TOKUSER replstrv TOKPASS replstrv
 		  $$.pass_netrc = 0;
 	  }
 
+/** POPONLY: <poponly> (struct { ... } poponly) */
+poponly: only TOKCACHE replpathv
+/**      [$1: only (enum fetch_only)] [$3: replpathv (char *)] */
+	 {
+		 $$.path = $3;
+		 $$.only = $1;
+	 }
+       | /* empty */
+	 {
+		 $$.path = NULL;
+		 $$.only = FETCH_ONLY_ALL;
+	 }
+
+/** IMAPONLY: <only> (enum fetch_only) */
+imaponly: only
+/**       [$1: only (enum fetch_only)] */
+	  {
+		  $$ = $1;
+	  }
+        | /* empty */
+	  {
+		  $$ = FETCH_ONLY_ALL;
+	  }
+
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server userpassnetrc apop verify
+fetchtype: poptype server userpassnetrc poponly apop verify
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
-/**        [$3: userpassnetrc (struct { ... } userpass)] [$4: apop (int)] */
-/**        [$5: verify (int)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] */
+/**        [$4: poponly (struct { ... } poponly)] [$5: apop (int)] [$6: verify (int)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2236,7 +2278,7 @@ fetchtype: poptype server userpassnetrc apop verify
 		   }
 
 		   data->server.ssl = $1;
-		   data->server.verify = $5;
+		   data->server.verify = $6;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2245,9 +2287,12 @@ fetchtype: poptype server userpassnetrc apop verify
 		   else
 			   data->server.port = xstrdup("pop3");
 		   data->server.ai = NULL;
-		   data->apop = $4;
+		   data->apop = $5;
+
+		   data->path = $4.path;
+		   data->only = $4.only;
 	   }
-         | imaptype server userpassnetrc folder verify
+         | imaptype server userpassnetrc folder imaponly verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] [$4: folder (char *)] */
 /**        [$5: verify (int)] */
@@ -2276,7 +2321,7 @@ fetchtype: poptype server userpassnetrc apop verify
 
 		   data->folder = $4 == NULL ? xstrdup("INBOX") : $4;
 		   data->server.ssl = $1;
-		   data->server.verify = $5;
+		   data->server.verify = $6;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2285,6 +2330,8 @@ fetchtype: poptype server userpassnetrc apop verify
 		   else
 			   data->server.port = xstrdup("imap");
 		   data->server.ai = NULL;
+
+		   data->only = $5;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folder
 /**        [$3: replstrv (char *)] */

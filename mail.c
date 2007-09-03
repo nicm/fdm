@@ -321,14 +321,12 @@ match_header(struct mail *m, const char *patt, size_t *len, int value)
 
 		if ((last = memchr(ptr, ':', *len)) != NULL) {
 			hdrlen = last - ptr;
-			if (hdrlen <= INT_MAX) {
-				xasprintf(&hdr, "%.*s", (int) hdrlen, ptr);
+			hdr = xmemstrdup(ptr, hdrlen);
 
-				if (fnmatch(patt, hdr, FNM_CASEFOLD) == 0)
-					break;
+			if (fnmatch(patt, hdr, FNM_CASEFOLD) == 0)
+				break;
 
-				xfree(hdr);
-			}
+			xfree(hdr);
 		}
 
 		line_next(m, &ptr, len);
@@ -439,9 +437,7 @@ find_users(struct mail *m)
 	while (ptr != NULL) {
 		if (ptr >= m->data + m->body)
 			break;
-		if (len > INT_MAX)
-			goto next;
-		xasprintf(&line, "%.*s", (int) len, ptr);
+		line = xmemstrdup(ptr, len);
 
 		/* Find separator. */
 		data = strchr(line, ':');
@@ -467,11 +463,11 @@ find_users(struct mail *m)
 		/* Yes, try to find addresses. */
 		while (*data != '\0') {
 			aptr = find_address(data, strlen(data), &alen);
-			if (aptr == NULL || alen > INT_MAX)
+			if (aptr == NULL)
 				break;
 			data = aptr + alen;
 
-			xasprintf(&aptr, "%.*s", (int) alen, aptr);
+			aptr = xmemstrdup(aptr, alen);
 			dptr = memchr(aptr, '@', alen);
 			*dptr++ = '\0';
 
@@ -518,9 +514,9 @@ find_address(char *buf, size_t len, size_t *alen)
 	 */
 
 	/* Duplicate the header as a string to work on it. */
-	if (len == 0 || len > INT_MAX)
+	if (len == 0)
 		return (NULL);
-	xasprintf(&hdr, "%.*s", (int) len, buf);
+	hdr = xmemstrdup(buf, len);
 
 	/* First, replace any sections in "s with spaces. */
 	ptr = hdr;

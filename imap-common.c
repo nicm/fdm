@@ -57,6 +57,9 @@ int	imap_state_pass(struct account *, struct fetch_ctx *);
 int	imap_state_select1(struct account *, struct fetch_ctx *);
 int	imap_state_select2(struct account *, struct fetch_ctx *);
 int	imap_state_select3(struct account *, struct fetch_ctx *);
+int	imap_state_search1(struct account *, struct fetch_ctx *);
+int	imap_state_search2(struct account *, struct fetch_ctx *);
+int	imap_state_search3(struct account *, struct fetch_ctx *);
 int	imap_state_next(struct account *, struct fetch_ctx *);
 int	imap_state_uid1(struct account *, struct fetch_ctx *);
 int	imap_state_uid2(struct account *, struct fetch_ctx *);
@@ -512,8 +515,20 @@ imap_state_select2(struct account *a, struct fetch_ctx *fctx)
 	}
 	data->cur = 0;
 
-	if (data->total == 0)
+	/* Save total, if no previous total. */
+	if (data->total == 0) {
 		data->total = data->num;
+
+		/* 
+		 * If not reconnecting and a subset of mail is required,
+		 * skip to search for the right flags.
+		 */
+		if (data->only != FETCH_ONLY_ALL) {
+			fctx->state = imap_state_search1;
+			return (FETCH_AGAIN);
+		}
+	}
+
 
 	fctx->state = imap_state_select3;
 	return (FETCH_AGAIN);
@@ -535,6 +550,102 @@ imap_state_select3(struct account *a, struct fetch_ctx *fctx)
 
 	/* If polling, stop here. */
 	if (fctx->flags & FETCH_POLL) {
+		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_quit1;
+		return (FETCH_BLOCK);
+	}
+
+	fctx->state = imap_state_next;
+	return (FETCH_AGAIN);
+}
+
+/* Search state 1. Request list of mail required. */
+int
+imap_state_search1(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line;
+
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
+
+	/* Search for a list of the mail UIDs we want to ignore. */
+	if (data->only == FETCH_ONLY_NEW) {
+		if (imap_putln(a, "%u UID SEARCH SEEN", ++data->tag) != 0)
+			return (FETCH_ERROR);
+	} else {
+		if (imap_putln(a, "%u UID SEARCH UNSEEN", ++data->tag) != 0)
+			return (FETCH_ERROR);
+	}
+
+	fctx->state = imap_state_search2;
+	return (FETCH_BLOCK);
+}
+
+/* Search state 2. */
+int
+imap_state_search2(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line, *ptr;
+	u_int			 uid;
+
+	if (imap_getln(a, fctx, IMAP_UNTAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	/* Skip the header. */
+	if (strncasecmp(line, "* SEARCH", 8) != 0)
+		return (imap_bad(a, line));
+	line += 8;
+	
+	/* Read each UID and save it. */
+	do {
+		while (isspace((u_char) *line))
+			line++;
+		ptr = strchr(line, ' ');
+		if (ptr == NULL)
+			ptr = strchr(line, '\0');
+		if (ptr == line)
+			break;
+		
+		if (sscanf(line, "%u", &uid) != 1)
+			return (imap_bad(a, line));
+		ARRAY_ADD(&data->kept, uid);
+		log_debug3("%s: skipping UID: %u", a->name, uid);
+		
+		line = ptr;
+	} while (*line == ' ');
+
+	fctx->state = imap_state_search3;
+	return (FETCH_AGAIN);
+}
+
+/* Search state 3.. */
+int
+imap_state_search3(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line;
+
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
+
+	/* Adjust the total. */
+	data->total -= ARRAY_LENGTH(&data->kept);
+
+	/* If no mails left, or polling, stop here. */
+	if (data->total == 0 || fctx->flags & FETCH_POLL) {
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 			return (FETCH_ERROR);
 		fctx->state = imap_state_quit1;
@@ -634,7 +745,7 @@ imap_state_uid2(struct account *a, struct fetch_ctx *fctx)
 		if (ARRAY_ITEM(&data->kept, i) == data->uid) {
 			/* Had this message before and kept, so skip. */
 			fctx->state = imap_state_next;
-			break;
+			return (FETCH_AGAIN);
 		}
 	}
 

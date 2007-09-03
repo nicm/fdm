@@ -70,6 +70,18 @@ ensure_size(void *buf, size_t *len, size_t nmemb, size_t size)
 }
 
 char *
+xmemstrdup(const char *buf, size_t len)
+{
+	char	*s;
+
+	s = xmalloc(len + 1);
+	memcpy(s, buf, len);
+	s[len] = '\0';
+
+	return (s);
+}
+
+char *
 xstrdup(const char *s)
 {
 	void	*ptr;

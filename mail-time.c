@@ -101,10 +101,10 @@ mailtime(struct mail *m, time_t *tim)
 	int		 tz;
 
 	hdr = find_header(m, "date", &len, 1);
-	if (hdr == NULL || len == 0 || len > INT_MAX)
+	if (hdr == NULL || len == 0)
 		return (-1);
 	/* Make a copy of the header. */
-	xasprintf(&s, "%.*s", (int) len, hdr);
+	s = xmemstrdup(hdr, len);
 
 	/* Skip spaces. */
 	ptr = s;

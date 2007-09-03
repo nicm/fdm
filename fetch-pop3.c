@@ -19,6 +19,7 @@
 #include <sys/types.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,9 @@ void	fetch_pop3_abort(struct account *);
 u_int	fetch_pop3_total(struct account *);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
+struct strings *fetch_pop3_load(struct account *);
+int	fetch_pop3_save(struct account *, struct strings *);
+
 void	fetch_pop3_free(void *);
 int	fetch_pop3_okay(const char *);
 
@@ -45,6 +49,9 @@ int	fetch_pop3_state_init(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_connect(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_connected(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_user(struct account *, struct fetch_ctx *);
+int	fetch_pop3_state_cache1(struct account *, struct fetch_ctx *);
+int	fetch_pop3_state_cache2(struct account *, struct fetch_ctx *);
+int	fetch_pop3_state_cache3(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_stat(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_first(struct account *, struct fetch_ctx *);
 int	fetch_pop3_state_next(struct account *, struct fetch_ctx *);
@@ -98,6 +105,121 @@ fetch_pop3_invalid(struct account *a, const char *line)
 	return (FETCH_ERROR);
 }
 
+/* Load POP3 cache file. */
+struct strings *
+fetch_pop3_load(struct account *a)
+{
+	struct fetch_pop3_data	*data = a->data;
+	struct strings		*cache;
+	int			 fd;
+	FILE			*f = NULL;
+	char			*uid;
+	size_t			 uidlen;
+
+	cache = xmalloc(sizeof *cache);
+	ARRAY_INIT(cache);
+
+	if ((fd = openlock(data->path, O_RDONLY, conf.lock_types)) == -1) {
+		if (errno == ENOENT)
+			return (cache);
+		log_warn("%s: %s", a->name, data->path);
+		goto error;
+	}
+	if ((f = fdopen(fd, "r")) == NULL) {
+		log_warn("%s: %s", a->name, data->path);
+		goto error;
+	}
+
+	for (;;) {
+		if (fscanf(f, "%zu ", &uidlen) != 1) {
+			/* EOF is allowed only at the start of a line. */
+			if (feof(f))
+				break;
+			goto invalid;
+		}
+		uid = xmalloc(uidlen + 1);
+		if (fread(uid, uidlen, 1, f) != 1)
+			goto invalid;
+		uid[uidlen] = '\0';
+
+		ARRAY_ADD(cache, uid);
+
+		log_debug3("%s: found UID in cache: %s", a->name, uid);
+	}
+
+	fclose(f);
+	closelock(fd, data->path, conf.lock_types);
+	return (cache);
+
+invalid:
+	log_warnx("%s: invalid cache entry", a->name);
+
+error:
+	if (cache != NULL) {
+		free_strings(cache);
+		xfree(cache);
+	}
+	if (f != NULL)
+		fclose(f);
+        if (fd != -1)
+		closelock(fd, data->path, conf.lock_types);
+	return (NULL);
+}
+
+/* Save POP3 cache file. */
+int
+fetch_pop3_save(struct account *a, struct strings *cache)
+{
+	struct fetch_nntp_data	*data = a->data;
+	char			*path = NULL, tmp[MAXPATHLEN], *uid;
+	int			 fd = -1;
+	FILE			*f = NULL;
+	u_int			 i;
+
+	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0)
+		goto error;
+	if ((fd = mkstemp(tmp)) == -1)
+		goto error;
+	path = tmp;
+	cleanup_register(path);
+
+	if ((f = fdopen(fd, "r+")) == NULL)
+		goto error;
+	fd = -1;
+
+	for (i = 0; i < ARRAY_LENGTH(cache); i++) {
+		uid = ARRAY_ITEM(cache, i);
+		fprintf(f, "%zu %s\n", strlen(uid), uid);
+	}
+
+	if (fflush(f) != 0)
+		goto error;
+	if (fsync(fileno(f)) != 0)
+		goto error;
+	fclose(f);
+	f = NULL;
+
+	if (rename(path, data->path) == -1)
+		goto error;
+	cleanup_deregister(path);
+	return (0);
+
+error:
+	log_warn("%s: %s", a->name, data->path);
+
+	if (f != NULL)
+		fclose(f);
+	if (fd != -1)
+		close(fd);
+
+	if (path != NULL) {
+		if (unlink(tmp) != 0)
+			fatal("unlink failed");
+		cleanup_deregister(path);
+	}
+	return (-1);
+}
+
 /* Fill io list. */
 void
 fetch_pop3_fill(struct account *a, struct iolist *iol)
@@ -133,12 +255,20 @@ fetch_pop3_abort(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct fetch_pop3_mail	*aux;
-	u_int			 i;
 
 	if (data->io != NULL) {
 		io_close(data->io);
 		io_free(data->io);
 		data->io = NULL;
+	}
+	
+	if (data->cache_new != NULL) {
+		free_strings(data->cache_new);
+		xfree(data->cache_new);
+	}
+	if (data->cache_old != NULL) {
+		free_strings(data->cache_old);
+		xfree(data->cache_old);
 	}
 
 	while (!TAILQ_EMPTY(&data->dropped)) {
@@ -148,9 +278,7 @@ fetch_pop3_abort(struct account *a)
 
 	}
 
-	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++)
-		xfree(ARRAY_ITEM(&data->kept, i));
-	ARRAY_FREE(&data->kept);
+	free_strings(&data->kept);
 }
 
 /* Return total mails. */
@@ -293,8 +421,19 @@ fetch_pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 	data->cur = 0;
 
 	/* Save total, if zero (could be reconnect after purge). */
-	if (data->total == 0)
+	if (data->total == 0) {
 		data->total = data->num;
+
+		/* 
+		 * If not reconnecting and there is a cache, update it and fill
+		 * the kept list.
+		 */
+		if (data->path != NULL) {
+			io_writeline(data->io, "UIDL");
+			fctx->state = fetch_pop3_state_cache1;
+			return (FETCH_BLOCK);
+		}
+	}
 
 	/* If polling, stop here. */
 	if (fctx->flags & FETCH_POLL) {
@@ -303,6 +442,122 @@ fetch_pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 
+	fctx->state = fetch_pop3_state_next;
+	return (FETCH_AGAIN);
+}
+
+/* Cache state 1. */
+int
+fetch_pop3_state_cache1(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!fetch_pop3_okay(line))
+		return (fetch_pop3_bad(a, line));
+
+	if ((data->cache_old = fetch_pop3_load(a)) == NULL)
+		return (FETCH_ERROR);
+	data->cache_new = xmalloc(sizeof *data->cache_new);
+	ARRAY_INIT(data->cache_new);
+
+	fctx->state = fetch_pop3_state_cache2;
+	return (FETCH_AGAIN);
+}
+
+/* Cache state 2. */
+int
+fetch_pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+	u_int			 n;
+
+	do {
+		line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
+		if (line == NULL)
+			return (FETCH_BLOCK);
+
+		if (sscanf(line, "%u %*s", &n) != 1)
+			return (fetch_pop3_invalid(a, line));
+		if (n != data->cur + 1)
+			return (fetch_pop3_bad(a, line));
+		
+		line = strchr(line, ' ') + 1;
+		ARRAY_ADD(data->cache_new, xstrdup(line));
+
+		data->cur++;
+	} while (data->cur != data->num);
+	data->cur = 0;
+
+	fctx->state = fetch_pop3_state_cache3;
+	return (FETCH_AGAIN);
+}
+
+/* Cache state 3. */
+int
+fetch_pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line, *uid;
+	u_int			 i, j;
+
+	line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (line[0] != '.' && line[1] != '\0')
+		return (fetch_pop3_bad(a, line));
+
+	/*
+	 * Resolve the caches:
+	 * 	- if it is in the new cache but not the old cache: if new-only,
+	 *        ignore it and let it be fetched, otherwise add to kept list.
+	 *	- if it is in the old cache but not the new cache, it has
+	 *	  been deleted by something else, ignore it and it'll be
+	 *	  trimmed when the new cache is saved.
+	 *	- if it is in both caches, add to fetch list if new-only,
+	 *	  otherwise let it be fetched.
+	 */
+	for (i = 0; i < ARRAY_LENGTH(data->cache_new); i++) {
+		uid = ARRAY_ITEM(data->cache_new, i);
+		for (j = 0; j < ARRAY_LENGTH(data->cache_old); j++) {
+			if (strcmp(uid, ARRAY_ITEM(data->cache_old, j)) == 0) {
+				/* 
+				 * Both caches. If new-only, add to kept list
+				 * to ignore.
+				 */
+				if (data->only == FETCH_ONLY_NEW)
+					ARRAY_ADD(&data->kept, xstrdup(uid));
+				break;
+			}
+		}
+		if (j == ARRAY_LENGTH(data->cache_old)) {
+			/*
+			 * New cache but not old cache. If old-only, add to
+			 * kept list to ignore.
+			 */
+			if (data->only == FETCH_ONLY_OLD)
+				ARRAY_ADD(&data->kept, xstrdup(uid));
+		}
+	}
+	
+	/* Adjust the total. */
+	data->total -= ARRAY_LENGTH(&data->kept);
+
+	/* If there are no actual mails to fetch now, or if polling, stop. */
+	if (data->total == 0 || fctx->flags & FETCH_POLL) {
+		io_writeline(data->io, "QUIT");
+		fctx->state = fetch_pop3_state_quit;
+		return (FETCH_BLOCK);
+	}
+
+	/* Save the new cache. */
+	if (fetch_pop3_save(a, data->cache_new) != 0)
+		return (FETCH_ERROR);
+	
 	fctx->state = fetch_pop3_state_next;
 	return (FETCH_AGAIN);
 }
@@ -480,6 +735,8 @@ fetch_pop3_state_uidl(struct account *a, struct fetch_ctx *fctx)
 			 * Seen this message before and kept it, so skip it
 			 * this time.
 			 */
+			fetch_pop3_free(aux);
+			m->auxdata = m->auxfree = NULL;
 			fctx->state = fetch_pop3_state_next;
 			return (FETCH_AGAIN);
 		}

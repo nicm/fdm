@@ -54,6 +54,13 @@ struct fetch {
 	void		 (*desc)(struct account *, char *, size_t);
 };
 
+/* Ranges of mail. */
+enum fetch_only {
+	FETCH_ONLY_NEW,
+	FETCH_ONLY_OLD,
+	FETCH_ONLY_ALL
+};
+
 /* Fetch maildir data. */
 struct fetch_maildir_data {
 	struct strings	*maildirs;
@@ -127,6 +134,11 @@ struct fetch_nntp_data {
 
 /* Fetch pop3 data. */
 struct fetch_pop3_data {
+	char		*path;
+	struct strings	*cache_old;
+	struct strings	*cache_new;
+	enum fetch_only	 only;
+	
 	char		*user;
 	char		*pass;
 	struct server	 server;
@@ -156,6 +168,8 @@ struct fetch_pop3_mail {
 
 /* Fetch imap data. */
 struct fetch_imap_data {
+	enum fetch_only	 only;
+
 	char		*user;
 	char		*pass;
 	char		*folder;

@@ -1,3 +1,28 @@
+03 September 2007
+
+* Options to fetch only new or old mail from POP3 or IMAP accounts. Based on
+  request to mailing list, and ensuing discussion, from patnel972-fdm at 
+  yahoo.fr.
+
+  This introduces two new keywords for accounts: new-only and old-only. For
+  POP3 accounts, a cache file must also be specified (similar to NNTP); this
+  holds the list of UIDs for all the mail present in the account on the last
+  fetch. For IMAP, the server-managed \Seen flag is used. Servers should set
+  this flag once a mail has been read (downloaded). The \Recent flag isn't 
+  used because it is unset when any client is told about the mail - even a 
+  poll is enough.
+
+  Examples of syntax are:
+
+	account pop3 server ... new-only cache "~/my/pop3.cache.file"
+	
+	account imap server ... old-only no-verify
+ 
+  This is useful for people who like to keep mail on the server to be read
+  using a web interface or suchlike. Note that it is up to the user to make
+  sure their account doesn't get full! fdm does not check this or have any
+  abilities to delete or manage mail that isn't fetched.
+
 02 September 2007
 
 * More changes to io.c/command.c to fix issues on Linux introduced by fixes to

@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "fdm.h"
+#include "fetch.h"
 #include "y.tab.h"
 
 int	  lex_include;
@@ -137,6 +138,7 @@ static const struct token tokens[] = {
 	{ "minutes", TOKMINUTES },
 	{ "month", TOKMONTHS },
 	{ "months", TOKMONTHS },
+	{ "new-only", TOKNEWONLY },
 	{ "nntp", TOKNNTP },
 	{ "nntps", TOKNNTPS },
 	{ "no-apop", TOKNOAPOP },
@@ -144,6 +146,7 @@ static const struct token tokens[] = {
 	{ "no-verify", TOKNOVERIFY },
 	{ "none", TOKNONE },
 	{ "not", TOKNOT },
+	{ "old-only", TOKOLDONLY },
 	{ "or", TOKOR },
 	{ "pass", TOKPASS },
 	{ "pipe", TOKPIPE },
