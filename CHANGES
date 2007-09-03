@@ -89,7 +89,8 @@
   completed mail into fetch code, move mail and state stuff outside, and
   simplify the API and data structures. Also change the way the fetch poll loop
   works and fix some potential problems with IMAP-over-pipe. Hopefully few
-  regressions...
+  regressions... This loses the IMAP multiple delete combining but that isn't
+  a huge loss.
 
 18 August 2007
 
