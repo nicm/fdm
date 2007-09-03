@@ -11,8 +11,6 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - more attachment stuff: remove-attachment, write-/pipe-attachment etc
-- get only read/unread mail (IMAP only, probably) (read-only, unread-only)
-  flags to account line
 - deliver to IMAP folder
 - refactor & clean up privsep mail transfer code
 - is there any reason struct mail shouldn't point to a struct account?
@@ -25,6 +23,8 @@
 - pop3/imap tests via pipe and coprocess
 - all timeouts should be in seconds or milliseconds, decide which and make it so
 - use TOP to grab only header and return to get body only if actually necessary
+- automatically delete old mail on server once it reaches a certain age...
+  does this break the barrier of what fdm is designed for?
 - imap new/old is a bit backwards, better to create a list of mail-to-fetch and
   only look at those, rather than creating a list of mail-to-ignore and checking
   every mail. this probably means some tweaking to the way expunge+keep works
