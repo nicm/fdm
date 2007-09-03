@@ -16,7 +16,7 @@
 
 	account pop3 server ... new-only cache "~/my/pop3.cache.file"
 	
-	account imap server ... old-only no-verify
+	account imap server ... old-only
  
   This is useful for people who like to keep mail on the server to be read
   using a web interface or suchlike. Note that it is up to the user to make
