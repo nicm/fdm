@@ -2330,10 +2330,9 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   else
 			   data->server.port = xstrdup("imap");
 		   data->server.ai = NULL;
-
 		   data->only = $5;
 	   }
-	 | TOKIMAP TOKPIPE replstrv userpass folder
+	 | TOKIMAP TOKPIPE replstrv userpass folder imaponly
 /**        [$3: replstrv (char *)] */
 /**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
 	   {
@@ -2351,6 +2350,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   data->pipecmd = $3;
 		   if (data->pipecmd == NULL || *data->pipecmd == '\0')
 			   yyerror("invalid pipe command");
+		   data->only = $6;
 	   }
 	 | TOKSTDIN
 	   {
