@@ -1,3 +1,7 @@
+05 September 2007
+
+* Don't purge if no mails have been dropped.
+
 03 September 2007
 
 * Options to fetch only new or old mail from POP3 or IMAP accounts. Based on

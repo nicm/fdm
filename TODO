@@ -28,7 +28,6 @@
 - imap new/old is a bit backwards, better to create a list of mail-to-fetch and
   only look at those, rather than creating a list of mail-to-ignore and checking
   every mail. this probably means some tweaking to the way expunge+keep works
-- it is only necessary to purge if mail has actually been deleted
 - document mbox fetch
 - document all/account changes
 - document new-only/old-only for POP3 and IMAP

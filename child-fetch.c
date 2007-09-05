@@ -293,16 +293,22 @@ fetch_free(void)
 int
 fetch_purge(struct account *a)
 {
-	static u_int	last = 0;
+	static u_int	last_total = 0, last_dropped = 0;
 	u_int		n;
 
 	if (conf.purge_after == 0)
 		return (0);
 
 	n = fetch_dropped + fetch_kept;
-	if (n == last || n % conf.purge_after != 0)
+	if (n == last_total || n % conf.purge_after != 0)
 		return (0);
-	last = n;
+	last_total = n;
+
+	if (last_dropped == fetch_dropped) {
+		log_debug("%s: not purging, no mails dropped", a->name);
+		return (0);
+	}
+	last_dropped = fetch_dropped;
 
 	log_debug("%s: purging after %u mails", a->name, n);
 	return (1);
