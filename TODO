@@ -29,6 +29,16 @@
   only look at those, rather than creating a list of mail-to-ignore and checking
   every mail. this probably means some tweaking to the way expunge+keep works
   same for POP3.
+	This is complicated by reconnect. UIDs will remain the same but indexes
+	will change. Best real option is probably:
+		- on first connect, UIDL and build list of indexes+UIDs to fetch
+		- on reconnect, UIDL and reconstruct list of indexes based on
+		  UIDs remaining in to-get list
+		- kept list can be removed and instead mail that has been
+		  retrieved can be removed from the to-get list
+	IMAP doesn't need this, just change to using a to-get list of UIDs
+	and walk through it and use UID FETCH instead of FETCH. EXPUNGE can be
+	ignored, it cannot change UIDs.
 - document mbox fetch
 - document all/account changes
 - document new-only/old-only for POP3 and IMAP
