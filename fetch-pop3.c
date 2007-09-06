@@ -554,10 +554,6 @@ fetch_pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 
-	/* Save the new cache. */
-	if (fetch_pop3_save(a, data->cache_new) != 0)
-		return (FETCH_ERROR);
-	
 	fctx->state = fetch_pop3_state_next;
 	return (FETCH_AGAIN);
 }
@@ -599,6 +595,13 @@ fetch_pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
 	if (data->cur > data->num) {
 		if (data->committed != data->total)
 			return (FETCH_BLOCK);
+
+		/* Save the cache, if it exists, now that all mail is done. */
+		if (data->cache_new != NULL) {
+			if (fetch_pop3_save(a, data->cache_new) != 0)
+				return (FETCH_ERROR);
+		}
+
 		io_writeline(data->io, "QUIT");
 		fctx->state = fetch_pop3_state_quit;
 		return (FETCH_BLOCK);
