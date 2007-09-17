@@ -57,6 +57,7 @@ int	imap_state_pass(struct account *, struct fetch_ctx *);
 int	imap_state_select1(struct account *, struct fetch_ctx *);
 int	imap_state_select2(struct account *, struct fetch_ctx *);
 int	imap_state_select3(struct account *, struct fetch_ctx *);
+int	imap_state_select4(struct account *, struct fetch_ctx *);
 int	imap_state_search1(struct account *, struct fetch_ctx *);
 int	imap_state_search2(struct account *, struct fetch_ctx *);
 int	imap_state_search3(struct account *, struct fetch_ctx *);
@@ -491,15 +492,34 @@ imap_state_select1(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	if (imap_putln(a, "%u SELECT %s", ++data->tag, data->folder) != 0)
+	if (imap_putln(a,
+	    "%u SELECT {%zu}", ++data->tag, strlen(data->folder)) != 0)
 		return (FETCH_ERROR);
 	fctx->state = imap_state_select2;
 	return (FETCH_BLOCK);
 }
 
-/* Select state 2. Hold until select returns message count. */
+/* Select state 2. Wait for continuation and send folder name. */
 int
 imap_state_select2(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line;	
+
+	if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	if (imap_putln(a, "%s", data->folder) != 0)
+		return (FETCH_ERROR);
+	fctx->state = imap_state_select3;
+	return (FETCH_BLOCK);
+}
+
+/* Select state 3. Hold until select returns message count. */
+int
+imap_state_select3(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
@@ -529,14 +549,13 @@ imap_state_select2(struct account *a, struct fetch_ctx *fctx)
 		}
 	}
 
-
-	fctx->state = imap_state_select3;
+	fctx->state = imap_state_select4;
 	return (FETCH_AGAIN);
 }
 
-/* Select state 3. Hold until select completes then get next mail. */
+/* Select state 4. Hold until select completes then get next mail. */
 int
-imap_state_select3(struct account *a, struct fetch_ctx *fctx)
+imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;

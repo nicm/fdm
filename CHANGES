@@ -1,3 +1,7 @@
+17 September 2007
+
+* Quote IMAP folder name to allow spaces and so on. SF bug 1791056.
+
 05 September 2007
 
 * Don't purge if no mails have been dropped.
