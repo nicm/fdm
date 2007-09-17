@@ -1056,12 +1056,12 @@ remembered, and may be made use of using the 'string' condition, or used to
 construct an action name, maildir or mbox path, etc. The bracket expressions
 may be substituted using the %1 to %9 tokens. For example,
 
-	match "^From:.*([a-z]*)@domain" in headers action "all" continue
+	match "^From:.*[ \t]([a-z]*)@domain" in headers action "all" continue
 	match string "%1" to "bob" action "bobmail"
 
 Or:
 
-	match "^From:.*([a-z]*)@domain" in headers action "all" continue
+	match "^From:.*[ \t]([a-z]*)@domain" in headers action "all" continue
 	match all action "%1mail"
 
 This is particularly useful in combination with nested rules (see later):
