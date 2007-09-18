@@ -146,8 +146,7 @@ fetch_imappipe_state_init(struct account *a, struct fetch_ctx *fctx)
 
 	data->src = NULL;
 
-	fctx->state = imap_state_connect;
-	return (FETCH_AGAIN);
+	return (imap_state_init(a, fctx));
 }
 
 void

@@ -1,5 +1,7 @@
 18 September 2007
 
+* Split POP3 core off into pop3-common.c a la IMAP, in preparation for
+  POP3-over-pipe.
 * Modify "match string" syntax. Instead of "to", an operator, ==, != or ~=
   may appear. The first two do direct string comparison, and the latter uses
   a regexp. Using "to" is still supported.

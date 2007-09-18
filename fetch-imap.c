@@ -120,8 +120,7 @@ fetch_imap_state_init(struct account *a, struct fetch_ctx *fctx)
 
 	data->src = data->server.host;
 
-	fctx->state = imap_state_connect;
-	return (FETCH_AGAIN);
+	return (imap_state_init(a, fctx));
 }
 
 void

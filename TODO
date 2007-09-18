@@ -28,7 +28,6 @@
 - does imap need a to-fetch list a la pop3? having mails marked read that have
   not been successfully delivered is still a problem though. how can this be
   fixed?
-- match string == and != instead of to would be nicer syntax
 - document mbox fetch
 - document all/account changes
 - document new-only/old-only for POP3 and IMAP

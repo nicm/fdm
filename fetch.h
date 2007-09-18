@@ -168,6 +168,13 @@ struct fetch_pop3_data {
 	size_t		 size;
 
 	struct io	*io;
+
+	char		*src;
+	int		 (*connect)(struct account *);
+	void		 (*disconnect)(struct account *);
+	int		 (*getln)(
+			      struct account *, struct fetch_ctx *, char **);
+	int		 (*putln)(struct account *, const char *, va_list);
 };
 
 struct fetch_pop3_mail {
@@ -246,9 +253,15 @@ extern struct fetch 	 fetch_imap;
 extern struct fetch 	 fetch_imappipe;
 
 /* imap-common.c */
-int	imap_state_connect(struct account *, struct fetch_ctx *);
+int	imap_state_init(struct account *, struct fetch_ctx *);
 int	imap_commit(struct account *, struct mail *);
 void	imap_abort(struct account *);
 u_int	imap_total(struct account *);
+
+/* pop3-common.c */
+int	pop3_state_init(struct account *, struct fetch_ctx *);
+int	pop3_commit(struct account *, struct mail *);
+void	pop3_abort(struct account *);
+u_int	pop3_total(struct account *);
 
 #endif

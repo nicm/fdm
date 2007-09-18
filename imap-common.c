@@ -47,6 +47,7 @@ char   *imap_base64_decode(char *);
 int	imap_bad(struct account *, const char *);
 int	imap_invalid(struct account *, const char *);
 
+int	imap_state_connect(struct account *, struct fetch_ctx *);
 int	imap_state_connected(struct account *, struct fetch_ctx *);
 int	imap_state_capability1(struct account *, struct fetch_ctx *);
 int	imap_state_capability2(struct account *, struct fetch_ctx *);
@@ -100,7 +101,7 @@ imap_putln(struct account *a, const char *fmt, ...)
 }
 
 /*
- * Get line from server.  Returns -1 on error, 0 on success, a NULL line when
+ * Get line from server. Returns -1 on error, 0 on success, a NULL line when
  * out of data.
  */
 int
@@ -179,7 +180,7 @@ invalid:
 	return (-1);
 }
 
-/* Parse IMAP tag  */
+/* Parse IMAP tag. */
 int
 imap_tag(char *line)
 {
@@ -297,9 +298,9 @@ imap_total(struct account *a)
 	return (data->total);
 }
 
-/* Connect state. */
+/* Common initialisatio state. */
 int
-imap_state_connect(struct account *a, struct fetch_ctx *fctx)
+imap_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 
@@ -307,6 +308,16 @@ imap_state_connect(struct account *a, struct fetch_ctx *fctx)
 	ARRAY_INIT(&data->kept);
 
 	data->tag = 0;
+
+	fctx->state = imap_state_connect;
+	return (FETCH_AGAIN);
+}
+
+/* Connect state. */
+int
+imap_state_connect(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
 
 	if (data->connect(a) != 0)
 		return (FETCH_ERROR);
