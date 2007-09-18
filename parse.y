@@ -206,7 +206,7 @@ yywarn(const char *fmt, ...)
 %type  <actitem> actitem
 %type  <actlist> actlist
 %type  <area> area
-%type  <cmp> cmp cmp2
+%type  <cmp> cmp ltgt eqne
 %type  <expr> expr exprlist
 %type  <expritem> expritem
 %type  <exprop> exprop
@@ -1530,8 +1530,8 @@ retre: replstrv
 	       $$ = NULL;
        }
 
-/** CMP: <cmp> (enum cmp) */
-cmp: '<'
+/** LTGT: <cmp> (enum cmp) */
+ltgt: '<'
      {
 	     $$ = CMP_LT;
      }
@@ -1540,13 +1540,8 @@ cmp: '<'
 	     $$ = CMP_GT;
      }
 
-/** CMP2: <cmp> (enum cmp) */
-cmp2: cmp
-/**   [$1: cmp (enum cmp)] */
-      {
-	     $$ = $1;
-      }
-    | TOKEQ
+/** EQNE: <cmp> (enum cmp) */
+eqne: TOKEQ
       {
 	      $$ = CMP_EQ;
       }
@@ -1554,6 +1549,18 @@ cmp2: cmp
       {
 	      $$ = CMP_NE;
       }
+
+/** CMP: <cmp> (enum cmp) */
+cmp: ltgt
+/**  [$1: ltgt (enum cmp)] */
+     {
+	    $$ = $1;
+     }
+   | eqne
+/**  [$1: eqne (enum cmp)] */
+     {
+	     $$ = $1;
+     }
 
 /** EXECPIPE: <flag> (int) */
 execpipe: TOKEXEC
@@ -1681,8 +1688,8 @@ expritem: not TOKALL
 
 		  data->tag.str = $3;
 	  }
-        | not TOKSIZE cmp size
-/**       [$1: not (int)] [$3: cmp (enum cmp)] [$4: size (long long)] */
+        | not TOKSIZE ltgt size
+/**       [$1: not (int)] [$3: ltgt (enum cmp)] [$4: size (long long)] */
 	  {
 		  struct match_size_data	*data;
 
@@ -1762,8 +1769,8 @@ expritem: not TOKALL
 		  $$->match = &match_unmatched;
 		  $$->inverted = $1;
           }
-        | not TOKAGE cmp time
-/**       [$1: not (int)] [$3: cmp (enum cmp)] [$4: time (long long)] */
+        | not TOKAGE ltgt time
+/**       [$1: not (int)] [$3: ltgt (enum cmp)] [$4: time (long long)] */
 	  {
 		  struct match_age_data	*data;
 
@@ -1796,8 +1803,8 @@ expritem: not TOKALL
 
 		  data->time = -1;
 	  }
-        | not TOKATTACHMENT TOKCOUNT cmp2 numv
-/**       [$1: not (int)] [$4: cmp2 (enum cmp)] [$5: numv (long long)] */
+        | not TOKATTACHMENT TOKCOUNT cmp numv
+/**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: numv (long long)] */
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1813,8 +1820,8 @@ expritem: not TOKALL
 		  data->cmp = $4;
 		  data->value.num = $5;
 	  }
-        | not TOKATTACHMENT TOKTOTALSIZE cmp size
-/**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: size (long long)] */
+        | not TOKATTACHMENT TOKTOTALSIZE ltgt size
+/**       [$1: not (int)] [$4: ltgt (enum cmp)] [$5: size (long long)] */
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1835,8 +1842,8 @@ expritem: not TOKALL
 		  data->cmp = $4;
 		  data->value.size = $5;
 	  }
-        | not TOKATTACHMENT TOKANYSIZE cmp size
-/**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: size (long long)] */
+        | not TOKATTACHMENT TOKANYSIZE ltgt size
+/**       [$1: not (int)] [$4: ltgt (enum cmp)] [$5: size (long long)] */
 	  {
 		  struct match_attachment_data	*data;
 
@@ -2295,7 +2302,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
          | imaptype server userpassnetrc folder imaponly verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] [$4: folder (char *)] */
-/**        [$5: verify (int)] */
+/**        [$5: imaponly (enum fetch_only)] [$6: verify (int)] */
            {
 		   struct fetch_imap_data	*data;
 
@@ -2335,6 +2342,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 	 | TOKIMAP TOKPIPE replstrv userpass folder imaponly
 /**        [$3: replstrv (char *)] */
 /**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
+/**        [$6: imaponly (enum fetch_only)] */
 	   {
 		   struct fetch_imap_data	*data;
 
