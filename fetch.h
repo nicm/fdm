@@ -132,11 +132,13 @@ struct fetch_nntp_data {
 	struct io	*io;
 };
 
+/* Fetch pop3 queues and trees. */
+TAILQ_HEAD(fetch_pop3_queue, fetch_pop3_mail);
+SPLAY_HEAD(fetch_pop3_tree, fetch_pop3_mail);
+
 /* Fetch pop3 data. */
 struct fetch_pop3_data {
 	char		*path;
-	struct strings	*cache_old;
-	struct strings	*cache_new;
 	enum fetch_only	 only;
 	
 	char		*user;
@@ -150,8 +152,17 @@ struct fetch_pop3_data {
 	u_int		 total;
 	u_int		 committed;
 
-	struct strings	 kept;
-	TAILQ_HEAD(, fetch_pop3_mail) dropped;
+	/* Mails on the server. */
+	struct fetch_pop3_tree	serverq;
+
+	/* Mails in the cache file. */
+	struct fetch_pop3_tree	cacheq;
+
+	/* Mails to fetch from the server. */
+	struct fetch_pop3_queue	wantq;
+
+	/* Mails ready to be dropped. */
+	struct fetch_pop3_queue dropq;
 
 	int		 flushing;
 	size_t		 size;
@@ -162,8 +173,9 @@ struct fetch_pop3_data {
 struct fetch_pop3_mail {
 	char		*uid;
 	u_int		 idx;
-
-	TAILQ_ENTRY(fetch_pop3_mail) entry;
+	
+	TAILQ_ENTRY(fetch_pop3_mail) qentry;
+	SPLAY_ENTRY(fetch_pop3_mail) tentry;
 };
 
 /* Fetch imap data. */

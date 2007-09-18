@@ -25,26 +25,10 @@
 - use TOP to grab only header and return to get body only if actually necessary
 - automatically delete old mail on server once it reaches a certain age...
   does this break the barrier of what fdm is designed for?
-- imap new/old is a bit backwards, better to create a list of mail-to-fetch and
-  only look at those, rather than creating a list of mail-to-ignore and checking
-  every mail. this probably means some tweaking to the way expunge+keep works
-  same for POP3.
-	This is complicated by reconnect. UIDs will remain the same but indexes
-	will change. Best real option is probably:
-		- on first connect, UIDL and build list of indexes+UIDs to fetch
-		  also save list of mail that has been seen before as cache
-		- on reconnect, UIDL and reconstruct list of indexes based on
-		  UIDs remaining in to-get list. cache is left alone
-		- each mail that is been retrieved can be removed from the
-		  to-get list and it's uid added to the cache list, and cache
-		  file saved	
-	IMAP doesn't need this, just change to using a to-get list of UIDs
-	and walk through it and use UID FETCH instead of FETCH. EXPUNGE can be
-	ignored, it cannot change UIDs.
-	Having mails marked read that has not been successfully delivered
-    	is still a problem for IMAP. How can this be fixed?
-	With IMAP it may also be possible to do fetch-by-size or something here
-	too.
+- does imap need a to-fetch list a la pop3? having mails marked read that have
+  not been successfully delivered is still a problem though. how can this be
+  fixed?
+- match string == and != instead of to would be nicer syntax
 - document mbox fetch
 - document all/account changes
 - document new-only/old-only for POP3 and IMAP

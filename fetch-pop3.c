@@ -36,11 +36,15 @@ void	fetch_pop3_abort(struct account *);
 u_int	fetch_pop3_total(struct account *);
 void	fetch_pop3_desc(struct account *, char *, size_t);
 
-struct strings *fetch_pop3_load(struct account *);
-int	fetch_pop3_save(struct account *, struct strings *);
+int	fetch_pop3_load(struct account *);
+int	fetch_pop3_save(struct account *);
 
+int	fetch_pop3_cmp(struct fetch_pop3_mail *, struct fetch_pop3_mail *);
 void	fetch_pop3_free(void *);
 int	fetch_pop3_okay(const char *);
+
+void	fetch_pop3_freequeue(struct fetch_pop3_queue *);
+void	fetch_pop3_freetree(struct fetch_pop3_tree *);
 
 int	fetch_pop3_bad(struct account *, const char *);
 int	fetch_pop3_invalid(struct account *, const char *);
@@ -75,6 +79,20 @@ struct fetch fetch_pop3 = {
 	fetch_pop3_desc
 };
 
+SPLAY_PROTOTYPE(fetch_pop3_tree, fetch_pop3_mail, tentry, fetch_pop3_cmp);
+SPLAY_GENERATE(fetch_pop3_tree, fetch_pop3_mail, tentry, fetch_pop3_cmp);
+
+int
+fetch_pop3_cmp(struct fetch_pop3_mail *aux1, struct fetch_pop3_mail *aux2)
+{
+	return (strcmp(aux1->uid, aux2->uid));
+}
+
+/*
+ * Free a POP3 mail aux structure. All such structures are always on at least
+ * one queue or tree so this is always called explicitly rather than via the
+ * mail auxfree member.
+ */
 void
 fetch_pop3_free(void *ptr)
 {
@@ -91,6 +109,30 @@ fetch_pop3_okay(const char *line)
 	return (strncmp(line, "+OK", 3) == 0);
 }
 
+void
+fetch_pop3_freequeue(struct fetch_pop3_queue *q)
+{
+	struct fetch_pop3_mail	*aux;
+
+	while (!TAILQ_EMPTY(q)) {
+		aux = TAILQ_FIRST(q);
+		TAILQ_REMOVE(q, aux, qentry);
+		fetch_pop3_free(aux);
+	}
+}
+
+void
+fetch_pop3_freetree(struct fetch_pop3_tree *t)
+{
+	struct fetch_pop3_mail	*aux;
+
+	while (!SPLAY_EMPTY(t)) {
+		aux = SPLAY_ROOT(t);
+		SPLAY_REMOVE(fetch_pop3_tree, t, aux);
+		fetch_pop3_free(aux);
+	}
+}
+
 int
 fetch_pop3_bad(struct account *a, const char *line)
 {
@@ -105,23 +147,24 @@ fetch_pop3_invalid(struct account *a, const char *line)
 	return (FETCH_ERROR);
 }
 
-/* Load POP3 cache file. */
-struct strings *
+/* Load POP3 cache file into the cache queue. */
+int
 fetch_pop3_load(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
-	struct strings		*cache;
+	struct fetch_pop3_mail	*aux;
 	int			 fd;
 	FILE			*f = NULL;
 	char			*uid;
 	size_t			 uidlen;
+	u_int			 n;
 
-	cache = xmalloc(sizeof *cache);
-	ARRAY_INIT(cache);
+	if (data->path == NULL)
+		return (0);
 
 	if ((fd = openlock(data->path, O_RDONLY, conf.lock_types)) == -1) {
 		if (errno == ENOENT)
-			return (cache);
+			return (0);
 		log_warn("%s: %s", a->name, data->path);
 		goto error;
 	}
@@ -130,6 +173,7 @@ fetch_pop3_load(struct account *a)
 		goto error;
 	}
 
+	n = 0;
 	for (;;) {
 		if (fscanf(f, "%zu ", &uidlen) != 1) {
 			/* EOF is allowed only at the start of a line. */
@@ -142,40 +186,42 @@ fetch_pop3_load(struct account *a)
 			goto invalid;
 		uid[uidlen] = '\0';
 
-		ARRAY_ADD(cache, uid);
-
 		log_debug3("%s: found UID in cache: %s", a->name, uid);
+		
+		aux = xcalloc(1, sizeof *aux);
+		aux->uid = uid;
+		SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
 	}
 
 	fclose(f);
 	closelock(fd, data->path, conf.lock_types);
-	return (cache);
+	return (0);
 
 invalid:
 	log_warnx("%s: invalid cache entry", a->name);
 
 error:
-	if (cache != NULL) {
-		free_strings(cache);
-		xfree(cache);
-	}
 	if (f != NULL)
 		fclose(f);
         if (fd != -1)
 		closelock(fd, data->path, conf.lock_types);
-	return (NULL);
+	return (-1);
 }
 
 /* Save POP3 cache file. */
 int
-fetch_pop3_save(struct account *a, struct strings *cache)
+fetch_pop3_save(struct account *a)
 {
-	struct fetch_nntp_data	*data = a->data;
-	char			*path = NULL, tmp[MAXPATHLEN], *uid;
+	struct fetch_pop3_data	*data = a->data;
+	struct fetch_pop3_mail	*aux;
+	char			*path = NULL, tmp[MAXPATHLEN];
 	int			 fd = -1;
 	FILE			*f = NULL;
-	u_int			 i;
+	u_int			 n;
 
+	if (data->path == NULL)
+		return (0);
+	
 	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0)
 		goto error;
 	if ((fd = mkstemp(tmp)) == -1)
@@ -187,10 +233,12 @@ fetch_pop3_save(struct account *a, struct strings *cache)
 		goto error;
 	fd = -1;
 
-	for (i = 0; i < ARRAY_LENGTH(cache); i++) {
-		uid = ARRAY_ITEM(cache, i);
-		fprintf(f, "%zu %s\n", strlen(uid), uid);
+	n = 0;
+	SPLAY_FOREACH(aux, fetch_pop3_tree, &data->cacheq) {
+		fprintf(f, "%zu %s\n", strlen(aux->uid), aux->uid);
+		n++;
 	}
+	log_debug2("%s: saved cache %s: %u entries", a->name, data->path, n);
 
 	if (fflush(f) != 0)
 		goto error;
@@ -235,16 +283,23 @@ fetch_pop3_commit(struct account *a, struct mail *m)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct fetch_pop3_mail	*aux = m->auxdata;
-
+	
 	if (m->decision == DECISION_DROP) {
-		TAILQ_INSERT_TAIL(&data->dropped, aux, entry);
+		/* Insert to tail of the drop queue; reading is from head. */
+		TAILQ_INSERT_TAIL(&data->dropq, aux, qentry);
+		m->auxdata = NULL;
 	} else {
-		ARRAY_ADD(&data->kept, aux->uid);
-		xfree(aux);
+		/* If not already in the cache, add it. */
+		if (SPLAY_FIND(fetch_pop3_tree, &data->cacheq, aux) == NULL)
+			SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
+		else
+			fetch_pop3_free(aux);
+		m->auxdata = NULL;
 
 		data->committed++;
+		if (data->only != FETCH_ONLY_OLD && fetch_pop3_save(a) != 0)
+			return (FETCH_ERROR);
 	}
-	m->auxdata = m->auxfree = NULL;
 
 	return (FETCH_AGAIN);
 }
@@ -254,7 +309,6 @@ void
 fetch_pop3_abort(struct account *a)
 {
 	struct fetch_pop3_data	*data = a->data;
-	struct fetch_pop3_mail	*aux;
 
 	if (data->io != NULL) {
 		io_close(data->io);
@@ -262,23 +316,10 @@ fetch_pop3_abort(struct account *a)
 		data->io = NULL;
 	}
 	
-	if (data->cache_new != NULL) {
-		free_strings(data->cache_new);
-		xfree(data->cache_new);
-	}
-	if (data->cache_old != NULL) {
-		free_strings(data->cache_old);
-		xfree(data->cache_old);
-	}
-
-	while (!TAILQ_EMPTY(&data->dropped)) {
-		aux = TAILQ_FIRST(&data->dropped);
-		TAILQ_REMOVE(&data->dropped, aux, entry);
-		fetch_pop3_free(aux);
-
-	}
-
-	free_strings(&data->kept);
+	fetch_pop3_freetree(&data->serverq);
+	fetch_pop3_freetree(&data->cacheq);
+	fetch_pop3_freequeue(&data->wantq);
+	fetch_pop3_freequeue(&data->dropq);
 }
 
 /* Return total mails. */
@@ -299,8 +340,10 @@ fetch_pop3_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 
- 	TAILQ_INIT(&data->dropped);
- 	ARRAY_INIT(&data->kept);
+	SPLAY_INIT(&data->serverq);
+	SPLAY_INIT(&data->cacheq);
+	TAILQ_INIT(&data->wantq);
+	TAILQ_INIT(&data->dropq);
 
 	data->total = data->committed = 0;
 
@@ -420,30 +463,23 @@ fetch_pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 		return (fetch_pop3_invalid(a, line));
 	data->cur = 0;
 
-	/* Save total, if zero (could be reconnect after purge). */
-	if (data->total == 0) {
-		data->total = data->num;
-
-		/* 
-		 * If not reconnecting and there is a cache, update it and fill
-		 * the kept list.
-		 */
-		if (data->path != NULL) {
-			io_writeline(data->io, "UIDL");
-			fctx->state = fetch_pop3_state_cache1;
-			return (FETCH_BLOCK);
+	/* 
+	 * If no mail, we can skip UIDL and either quit (if polling or not
+	 * reconnecting) or skip to wait in next state.
+	 */
+	if (data->num == 0) {
+		if (data->total != 0) {
+			fctx->state = fetch_pop3_state_next;
+			return (FETCH_AGAIN);
 		}
-	}
-
-	/* If polling, stop here. */
-	if (fctx->flags & FETCH_POLL) {
 		io_writeline(data->io, "QUIT");
 		fctx->state = fetch_pop3_state_quit;
 		return (FETCH_BLOCK);
 	}
 
-	fctx->state = fetch_pop3_state_next;
-	return (FETCH_AGAIN);
+	io_writeline(data->io, "UIDL");
+	fctx->state = fetch_pop3_state_cache1;
+	return (FETCH_BLOCK);
 }
 
 /* Cache state 1. */
@@ -459,10 +495,8 @@ fetch_pop3_state_cache1(struct account *a, struct fetch_ctx *fctx)
 	if (!fetch_pop3_okay(line))
 		return (fetch_pop3_bad(a, line));
 
-	if ((data->cache_old = fetch_pop3_load(a)) == NULL)
-		return (FETCH_ERROR);
-	data->cache_new = xmalloc(sizeof *data->cache_new);
-	ARRAY_INIT(data->cache_new);
+	/* Free the server queue. */
+	fetch_pop3_freetree(&data->serverq);
 
 	fctx->state = fetch_pop3_state_cache2;
 	return (FETCH_AGAIN);
@@ -473,10 +507,12 @@ int
 fetch_pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
+	struct fetch_pop3_mail	*aux;
 	char			*line;
 	u_int			 n;
 
-	do {
+	/* Parse response and add to server queue. */
+	while (data->cur != data->num) {
 		line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 		if (line == NULL)
 			return (FETCH_BLOCK);
@@ -485,13 +521,28 @@ fetch_pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 			return (fetch_pop3_invalid(a, line));
 		if (n != data->cur + 1)
 			return (fetch_pop3_bad(a, line));
-		
 		line = strchr(line, ' ') + 1;
-		ARRAY_ADD(data->cache_new, xstrdup(line));
 
+		aux = xcalloc(1, sizeof *aux);
+		aux->idx = n;
+		aux->uid = xstrdup(line);
+
+		/*
+		 * If this is already in the queue, the mailbox has multiple
+		 * identical messages. This is one of the more stupid aspects
+		 * of the POP3 protocol (a unique id that isn't unique? great!).
+		 * At the moment we just abort with an error.
+		 * XXX what can we do to about this?
+		 */
+		if (SPLAY_FIND(fetch_pop3_tree, &data->serverq, aux)) {
+			xfree(aux);
+			log_warnx("%s: UID collision: %s", a->name, line);
+			return (FETCH_ERROR);
+		}
+		
+		SPLAY_INSERT(fetch_pop3_tree, &data->serverq, aux);
 		data->cur++;
-	} while (data->cur != data->num);
-	data->cur = 0;
+	}
 
 	fctx->state = fetch_pop3_state_cache3;
 	return (FETCH_AGAIN);
@@ -502,8 +553,9 @@ int
 fetch_pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
-	char			*line, *uid;
-	u_int			 i, j;
+	struct fetch_pop3_mail	*aux1, *aux2, *aux3;
+	char			*line;
+	u_int			 n;
 
 	line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
 	if (line == NULL)
@@ -511,47 +563,96 @@ fetch_pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 	if (line[0] != '.' && line[1] != '\0')
 		return (fetch_pop3_bad(a, line));
 
-	/*
-	 * Resolve the caches:
-	 * 	- if it is in the new cache but not the old cache: if new-only,
-	 *        ignore it and let it be fetched, otherwise add to kept list.
-	 *	- if it is in the old cache but not the new cache, it has
-	 *	  been deleted by something else, ignore it and it'll be
-	 *	  trimmed when the new cache is saved.
-	 *	- if it is in both caches, add to fetch list if new-only,
-	 *	  otherwise let it be fetched.
+	/* 
+	 * Resolve the caches.
+	 *
+	 * At this point: serverq holds a list of all mails on the server and
+	 * their indexes; cacheq holds a list of all mails in the cache file; if
+	 * connecting for the first time, wantq is empty, otherwise it has the
+	 * list of mails we want.
 	 */
-	for (i = 0; i < ARRAY_LENGTH(data->cache_new); i++) {
-		uid = ARRAY_ITEM(data->cache_new, i);
-		for (j = 0; j < ARRAY_LENGTH(data->cache_old); j++) {
-			if (strcmp(uid, ARRAY_ITEM(data->cache_old, j)) == 0) {
-				/* 
-				 * Both caches. If new-only, add to kept list
-				 * to ignore.
-				 */
-				if (data->only == FETCH_ONLY_NEW)
-					ARRAY_ADD(&data->kept, xstrdup(uid));
+	n = 0;
+	if (data->total == 0) {
+		/*
+		 * If not reconnecting, build the wantq list based on the
+		 * serverq and the cache.
+		 */
+
+		/* Load the cache and weed out any mail that doesn't exist. */
+		if (fetch_pop3_load(a) != 0) 
+			return (FETCH_ERROR);
+		aux1 = SPLAY_MIN(fetch_pop3_tree, &data->cacheq);
+		while (aux1 != NULL) {
+			aux2 = aux1;
+			aux1 = SPLAY_NEXT(fetch_pop3_tree, &data->cacheq, aux1);
+			
+			if (SPLAY_FIND(
+			    fetch_pop3_tree, &data->serverq, aux2) != NULL)
+				continue;
+			SPLAY_REMOVE(fetch_pop3_tree, &data->cacheq, aux2);
+			fetch_pop3_free(aux2);
+		}
+		
+		/* Build the want queue from the server queue. */
+		SPLAY_FOREACH(aux1, fetch_pop3_tree, &data->serverq) {
+			switch (data->only) {
+			case FETCH_ONLY_ALL:
+				/* Get all mails. */
+				break;
+			case FETCH_ONLY_NEW:
+				/* Get only mails not in the cache. */
+				if (SPLAY_FIND(fetch_pop3_tree,
+				    &data->cacheq, aux1) != NULL)
+					continue;
+				break;
+			case FETCH_ONLY_OLD:
+				/* Get only mails in the cache. */
+				if (SPLAY_FIND(fetch_pop3_tree,
+				    &data->cacheq, aux1) == NULL)
+					continue;
 				break;
 			}
-		}
-		if (j == ARRAY_LENGTH(data->cache_old)) {
-			/*
-			 * New cache but not old cache. If old-only, add to
-			 * kept list to ignore.
-			 */
-			if (data->only == FETCH_ONLY_OLD)
-				ARRAY_ADD(&data->kept, xstrdup(uid));
-		}
-	}
-	
-	/* Adjust the total. */
-	data->total -= ARRAY_LENGTH(&data->kept);
 
-	/* If there are no actual mails to fetch now, or if polling, stop. */
-	if (data->total == 0 || fctx->flags & FETCH_POLL) {
-		io_writeline(data->io, "QUIT");
-		fctx->state = fetch_pop3_state_quit;
-		return (FETCH_BLOCK);
+			/* Copy the mail to the want queue. */
+			aux2 = xcalloc(1, sizeof *aux2);
+			aux2->idx = aux1->idx;
+			aux2->uid = xstrdup(aux1->uid);
+			TAILQ_INSERT_TAIL(&data->wantq, aux2, qentry);
+			data->total++;
+		}
+
+		/*
+		 * If there are no actual mails to fetch now, or if polling,
+		 * stop.
+		 */
+		if (data->total == 0 || fctx->flags & FETCH_POLL) {
+			io_writeline(data->io, "QUIT");
+			fctx->state = fetch_pop3_state_quit;
+			return (FETCH_BLOCK);
+		}
+	} else {
+		/*
+		 * Reconnecting. The want queue already exists but the 
+		 * indexes need to be updated from the server queue.
+		 */
+		aux1 = TAILQ_FIRST(&data->wantq);
+		while (aux1 != NULL) {
+			aux2 = aux1;
+			aux1 = TAILQ_NEXT(aux1, qentry);
+
+			/*
+			 * Check the server queue. Mails now not on the server
+			 * are removed.
+			 */
+			aux3 = SPLAY_FIND(
+			    fetch_pop3_tree, &data->serverq, aux2);
+			if (aux3 == NULL) {
+				TAILQ_REMOVE(&data->wantq, aux2, qentry);
+				fetch_pop3_free(aux2);
+				data->total--;
+			} else
+				aux2->idx = aux3->idx;
+		}
 	}
 
 	fctx->state = fetch_pop3_state_next;
@@ -563,14 +664,28 @@ int
 fetch_pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
+	struct mail		*m = fctx->mail;
 	struct fetch_pop3_mail	*aux;
 
 	/* Handle dropped mail here. */
-	if (!TAILQ_EMPTY(&data->dropped)) {
-		aux = TAILQ_FIRST(&data->dropped);
+	if (!TAILQ_EMPTY(&data->dropq)) {
+		aux = TAILQ_FIRST(&data->dropq);
 
 		io_writeline(data->io, "DELE %u", aux->idx);
 		fctx->state = fetch_pop3_state_delete;
+		return (FETCH_BLOCK);
+	}
+
+	/*
+	 * If no more mail, wait until everything has been committed, then
+	 * quit.
+	 */
+	if (TAILQ_EMPTY(&data->wantq)) {
+		if (data->committed != data->total)
+			return (FETCH_BLOCK);
+
+		io_writeline(data->io, "QUIT");
+		fctx->state = fetch_pop3_state_quit;
 		return (FETCH_BLOCK);
 	}
 
@@ -584,31 +699,12 @@ fetch_pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
 		return (FETCH_AGAIN);
 	}
 
-	/* Move to next mail if possible. */
-	if (data->cur <= data->num)
-		data->cur++;
+	/* Find the next mail. */
+	aux = TAILQ_FIRST(&data->wantq);
+	m->auxdata = aux;
 
-	/*
-	 * If this is the last mail, wait until everything has been committed
-	 * back, then quit.
-	 */
-	if (data->cur > data->num) {
-		if (data->committed != data->total)
-			return (FETCH_BLOCK);
-
-		/* Save the cache, if it exists, now that all mail is done. */
-		if (data->cache_new != NULL) {
-			if (fetch_pop3_save(a, data->cache_new) != 0)
-				return (FETCH_ERROR);
-		}
-
-		io_writeline(data->io, "QUIT");
-		fctx->state = fetch_pop3_state_quit;
-		return (FETCH_BLOCK);
-	}
-
-	/* List the next mail. */
-	io_writeline(data->io, "LIST %u", data->cur);
+	/* And list it. */
+	io_writeline(data->io, "LIST %u", aux->idx);
 	fctx->state = fetch_pop3_state_list;
 	return (FETCH_BLOCK);
 }
@@ -627,11 +723,21 @@ fetch_pop3_state_delete(struct account *a, struct fetch_ctx *fctx)
 	if (!fetch_pop3_okay(line))
 		return (fetch_pop3_bad(a, line));
 
-	aux = TAILQ_FIRST(&data->dropped);
-	TAILQ_REMOVE(&data->dropped, aux, entry);
-	fetch_pop3_free(aux);
+	aux = TAILQ_FIRST(&data->dropq);
 
+	/* Remove from the drop queue. */
+	TAILQ_REMOVE(&data->dropq, aux, qentry);
+
+	/* If not already in the cache, add it. */
+	if (SPLAY_FIND(fetch_pop3_tree, &data->cacheq, aux) == NULL)
+		SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
+	else
+		fetch_pop3_free(aux);
+	
+	/* Update counter and save the cache. */
 	data->committed++;
+	if (data->only != FETCH_ONLY_OLD && fetch_pop3_save(a) != 0)
+		return (FETCH_ERROR);
 
 	fctx->state = fetch_pop3_state_next;
 	return (FETCH_AGAIN);
@@ -679,7 +785,7 @@ fetch_pop3_state_list(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct mail		*m = fctx->mail;
-	struct fetch_pop3_mail	*aux;
+	struct fetch_pop3_mail	*aux = m->auxdata;
 	char			*line;
 
 	line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
@@ -691,61 +797,7 @@ fetch_pop3_state_list(struct account *a, struct fetch_ctx *fctx)
 	if (sscanf(line, "+OK %*u %zu", &data->size) != 1)
 		return (fetch_pop3_invalid(a, line));
 
-	/* Fill in local data. */
-	aux = xcalloc(1, sizeof *aux);
-	aux->idx = data->cur;
-	m->auxdata = aux;
-	m->auxfree = fetch_pop3_free;
-
-	io_writeline(data->io, "UIDL %u", data->cur);
-	fctx->state = fetch_pop3_state_uidl;
-	return (FETCH_BLOCK);
-}
-
-/* UIDL state. Get and save the UID. */
-int
-fetch_pop3_state_uidl(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_pop3_data	*data = a->data;
-	struct mail		*m = fctx->mail;
- 	struct fetch_pop3_mail	*aux;
-	char			*line, *ptr;
-	u_int			 n, i;
-
-	line = io_readline2(data->io, &fctx->lbuf, &fctx->llen);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-	if (!fetch_pop3_okay(line))
-		return (fetch_pop3_bad(a, line));
-
-	if (sscanf(line, "+OK %u ", &n) != 1)
-		return (fetch_pop3_bad(a, line));
-	if (n != data->cur)
-		return (fetch_pop3_bad(a, line));
-
-	ptr = strchr(line, ' ');
-	if (ptr == NULL)
-		return (fetch_pop3_bad(a, line));
-	ptr = strchr(ptr + 1, ' ');
-	if (ptr == NULL)
-		return (fetch_pop3_bad(a, line));
-
-	aux = m->auxdata;
-	aux->uid = xstrdup(ptr + 1);
-	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
-		if (strcmp(aux->uid, ARRAY_ITEM(&data->kept, i)) == 0) {
-			/*
-			 * Seen this message before and kept it, so skip it
-			 * this time.
-			 */
-			fetch_pop3_free(aux);
-			m->auxdata = m->auxfree = NULL;
-			fctx->state = fetch_pop3_state_next;
-			return (FETCH_AGAIN);
-		}
-	}
-
-	io_writeline(data->io, "RETR %u", data->cur);
+	io_writeline(data->io, "RETR %u", aux->idx);
 	fctx->state = fetch_pop3_state_retr;
 	return (FETCH_BLOCK);
 }
@@ -790,6 +842,7 @@ fetch_pop3_state_line(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct mail		*m = fctx->mail;
+	struct fetch_pop3_mail	*aux = m->auxdata;
 	char			*line;
 
 	for (;;) {
@@ -813,6 +866,9 @@ fetch_pop3_state_line(struct account *a, struct fetch_ctx *fctx)
 		if (m->size > conf.max_size)
 			data->flushing = 1;
 	}
+
+	/* Pull from the want queue. */	
+	TAILQ_REMOVE(&data->wantq, aux, qentry);
 
 	fctx->state = fetch_pop3_state_next;
 	return (FETCH_MAIL);
