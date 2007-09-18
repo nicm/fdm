@@ -669,7 +669,8 @@ enum cmp {
 	CMP_EQ,
 	CMP_NE,
 	CMP_LT,
-	CMP_GT
+	CMP_GT,
+	CMP_RE
 };
 
 /* Configuration file (used by parser). */

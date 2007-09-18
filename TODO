@@ -32,3 +32,4 @@
 - document mbox fetch
 - document all/account changes
 - document new-only/old-only for POP3 and IMAP
+- document new match string syntaxs (==, !=, ~=)

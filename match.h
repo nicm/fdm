@@ -78,9 +78,12 @@ struct match_tagged_data {
 
 /* Match string data. */
 struct match_string_data {
-	struct re	 re;
-
 	struct replstr	 str;
+	union {
+		struct re re;
+		struct replstr str;
+	} patt;
+	enum cmp	 cmp;
 };
 
 /* Match regexp data. */

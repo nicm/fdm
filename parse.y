@@ -147,13 +147,12 @@ yywarn(const char *fmt, ...)
 %token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
 %token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
 %token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
-%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKNNTPS TOKCACHE
+%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKRE TOKNNTP TOKNNTPS
 %token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKREMOVEHEADERS
 %token TOKSTDOUT TOKNOVERIFY TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKNOAPOP
 %token TOKVERIFYCERTS TOKEXPIRE TOKTOCACHE TOKINCACHE TOKKEY TOKNEWONLY
-%token TOKOLDONLY
-%token LCKFLOCK LCKFCNTL LCKDOTLOCK
+%token TOKOLDONLY TOKCACHE TOKFLOCK TOKFCNTL TOKDOTLOCK
 
 %union
 {
@@ -206,7 +205,7 @@ yywarn(const char *fmt, ...)
 %type  <actitem> actitem
 %type  <actlist> actlist
 %type  <area> area
-%type  <cmp> cmp ltgt eqne
+%type  <cmp> numcmp strcmp ltgt eqne
 %type  <expr> expr exprlist
 %type  <expritem> expritem
 %type  <exprop> exprop
@@ -916,15 +915,15 @@ mboxes: mboxp replpathv
 	}
 
 /** LOCK: <locks> (u_int) */
-lock: LCKFCNTL
+lock: TOKFCNTL
       {
 	      $$ = LOCK_FCNTL;
       }
-    | LCKFLOCK
+    | TOKFLOCK
       {
 	      $$ = LOCK_FLOCK;
       }
-    | LCKDOTLOCK
+    | TOKDOTLOCK
       {
 	      $$ = LOCK_DOTLOCK;
       }
@@ -1550,17 +1549,32 @@ eqne: TOKEQ
 	      $$ = CMP_NE;
       }
 
-/** CMP: <cmp> (enum cmp) */
-cmp: ltgt
-/**  [$1: ltgt (enum cmp)] */
-     {
-	    $$ = $1;
-     }
-   | eqne
-/**  [$1: eqne (enum cmp)] */
-     {
-	     $$ = $1;
-     }
+/** NUMCMP: <cmp> (enum cmp) */
+numcmp: ltgt
+/**     [$1: ltgt (enum cmp)] */
+        {
+	       $$ = $1;
+        }
+      | eqne
+/**     [$1: eqne (enum cmp)] */
+        {
+		$$ = $1;
+	}
+
+/** STRCMP: <cmp> (enum cmp) */
+strcmp: TOKTO
+        {
+	       $$ = CMP_RE;
+        }
+      | TOKRE
+        {
+	       $$ = CMP_RE;
+        }
+      | eqne
+/**     [$1: eqne (enum cmp)] */
+        {
+		$$ = $1;
+	}
 
 /** EXECPIPE: <flag> (int) */
 execpipe: TOKEXEC
@@ -1709,8 +1723,9 @@ expritem: not TOKALL
 		  data->size = $4;
 		  data->cmp = $3;
 	  }
-        | not TOKSTRING strv TOKTO strv
-/**       [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
+        | not TOKSTRING strv strcmp strv
+/**       [$1: not (int)] [$3: strv (char *)] [$4: strcmp (enum cmp)] */
+/**       [$5: strv (char *)] */
 	  {
 		  struct match_string_data	*data;
 		  char				*cause;
@@ -1727,10 +1742,15 @@ expritem: not TOKALL
 		  $$->data = data;
 
 		  data->str.str = $3;
+		  data->cmp = $4;
 
-		  if (re_compile(&data->re, $5, RE_NOSUBST, &cause) != 0)
-			  yyerror("%s", cause);
-		  xfree($5);
+		  if (data->cmp == CMP_RE) {
+			  if (re_compile(
+			      &data->patt.re, $5, RE_NOSUBST, &cause) != 0)
+				  yyerror("%s", cause);
+			  xfree($5);
+		  } else
+			  data->patt.str.str = $5;
 	  }
 	| not TOKINCACHE replpathv TOKKEY strv
 /**       [$1: not (int)] [$3: replpathv (char *)] [$5: strv (char *)] */
@@ -1803,8 +1823,8 @@ expritem: not TOKALL
 
 		  data->time = -1;
 	  }
-        | not TOKATTACHMENT TOKCOUNT cmp numv
-/**       [$1: not (int)] [$4: cmp (enum cmp)] [$5: numv (long long)] */
+        | not TOKATTACHMENT TOKCOUNT numcmp numv
+/**       [$1: not (int)] [$4: numcmp (enum cmp)] [$5: numv (long long)] */
 	  {
 		  struct match_attachment_data	*data;
 

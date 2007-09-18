@@ -40,30 +40,61 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 	struct account			*a = mctx->account;
 	struct mail			*m = mctx->mail;
 	int				 res;
-	char				*s, *cause;
+	char				*s, *patt, *cause;
 
 	s = replacestr(&data->str, m->tags, m, &m->rml);
-	log_debug2("%s: matching \"%s\" to \"%s\"", a->name, s, data->re.str);
+	if (data->cmp == CMP_RE) {
+		log_debug2("%s: "
+		    "testing \"%s\" ~= \"%s\"", a->name, s, data->patt.re.str);
+		
+		res = re_string(&data->patt.re, s, NULL, &cause);
+		if (res == -1) {
+			xfree(s);
+			log_warnx("%s: %s", a->name, cause);
+			xfree(cause);
+			return (MATCH_ERROR);
+		}
+	} else {
+		patt = replacestr(&data->patt.str, m->tags, m, &m->rml);
+		if (data->cmp == CMP_EQ) {
+			log_debug2(
+			    "%s: testing \"%s\" == \"%s\"", a->name, s, patt);
+		} else {
+			log_debug2(
+			    "%s: testing \"%s\" != \"%s\"", a->name, s, patt);
+		}
 
-	res = re_string(&data->re, s, NULL, &cause);
-	xfree(s);
-
-	if (res == -1) {
-		log_warnx("%s: %s", a->name, cause);
-		xfree(cause);
-		return (MATCH_ERROR);
+		res = (strcmp(patt, s) == 0);
+		if (data->cmp == CMP_NE)
+			res = !res;
+		xfree(patt);
 	}
-
+	xfree(s);
+	
 	if (res == 0)
 		return (MATCH_FALSE);
 	return (MATCH_TRUE);
 }
-
+	
 void
 match_string_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct match_string_data	*data = ei->data;
 
-	xsnprintf(buf, len,
-	    "string \"%s\" to \"%s\"", data->str.str, data->re.str);
+	switch (data->cmp) {
+	case CMP_RE:
+		xsnprintf(buf, len, "string "
+		    "\"%s\" ~= \"%s\"", data->str.str, data->patt.re.str);
+		break;
+	case CMP_EQ:
+		xsnprintf(buf, len, "string "
+		    "\"%s\" == \"%s\"", data->str.str, data->patt.str.str);
+		break;
+	case CMP_NE:
+		xsnprintf(buf, len, "string "
+		    "\"%s\" != \"%s\"", data->str.str, data->patt.str.str);
+		break;
+	default:
+		fatalx("unknown cmp");
+	}
 }
