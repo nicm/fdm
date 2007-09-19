@@ -2,9 +2,9 @@
 
 * Split POP3 core off into pop3-common.c a la IMAP, in preparation for
   POP3-over-pipe.
-* Modify "match string" syntax. Instead of "to", an operator, ==, != or ~=
+* Modify "match string" syntax. Instead of "to", an operator, ==, != or ~=,
   may appear. The first two do direct string comparison, and the latter uses
-  a regexp. Using "to" is still supported.
+  a regexp (same as "to", which is still supported).
 * Change POP3 old/new mail to work from a list of mail-to-fetch and only ask
   for that mail, rather than retrieving and checking every mail UID.
 
@@ -33,7 +33,7 @@
   Examples of syntax are:
 
 	account pop3 server ... new-only cache "~/my/pop3.cache.file"
-	
+
 	account imap server ... old-only
  
   This is useful for people who like to keep mail on the server to be read

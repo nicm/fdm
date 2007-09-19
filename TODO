@@ -29,6 +29,7 @@
   not been successfully delivered is still a problem though. how can this be
   fixed?
 - document mbox fetch
-- document all/account changes
+- document all/account changes and update example configs
 - document new-only/old-only for POP3 and IMAP
 - document new match string syntaxs (==, !=, ~=)
+- document pop3 over pipe

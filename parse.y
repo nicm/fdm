@@ -225,7 +225,7 @@ yywarn(const char *fmt, ...)
 %type  <strings> stringslist pathslist
 %type  <strings> domains headers maildirs mboxes groups
 %type  <users> users userslist
-%type  <userpass> userpass userpassnetrc
+%type  <userpass> userpass userpassreqd userpassnetrc
 %type  <uid> uid user
 
 %%
@@ -2191,61 +2191,70 @@ nntptype: TOKNNTP
 /** USERPASSNETRC: <userpass> (struct { ... } userpass) */
 userpassnetrc: TOKUSER replstrv TOKPASS replstrv
 /**            [$2: replstrv (char *)] [$4: replstrv (char *)] */
-	     {
-		     if (*$2 == '\0')
-			     yyerror("invalid user");
-		     if (*$4 == '\0')
-			     yyerror("invalid pass");
+	       {
+		       if (*$2 == '\0')
+			       yyerror("invalid user");
+		       if (*$4 == '\0')
+			       yyerror("invalid pass");
 
-		     $$.user = $2;
-		     $$.user_netrc = 0;
-		     $$.pass = $4;
-		     $$.pass_netrc = 0;
-	     }
-	   | /* empty */
-	     {
-		     $$.user = NULL;
-		     $$.user_netrc = 1;
-		     $$.pass = NULL;
-		     $$.pass_netrc = 1;
-	     }
-           | TOKUSER replstrv
-/**          [$2: replstrv (char *)] */
-	     {
-		     if (*$2 == '\0')
-			     yyerror("invalid user");
+		       $$.user = $2;
+		       $$.user_netrc = 0;
+		       $$.pass = $4;
+		       $$.pass_netrc = 0;
+	       }
+	     | /* empty */
+	       {
+		       $$.user = NULL;
+		       $$.user_netrc = 1;
+		       $$.pass = NULL;
+		       $$.pass_netrc = 1;
+	       }
+	     | TOKUSER replstrv
+/**            [$2: replstrv (char *)] */
+	       {
+		       if (*$2 == '\0')
+			       yyerror("invalid user");
 
-		     $$.user = $2;
-		     $$.user_netrc = 0;
-		     $$.pass = NULL;
-		     $$.pass_netrc = 1;
-	     }
-           | TOKPASS replstrv
-/**          [$2: replstrv (char *)] */
-	     {
-		     if (*$2 == '\0')
-			     yyerror("invalid pass");
+		       $$.user = $2;
+		       $$.user_netrc = 0;
+		       $$.pass = NULL;
+		       $$.pass_netrc = 1;
+	       }
+	     | TOKPASS replstrv
+/**            [$2: replstrv (char *)] */
+	       {
+		       if (*$2 == '\0')
+			       yyerror("invalid pass");
 
-		     $$.user = NULL;
-		     $$.user_netrc = 1;
-		     $$.pass = $2;
-		     $$.pass_netrc = 0;
-	     }
+		       $$.user = NULL;
+		       $$.user_netrc = 1;
+		       $$.pass = $2;
+		       $$.pass_netrc = 0;
+	       }
 
+/** USERPASSREQD: <userpass> (struct { ... } userpass) */
+userpassreqd: TOKUSER replstrv TOKPASS replstrv
+/**           [$2: replstrv (char *)] [$4: replstrv (char *)] */
+	      {
+		      if (*$2 == '\0')
+			      yyerror("invalid user");
+		      if (*$4 == '\0')
+			      yyerror("invalid pass");
+
+		      $$.user = $2;
+		      $$.user_netrc = 0;
+		      $$.pass = $4;
+		      $$.pass_netrc = 0;
+	      }
 
 /** USERPASS: <userpass> (struct { ... } userpass) */
-userpass: TOKUSER replstrv TOKPASS replstrv
-/**       [$2: replstrv (char *)] [$4: replstrv (char *)] */
+userpass: userpassreqd
+/**       [$1: userpassreqd (struct { ... } userpass)] */
 	  {
-		  if (*$2 == '\0')
-			  yyerror("invalid user");
-		  if (*$4 == '\0')
-			  yyerror("invalid pass");
-
-		  $$.user = $2;
-		  $$.user_netrc = 0;
-		  $$.pass = $4;
-		  $$.pass_netrc = 0;
+		  $$.user = $1.user;
+		  $$.user_netrc = $1.user_netrc;
+		  $$.pass = $1.pass;
+		  $$.pass_netrc = $1.pass_netrc;
 	  }
 	| /* empty */
 	  {
@@ -2318,6 +2327,25 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 
 		   data->path = $4.path;
 		   data->only = $4.only;
+	   }
+	 | TOKPOP3 TOKPIPE replstrv userpassreqd poponly apop
+/**        [$3: replstrv (char *)] */
+/**        [$4: userpassreqd (struct { ... } userpass)] */
+/**        [$5: poponly (struct { ... } poponly)] [$6: apop (int)] */
+	   {
+		   struct fetch_pop3_data	*data;
+
+		   $$.fetch = &fetch_pop3pipe;
+		   data = xcalloc(1, sizeof *data);
+		   $$.data = data;
+		   data->user = $4.user;
+		   data->pass = $4.pass;
+		   data->pipecmd = $3;
+		   if (data->pipecmd == NULL || *data->pipecmd == '\0')
+			   yyerror("invalid pipe command");
+		   data->apop = $6;
+		   data->path = $5.path;
+		   data->only = $5.only;
 	   }
          | imaptype server userpassnetrc folder imaponly verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */

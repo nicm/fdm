@@ -144,6 +144,7 @@ struct fetch_pop3_data {
 	char		*user;
 	char		*pass;
 	struct server	 server;
+	char		*pipecmd;
 	int		 apop;
 
 	u_int		 cur;
@@ -168,6 +169,7 @@ struct fetch_pop3_data {
 	size_t		 size;
 
 	struct io	*io;
+	struct cmd	*cmd;
 
 	char		*src;
 	int		 (*connect)(struct account *);
@@ -245,6 +247,9 @@ extern struct fetch 	 fetch_nntp;
 
 /* fetch-pop3.c */
 extern struct fetch 	 fetch_pop3;
+
+/* fetch-pop3pipe.c */
+extern struct fetch 	 fetch_pop3pipe;
 
 /* fetch-imap.c */
 extern struct fetch 	 fetch_imap;

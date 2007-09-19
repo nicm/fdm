@@ -837,9 +837,11 @@ pop3_state_retr(struct account *a, struct fetch_ctx *fctx)
 	m->size = 0;
 
 	/* Tag mail. */
-	default_tags(&m->tags, data->server.host);
-	add_tag(&m->tags, "server", "%s", data->server.host);
-	add_tag(&m->tags, "port", "%s", data->server.port);
+	default_tags(&m->tags, data->src);
+	if (data->server.host != NULL) {
+		add_tag(&m->tags, "server", "%s", data->server.host);
+		add_tag(&m->tags, "port", "%s", data->server.port);
+	}
 	add_tag(&m->tags, "server_uid", "%s", aux->uid);
 
 	data->flushing = 0;

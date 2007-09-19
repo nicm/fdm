@@ -826,7 +826,7 @@ imap_state_body(struct account *a, struct fetch_ctx *fctx)
 	m->size = 0;
 
 	/* Tag mail. */
-	default_tags(&m->tags, data->server.host);
+	default_tags(&m->tags, data->src);
 	if (data->server.host != NULL) {
 		add_tag(&m->tags, "server", "%s", data->server.host);
 		add_tag(&m->tags, "port", "%s", data->server.port);
