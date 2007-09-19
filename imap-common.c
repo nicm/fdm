@@ -515,7 +515,7 @@ int
 imap_state_select2(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
-	char			*line;	
+	char			*line;
 
 	if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
 		return (FETCH_ERROR);
@@ -550,7 +550,7 @@ imap_state_select3(struct account *a, struct fetch_ctx *fctx)
 	if (data->total == 0) {
 		data->total = data->num;
 
-		/* 
+		/*
 		 * If not reconnecting and a subset of mail is required,
 		 * skip to search for the right flags.
 		 */
@@ -634,7 +634,7 @@ imap_state_search2(struct account *a, struct fetch_ctx *fctx)
 	if (strncasecmp(line, "* SEARCH", 8) != 0)
 		return (imap_bad(a, line));
 	line += 8;
-	
+
 	/* Read each UID and save it. */
 	do {
 		while (isspace((u_char) *line))
@@ -644,12 +644,12 @@ imap_state_search2(struct account *a, struct fetch_ctx *fctx)
 			ptr = strchr(line, '\0');
 		if (ptr == line)
 			break;
-		
+
 		if (sscanf(line, "%u", &uid) != 1)
 			return (imap_bad(a, line));
 		ARRAY_ADD(&data->kept, uid);
 		log_debug3("%s: skipping UID: %u", a->name, uid);
-		
+
 		line = ptr;
 	} while (*line == ' ');
 

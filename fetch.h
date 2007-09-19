@@ -140,7 +140,7 @@ SPLAY_HEAD(fetch_pop3_tree, fetch_pop3_mail);
 struct fetch_pop3_data {
 	char		*path;
 	enum fetch_only	 only;
-	
+
 	char		*user;
 	char		*pass;
 	struct server	 server;
@@ -182,7 +182,7 @@ struct fetch_pop3_data {
 struct fetch_pop3_mail {
 	char		*uid;
 	u_int		 idx;
-	
+
 	TAILQ_ENTRY(fetch_pop3_mail) qentry;
 	SPLAY_ENTRY(fetch_pop3_mail) tentry;
 };

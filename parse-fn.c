@@ -67,11 +67,11 @@ fmt_strings(const char *prefix, struct strings *sp)
 	off = xsnprintf(buf, len, "%s", prefix);
 
 	for (i = 0; i < ARRAY_LENGTH(sp); i++) {
-		s = ARRAY_ITEM(sp, i);	
+		s = ARRAY_ITEM(sp, i);
 		ENSURE_SIZE(buf, len, off + strlen(s) + 4);
 		off += xsnprintf(buf + off, len - off, "\"%s\" ", s);
 	}
-	
+
 	if (off == 0) {
 		ENSURE_SIZE(buf, len, off + 1);
 		buf[off] = '\0';
@@ -101,7 +101,7 @@ fmt_users(const char *prefix, struct users *up)
 		ENSURE_SIZE(buf, len, off + uidlen + 1);
 		off += xsnprintf(buf + off, len - off, "%lu ", (u_long) uid);
 	}
-	
+
 	if (off == 0) {
 		ENSURE_SIZE(buf, len, off + 1);
 		buf[off] = '\0';

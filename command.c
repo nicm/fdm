@@ -200,7 +200,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	pid_t		 pid;
 	int		 flags;
 
-	CMD_DEBUG(cmd, 
+	CMD_DEBUG(cmd,
 	    "in=%p, out=%p, err=%p", cmd->io_in, cmd->io_out, cmd->io_err);
 
 	/* Reset return pointers. */
@@ -224,7 +224,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 			errno = EPIPE;
 			/* FALLTHROUGH */
 		case -1:
-		
+
 			if (errno == EINTR || errno == EAGAIN)
 				break;
 			/*
@@ -297,10 +297,10 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 	}
 
 	/*
-	 * Retrieve and return a line if possible. This must be after the 
+	 * Retrieve and return a line if possible. This must be after the
 	 * poll otherwise it'll get screwed up by external poll, like so:
 	 *	- no data buffered so test for line finds nothing
-	 *	- all sockets polled here, the data being waited for has 
+	 *	- all sockets polled here, the data being waited for has
 	 *	  arrived, it is read and buffered and the function returns
 	 *	- the external poll blocks, but since the data being waited
 	 *	  on has already arrived, doesn't wake up

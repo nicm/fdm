@@ -453,7 +453,7 @@ find_users(struct mail *m)
 		for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
 			hdr = ARRAY_ITEM(conf.headers, i);
 			if (*hdr == '\0')
-				continue;	
+				continue;
 			if (fnmatch(hdr, line, FNM_CASEFOLD) == 0)
 				break;
 		}
@@ -530,7 +530,7 @@ find_address(char *buf, size_t len, size_t *alen)
 		ptr++;
 	}
 
-	/* 
+	/*
 	 * Now, look for sections matching:
 	 * 	[< ][A-Za-z0-9._%+-]+@[A-Za-z0-9.\[\]-]+[> ,;].
 	 */
@@ -545,7 +545,7 @@ find_address(char *buf, size_t len, size_t *alen)
 		/* Find an @. */
 		if ((ptr = strchr(ptr, '@')) == NULL)
 			break;
-		
+
 		/* Find the end. */
 		last = ptr + 1;
 		while (*last != '\0' && isdomain((u_char) *last))
@@ -563,7 +563,7 @@ find_address(char *buf, size_t len, size_t *alen)
 			ptr = last + 1;
 			continue;
 		}
-		
+
 		/* If the last is > the first must be < and vice versa. */
 		if (*last == '>' && *first != '<') {
 			ptr = last + 1;

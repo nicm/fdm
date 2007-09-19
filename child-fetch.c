@@ -421,7 +421,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 		if (a->fetch->fill != NULL)
 			a->fetch->fill(a, &iol);
 
-		/* 
+		/*
 		 * Work out timeout. If the queues are empty, we can block,
 		 * unless this fetch type doesn't have any sockets to poll -
 		 * then we would block forever. Otherwise, if the queues are

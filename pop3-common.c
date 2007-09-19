@@ -202,7 +202,7 @@ pop3_load(struct account *a)
 		uid[uidlen] = '\0';
 
 		log_debug3("%s: found UID in cache: %s", a->name, uid);
-		
+
 		aux = xcalloc(1, sizeof *aux);
 		aux->uid = uid;
 		SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
@@ -236,7 +236,7 @@ pop3_save(struct account *a)
 
 	if (data->path == NULL)
 		return (0);
-	
+
 	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0)
 		goto error;
 	if ((fd = mkstemp(tmp)) == -1)
@@ -289,7 +289,7 @@ pop3_commit(struct account *a, struct mail *m)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct fetch_pop3_mail	*aux = m->auxdata;
-	
+
 	if (m->decision == DECISION_DROP) {
 		/* Insert to tail of the drop queue; reading is from head. */
 		TAILQ_INSERT_TAIL(&data->dropq, aux, qentry);
@@ -464,7 +464,7 @@ pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 		return (pop3_invalid(a, line));
 	data->cur = 0;
 
-	/* 
+	/*
 	 * If no mail, we can skip UIDL and either quit (if polling or not
 	 * reconnecting) or skip to wait in next state.
 	 */
@@ -544,7 +544,7 @@ pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 			log_warnx("%s: UID collision: %s", a->name, line);
 			return (FETCH_ERROR);
 		}
-		
+
 		SPLAY_INSERT(fetch_pop3_tree, &data->serverq, aux);
 		data->cur++;
 	}
@@ -569,7 +569,7 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 	if (line[0] != '.' && line[1] != '\0')
 		return (pop3_bad(a, line));
 
-	/* 
+	/*
 	 * Resolve the caches.
 	 *
 	 * At this point: serverq holds a list of all mails on the server and
@@ -585,20 +585,20 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 		 */
 
 		/* Load the cache and weed out any mail that doesn't exist. */
-		if (pop3_load(a) != 0) 
+		if (pop3_load(a) != 0)
 			return (FETCH_ERROR);
 		aux1 = SPLAY_MIN(fetch_pop3_tree, &data->cacheq);
 		while (aux1 != NULL) {
 			aux2 = aux1;
 			aux1 = SPLAY_NEXT(fetch_pop3_tree, &data->cacheq, aux1);
-			
+
 			if (SPLAY_FIND(
 			    fetch_pop3_tree, &data->serverq, aux2) != NULL)
 				continue;
 			SPLAY_REMOVE(fetch_pop3_tree, &data->cacheq, aux2);
 			pop3_free(aux2);
 		}
-		
+
 		/* Build the want queue from the server queue. */
 		SPLAY_FOREACH(aux1, fetch_pop3_tree, &data->serverq) {
 			switch (data->only) {
@@ -639,7 +639,7 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 		}
 	} else {
 		/*
-		 * Reconnecting. The want queue already exists but the 
+		 * Reconnecting. The want queue already exists but the
 		 * indexes need to be updated from the server queue.
 		 */
 		aux1 = TAILQ_FIRST(&data->wantq);
@@ -744,7 +744,7 @@ pop3_state_delete(struct account *a, struct fetch_ctx *fctx)
 		SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
 	else
 		pop3_free(aux);
-	
+
 	/* Update counter and save the cache. */
 	data->committed++;
 	if (data->only != FETCH_ONLY_OLD && pop3_save(a) != 0)
@@ -882,7 +882,7 @@ pop3_state_line(struct account *a, struct fetch_ctx *fctx)
 			data->flushing = 1;
 	}
 
-	/* Pull from the want queue. */	
+	/* Pull from the want queue. */
 	TAILQ_REMOVE(&data->wantq, aux, qentry);
 
 	fctx->state = pop3_state_next;

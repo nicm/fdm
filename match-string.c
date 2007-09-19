@@ -46,7 +46,7 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 	if (data->cmp == CMP_RE) {
 		log_debug2("%s: "
 		    "testing \"%s\" ~= \"%s\"", a->name, s, data->patt.re.str);
-		
+
 		res = re_string(&data->patt.re, s, NULL, &cause);
 		if (res == -1) {
 			xfree(s);
@@ -70,12 +70,12 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 		xfree(patt);
 	}
 	xfree(s);
-	
+
 	if (res == 0)
 		return (MATCH_FALSE);
 	return (MATCH_TRUE);
 }
-	
+
 void
 match_string_desc(struct expritem *ei, char *buf, size_t len)
 {
