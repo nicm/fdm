@@ -1491,6 +1491,11 @@ action "full-disclosure" {
 match "^List-Id:.*<full-disclosure\\.lists\\.grok\\.org\\.uk>" in headers
 	action "full-disclosure"
 
+%%% I'm building on Linux and it complains about REG_STARTEND.
+
+Older versions of glibc don't support the REG_STARTEND flag to regexec(3).
+Either upgrade to a later version of glibc, or use PCRE instead.
+
 ================================================================================
 $Id$
 
