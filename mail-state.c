@@ -51,6 +51,7 @@ int		finish_action(struct deliver_ctx *, struct msg *,
  */
 u_int	chained;
 
+/* Check mail against next rule or part of expression. */
 int
 mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 {
@@ -63,9 +64,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 
 	set_wrapped(m, ' ');
 
-	/*
-	 * If blocked, check for msgs from parent.
-	 */
+	/* If blocked, check for msgs from parent. */
 	if (mctx->msgid != 0) {
 		if (msg == NULL || msg->id != mctx->msgid)
 			return (MAIL_BLOCKED);
@@ -97,9 +96,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		goto next_expritem;
 	}
 
-	/*
-	 * Check for completion and end of ruleset.
-	 */
+	/* Check for completion and end of ruleset. */
 	if (mctx->done)
 		return (MAIL_DONE);
 	if (mctx->rule == NULL) {
@@ -123,20 +120,14 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		return (MAIL_DONE);
 	}
 
-	/*
-	 * Expression not started. Start it.
-	 */
+	/* Expression not started. Start it. */
 	if (mctx->expritem == NULL) {
-		/*
-		 * Start the expression.
-		 */
+		/* Start the expression. */
 		mctx->result = 0;
 		mctx->expritem = TAILQ_FIRST(mctx->rule->expr);
 	}
 
-	/*
-	 * Check this expression item and adjust the result.
-	 */
+	/* Check this expression item and adjust the result. */
 	ei = mctx->expritem;
 
 	/* Handle short-circuit evaluation. */
@@ -175,9 +166,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	log_debug3("%s: tried %s, result now %d", a->name, desc, mctx->result);
 
 next_expritem:
-	/*
-	 * Move to the next item. If there is one, then return.
-	 */
+	/* Move to the next item. If there is one, then return. */
 	mctx->expritem = TAILQ_NEXT(mctx->expritem, entry);
 	if (mctx->expritem != NULL)
 		return (MAIL_CONTINUE);
@@ -185,9 +174,7 @@ next_expritem:
 	log_debug3("%s: finished rule %u, result %d", a->name, mctx->rule->idx,
 	    mctx->result);
 
-	/*
-	 * If the result was false, skip to find the next rule.
-	 */
+	/* If the result was false, skip to find the next rule. */
 	if (!mctx->result)
 		goto next_rule;
 	mctx->matched = 1;
@@ -200,9 +187,7 @@ next_expritem:
 	if (mctx->rule->stop)
 		mctx->done = 1;
 
-	/*
-	 * Handle nested rules.
-	 */
+	/* Handle nested rules. */
 	if (!TAILQ_EMPTY(&mctx->rule->rules)) {
 		log_debug2("%s: entering nested rules", a->name);
 
@@ -212,16 +197,12 @@ next_expritem:
 		 */
 		ARRAY_ADD(&mctx->stack, mctx->rule);
 
-		/*
-		 * Continue with the first rule of the nested list.
-		 */
+		/* Continue with the first rule of the nested list. */
 		mctx->rule = TAILQ_FIRST(&mctx->rule->rules);
 		return (MAIL_CONTINUE);
 	}
 
-	/*
-	 * Handle lambda actions.
-	 */
+	/* Handle lambda actions. */
 	if (mctx->rule->lambda != NULL) {
 		users = find_delivery_users(mctx, NULL, &should_free);
 
@@ -238,9 +219,7 @@ next_expritem:
 		error = MAIL_DELIVER;
 	}
 
-	/*
-	 * Fill the delivery action queue.
-	 */
+	/* Fill the delivery action queue. */
 	if (!ARRAY_EMPTY(mctx->rule->actions)) {
 		chained = MAXACTIONCHAIN;
 		if (fill_from_strings(mctx,
@@ -250,14 +229,10 @@ next_expritem:
 	}
 
 next_rule:
-	/*
-	 * Move to the next rule.
-	 */
+	/* Move to the next rule. */
 	mctx->rule = TAILQ_NEXT(mctx->rule, entry);
 
-	/*
-	 * If no more rules, try to move up the stack.
-	 */
+	/* If no more rules, try to move up the stack. */
 	while (mctx->rule == NULL) {
 		if (ARRAY_EMPTY(&mctx->stack))
 			break;
@@ -288,6 +263,7 @@ apply_result(struct expritem *ei, int *result, int this)
 	}
 }
 
+/* Run next delivery action. */
 int
 mail_deliver(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 {
@@ -297,36 +273,26 @@ mail_deliver(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 
 	set_wrapped(m, '\n');
 
-	/*
-	 * If blocked, check for msgs from parent.
-	 */
+	/* If blocked, check for msgs from parent. */
 	if (mctx->msgid != 0) {
 		if (msg == NULL || msg->id != mctx->msgid)
 			return (MAIL_BLOCKED);
 		mctx->msgid = 0;
 
-		/*
-		 * Got message. Finish delivery.
-		 */
+		/* Got message. Finish delivery. */
 		dctx = TAILQ_FIRST(&mctx->dqueue);
 		if (finish_action(dctx, msg, msgbuf) == ACTION_ERROR)
 			return (MAIL_ERROR);
 
-		/*
-		 * Move on to dequeue this delivery action.
-		 */
+		/* Move on to dequeue this delivery action. */
 		goto done;
 	}
 
-	/*
-	 * Check if delivery is complete.
-	 */
+	/* Check if delivery is complete. */
 	if (TAILQ_EMPTY(&mctx->dqueue))
 		return (MAIL_MATCH);
 
-	/*
-	 * Get the first delivery action and start it.
-	 */
+	/* Get the first delivery action and start it. */
 	dctx = TAILQ_FIRST(&mctx->dqueue);
 	switch (start_action(mctx, dctx)) {
 	case ACTION_ERROR:
@@ -336,9 +302,7 @@ mail_deliver(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	}
 
 done:
-	/*
-	 * Remove completed action from queue.
-	 */
+	/* Remove completed action from queue. */
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
 	log_debug("%s: message %u delivered (rule %u, %s) in %.3f seconds",
 	    a->name, m->idx, dctx->rule->idx,
