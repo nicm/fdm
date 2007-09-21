@@ -972,7 +972,7 @@ of accounts ('accounts { "name1" "name2" }'). fnmatch(3) wildcards may also be
 used.
 
 The <actions> item is a list of actions to execute when this rule matches.
-It is in the same list format: 'action "name"' or "actions { "name1" "name2" }'.
+It is in the same list format: 'action "name"' or 'actions { "name1" "name2" }'.
 It may also be a lambda (inline) action, see the section below.
 
 If a rule with the 'continue' keyword matches, evaluation does not stop after
@@ -1078,8 +1078,8 @@ follows:
 
 	age [<|>] <age> [hours|minutes|seconds|days|months|years]
 
-If '<' is used, mail is matched if it is older than the specified age. If '>',
-if it is younger. The <age> item may be a simple number of seconds, or suffixed
+If '<' is used, mail is matched if it is younger than the specified age. If '>',
+if it is older. The <age> item may be a simple number of seconds, or suffixed
 with a unit. Examples are:
 
 	match age < 3 months actions { "act1" "act2" }
