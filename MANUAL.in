@@ -487,12 +487,12 @@ similar manner to macros, except tags are processed when the string is used
 rather than always as the configuration file is parsed. A tag's value is
 inserted by wrapping its name in %[], for example:
 
-	match string "%[account]" == "myacct" action "myacctact"
+	match string "%[account]" to "myacct" action "myacctact"
 
 Most of the default tags have a single-letter shorthand which removes the needs
 for the []s:
 
-	match string "%a" == "myacct" action "myacctact"
+	match string "%a" to "myacct" action "myacctact"
 
 Including a nonexistent tag in a string is equivalent to including a tag with
 an empty value, so "abc%[nonexistent]def" will be translated to "abcdef".
@@ -743,8 +743,8 @@ articles are matched purely on the group they are fetched from (trying to do
 this using headers is unreliable with cross-posted articles). For example:
 
 match all account "news" {
-	match string "%[group]" == "comp.lang.c" action "news-%[group]"
-	match string "%[group]" == "comp.std.c" action "news-%[group]"
+	match string "%[group]" to "comp.lang.c" action "news-%[group]"
+	match string "%[group]" to "comp.std.c" action "news-%[group]"
 	match all action drop
 }
 
@@ -1057,16 +1057,10 @@ construct an action name, maildir or mbox path, etc. The bracket expressions
 may be substituted using the %1 to %9 tokens. For example,
 
 	match "^From:.*[ \t]([a-z]*)@domain" in headers action "all" continue
-	match string "%1" == "bob" action "bobmail"
+	match string "%1" to "bob.*" action "bobmail"
 
 	match "^From:.*[ \t]([a-z]*)@domain" in headers action "all" continue
 	match all action "%1mail"
-
-The 'string' condition accepts four operators to compare two strings: ==, !=,
-=~ and !~. == compares the strings for equality, != for inequality (both are
-case sensitive). =~ and !~ compare the string against a regexp, case
-insensitively, with the former true if the regexp matches and the latter if it
-does not. The keyword 'to' is an alias for =~.
 
 This is particularly useful in combination with nested rules (see later):
 bracket expressions in a regexp on the outer rule may be compared on inner
@@ -1183,9 +1177,9 @@ The existence of a tag may be tested for using the 'tagged' condition:
 Or the tags value matched using the 'string' match type (in a similar way to
 matching bracket expressions):
 
-	match string "%[group]" == "comp.lang.c" action "clc"
+	match string "%[group]" to "comp.lang.c" action "clc"
 
-	match string "%u" == "bob" action "bob"
+	match string "%u" to "bob" action "bob"
 
 %%% Using caches
 
@@ -1222,7 +1216,7 @@ above:
 	$key = "%[message_id]"
 	cache $db expire 2 weeks
 
-	match not string $key == "" {
+	match not string $key to "" {
 		match in-cache $db key $key action maildir "%h/mail/duplicates"
 		match all action to-cache $db key $key continue
 	}

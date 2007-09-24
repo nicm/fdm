@@ -258,10 +258,6 @@ restart:
 			yyerror("invalid macro name");
 		case '=':
 			ch = lex_getc();
-			if (ch == '~') {
-				value = TOKRE;
-				goto out;
-			}
 			if (ch == '=') {
 				value = TOKEQ;
 				goto out;
@@ -271,10 +267,6 @@ restart:
 			goto out;
 		case '!':
 			ch = lex_getc();
-			if (ch == '~') {
-				value = TOKNR;
-				goto out;
-			}
 			if (ch == '=') {
 				value = TOKNE;
 				goto out;

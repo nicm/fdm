@@ -35,6 +35,8 @@
 		attachments are fnmatch, case insensitive, no op
 		string is regexp, case sensitive, op == "to"
 	- simplify?... just ==, != using fnmatch, no other bollocksing about?
+  case keyword before all regexps or move to PCRE and lose case altogether in
+  favour of "i)" etc. lose == != then
 - document mbox fetch
 - document all/account changes and update example configs
 - document new-only/old-only for POP3 and IMAP
