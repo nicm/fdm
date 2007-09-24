@@ -27,6 +27,14 @@
 - does imap need a to-fetch list a la pop3? having mails marked read that have
   not been successfully delivered is still a problem though. how can this be
   fixed?
+- comparison stuff is all over the place:
+	- string match/attachment match common code
+	- ops: ==, !=, =~, !~, fnmatch, !fnmatch
+	- get rid of regexps and just support fnmatch?? (aside from main match)
+	- case sensitivity?
+		attachments are fnmatch, case insensitive, no op
+		string is regexp, case sensitive, op == "to"
+	- simplify?... just ==, != using fnmatch, no other bollocksing about?
 - document mbox fetch
 - document all/account changes and update example configs
 - document new-only/old-only for POP3 and IMAP
