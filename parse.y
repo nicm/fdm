@@ -1050,14 +1050,16 @@ users: /* empty */
 	       $$.find_uid = 0;
        }
 
-/** ICASE: <flag> (int) */
+/** CASERE: <re> (struct { ... } re) */
 casere: TOKCASE replstrv
+/**     [$2: replstrv (char *)] */
         {
 		/* match case */
 		$$.flags = 0;
 		$$.str = $2;
         }
       | replstrv
+/**     [$1: replstrv (char *)] */
         {
 		/* ignore case */
 		$$.flags = RE_IGNCASE;
@@ -1525,9 +1527,9 @@ retrc: numv
 	       $$ = -1;
        }
 
-/** RETRE: <string> (char *) */
+/** RETRE: <re> (struct { ... } re) */
 retre: casere
-/**    [$1: replstrv (char *)] */
+/**    [$1: casere (struct { ... } re)] */
        {
 	       $$ = $1;
        }
@@ -1607,8 +1609,8 @@ expritem: not TOKALL
 		  $$->inverted = $1;
 	  }
 	| not casere area
-/**       [$1: not (int)] [$2: icase (int)] [$3: replstrv (char *)] */
-/**       [$4: area (enum area)] */
+/**       [$1: not (int)] [$2: casere (struct { ... } re)] */
+/**       [$3: area (enum area)] */
           {
 		  struct match_regexp_data	*data;
 		  char				*cause;
@@ -1642,7 +1644,8 @@ expritem: not TOKALL
 	  }
         | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
-/**       [$4: user (uid_t)] [$7: retrc (long long)] [$9: retre (char *)] */
+/**       [$4: user (uid_t)] [$7: retrc (long long)] */
+/**       [$9: retre (struct { ... } re)] */
 	  {
 		  struct match_command_data	*data;
 		  char				*cause;
@@ -1713,7 +1716,8 @@ expritem: not TOKALL
 		  data->cmp = $3;
 	  }
         | not TOKSTRING strv TOKTO casere
-/**       [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
+/**       [$1: not (int)] [$3: strv (char *)] */
+/**       [$5: casere (struct { ... } re)] */
 	  {
 		  struct match_string_data	*data;
 		  char				*cause;
