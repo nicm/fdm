@@ -13,5 +13,5 @@ test
 EOF
 
 cat <<EOF|test_run
-match string "%[message_id]" ~= "t..t" action rewrite "echo test" continue
+match string "%[message_id]" =~ "t..t" action rewrite "echo test" continue
 EOF

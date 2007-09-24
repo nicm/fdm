@@ -43,9 +43,14 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 	char				*s, *patt, *cause;
 
 	s = replacestr(&data->str, m->tags, m, &m->rml);
-	if (data->cmp == CMP_RE) {
-		log_debug2("%s: "
-		    "testing \"%s\" ~= \"%s\"", a->name, s, data->patt.re.str);
+	if (data->cmp == CMP_RE || data->cmp == CMP_NR) {
+		if (data->cmp == CMP_RE) {
+			log_debug2("%s: testing "
+			    "\"%s\" =~ \"%s\"", a->name, s, data->patt.re.str);
+		} else {
+			log_debug2("%s: testing "
+			    "\"%s\" !~ \"%s\"", a->name, s, data->patt.re.str);
+		}
 
 		res = re_string(&data->patt.re, s, NULL, &cause);
 		if (res == -1) {
@@ -54,6 +59,8 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 			xfree(cause);
 			return (MATCH_ERROR);
 		}
+		if (data->cmp == CMP_NR)
+			res = res == 0;
 	} else {
 		patt = replacestr(&data->patt.str, m->tags, m, &m->rml);
 		if (data->cmp == CMP_EQ) {
@@ -84,7 +91,11 @@ match_string_desc(struct expritem *ei, char *buf, size_t len)
 	switch (data->cmp) {
 	case CMP_RE:
 		xsnprintf(buf, len, "string "
-		    "\"%s\" ~= \"%s\"", data->str.str, data->patt.re.str);
+		    "\"%s\" =~ \"%s\"", data->str.str, data->patt.re.str);
+		break;
+	case CMP_NR:
+		xsnprintf(buf, len, "string "
+		    "\"%s\" !~ \"%s\"", data->str.str, data->patt.re.str);
 		break;
 	case CMP_EQ:
 		xsnprintf(buf, len, "string "

@@ -1,8 +1,12 @@
+24 September 2007
+
+* ~= should be =~. Also add !~ for inverted regexp match.
+
 18 September 2007
 
 * Split POP3 core off into pop3-common.c a la IMAP, in preparation for
   POP3-over-pipe.
-* Modify "match string" syntax. Instead of "to", an operator, ==, != or ~=,
+* Modify "match string" syntax. Instead of "to", an operator, ==, != or =~,
   may appear. The first two do direct string comparison, and the latter uses
   a regexp (same as "to", which is still supported).
 * Change POP3 old/new mail to work from a list of mail-to-fetch and only ask
