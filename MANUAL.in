@@ -843,7 +843,7 @@ Examples include:
 
 	action "mysmtpaction" smtp server "smtp.server" port "submission"
 
-	action "mysmtpaction" smtp server "smtp.server" == "me@somewhere"
+	action "mysmtpaction" smtp server "smtp.server" to "me@somewhere"
 
 %%% Write, pipe, exec and append
 
