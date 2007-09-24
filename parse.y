@@ -181,6 +181,10 @@ yywarn(const char *fmt, ...)
 		char		*path;
 		enum fetch_only	 only;
 	} poponly;
+	struct {
+		int		 flags;
+		char		*str;
+	} re;
 	uid_t			 uid;
 	gid_t			 gid;
 	struct {
@@ -210,7 +214,7 @@ yywarn(const char *fmt, ...)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont icase not disabled keep execpipe writeappend compress verify
+%type  <flag> cont not disabled keep execpipe writeappend compress verify
 %type  <flag> apop poptype imaptype nntptype
 %type  <gid> gid
 %type  <locks> lock locklist
@@ -219,9 +223,10 @@ yywarn(const char *fmt, ...)
 %type  <poponly> poponly
 %type  <replstrs> replstrslist
 %type  <replstrs> actions rmheaders accounts accounts2
+%type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to folder xstrv strv replstrv retre replpathv val optval
+%type  <string> port to folder xstrv strv replstrv replpathv val optval
 %type  <strings> stringslist pathslist
 %type  <strings> domains headers maildirs mboxes groups
 %type  <users> users userslist
@@ -1046,16 +1051,18 @@ users: /* empty */
        }
 
 /** ICASE: <flag> (int) */
-icase: TOKCASE
-      {
-	      /* match case */
-	      $$ = 0;
-      }
-    | /* empty */
-      {
-	      /* ignore case */
-	      $$ = 1;
-      }
+casere: TOKCASE replstrv
+        {
+		/* match case */
+		$$.flags = 0;
+		$$.str = $2;
+        }
+      | replstrv
+        {
+		/* ignore case */
+		$$.flags = RE_IGNCASE;
+		$$.str = $1;
+	}
 
 /** NOT: <flag> (int) */
 not: TOKNOT
@@ -1519,14 +1526,14 @@ retrc: numv
        }
 
 /** RETRE: <string> (char *) */
-retre: replstrv
+retre: casere
 /**    [$1: replstrv (char *)] */
        {
 	       $$ = $1;
        }
      | /* empty */
        {
-	       $$ = NULL;
+	       $$.str = NULL;
        }
 
 /** LTGT: <cmp> (enum cmp) */
@@ -1599,12 +1606,11 @@ expritem: not TOKALL
 		  $$->match = &match_all;
 		  $$->inverted = $1;
 	  }
-	| not icase replstrv area
+	| not casere area
 /**       [$1: not (int)] [$2: icase (int)] [$3: replstrv (char *)] */
 /**       [$4: area (enum area)] */
           {
 		  struct match_regexp_data	*data;
-		  int	 			 flags;
 		  char				*cause;
 
 		  $$ = xcalloc(1, sizeof *$$);
@@ -1614,14 +1620,11 @@ expritem: not TOKALL
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 
-		  data->area = $4;
+		  data->area = $3;
 
-		  flags = 0;
-		  if ($2)
-			  flags |= RE_IGNCASE;
-		  if (re_compile(&data->re, $3, flags, &cause) != 0)
+		  if (re_compile(&data->re, $2.str, $2.flags, &cause) != 0)
 			  yyerror("%s", cause);
-		  xfree($3);
+		  xfree($2.str);
 	  }
         | not accounts
 /**       [$1: not (int)] [$2: accounts (struct replstrs *)] */
@@ -1646,7 +1649,7 @@ expritem: not TOKALL
 
 		  if (*$3 == '\0' || ($3[0] == '|' && $3[1] == '\0'))
 			  yyerror("invalid command");
-		  if ($7 == -1 && $9 == NULL)
+		  if ($7 == -1 && $9.str == NULL)
 			  yyerror("return code or regexp must be specified");
 
 		  $$ = xcalloc(1, sizeof *$$);
@@ -1662,11 +1665,11 @@ expritem: not TOKALL
 
 		  data->ret = $7;
 
-		  if ($9 != NULL) {
+		  if ($9.str != NULL) {
 			  if (re_compile(
-			      &data->re, $9, RE_IGNCASE, &cause) != 0)
+			      &data->re, $9.str, $9.flags, &cause) != 0)
 				  yyerror("%s", cause);
-			  xfree($9);
+			  xfree($9.str);
 		  }
 
 	  }
@@ -1709,7 +1712,7 @@ expritem: not TOKALL
 		  data->size = $4;
 		  data->cmp = $3;
 	  }
-        | not TOKSTRING strv TOKTO strv
+        | not TOKSTRING strv TOKTO casere
 /**       [$1: not (int)] [$3: strv (char *)] [$5: strv (char *)] */
 	  {
 		  struct match_string_data	*data;
@@ -1727,9 +1730,10 @@ expritem: not TOKALL
 		  $$->data = data;
 
 		  data->str.str = $3;
-		  if (re_compile(&data->re, $5, RE_NOSUBST, &cause) != 0)
+		  if (re_compile(
+		      &data->re, $5.str, $5.flags|RE_NOSUBST, &cause) != 0)
 			  yyerror("%s", cause);
-		  xfree($5);
+		  xfree($5.str);
 	  }
 	| not TOKINCACHE replpathv TOKKEY strv
 /**       [$1: not (int)] [$3: replpathv (char *)] [$5: strv (char *)] */

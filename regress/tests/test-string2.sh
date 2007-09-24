@@ -13,5 +13,6 @@ test
 EOF
 
 cat <<EOF|test_run
-match string "%[message_id]" to "T..T" action rewrite "echo test" continue
+match not string "%[message_id]" 
+	to case "T..T" action rewrite "echo test" continue
 EOF
