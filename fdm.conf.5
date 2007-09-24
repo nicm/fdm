@@ -819,22 +819,17 @@ current user (or root if started as root) is used.
 .Xc
 Compare the mail size with
 .Ar number .
-.It Xo Ic string Ar string Ic to Ar regexp
+.It Xo Ic string Ar string Ic ~= Ar regexp
+.Xc
+.It Xo Ic string Ar string Ic == Ar string
+.Xc
+.It Xo Ic string Ar string Ic != Ar string
 .Xc
 Match
 .Ar string
 against
-.Ar regexp .
-If any of %0 to %9 appear in the string, they will be replaced with the
-contents of any subexpressions from the regexp executed as part of the last
-.Ic regexp
-condition.
-If no
-.Ic regexp
-condition has yet been seen, or the mail contents has been modified by a
-.Ic rewrite
-action since the last one, this condition will log a warning and evaluate to
-false.
+.Ar regexp ,
+or case-sensitively compare it to another string.
 .It Xo Ic age
 .Li <
 .Ar time
