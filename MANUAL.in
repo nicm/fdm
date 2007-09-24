@@ -1492,8 +1492,24 @@ match "^List-Id:.*<full-disclosure\\.lists\\.grok\\.org\\.uk>" in headers
 
 %%% I'm building on Linux and it complains about REG_STARTEND.
 
-Older versions of glibc don't support the REG_STARTEND flag to regexec(3).
-Either upgrade to a later version of glibc, or use PCRE instead.
+Older versions (pre-2005) of glibc don't support the REG_STARTEND flag to
+regexec(3). Either upgrade to a later version of glibc, or use PCRE.
+
+%%% Should I use PCRE or standard POSIX regexps? What's the difference?
+
+PCRE is a library providing "perl-compatible" regexps. These are broadly
+compatible with POSIX extended regexps, but with a number of extensions based
+on perl regexps.
+
+Unless you want or need some of the extensions, there is generally no
+compelling reason to choose one over the other. PCRE is faster than some
+POSIX regexp implementations, but few rulesets will include sufficient
+regexps for this to make any difference.
+
+The Debian package and FreeBSD port both use PCRE by default.
+
+Because I hate maintaining and testing two sets of code, there is a strong
+possibility that PCRE may become the fdm default as well at some point.
 
 ================================================================================
 $Id$
