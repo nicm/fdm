@@ -787,6 +787,7 @@ case-insensitive matching.
 .Ic returns
 .Li (
 .Ar return code ,
+.Op Ic case
 .Ar stdout regexp )
 .Xc
 These two conditions execute a
@@ -819,17 +820,14 @@ current user (or root if started as root) is used.
 .Xc
 Compare the mail size with
 .Ar number .
-.It Xo Ic string Ar string Ic =~ Ar regexp
-.Xc
-.It Xo Ic string Ar string Ic == Ar string
-.Xc
-.It Xo Ic string Ar string Ic != Ar string
+.It Xo Ic string Ar string Ic to
+.Op Ic case
+.Ar regexp
 .Xc
 Match
 .Ar string
 against
-.Ar regexp ,
-or case-sensitively compare it to another string.
+.Ar regexp .
 .It Xo Ic age
 .Li <
 .Ar time

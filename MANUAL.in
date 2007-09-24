@@ -187,8 +187,9 @@ The configuration file has the following general rules:
   distinction is not required, it is recommended only to aid readability:
   'user { "nicholas "bob" }' is also accepted.
 - Regexps are specified as normal strings without additional adornment other
-  than the "s (not wrapped in /s). All regexps are extended regexps and
-  case insensitive by default.
+  than the "s (not wrapped in /s). All regexps are extended regexps. They are
+  case insensitive by default but may be prefixed with the 'case' keyword to
+  indicate case sensitivity is required.
 - Strings may be concatenated using plus: "a" + "b" is the same as "ab". This
   is most useful to wrap strings across multiple lines.
 
@@ -1105,7 +1106,7 @@ specify a size in kilobytes, megabytes or gigabytes, such as:
 Mail may be matched using the result of a shell command. This condition follows
 the form:
 
-	[exec|pipe] <command> returns (<return code>, <stdout regexp>)
+	[exec|pipe] <command> returns (<return code>, [case] <stdout regexp>)
 
 If 'exec' is used, the command is executed. If 'pipe', the mail is piped to the
 command's stdin. The <command> is a simple string. % tokens are replaced as
