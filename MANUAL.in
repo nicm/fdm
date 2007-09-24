@@ -1136,7 +1136,7 @@ Examples:
 %%% Attachments
 
 There are five conditions available to filter based on the size, quantity, type
-and name of attachments. Thay are all prefixed with the 'attachment'
+and name of attachments. They are all prefixed with the 'attachment'
 keyword. Two compare the overall number of attachments:
 
 The 'attachment count' conditions matches if the number of attachments is
@@ -1338,9 +1338,9 @@ number of mails refetched on the next run if the connection fails. It can have
 a large effect on performance, particularly if the message count is set to a
 low number.
 
-Note that for POP3, purging deleted mail involves connecting and reconnecting
-from the server; some POP3 servers refuse reconnections if too many are made too
-quickly, so this option should be used with care.
+Note that for POP3, purging deleted mail involves disconnecting and
+reconnecting from the server; some POP3 servers refuse reconnections if too
+many are made too quickly, so this option should be used with care.
 
 - no-received
 
@@ -1381,9 +1381,8 @@ may suffice (the account restriction can be dropped if being used in a
 single-purpose configuration file):
 
 	account "archive" disabled maildir "source-maildir"
-	action "archive" mbox "%[maildir]q%Q"
-	match age > 30 days account "archive" action "archive"
-	match all account "archive" action "keep"
+	match account "archive" and age > 30 days action mbox "%[maildir]q%Q"
+	match all account "archive" action keep
 
 Then, fdm may be run to move the mail:
 
@@ -1399,7 +1398,7 @@ rules it matches:
 	match all account "search" action "keep"
 
 All mail matching the regexp will be copied to the target mbox. There are
-several other ways to write this ruleset and achieve the same end.
+several other ways to write this ruleset.
 
 ### Using fdm behind a proxy
 
@@ -1418,7 +1417,7 @@ option. HTTP and SOCKS5 proxies are supported:
 
 	set proxy "socks5://user:pass@proxy.server/"
 
-Authentication is not support for HTTP proxies.
+Authentication is not supported for HTTP proxies.
 
 ### Bug reports and queries
 
