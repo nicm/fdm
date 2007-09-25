@@ -447,7 +447,7 @@ not be read from
 .Op Ic no-verify
 .Xc
 These define an IMAP or IMAPS account.
-The parameters are as for a POP3 or POP3 account, aside from the additional
+The parameters are as for a POP3 or POP3S account, aside from the additional
 .Ic folder
 option which allows the folder name to be specified (the default is to fetch
 from the inbox).
@@ -682,8 +682,8 @@ An action's user setting may be overridden in the matching rule.
 The possible values for
 .Ar action
 are listed below.
-If multiple actions are specified they are executed once from top to bottom for
-each user.
+If multiple actions are specified they are executed once in the order specified,
+for each user.
 .Bl -tag -width Ds
 .It Ic drop
 Discard the mail.

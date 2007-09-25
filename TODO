@@ -30,3 +30,5 @@
 - pop3 over pipe lack of .netrc sucks
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order also fix man page
+- NNTP should warn if mail is dropped - generic flag
+- docs: clarify from-headers, $() exec time etc
