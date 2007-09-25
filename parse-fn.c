@@ -458,7 +458,7 @@ free_account(struct account *a)
 
 	if (a->fetch == &fetch_pop3) {
 		struct fetch_pop3_data		*data = a->data;
-		if (data->path != NULL)
+ 		if (data->path != NULL)
 			xfree(data->path);
 		xfree(data->user);
 		xfree(data->pass);
@@ -466,6 +466,13 @@ free_account(struct account *a)
 		xfree(data->server.port);
 		if (data->server.ai != NULL)
 			freeaddrinfo(data->server.ai);
+	} else if (a->fetch == &fetch_pop3pipe) {
+		struct fetch_pop3_data		*data = a->data;
+ 		if (data->path != NULL)
+			xfree(data->path);
+		xfree(data->user);
+		xfree(data->pass);
+		xfree(data->pipecmd);
 	} else if (a->fetch == &fetch_imap) {
 		struct fetch_imap_data		*data = a->data;
 		xfree(data->user);
