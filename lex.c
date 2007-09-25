@@ -170,6 +170,7 @@ static const struct token tokens[] = {
 	{ "stdin", TOKSTDIN },
 	{ "stdout", TOKSTDOUT },
 	{ "string", TOKSTRING },
+	{ "strip-characters", TOKSTRIPCHARACTERS },
 	{ "tag", TOKTAG },
 	{ "tagged", TOKTAGGED },
 	{ "timeout", TOKTIMEOUT },

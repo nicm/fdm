@@ -58,6 +58,7 @@
 #define DEFMAILQUEUE	2
 #define DEFMAILSIZE	(32 * 1024 * 1024)		/* 32 MB */
 #define MAXMAILSIZE	(1 * 1024 * 1024 * 1024)	/*  1 GB */
+#define DEFSTRIPCHARS	"\\<>$%^&*|{}[]\"'`;"
 #define MAXACTIONCHAIN	5
 #define DEFTIMEOUT	(900 * 1000)
 #define LOCKSLEEPTIME	10000 				/* 0.1 seconds */
@@ -618,6 +619,7 @@ struct conf {
 
 	char			*conf_file;
 	char			*lock_file;
+	char			*strip_chars;
 	int			 check_only;
 	int			 allow_many;
 	int			 keep_all;

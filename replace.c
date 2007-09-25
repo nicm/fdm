@@ -85,7 +85,8 @@ static const char *aliases[] = {
 	NULL, 		/* Z */
 };
 
-char	*replace(char *, struct strb *, struct mail *, struct rmlist *);
+char		*replace(char *, struct strb *, struct mail *, struct rmlist *);
+const char 	*submatch(char, struct mail *, struct rmlist *, size_t *);
 
 void printflike3
 add_tag(struct strb **tags, const char *key, const char *value, ...)
@@ -195,14 +196,29 @@ replacepath(struct replpath *rp, struct strb *tags, struct mail *m,
 	return (ss);
 }
 
+const char *
+submatch(char ch, struct mail *m, struct rmlist *rml, size_t *len)
+{
+	struct rm	*rm;
+
+	if (rml == NULL || !rml->valid || m == NULL)
+		return (NULL);
+
+	rm = &rml->list[((u_char) ch) - '0'];
+	if (!rm->valid)
+		return (NULL);
+
+	*len = rm->eo - rm->so;
+	return (m->data + rm->so);
+}
+
 char *
 replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 {
-	char		*ptr, *tend;
 	const char	*tptr, *alias;
-	char		*dst, ch;
-	size_t	 	 off, len, tlen;
-	u_int		 idx;
+	char		*ptr, *tend, *dst, ch;
+	size_t	 	 i, off, len, tlen;
+	int		 strip;
 
 	if (src == NULL)
 		return (NULL);
@@ -213,6 +229,7 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 	len = REPLBUFSIZE;
 	dst = xmalloc(len);
 
+	strip = 1;
 	for (ptr = src; *ptr != '\0'; ptr++) {
 		switch (*ptr) {
 		case '%':
@@ -238,6 +255,14 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 				continue;
 			}
 			ptr++;
+
+			if (*ptr == ':') {
+				strip = 0;
+				ptr++;
+			}
+			if (ptr == tend)
+				continue;
+
 			*tend = '\0';
 			if ((tptr = find_tag(tags, ptr)) == NULL) {
 				*tend = ']';
@@ -245,20 +270,28 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 				continue;
 			}
 			tlen = strlen(tptr);
-
 			*tend = ']';
+
 			ptr = tend;
 			break;
+		case ':':
+			ch = *++ptr;
+			if (ch >= '0' && ch <= '9') {
+				tptr = submatch(ch, m, rml, &tlen);
+				if (tptr == NULL)
+					continue;
+				strip = 0;
+				break;
+			}
+
+			ENSURE_FOR(dst, len, off, 1);
+			dst[off++] = ch;
+			continue;
 		default:
 			if (ch >= '0' && ch <= '9') {
-				if (rml == NULL || !rml->valid || m == NULL)
+				tptr = submatch(ch, m, rml, &tlen);
+				if (tptr == NULL)
 					continue;
-				idx = ((u_char) ch) - '0';
-				if (!rml->list[idx].valid)
-					continue;
-
-				tptr = m->data + rml->list[idx].so;
-				tlen = rml->list[idx].eo - rml->list[idx].so;
 				break;
 			}
 
@@ -274,9 +307,18 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 			break;
 		}
 
+		if (tlen == 0)
+			continue;
 		ENSURE_FOR(dst, len, off, tlen);
-		memcpy(dst + off, tptr, tlen);
-		off += tlen;
+		if (!strip) {
+			memcpy(dst + off, tptr, tlen);
+			off += tlen;
+			continue;
+		}
+		for (i = 0; i < tlen; i++) {
+			if (strchr(conf.strip_chars, tptr[i]) == NULL)
+				dst[off++] = tptr[i];
+		}
 	}
 
 out:

@@ -1,3 +1,30 @@
+25 September 2007
+
+* When tags are replaced in strings, shell metacharacters are now stripped.
+  This is to permit expressions such as:
+
+	match "^Subject: (.*)" action tag "subject" value "%1"
+	match all ... action exec "echo %[subject]"
+
+  Without risk of the subject being, for instance, ";rm -Rf ~". This applies
+  to all tags, even those defined manually or by fdm itself, and happens every
+  time any tag is inserted (so in the above, the subject is in fact stripped
+  twice, once when inserted as %1 and once as %[subject] - the second time to
+  no effect).
+
+  The list of characters to strip can be altered using the strip-characters
+  option. The default is:
+
+	set strip-characters "\\<>$%^&*|{}[]\"'`;"
+
+  Stripping may be completely disabled by setting this string to "" (this will
+  return to the old behaviour), or disabled per-tag by prefixing the tag name
+  with :, for example %[:subject] or %:1.
+
+  Note that this protection is limited: it does not, for instance, prevent use
+  of ".." if using tags to create paths. Care should always be taken when
+  inserting any data extracted from an incoming mail into a shell command.
+
 24 September 2007
 
 * All regexps (match, string, command) are now case insensitive by default and 
