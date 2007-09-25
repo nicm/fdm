@@ -4,6 +4,10 @@
   may be prefixed by "case" to enable case sensitivity.
 * The match string syntax changes were bloat and are reverted.
 
+19 September 2007
+
+* POP3 over pipe. Same as IMAP.
+
 18 September 2007
 
 * Split POP3 core off into pop3-common.c a la IMAP, in preparation for
