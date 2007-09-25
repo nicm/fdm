@@ -35,10 +35,11 @@ privilege separation to minimise the amount of code running as the root user.
 %%	SSL certificate verification
 %%	The .netrc file
 %%	IMAP and IMAPS
-%%	IMAP over a pipe or via ssh
+%%	IMAP over a pipe or ssh
 %%	stdin and local mail
 %% 	From maildirs and mboxes
 %%	Using NNTP and NNTPS
+%%	New or old mail only
 ##	Defining actions
 %%	Drop and keep
 %%	Maildirs
@@ -761,6 +762,32 @@ match account "news" {
 	match string "%[group]" to "comp.std.c" action "news-%[group]"
 	match all action drop
 }
+
+%%% New or old mail only
+
+With POP3 and IMAP, fdm can be set up to fetch only new or old mail. For POP3
+this is achieved by recording the current state of the server in a cache file,
+which is updated as each mail is fetched. For IMAP it makes use of the 'seen'
+server flag which is updated by the server after each mail is fetched.
+
+These options are specified as in the following examples. For POP3:
+
+	account "name" pop3 server "blah" new-only cache "~/.fdm-pop3-cache"
+
+	account "acct" pop3s server "my-server" user "bob"
+		new-only cache "my-server-pop3-cache" no-apop
+
+And for IMAP:
+
+	account "imap" imap server "blah" new-only
+
+	account "sslimap" imaps server "imaps.somewhere"
+		user "user" pass "pass" old-only no-verify
+
+Note that currently, when using this with IMAP, the server is permitted to flag
+the mail as 'seen' before fdm has successfully delivered it, so there is no
+guarantee that mail so marked has been delivered, only that it has been
+fetched.
 
 ### Defining actions
 

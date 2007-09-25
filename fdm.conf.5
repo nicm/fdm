@@ -360,12 +360,22 @@ for details.
 .Xc
 .It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
-.Op Ic user Ar user
-.Op Ic pass Ar pass
+.Op Ar userpass
+.Op Ar only
 .Op Ic no-apop
 .Op Ic no-verify
 .Xc
 These statements define a POP3 or POP3S account.
+The
+.Ar userpass
+element has the following form:
+.Bl -tag -width Ds
+.It Xo
+.Op Ic user Ar user
+.Op Ic pass Ar pass
+.Xc
+.El
+.Pp
 The
 .Ar host ,
 .Ar user
@@ -383,6 +393,22 @@ The port option may be either a string which will be looked up in the
 .Xr services 5
 database, or a number.
 If it is omitted, the default port (110 for POP3, 995 for POP3S) is used.
+.Pp
+The
+.Ar only
+option takes the form:
+.Bl -tag -width Ds
+.It Xo
+.Op Ic new-only | Ic old-only
+.Ic cache Ar path
+.Xc
+.El
+.Pp
+.Ic new-only
+fetches only mail not previously fetched, and
+.Ic old-only
+is the inverse: it fetches only mail that has been fetched before.
+The cache file is used to save the state of the POP3 mailbox.
 The
 .Ic no-apop
 flag forces
@@ -393,7 +419,8 @@ keyword instructs
 .Xr fdm 1
 to skip SSL certificate validation for this account.
 .It Xo Ic pop3 Ic pipe Ar command
-.Ic user Ar user Ic pass Ar pass
+.Op Ar userpass
+.Op Ar only
 .Op Ic no-apop
 .Xc
 This account type uses the POP3 protocol piped through
@@ -403,17 +430,20 @@ such as
 If the command produces any output to
 .Em stderr ,
 it is logged.
+For POP3 over a pipe, providing a user and password is not optional and it may
+not be read from
+.Pa ~/.netrc .
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
-.Op Ic user Ar user
-.Op Ic pass Ar pass
+.Op Ar userpass
 .Op Ic folder Ar name
+.Op Ar only
 .Xc
 .It Xo Ic imaps Ic server Ar host
 .Op Ic port Ar port
-.Op Ic user Ar user
-.Op Ic pass Ar pass
+.Op Ar userpass
 .Op Ic folder Ar name
+.Op Ar only
 .Op Ic no-verify
 .Xc
 These define an IMAP or IMAPS account.
@@ -422,9 +452,17 @@ The parameters are as for a POP3 or POP3 account, aside from the additional
 option which allows the folder name to be specified (the default is to fetch
 from the inbox).
 The default ports used are 143 for IMAP and 993 for IMAPS.
+For IMAP, the
+.Ar only
+item consists only of one of the keywords
+.Ic new-only
+or
+.Ic old-only
+- a cache file is not required.
 .It Xo Ic imap Ic pipe Ar command
-.Op Ic user Ar user Ic pass Ar pass
+.Op Ar userpass
 .Op Ic folder Ar name
+.Op Ar only
 .Xc
 As with
 .Ic pop3
@@ -435,7 +473,10 @@ If the optional IMAP
 .Ar user
 and
 .Ar pass
-are supplied, they will be used if necessary.
+are supplied, they will be used if necessary, but if one is provided, both must
+be - using
+.Pa ~/.netrc
+is not permitted.
 .It Ic maildir Ar path
 .It Xo Ic maildirs
 .Li {
