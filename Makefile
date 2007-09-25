@@ -99,7 +99,7 @@ OBJS= ${SRCS:S/.c/.o/:S/.y/.o/}
 
 DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] fdm-sanitize \
 	   README MANUAL TODO CHANGES \
-	   `find examples regress compat -type f -and ! -path '*CVS*'`
+	   `find examples compat -type f -and ! -path '*CVS*'`
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c y.tab.h .depend \
 	    ${PROG}-*.tar.gz *~ */*~ *.ln ${PROG}.core MANUAL index.html
