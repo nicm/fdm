@@ -37,7 +37,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	IMAP and IMAPS
 %%	IMAP over a pipe or via ssh
 %%	stdin and local mail
-%% 	From maildirs
+%% 	From maildirs and mboxes
 %%	Using NNTP and NNTPS
 ##	Defining actions
 %%	Drop and keep
@@ -701,7 +701,7 @@ To the user's ~/.forward file (including the double quotes). Note the use of
 
 stdin accounts add the three line count tags described in the POP3 section.
 
-%%% From maildirs
+%%% From maildirs and mboxes
 
 Fetching from maildirs allows fdm to be used to filter mail on the local
 machine. This is covered more detail in the later section on archiving and
@@ -718,6 +718,15 @@ maildirs, but every directory found must be a valid maildir.
 
 Maildir accounts tag mail with a 'maildir' tag which is the basename of the
 maildir.
+
+Fetching from mboxes is similar:
+
+	account "mybox" mbox "/path/to/mbox"
+
+	account "mymboxes" mboxes { "/path/to/mbox1" "/path/to/mbox2" }
+
+Note that if an mbox is modified (mail is dropped from it), sufficient disk
+space is required to create a temporary copy of the entire mbox.
 
 %%% Using NNTP and NNTPS
 
