@@ -69,8 +69,7 @@ int	imap_state_body(struct account *, struct fetch_ctx *);
 int	imap_state_line(struct account *, struct fetch_ctx *);
 int	imap_state_mail(struct account *, struct fetch_ctx *);
 int	imap_state_delete(struct account *, struct fetch_ctx *);
-int	imap_state_expunge1(struct account *, struct fetch_ctx *);
-int	imap_state_expunge2(struct account *, struct fetch_ctx *);
+int	imap_state_expunge(struct account *, struct fetch_ctx *);
 int	imap_state_quit1(struct account *, struct fetch_ctx *);
 int	imap_state_quit2(struct account *, struct fetch_ctx *);
 
@@ -657,7 +656,7 @@ imap_state_search2(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* Search state 3.. */
+/* Search state 3. */
 int
 imap_state_search3(struct account *a, struct fetch_ctx *fctx)
 {
@@ -700,6 +699,8 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 	if (!TAILQ_EMPTY(&data->dropped)) {
 		aux = TAILQ_FIRST(&data->dropped);
 
+	log_debug("YYY removing %u %u -- %d", aux->idx, aux->uid,
+	    TAILQ_EMPTY(&data->dropped));
 		if (imap_putln(a,
 		    "%u STORE %u +FLAGS \\Deleted", ++data->tag, aux->idx) != 0)
 			return (FETCH_ERROR);
@@ -709,8 +710,27 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 
 	/* Need to purge, switch to purge state. */
 	if (fctx->flags & FETCH_PURGE) {
-		fctx->state = imap_state_expunge1;
-		return (FETCH_AGAIN);
+		/*
+		 * If can't purge now, loop through this state until there is
+		 * no mail on the dropped queue and FETCH_EMPTY is set. Can't
+		 * have a seperate state to loop through without returning
+		 * here: mail could potentially be added to the dropped list
+		 * while in that state.
+		 */
+		if (fctx->flags & FETCH_EMPTY) {
+			fctx->flags &= ~FETCH_PURGE;
+
+			if (imap_putln(a, "%u EXPUNGE", ++data->tag) != 0)
+				return (FETCH_ERROR);
+			fctx->state = imap_state_expunge;
+			return (FETCH_BLOCK);
+		}
+
+		/*
+		 * Must be waiting for delivery, so permit blocking even though
+		 * we (fetch) aren't waiting for any data.
+		 */
+		return (FETCH_BLOCK);
 	}
 
 	/* Move to the next mail if possible. */
@@ -931,6 +951,8 @@ imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 		return (imap_bad(a, line));
 
 	aux = TAILQ_FIRST(&data->dropped);
+ 	log_debug("XXX removing %u %u -- %d", aux->idx, aux->uid,
+	    TAILQ_EMPTY(&data->dropped));
 	TAILQ_REMOVE(&data->dropped, aux, entry);
 	imap_free(aux);
 
@@ -940,25 +962,9 @@ imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
-/* Expunge state 1. */
+/* Expunge state. */
 int
-imap_state_expunge1(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_imap_data	*data = a->data;
-
-	if (fctx->flags & FETCH_EMPTY) {
-		fctx->flags &= ~FETCH_PURGE;
-
-		if (imap_putln(a, "%u EXPUNGE", ++data->tag) != 0)
-			return (FETCH_ERROR);
-		fctx->state = imap_state_expunge2;
-	}
-	return (FETCH_BLOCK);
-}
-
-/* Expunge state 2. */
-int
-imap_state_expunge2(struct account *a, struct fetch_ctx *fctx)
+imap_state_expunge(struct account *a, struct fetch_ctx *fctx)
 {
 	char	*line;
 

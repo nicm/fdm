@@ -60,7 +60,6 @@ int	pop3_state_stat(struct account *, struct fetch_ctx *);
 int	pop3_state_first(struct account *, struct fetch_ctx *);
 int	pop3_state_next(struct account *, struct fetch_ctx *);
 int	pop3_state_delete(struct account *, struct fetch_ctx *);
-int	pop3_state_purge(struct account *, struct fetch_ctx *);
 int	pop3_state_reconnect(struct account *, struct fetch_ctx *);
 int	pop3_state_list(struct account *, struct fetch_ctx *);
 int	pop3_state_uidl(struct account *, struct fetch_ctx *);
@@ -699,13 +698,32 @@ pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
 	}
 
 	/*
-	 * Switch to purge state if requested. This must be after dropped
-	 * mail is flushed otherwise it might use the wrong indexes after
-	 * reconnect.
+	 * Try to purge if requested. This must be after dropped mail is
+	 * flushed otherwise it might use the wrong indexes after reconnect.
 	 */
 	if (fctx->flags & FETCH_PURGE) {
-		fctx->state = pop3_state_purge;
-		return (FETCH_AGAIN);
+		/*
+		 * If can't purge now, loop through this state not fetching
+		 * mail until we can: there is no mail on the dropped queue,
+		 * and FETCH_EMPTY is set. Used to have a seperate state to
+		 * loop through without returning here, but that is wrong:
+		 * mail could potentially be added to the dropped list while
+		 * in that state.
+		 */
+		if (fctx->flags & FETCH_EMPTY) {
+			fctx->flags &= ~FETCH_PURGE;
+
+			if (pop3_putln(a, "QUIT") != 0)
+				return (FETCH_ERROR);
+			fctx->state = pop3_state_reconnect;
+			return (FETCH_BLOCK);
+		}
+
+		/*
+		 * Must be waiting for delivery, so permit blocking even though
+		 * we (fetch) aren't waiting for any data.
+		 */
+		return (FETCH_BLOCK);
 	}
 
 	/* Find the next mail. */
@@ -752,20 +770,6 @@ pop3_state_delete(struct account *a, struct fetch_ctx *fctx)
 
 	fctx->state = pop3_state_next;
 	return (FETCH_AGAIN);
-}
-
-/* Purge state. Purge mail if required. */
-int
-pop3_state_purge(struct account *a, struct fetch_ctx *fctx)
-{
-	if (fctx->flags & FETCH_EMPTY) {
-		fctx->flags &= ~FETCH_PURGE;
-
-		if (pop3_putln(a, "QUIT") != 0)
-			return (FETCH_ERROR);
-		fctx->state = pop3_state_reconnect;
-	}
-	return (FETCH_BLOCK);
 }
 
 /* Reconnect state. */

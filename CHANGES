@@ -1,5 +1,9 @@
 25 September 2007
 
+* For POP3 and IMAP, don't have a seperate state for waiting-to-purge. Mail
+  could potentially be dropped (in fact, was very likely to be) while waiting
+  for queues to empty in that state. Instead, loop though the next state which
+  ensures all dropped mail is dealt with before attempting to purge.
 * When tags are replaced in strings, shell metacharacters are now stripped.
   This is to permit expressions such as:
 
