@@ -699,8 +699,6 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 	if (!TAILQ_EMPTY(&data->dropped)) {
 		aux = TAILQ_FIRST(&data->dropped);
 
-	log_debug("YYY removing %u %u -- %d", aux->idx, aux->uid,
-	    TAILQ_EMPTY(&data->dropped));
 		if (imap_putln(a,
 		    "%u STORE %u +FLAGS \\Deleted", ++data->tag, aux->idx) != 0)
 			return (FETCH_ERROR);
@@ -951,8 +949,6 @@ imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 		return (imap_bad(a, line));
 
 	aux = TAILQ_FIRST(&data->dropped);
- 	log_debug("XXX removing %u %u -- %d", aux->idx, aux->uid,
-	    TAILQ_EMPTY(&data->dropped));
 	TAILQ_REMOVE(&data->dropped, aux, entry);
 	imap_free(aux);
 
