@@ -34,5 +34,4 @@
 - docs: clarify from-headers, $() exec time etc
 - rml could be stored as actual tags, then command0-9 could go -- this means
   copying them... bad idea
-- IMAP crashes
 - no-create to stop creation of nonexistent mboxes/maildirs
