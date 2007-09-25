@@ -12,7 +12,7 @@ cat <<EOF|test_out
 EOF
 
 cat <<EOF|test_run
-set strip-characters "abcdef"
-match "(.*)" action tag "test_tag" value "%:1" continue
+set strip-characters ""
+match "(.*)" action tag "test_tag" value "%1" continue
 match all action rewrite "echo %[:test_tag]" continue
 EOF
