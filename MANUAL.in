@@ -747,7 +747,7 @@ In addition, a 'group' tag is added with the group name. This can ensure
 articles are matched purely on the group they are fetched from (trying to do
 this using headers is unreliable with cross-posted articles). For example:
 
-match all account "news" {
+match account "news" {
 	match string "%[group]" to "comp.lang.c" action "news-%[group]"
 	match string "%[group]" to "comp.std.c" action "news-%[group]"
 	match all action drop
@@ -906,7 +906,7 @@ Or to remove all instances of a header from mail:
 Mails may be assigned one of more tags manually using the tag action type. For
 example,
 
-	match all account "my*" tag "myaccts"
+	match account "my*" tag "myaccts"
 
 	match "^User-Agent:[ \t]*(.*)" tag "user-agent" value "%1"
 
@@ -958,7 +958,7 @@ matching rule (unless the continue keyword is specified).
 
 The general form of a filtering rule is:
 
-	match <conditions> [<accounts>] [<users>] <actions> [continue]
+	match <conditions> [<users>] <actions> [continue]
 
 The optional <users> item is specified as for an action definition. If users
 are specified on a filtering (match) rule, they override any specified on the
@@ -970,11 +970,6 @@ the next few sections. Aside from the 'all' condition, which is a special case,
 conditions may be chained as an expression using 'and' and 'or', in which case
 they are evaluated from left to right at the same precedence, or prepended with
 'not' to invert their outcome.
-
-The optional <accounts> item is a list of accounts for which the rule provided
-applies. It is specified as either a single account ('account "name"') or a list
-of accounts ('accounts { "name1" "name2" }'). fnmatch(3) wildcards may also be
-used.
 
 The <actions> item is a list of actions to execute when this rule matches.
 It is in the same list format: 'action "name"' or 'actions { "name1" "name2" }'.
@@ -1012,8 +1007,7 @@ definition. For example:
 
 %%% The all condition
 
-The all condition matches all mail. It may not be used as part of an expression
-with the 'and', 'or' and 'not' operators.
+The all condition matches all mail.
 
 Examples include:
 
@@ -1032,6 +1026,17 @@ keyword. For example,
 	match matched action "act2"
 	# This rule will match only mails that matched neither of the first two.
 	match unmatched action "act3"
+
+%%% Matching by account
+
+The account condition matches a list of accounts from which the mail was
+fetched. It is specified as either a single account ('account "name"') or a list
+of accounts ('accounts { "name1" "name2" }'). fnmatch(3) wildcards may also be
+used. Examples include:
+
+	match "blah" accounts { "pop3" "imap" } action "go!"
+
+	match matched and account "myacc" action drop
 
 %%% Matching a regexp
 
@@ -1385,7 +1390,7 @@ single-purpose configuration file):
 
 	account "archive" disabled maildir "source-maildir"
 	match account "archive" and age > 30 days action mbox "%[maildir]q%Q"
-	match all account "archive" action keep
+	match account "archive" action keep
 
 Then, fdm may be run to move the mail:
 
@@ -1398,7 +1403,7 @@ rules it matches:
 	account "search" disabled maildir "source-maildir" keep
 	action "found" mbox "search-results"
 	match "^From.*Bob" in headers account "search" action "found"
-	match all account "search" action keep
+	match account "search" action keep
 
 All mail matching the regexp will be copied to the target mbox. There are
 several other ways to write this ruleset.

@@ -39,5 +39,4 @@
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order also fix man page
 - document mbox fetch
-- document all/account changes and update example configs
 - document new-only/old-only for POP3 and IMAP

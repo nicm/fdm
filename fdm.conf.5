@@ -751,7 +751,6 @@ It has the following basic form:
 .It Xo Ic match
 .Ar condition
 .Op Ic and | Ic or Ar condition ...
-.Op Ar accounts
 .Op Ar users
 .Ar actions
 .Op Ic continue
@@ -771,6 +770,18 @@ Matches only mail that has matched a previous rule and been passed on with
 The opposite of
 .Ic matched :
 matches only mails which have matched no previous rules.
+.It Xo Ic account Ar name | Ic accounts
+.Li {
+.Ar name ...
+.Li }
+.Xc
+Matches only mail fetched from the named account or accounts.
+The account names may include shell glob wildcards to match multiple accounts,
+as with the
+.Fl a
+and
+.Fl x
+command line options.
 .It Ic tagged Ar string
 Matches mails tagged with
 .Ar string .
@@ -920,17 +931,13 @@ that matches
 wildcards may be used.
 .El
 .Pp
-Aside from the
-.Ic all
-condition, multiple conditions may be chained together using the
+Multiple conditions may be chained together using the
 .Ic and
 or
 .Ic or
 keywords.
 The conditions are tested from left to right.
-Any condition except
-.Ic all
-may be prefixed by the
+Any condition may be prefixed by the
 .Ic not
 keyword to invert it.
 .Pp
@@ -943,25 +950,6 @@ argument to the first form has the same syntax as for an
 .Ic action
 definition.
 A rule's user list overrides any users given as part of the actions.
-.Pp
-The
-.Ar accounts
-part consists either of a single name or a list of names enclosed in braces:
-.Bl -tag -width Ds
-.It Xo Ic account Ar name | Ic accounts
-.Li {
-.Ar name ...
-.Li }
-.Xc
-.El
-.Pp
-It is used to limit rules to matching mail within a set of accounts.
-The account names may include shell glob wildcards to match multiple accounts,
-as with the
-.Fl a
-and
-.Fl x
-command line options.
 .Pp
 The
 .Ar actions
