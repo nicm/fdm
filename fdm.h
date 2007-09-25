@@ -315,12 +315,12 @@ struct rmlist {
 
 /* Cache data. */
 struct cache {
-	TDB_CONTEXT	       *db;
+	TDB_CONTEXT	       	*db;
 
-	char		       *path;
-	uint64_t		expire;
+	char		      	*path;
+	uint64_t		 expire;
 
-	TAILQ_ENTRY(cache)	entry;
+	TAILQ_ENTRY(cache)	 entry;
 };
 struct cacheitem {
 	uint64_t 		 tim;
