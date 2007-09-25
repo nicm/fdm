@@ -16,8 +16,6 @@
 - is there any reason struct mail shouldn't point to a struct account?
 - cumulative effect of a compound action sucks
 - better website
-- generic flags on account so that no-verify/no-apop don't have to be in the
-  right order
 - fetch from compressed mbox: have to change fetch-mbox to not use mmap
 - pop3/imap tests via pipe and coprocess
 - all timeouts should be in seconds or milliseconds, decide which and make it so
@@ -37,7 +35,9 @@
 	- simplify?... just ==, != using fnmatch, no other bollocksing about?
   case keyword before all regexps or move to PCRE and lose case altogether in
   favour of "i)" etc. lose == != then
+- pop3 over pipe lack of .netrc sucks
+- generic flags on account so that no-verify/no-apop don't have to be in the
+  right order also fix man page
 - document mbox fetch
 - document all/account changes and update example configs
 - document new-only/old-only for POP3 and IMAP
-- document pop3 over pipe

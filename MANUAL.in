@@ -661,14 +661,15 @@ Examples of IMAP and IMAPS accounts include:
 As with POP3, IMAP adds the 'server', 'port', 'server_uid' and the three line
 count tags to mail.
 
-%%% IMAP over a pipe or ssh
+%%% IMAP or POP3 over a pipe or ssh
 
-Mail may be fetched using IMAP via a pipe. This is particularly useful for
-fetching mail over ssh using public keys.
+Mail may be fetched using IMAP or POP3 via a pipe. This is particularly useful
+for fetching mail over ssh using public keys.
 
-An IMAP user and password may be supplied, but fdm will only use them if
-required. If the connection is preauthenticated, the user and password are
-unnecessary.
+For IMAP, a user and password may be supplied, but fdm will only use them if
+the server asks. If the connection is preauthenticated, the user and password
+are unnecessary. For POP3, a user and password must be supplied as usual: due
+to the lack of server name, it cannot be read from the .netrc file.
 
 Communication takes place via the pipe program's stdin and stdout. If any
 output is found on stderr, fdm will print it (or log it with '-l').
@@ -678,6 +679,9 @@ Examples are:
 	account "imapssh" imap pipe "ssh jim@myhost /usr/local/libexec/imapd"
 
 	account "imapssh2" imap pipe "/usr/bin/whatever" user "bob" pass "bah"
+
+	account "pop3local" pop3
+		pipe "/usr/local/bin/ipop3d" user "me" pass "foo"
 
 %%% stdin and local mail
 

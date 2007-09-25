@@ -356,6 +356,7 @@ for details.
 .Op Ic port Ar port
 .Op Ic user Ar user
 .Op Ic pass Ar pass
+.Op Ic no-apop
 .Xc
 .It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
@@ -391,14 +392,27 @@ not to use the POP3 APOP command for authentication, and the
 keyword instructs
 .Xr fdm 1
 to skip SSL certificate validation for this account.
+.It Xo Ic pop3 Ic pipe Ar command
+.Ic user Ar user Ic pass Ar pass
+.Op Ic no-apop
+.Xc
+This account type uses the POP3 protocol piped through
+.Ar command ,
+such as
+.Xr ssh 1 .
+If the command produces any output to
+.Em stderr ,
+it is logged.
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
-.Ic user Ar user Ic pass Ar pass
+.Op Ic user Ar user
+.Op Ic pass Ar pass
 .Op Ic folder Ar name
 .Xc
 .It Xo Ic imaps Ic server Ar host
 .Op Ic port Ar port
-.Ic user Ar user Ic pass Ar pass
+.Op Ic user Ar user
+.Op Ic pass Ar pass
 .Op Ic folder Ar name
 .Op Ic no-verify
 .Xc
@@ -410,19 +424,18 @@ from the inbox).
 The default ports used are 143 for IMAP and 993 for IMAPS.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ic user Ar user Ic pass Ar pass
+.Op Ic folder Ar name
 .Xc
-This account type uses the IMAP protocol piped through a
-.Ar command ,
-such as
-.Xr ssh 1 .
+As with
+.Ic pop3
+.Ic pipe ,
+this account type uses the IMAP protocol piped through
+.Ar command .
 If the optional IMAP
 .Ar user
 and
 .Ar pass
 are supplied, they will be used if necessary.
-If the command produces any output to
-.Em stderr ,
-it is logged.
 .It Ic maildir Ar path
 .It Xo Ic maildirs
 .Li {
