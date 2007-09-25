@@ -513,7 +513,7 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 	if (m->size > conf.max_size) {
 		log_warnx("%s: message too big: %zu bytes", a->name, m->size);
 		if (!conf.del_big)
-			goto error;
+			return (-1);
 
 		/* Delete the mail. */
 		m->decision = DECISION_DROP;
@@ -538,7 +538,7 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 	/* Check for empty mails. */
 	if (m->size == 0) {
 		log_warnx("%s: empty message", a->name);
-		goto error;
+		return (-1);
 	}
 
 	/* Fill in standard mail attributes. */
@@ -638,12 +638,6 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 	log_debug("%s: got message %u%s: size %zu, body %zu", a->name, m->idx,
 	    total, m->size, m->body);
 	return (0);
-
-error:
-	/* Free the mail. */
-	mail_destroy(m);
-	xfree(m);
-	return (-1);
 }
 
 /* Resolve final decision and dequeue mail. */
