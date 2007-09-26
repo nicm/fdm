@@ -268,9 +268,10 @@ and
 blocks may be nested.
 .Sh SHELL COMMANDS
 The result of a shell command may be used at any point a string or number is
-expected by wrapping it in $() or %().
+expected by wrapping it in $() or %(). 
 If the former is used, the command result is used as a string; if the latter,
 it is converted to an integer.
+Shell commands are executed when the configuration file is parsed.
 .Sh ACCOUNTS
 The
 .Ic account
@@ -537,6 +538,10 @@ When
 .Xr fdm 1
 is run again, fetching begins at the cached article.
 .El
+Note that the
+.Ic keep
+option is completely ignored for NNTP accounts - all mail is kept, and the
+cache is always updated.
 .Sh TAGGING
 As mail is processed by
 .Xr fdm 1 ,

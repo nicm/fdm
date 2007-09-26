@@ -275,8 +275,10 @@ syntax.
 
 The value of a shell command may be used at any point in the configuration file
 where fdm expects a string or number. Shell commands are invoked by enclosing
-them in $() or %(). If $() is used, any output to stdout is treated as a
-literal string; %() attempts to convert the output to a number. For example:
+them in $() or %(). They are executed when the configuration file is parsed
+and if $() is used, any output to stdout is treated as a literal string (as
+if the output was inserted directly in the file enclosed in double quotes); %()
+attempts to convert the output to a number. For example:
 
 	$mytz = $(date +%Z)
 
@@ -750,7 +752,8 @@ the name of the group in the cache path. If multiple groups are provided,
 Note that whether a message is kept or deleted is irrelevent to NNTP, articles
 are always left on the server. The index and message-id of the last article
 is recorded in the cache file so that older articles are skipped when the a
-newsgroup is again fetched.
+newsgroup is again fetched. This happens regardless of any 'keep' keywords or
+the '-k' command line option.
 
 As with POP3 and IMAP, NNTP accounts add the 'server' and 'port' tags to mail.
 In addition, a 'group' tag is added with the group name. This can ensure
