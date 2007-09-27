@@ -1,4 +1,4 @@
-- SMTP SSL and/or TLS
+- SMTP AUTH, SSL and/or TLS
 - auth on http proxying
 - http (hotmail) fetching
 - redo chrooting properly (resolver needs to be in parent)
@@ -31,7 +31,29 @@
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order also fix man page
 - NNTP should warn if mail is dropped - generic flag
-- docs: clarify from-headers, $() exec time etc
 - rml could be stored as actual tags, then command0-9 could go -- this means
   copying them... bad idea
 - no-create to stop creation of nonexistent mboxes/maildirs
+- create missing dirs when delivering
+- delete-from-cache action
+- cache commands:
+        fdm cache-add $cachename $key
+        fdm cache-delete $cachename $key
+        fdm cache-search $cachename $key
+        fdm cache-list $cachename
+  or:
+	fdm -ccache add $key
+- audit users. match command is run as root, is this bad? also check that
+  pipe are run as default user
+- docs from Thomas@BIC:
+	clarify that first match stops without continue
+	shell commands: when evaluated (done?)
+	from-headers examples, lengthen discussion
+	clarify keep for NNTP (done?)
+	clarify action tag use/updating, and wrt lambda actions
+	man page: "The name of the last action executed for this mail."
+		(last or current?)
+	attach size units (same as maximum-size)
+	case sensitivity
+	mention short-circuit evaluation
+	check pipe command user

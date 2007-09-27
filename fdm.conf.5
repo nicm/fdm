@@ -572,7 +572,7 @@ The delivery user's home directory.
 .It uid	(%n)
 The delivery user's uid.
 .It action (%t)
-The name of the action the mail has matched.
+The name of the last action executed for this mail.
 .It user (%u)
 The delivery user's username.
 .It hour (%H)
@@ -582,7 +582,7 @@ The current minute (00-59).
 .It second (%S)
 The current second (00-59).
 .It day	(%d)
-The current day of the month (00-31).
+The current day of the month (01-31).
 .It month (%m)
 The current month (01-12).
 .It year (%y)
@@ -592,7 +592,7 @@ The current year as two digits.
 .It dayofweek (%W)
 The current day of the week (0-6, Sunday is 0).
 .It dayofyear (%Y)
-The current day of the year (000-365).
+The current day of the year (001-366).
 .It quarter (%Q)
 The current quarter (1-4).
 .It rfc822date
@@ -848,7 +848,7 @@ Matches mails tagged with
 .Ar regexp
 .Op Ic in Ic headers | Ic in body
 .Xc
-Specifies a list of regexps against which each mail should be matched.
+Specifies a regexp against which each mail should be matched.
 The regexp matches may be restricted to either the headers or body of
 the message by specifying either
 .Ic in headers
@@ -922,7 +922,7 @@ against
 The
 .Ic age
 condition examines the mail's date header to determine its age, and matches if
-the mail is older (<) or newer (>) than the time specified.
+the mail is older (>) or newer (<) than the time specified.
 The time may be given as a simple number in seconds, or followed by the word
 .Em seconds ,
 .Em hours ,
@@ -999,9 +999,6 @@ The conditions are tested from left to right.
 Any condition may be prefixed by the
 .Ic not
 keyword to invert it.
-.Pp
-This command specifies a number of actions to take when a mail matches the
-rule.
 .Pp
 The optional
 .Ar users
