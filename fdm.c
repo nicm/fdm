@@ -271,6 +271,7 @@ main(int argc, char **argv)
 	conf.file_group = -1;
 	conf.queue_high = -1;
 	conf.queue_low = -1;
+	conf.def_user = -1;
 	conf.strip_chars = xstrdup(DEFSTRIPCHARS);
 
 	ARRAY_INIT(&conf.incl);
@@ -574,10 +575,13 @@ main(int argc, char **argv)
 		conf.child_gid = pw->pw_gid;
 		endpwent();
 
-		if (conf.def_user == 0) {
+		if (conf.def_user == -1) {
 			log_warnx("no default user specified");
 			exit(1);
 		}
+	} else {
+		if (conf.def_user == -1)
+			conf.def_user = geteuid();
 	}
 
 	/* Set up signal handlers. */

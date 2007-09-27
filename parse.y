@@ -564,6 +564,7 @@ set: TOKSET TOKMAXSIZE size
 	     conf.def_user = $3;
      }
    | TOKSET TOKSTRIPCHARACTERS strv
+/**  [$3: strv (char *)] */
      {
 	     xfree(conf.strip_chars);
 	     conf.strip_chars = $3;
