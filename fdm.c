@@ -278,7 +278,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.excl);
 
 	ARRAY_INIT(&macros);
-        while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:?")) != EOF) {
+        while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:")) != EOF) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, xstrdup(optarg));
@@ -314,7 +314,6 @@ main(int argc, char **argv)
 		case 'x':
 			ARRAY_ADD(&conf.excl, xstrdup(optarg));
 			break;
-                case '?':
                 default:
                         usage();
                 }
