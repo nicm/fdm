@@ -43,8 +43,9 @@
         fdm cache-list $cachename
   or:
 	fdm -ccache add $key
-- audit users. match command is run as root, is this bad? also check that
-  pipe are run as default user
+- match command is run as root, is this bad? new option command-user? or
+  use default-user? or _fdm?
+- make-style filtering for tags :S/// etc
 - docs from Thomas@BIC:
 	clarify that first match stops without continue
 	shell commands: when evaluated (done?)
