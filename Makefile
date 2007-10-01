@@ -70,8 +70,9 @@ CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE
 # NetBSD
 .if ${OS} == "NetBSD"
 SRCS+= compat/strtonum.c
-INCDIRS+= -Icompat
+INCDIRS+= -Icompat -I/usr/pkg/include
 CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
+LDFLAGS+= -L/usr/pkg/lib
 .endif
 
 # FreeBSD
