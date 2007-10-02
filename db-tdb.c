@@ -67,6 +67,17 @@ db_add(TDB_CONTEXT *db, char *k)
 }
 
 int
+db_remove(TDB_CONTEXT *db, char *k)
+{
+	TDB_DATA		key;
+
+	key.dptr = k;
+	key.dsize = strlen(k);
+
+	return (tdb_delete(db, key));
+}
+
+int
 db_contains(TDB_CONTEXT *db, char *k)
 {
 	TDB_DATA	key;

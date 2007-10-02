@@ -135,8 +135,9 @@ yyerror(const char *fmt, ...)
 %token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
 %token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKREMOVEHEADERS
 %token TOKSTDOUT TOKNOVERIFY TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKNOAPOP
-%token TOKVERIFYCERTS TOKEXPIRE TOKADDTOCACHE TOKINCACHE TOKKEY TOKNEWONLY
-%token TOKOLDONLY TOKCACHE TOKFLOCK TOKFCNTL TOKDOTLOCK TOKSTRIPCHARACTERS
+%token TOKVERIFYCERTS TOKEXPIRE TOKADDTOCACHE TOKREMOVEFROMCACHE TOKINCACHE
+%token TOKKEY TOKNEWONLY TOKOLDONLY TOKCACHE TOKFLOCK TOKFCNTL TOKDOTLOCK
+%token TOKSTRIPCHARACTERS
 
 %union
 {
@@ -1303,7 +1304,7 @@ actitem: execpipe strv
        | TOKADDTOCACHE replpathv TOKKEY strv
 /**      [$2: replpathv (char *)] [$4: strv (char *)] */
 	 {
-		 struct deliver_to_cache_data	*data;
+		 struct deliver_add_to_cache_data	*data;
 
 		 if (*$2 == '\0')
 			 yyerror("invalid path");
@@ -1311,7 +1312,26 @@ actitem: execpipe strv
 			 yyerror("invalid key");
 
 		 $$ = xcalloc(1, sizeof *$$);
-		 $$->deliver = &deliver_to_cache;
+		 $$->deliver = &deliver_add_to_cache;
+
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+
+		 data->key.str = $4;
+		 data->path = $2;
+	 }
+       | TOKREMOVEFROMCACHE replpathv TOKKEY strv
+/**      [$2: replpathv (char *)] [$4: strv (char *)] */
+	 {
+		 struct deliver_remove_from_cache_data	*data;
+
+		 if (*$2 == '\0')
+			 yyerror("invalid path");
+		 if (*$4 == '\0')
+			 yyerror("invalid key");
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_remove_from_cache;
 
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;

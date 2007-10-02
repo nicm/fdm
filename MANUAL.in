@@ -1249,7 +1249,11 @@ Once declared, keys may be added to the cache with the 'add-to-cache' action:
 
 	match all action add-to-cache "~/my-cache" key "%[message_id]"
 
-Or the existence of a key in the cache may be tested for using the 'in-cache'
+Or removed with the 'remove-from-cache' action:
+
+	match all action remove-from-cache "~/my-cache" key "%[message_id]"
+
+And the existence of a key in the cache may be tested for using the 'in-cache'
 condition:
 
 	match in-cache "~/my-cache" key "%[message_id]" action "foundincache"

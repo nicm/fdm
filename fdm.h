@@ -872,6 +872,7 @@ int		 mail_deliver(struct mail_ctx *, struct msg *, struct msgbuf *);
 TDB_CONTEXT	*db_open(char *);
 void		 db_close(TDB_CONTEXT *);
 int		 db_add(TDB_CONTEXT *, char *);
+int		 db_remove(TDB_CONTEXT *, char *);
 int		 db_contains(TDB_CONTEXT *, char *);
 int		 db_size(TDB_CONTEXT *);
 int		 db_expire(TDB_CONTEXT *, uint64_t);

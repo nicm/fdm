@@ -352,8 +352,12 @@ free_actitem(struct actitem *ti)
 		xfree(data->key.str);
 		if (data->value.str != NULL)
 			xfree(data->value.str);
-	} else if (ti->deliver == &deliver_to_cache) {
-		struct deliver_to_cache_data		*data = ti->data;
+	} else if (ti->deliver == &deliver_add_to_cache) {
+		struct deliver_add_to_cache_data	*data = ti->data;
+		xfree(data->key.str);
+		xfree(data->path);
+	} else if (ti->deliver == &deliver_remove_from_cache) {
+		struct deliver_remove_from_cache_data	*data = ti->data;
 		xfree(data->key.str);
 		xfree(data->path);
 	} else if (ti->deliver == &deliver_smtp) {

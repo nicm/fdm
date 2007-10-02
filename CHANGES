@@ -1,7 +1,8 @@
 02 October 2007
 
+* "remove-from-cache" action.
 * Rename to-cache to add-to-cache (to-cache remains as a compatibility alias).
-  This is to match the planned delete-from-cache and perhaps other similar.
+  This is to match the planned remove-from-cache and perhaps other similar.
 * The account/all warnings are now gone.
 
 01 October 2007

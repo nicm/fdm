@@ -35,7 +35,6 @@
   copying them... bad idea
 - no-create to stop creation of nonexistent mboxes/maildirs
 - create missing dirs when delivering
-- delete-from-cache action
 - cache commands:
         fdm cache-add $cachename $key
         fdm cache-delete $cachename $key
