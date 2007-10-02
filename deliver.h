@@ -125,7 +125,7 @@ struct deliver_action_data {
 };
 
 /* Deliver rewrite data. */
-struct deliver_to_cache_data {
+struct deliver_add_to_cache_data {
 	char		*path;
 	struct replstr	 key;
 };
@@ -166,7 +166,7 @@ extern struct deliver 	 deliver_write;
 /* deliver-rewrite.c */
 extern struct deliver 	 deliver_rewrite;
 
-/* deliver-to-cache.c */
-extern struct deliver 	 deliver_to_cache;
+/* deliver-add-to-cache.c */
+extern struct deliver 	 deliver_add_to_cache;
 
 #endif

@@ -23,24 +23,24 @@
 #include "fdm.h"
 #include "deliver.h"
 
-int	 deliver_to_cache_deliver(struct deliver_ctx *, struct actitem *);
-void	 deliver_to_cache_desc(struct actitem *, char *, size_t);
+int	 deliver_add_to_cache_deliver(struct deliver_ctx *, struct actitem *);
+void	 deliver_add_to_cache_desc(struct actitem *, char *, size_t);
 
-struct deliver deliver_to_cache = {
-	"to-cache",
+struct deliver deliver_add_to_cache = {
+	"add-to-cache",
 	DELIVER_INCHILD,
-	deliver_to_cache_deliver,
-	deliver_to_cache_desc
+	deliver_add_to_cache_deliver,
+	deliver_add_to_cache_desc
 };
 
 int
-deliver_to_cache_deliver(struct deliver_ctx *dctx, struct actitem *ti)
+deliver_add_to_cache_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 {
-	struct account			*a = dctx->account;
-	struct mail			*m = dctx->mail;
-	struct deliver_to_cache_data	*data = ti->data;
-	char				*key;
-	struct cache			*cache;
+	struct account				*a = dctx->account;
+	struct mail				*m = dctx->mail;
+	struct deliver_add_to_cache_data	*data = ti->data;
+	char					*key;
+	struct cache				*cache;
 
 	key = replacestr(&data->key, m->tags, m, &m->rml);
 	if (key == NULL || *key == '\0') {
@@ -71,10 +71,10 @@ error:
 }
 
 void
-deliver_to_cache_desc(struct actitem *ti, char *buf, size_t len)
+deliver_add_to_cache_desc(struct actitem *ti, char *buf, size_t len)
 {
-	struct deliver_to_cache_data	*data = ti->data;
+	struct deliver_add_to_cache_data	*data = ti->data;
 
 	xsnprintf(buf, len,
-	    "to-cache \"%s\" key \"%s\"", data->path, data->key.str);
+	    "add-to-cache \"%s\" key \"%s\"", data->path, data->key.str);
 }

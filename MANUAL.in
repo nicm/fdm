@@ -1245,9 +1245,9 @@ referenced by filename and must be declared before use:
 
 If the expiry time is not specified, items are never expired from the cache.
 
-Once declared, keys may be added to the cache with the 'to-cache' action:
+Once declared, keys may be added to the cache with the 'add-to-cache' action:
 
-	match all action to-cache "~/my-cache" key "%[message_id]"
+	match all action add-to-cache "~/my-cache" key "%[message_id]"
 
 Or the existence of a key in the cache may be tested for using the 'in-cache'
 condition:
@@ -1267,7 +1267,7 @@ above:
 
 	match not string $key to "" {
 		match in-cache $db key $key action maildir "%h/mail/duplicates"
-		match all action to-cache $db key $key continue
+		match all action add-to-cache $db key $key continue
 	}
 
 ### Setting options
