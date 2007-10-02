@@ -118,22 +118,6 @@ yyerror(const char *fmt, ...)
 
 	exit(1);
 }
-
-printflike1 void
-yywarn(const char *fmt, ...)
-{
-	va_list	ap;
-	char   *s;
-
-	xasprintf(&s,
-	    "%s: %s at line %d", parse_file->path, fmt, parse_file->rule_line);
-
-	va_start(ap, fmt);
-	log_vwrite(NULL, LOG_CRIT, s, ap);
-	va_end(ap);
-
-	xfree(s);
-}
 %}
 
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
@@ -222,7 +206,7 @@ yywarn(const char *fmt, ...)
 %type  <only> only imaponly
 %type  <poponly> poponly
 %type  <replstrs> replstrslist
-%type  <replstrs> actions rmheaders accounts accounts2
+%type  <replstrs> actions rmheaders accounts
 %type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
@@ -1442,17 +1426,6 @@ defaction: TOKACTION replstrv users actitem
 		   xfree($2);
 	   }
 
-/** ACCOUNTS2: <replstrs> (struct replstrs *) */
-accounts2: /* empty */
-	  {
-		  $$ = NULL;
-	  }
-	| accounts
-/**       [$1: accounts (struct replstrs *)] */
-	  {
-		  $$ = $1;
-	  }
-
 /** ACCOUNTS: <replstrs> (struct replstrs *) */
 accounts: accountp strv
 /**       [$2: strv (char *)] */
@@ -2056,38 +2029,11 @@ close: '}'
        }
 
 /** RULE */
-rule: TOKMATCH expr accounts2 perform
-/**   [$2: expr (struct expr *)] [$3: accounts2 (struct replstrs *)] */
-/**   [$4: perform (struct rule *)] */
+rule: TOKMATCH expr perform
+/**   [$2: expr (struct expr *)] [$3: perform (struct rule *)] */
       {
-	      struct expritem		*ei;
-	      struct match_account_data	*data;
-
-	      $4->expr = $2;
-
-	      /* Prepend an accounts rule to the expression. */
-	      if ($3 != NULL) {
-		      yywarn("match ... accounts ... is deprecated");
-		      yywarn("please use the 'accounts' match condition");
-
-		      if ($4->expr == NULL) {
-			      $4->expr = xmalloc(sizeof *$4->expr);
-			      TAILQ_INIT($4->expr);
-		      } else
-			      TAILQ_FIRST($4->expr)->op = OP_AND;
-
-		      ei = xcalloc(1, sizeof *ei);
-		      ei->match = &match_account;
-		      ei->op = OP_NONE;
-		      TAILQ_INSERT_HEAD($4->expr, ei, entry);
-
-		      data = xcalloc(1, sizeof *data);
-		      ei->data = data;
-
-		      data->accounts = $3;
-	      }
-
-	      print_rule($4);
+	      $3->expr = $2;
+	      print_rule($3);
       }
 
 /** FOLDER: <string> (char *) */

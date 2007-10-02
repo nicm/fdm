@@ -5,7 +5,7 @@
 	update-index.html upload-index.html
 
 PROG= fdm
-VERSION= 1.4
+VERSION= 1.5
 
 OS!= uname
 REL!= uname -r

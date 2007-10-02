@@ -42,7 +42,7 @@
         fdm cache-search $cachename $key
         fdm cache-list $cachename
   or:
-	fdm -ccache add $key
+	fdm -c/path/to/cache add $key
 - match command is run as root, is this bad? new option command-user? or
   use default-user? or _fdm?
 - make-style filtering for tags :S/// etc

@@ -1,3 +1,11 @@
+02 October 2007
+
+* The account/all warnings are now gone.
+
+01 October 2007
+
+* fdm 1.4 released.
+
 25 September 2007
 
 * For POP3 and IMAP, don't have a seperate state for waiting-to-purge. Mail

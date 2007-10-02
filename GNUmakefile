@@ -3,7 +3,7 @@
 .PHONY: clean
 
 PROG= fdm
-VERSION= 1.4
+VERSION= 1.5
 DATE= $(shell date +%Y%m%d-%H%M)
 
 DEBUG= 1

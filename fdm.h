@@ -678,7 +678,6 @@ enum cmp {
 struct file {
 	FILE		*f;
 	int		 line;
-	int		 rule_line; /* XXX */
 	const char	*path;
 };
 ARRAY_DECL(files, struct file *);
@@ -725,7 +724,6 @@ extern struct file     *parse_file;
 extern struct strb     *parse_tags;
 int	 		parse_conf(const char *, struct strings *);
 __dead printflike1 void yyerror(const char *, ...);
-printflike1 void 	yywarn(const char *, ...);
 
 /* parse-fn.c */
 char		*expand_path(const char *);
