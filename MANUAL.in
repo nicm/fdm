@@ -1103,7 +1103,7 @@ Examples include:
 The results of any bracket expressions within the last regexp match are
 remembered, and may be made use of using the 'string' condition, or used to
 construct an action name, maildir or mbox path, etc. The bracket expressions
-may be substituted using the %1 to %9 tokens. For example,
+may be substituted using the %0 to %9 tokens. For example,
 
 	match "^From:.*[ \t]([a-z]*)@domain" in headers action "all" continue
 	match string "%1" to "bob.*" action "bobmail"
