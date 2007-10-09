@@ -37,7 +37,7 @@ SRCS= fdm.c \
       deliver-remove-from-cache.c deliver-write.c \
       fetch-imap.c fetch-imappipe.c fetch-maildir.c fetch-nntp.c fetch-pop3.c \
       fetch-pop3pipe.c fetch-stdin.c fetch-mbox.c pop3-common.c imap-common.c \
-      mail-state.c mail-time.c mail.c file.c \
+      mail-state.c mail-time.c mail.c file.c cache-op.c \
       match-all.c match-age.c match-attachment.c match-command.c \
       match-in-cache.c match-matched.c match-regexp.c match-size.c \
       match-string.c match-tagged.c match-unmatched.c match-account.c \
