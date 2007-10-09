@@ -43,7 +43,6 @@ const char		*malloc_options = "AFGJPRX";
 #endif
 
 void			 sighandler(int);
-void			 usage(void);
 
 struct conf		 conf;
 
@@ -218,8 +217,8 @@ __dead void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: %s [-klmnqv] [-a name] [-D name=value] [-f conffile]"
-	    " [-u user] [-x name] [fetch|poll]\n", __progname);
+	    "usage: %s [-klmnqv] [-a name] [-D name=value] [-f conffile] "
+	    "[-u user] [-x name] [fetch|poll|cache] [arguments]\n", __progname);
         exit(1);
 }
 
@@ -324,12 +323,16 @@ main(int argc, char **argv)
 		if (argc != 0)
 			usage();
 	} else {
-		if (argc != 1)
-			usage();
-		if (strncmp(argv[0], "poll", strlen(argv[0])) == 0)
+		if (strncmp(argv[0], "poll", strlen(argv[0])) == 0) {
+			if (argc != 1)
+				usage();
 			op = FDMOP_POLL;
-		else if (strncmp(argv[0], "fetch", strlen(argv[0])) == 0)
+		} else if (strncmp(argv[0], "fetch", strlen(argv[0])) == 0) {
+			if (argc != 1)
+				usage();
 			op = FDMOP_FETCH;
+		} else if (strncmp(argv[0], "cache", strlen(argv[0])) == 0)
+			op = FDMOP_CACHE;
 		else
 			usage();
 	}
@@ -571,6 +574,13 @@ main(int argc, char **argv)
         if (op == FDMOP_FETCH && TAILQ_EMPTY(&conf.rules)) {
                 log_warnx("no rules specified");
 		exit(1);
+	}
+
+	/* Change to handle cache ops. */
+	if (op == FDMOP_CACHE) {
+		argc--;
+		argv++;
+		cache_op(argc, argv);
 	}
 
 	/* Check for child user if root. */

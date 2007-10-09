@@ -1,9 +1,45 @@
+09 October 2007
+
+* Command line cache manipulation. The following commands are available:
+
+	fdm cache list [path]
+		List details of cache path or all caches in the configuration
+		file if not specified.
+
+	fdm cache dump path
+		Dump cache keys in the form "key time" where time is is
+		Unix time (seconds from epoch). This allows to easily sort by
+		time:
+		
+			fdm cache dump ~/my/cache|sort -n +2
+
+		Or to print the time in a particular date format:
+	
+			fdm cache dump ~/my/cache|while read i; do
+				set -- $i
+				echo $1 `date -r$2 "+%Y-%m-%d% %H:%M:%S"`
+			done
+
+		And so on.
+
+	fdm cache add path key
+	fdm cache remove path key
+		Add a key to or remove a key from a cache.
+
+	fdm cache clear path
+		Clear an entire cache (remove all the keys).
+
+	This feature suggested by Thomas@BIC.
+* Restore regress files to distribution. Requested by Mike Erdely for the
+  OpenBSD port. Note that there is no guarantee regressions tests will run on
+  other operating systems!
+
 02 October 2007
 
 * "remove-from-cache" action.
 * Rename to-cache to add-to-cache (to-cache remains as a compatibility alias).
   This is to match the planned remove-from-cache and perhaps other similar.
-* The account/all warnings are now gone.
+* The account/all deprecated support and warnings are now gone.
 
 01 October 2007
 

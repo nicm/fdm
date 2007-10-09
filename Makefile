@@ -25,7 +25,7 @@ SRCS= fdm.c \
       deliver-remove-from-cache.c deliver-write.c \
       fetch-imap.c fetch-imappipe.c fetch-maildir.c fetch-nntp.c fetch-pop3.c \
       fetch-pop3pipe.c fetch-stdin.c fetch-mbox.c pop3-common.c imap-common.c \
-      mail-state.c mail-time.c mail.c file.c \
+      mail-state.c mail-time.c mail.c file.c cache-op.c \
       match-all.c match-age.c match-attachment.c match-command.c \
       match-in-cache.c match-matched.c match-regexp.c match-size.c \
       match-string.c match-tagged.c match-unmatched.c match-account.c \
@@ -98,12 +98,14 @@ LIBS+= -lssl -lcrypto -ltdb -lz
 
 OBJS= ${SRCS:S/.c/.o/:S/.y/.o/}
 
+DISTDIR= ${PROG}-${VERSION}
 DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] fdm-sanitize \
 	   README MANUAL TODO CHANGES \
-	   `find examples compat -type f -and ! -path '*CVS*'`
+	   `find examples compat -type f -and ! -path '*CVS*'` \
+	   `find examples regress -type f -and ! -path '*CVS*'`
 
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c y.tab.h .depend \
-	    ${PROG}-*.tar.gz *~ */*~ *.ln ${PROG}.core MANUAL index.html
+	    ${DISTDIR}.tar.gz *~ */*~ *.ln ${PROG}.core MANUAL index.html
 
 .c.o:
 		${CC} ${CFLAGS} ${INCDIRS} -c ${.IMPSRC} -o ${.TARGET}
@@ -123,8 +125,8 @@ dist:		clean manual
 		[ "`(grep '^VERSION' Makefile; grep '^VERSION' GNUmakefile)| \
 			uniq -u`" = "" ]
 		tar -zc \
-			-s '/.*/${PROG}-${VERSION}\/\0/' \
-			-f ${PROG}-${VERSION}.tar.gz ${DISTFILES}
+			-s '/.*/${DISTDIR}\/\0/' \
+			-f ${DISTDIR}.tar.gz ${DISTFILES}
 
 lint:
 		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}

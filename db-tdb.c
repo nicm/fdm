@@ -25,7 +25,9 @@
 
 #include "fdm.h"
 
-int	db_item(TDB_CONTEXT *, TDB_DATA, TDB_DATA, void *);
+int	db_print_item(TDB_CONTEXT *, TDB_DATA, TDB_DATA, void *);
+int	db_expire_item(TDB_CONTEXT *, TDB_DATA, TDB_DATA, void *);
+int	db_clear_item(TDB_CONTEXT *, TDB_DATA, TDB_DATA, void *);
 
 TDB_CONTEXT *
 db_open(char *path)
@@ -95,7 +97,33 @@ db_size(TDB_CONTEXT *db)
 }
 
 int
-db_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
+db_print_item(
+    unused TDB_CONTEXT *tdb, unused TDB_DATA key, TDB_DATA value, void *ptr)
+{
+	void 			(*p)(const char *, ...) = ptr;
+	struct cacheitem	v;
+	uint64_t		tim;
+
+ 	if (value.dsize != sizeof v)
+		return (-1);
+	memcpy(&v, value.dptr, sizeof v);
+
+	tim = letoh64(v.tim);
+	p("%.*s %llu", key.dsize, key.dptr, (unsigned long long) tim);
+
+	return (0);
+}
+
+int
+db_print(TDB_CONTEXT *db, void (*p)(const char *, ...))
+{
+	if (tdb_traverse(db, db_print_item, p) == -1)
+		return (-1);
+	return (0);
+}
+
+int
+db_expire_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
 {
 	uint64_t	       *lim = ptr;
 	struct cacheitem	v;
@@ -119,7 +147,24 @@ db_expire(TDB_CONTEXT *db, uint64_t age)
 		return (0);
 	lim -= age;
 
-	if (tdb_traverse(db, db_item, &lim) == -1)
+	if (tdb_traverse(db, db_expire_item, &lim) == -1)
+		return (-1);
+	return (0);
+}
+
+int
+db_clear_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, unused void *ptr)
+{
+ 	if (value.dsize != sizeof (struct cacheitem))
+		return (-1);
+
+	return (tdb_delete(tdb, key));
+}
+
+int
+db_clear(TDB_CONTEXT *db)
+{
+	if (tdb_traverse(db, db_clear_item, NULL) == -1)
 		return (-1);
 	return (0);
 }

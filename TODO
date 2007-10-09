@@ -35,13 +35,6 @@
   copying them... bad idea
 - no-create to stop creation of nonexistent mboxes/maildirs
 - create missing dirs when delivering
-- cache commands:
-        fdm cache-add $cachename $key
-        fdm cache-delete $cachename $key
-        fdm cache-search $cachename $key
-        fdm cache-list $cachename
-  or:
-	fdm -c/path/to/cache add $key
 - match command is run as root, is this bad? new option command-user? or
   use default-user? or _fdm?
 - make-style filtering for tags :S/// etc
@@ -57,3 +50,5 @@
 	case sensitivity
 	mention short-circuit evaluation
 	check pipe command user
+- document cache commands
+
