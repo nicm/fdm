@@ -640,6 +640,7 @@ struct conf {
 	int		         del_big;
 	u_int			 lock_types;
 	uid_t			 def_user;
+	uid_t			 cmd_user;
 
 	TAILQ_HEAD(, cache)	 caches;
 	TAILQ_HEAD(, account)	 accounts;

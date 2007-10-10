@@ -55,6 +55,8 @@ match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 	msg.data.account = a;
 	msg.data.cmddata = data;
 	msg.data.uid = data->uid;
+	if (msg.data.uid == -1)
+		msg.data.uid = conf.cmd_user;
 
 	msgbuf.buf = m->tags;
 	msgbuf.len = STRB_SIZE(m->tags);

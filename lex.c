@@ -80,6 +80,7 @@ static const struct token tokens[] = {
 	{ "bytes", TOKBYTES },
 	{ "cache", TOKCACHE },
 	{ "case", TOKCASE },
+	{ "command-user", TOKCMDUSER },
 	{ "compress", TOKCOMPRESS },
 	{ "continue", TOKCONTINUE },
 	{ "count", TOKCOUNT },
