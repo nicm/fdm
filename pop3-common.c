@@ -831,7 +831,7 @@ pop3_state_list(struct account *a, struct fetch_ctx *fctx)
 	if (!pop3_okay(line))
 		return (pop3_bad(a, line));
 
-	if (sscanf(line, "+OK %u %zu", &n, &data->size) != 1)
+	if (sscanf(line, "+OK %u %zu", &n, &data->size) != 2)
 		return (pop3_invalid(a, line));
 	if (n != aux->idx)
 		return (pop3_bad(a, line));
