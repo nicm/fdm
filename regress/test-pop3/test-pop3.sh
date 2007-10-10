@@ -7,8 +7,6 @@ TEST=$1
 FIFO=$TEST.fifo
 TYPE=pop3
 
-trap "rm -f $FIFO.in $FIFO.out $TEST.log $TEST.conf; exit 1" 2 3
-
 cat <<EOF >$TEST.conf
 set lock-file "$TEST.lock"
 account 'account' $TYPE
@@ -29,6 +27,7 @@ quit() {
     if [ $1 -ne 1 ]; then
 	echo "$TEST: PASSED"
     else
+	kill %1 2>/dev/null
 	echo "$TEST: FAILED"
     fi
 
