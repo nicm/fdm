@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -512,7 +513,7 @@ pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct fetch_pop3_mail	*aux;
-	char			*line;
+	char			*line, *ptr;
 	u_int			 n;
 
 	/* Parse response and add to server queue. */
@@ -527,6 +528,26 @@ pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 		if (n != data->cur + 1)
 			return (pop3_bad(a, line));
 		line = strchr(line, ' ') + 1;
+
+		/* 
+		 * Check UID validity. We are intolerant about validity since
+		 * accepting bad UIDs could potentially end up with UIDs that
+		 * conflict.
+		 */
+		if (*line == '\0') {
+			log_warnx("%s: empty UID", a->name);
+			return (FETCH_ERROR);
+		}
+		for (ptr = line; *ptr != '\0'; ptr++) {
+			if (*ptr < 0x21 || *ptr > 0x7e) {
+				log_warnx("%s: invalid UID: %s", a->name, line);
+				return (FETCH_ERROR);
+			}
+		}
+		if (ptr > line + 70) {
+				log_warnx("%s: UID too big: %s", a->name, line);
+				return (FETCH_ERROR);
+		}			
 
 		aux = xcalloc(1, sizeof *aux);
 		aux->idx = n;
@@ -801,6 +822,7 @@ pop3_state_list(struct account *a, struct fetch_ctx *fctx)
 	struct mail		*m = fctx->mail;
 	struct fetch_pop3_mail	*aux = m->auxdata;
 	char			*line;
+	u_int			 n;
 
 	if (pop3_getln(a, fctx, &line) != 0)
 		return (FETCH_ERROR);
@@ -809,8 +831,10 @@ pop3_state_list(struct account *a, struct fetch_ctx *fctx)
 	if (!pop3_okay(line))
 		return (pop3_bad(a, line));
 
-	if (sscanf(line, "+OK %*u %zu", &data->size) != 1)
+	if (sscanf(line, "+OK %u %zu", &n, &data->size) != 1)
 		return (pop3_invalid(a, line));
+	if (n != aux->idx)
+		return (pop3_bad(a, line));
 
 	if (pop3_putln(a, "RETR %u", aux->idx) != 0)
 		return (FETCH_ERROR);
