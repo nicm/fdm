@@ -1,16 +1,14 @@
 # $Id$
 
-CLEANFILES= *~
+CLEANFILES= *~ *.fifo.{in,out} *.log *.conf
 
-TESTFILES!= echo *.test
+TESTFILES!= echo pop3-*.test
 
 TARGETS=
 .for n in ${TESTFILES}
 TARGETS+= ${n}
 ${n}:
-		@echo ${n}:
-		@HOME=. awk -v CMD="../fdm -vvvnf /dev/stdin" \
-			-v DEBUG=${DEBUG} -f test.awk ${n}
+		@HOME=. FDM=../../fdm sh test-pop3.sh ${n}
 .endfor
 
 .MAIN:		all
@@ -20,8 +18,6 @@ ${n}:
 all:		regress
 
 regress:	${TARGETS}
-		cd tests && ${MAKE}
-		cd test-pop3 && ${MAKE}
 
 clean:
 		rm -f ${CLEANFILES}
