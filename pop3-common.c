@@ -451,6 +451,7 @@ pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	char			*line;
+	u_int			 n;
 
 	if (pop3_getln(a, fctx, &line) != 0)
 		return (FETCH_ERROR);
@@ -459,7 +460,7 @@ pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 	if (!pop3_okay(line))
 		return (pop3_bad(a, line));
 
-	if (sscanf(line, "+OK %u %*u", &data->num) != 1)
+	if (sscanf(line, "+OK %u %u", &data->num, &n) != 2)
 		return (pop3_invalid(a, line));
 	data->cur = 0;
 

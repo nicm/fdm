@@ -1,5 +1,6 @@
 10 October 2007
 
+* Don't accept "+OK N" as well as "+OK N M" in response to STAT.
 * New option: command-user. This is the user used to run exec/pipe match
   conditions if one is not specified. The default is the user who ran fdm
   (root if running as root).
