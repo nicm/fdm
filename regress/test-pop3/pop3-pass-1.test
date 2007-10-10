@@ -1,0 +1,7 @@
+>+OK POP3
+<USER test
+>+OK
+<PASS test
+>-ERR test test test
+--
+unexpected data: -ERR test test test
