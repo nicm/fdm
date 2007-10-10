@@ -1,0 +1,12 @@
+>+OK POP3
+<USER test
+>+OK
+<PASS test
+>+OK
+<STAT
+>+OK 1 0
+<UIDL
+>+OK
+>.
+--
+invalid response: .

@@ -1,0 +1,15 @@
+>+OK POP3
+<USER test
+>+OK
+<PASS test
+>+OK
+<STAT
+>+OK 1 0
+<UIDL
+>+OK
+# Note two spaces here.
+>1  
+>.
+--
+bad UID:  
+

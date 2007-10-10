@@ -1,0 +1,13 @@
+>+OK POP3
+<USER test
+>+OK
+<PASS test
+>+OK
+<STAT
+>+OK 1 0
+<UIDL
+>+OK
+>1 uidl1
+>3 uidl3
+--
+unexpected data: 3 uidl3
