@@ -142,10 +142,12 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	}
 
 	/* Valid CN found. */
+	X509_free(x509);
 	return (0);
 
 error:
-	X509_free(x509);
+	if (x509 != NULL)
+		X509_free(x509);
 	return (-1);
 }
 
