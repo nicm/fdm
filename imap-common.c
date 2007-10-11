@@ -423,7 +423,7 @@ imap_state_cram_md5_auth(struct account *a, struct fetch_ctx *fctx)
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
-	ptr = line +  1;
+	ptr = line + 1;
 	while (isspace((u_char) *ptr))
 		ptr++;
 	if (*ptr == '\0')

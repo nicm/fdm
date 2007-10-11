@@ -6,6 +6,9 @@
 	rules
 	% tokens
 	maildir
+- extend POP3/IMAP tests:
+	new-only/old-only
+	oversize mails
 - balance man pages/manual
 - match attachment expressions:
 	match attachment (index > 1 and size < 200 and type "fnmatch")
@@ -17,7 +20,6 @@
 - cumulative effect of a compound action sucks
 - better website
 - fetch from compressed mbox: have to change fetch-mbox to not use mmap
-- pop3/imap tests via pipe and coprocess
 - all timeouts should be in seconds or milliseconds, decide which and make it so
 - use TOP to grab only header and return to get body only if actually necessary
 - automatically delete old mail on server once it reaches a certain age...
