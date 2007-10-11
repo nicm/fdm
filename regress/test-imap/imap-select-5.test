@@ -1,0 +1,20 @@
+>* OK
+<1 CAPABILITY
+>* CAPABILITY IMAP4rev1
+>1 OK
+<2 LOGIN {4}
+>+
+<test {4}
+>+
+<test
+>2 OK
+<3 SELECT {5}
+>+
+<INBOX
+>* 0 EXISTS
+>* 1 EXISTS
+>3 OK
+<4 CLOSE
+>4 OK
+<5 LOGOUT
+>5 OK
