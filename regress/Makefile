@@ -22,6 +22,7 @@ all:		regress
 regress:	${TARGETS}
 		cd tests && ${MAKE}
 		cd test-pop3 && ${MAKE}
+		cd test-imap && ${MAKE}
 
 clean:
 		rm -f ${CLEANFILES}
