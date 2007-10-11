@@ -1,0 +1,6 @@
+>* OK
+<1 CAPABILITY
+>* CAPABILITY IMAP4rev1
+>2 OK
+--
+unexpected data: 2 OK
