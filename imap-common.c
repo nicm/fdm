@@ -366,6 +366,11 @@ imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
+	if (strstr(line, "IMAP4rev1") == NULL) {
+		log_warnx("%s: no IMAP4rev1 capability: %s", a->name, line);
+		return (FETCH_ERROR);
+	}
+
 	data->capa = 0;
 	if (strstr(line, "AUTH=CRAM-MD5") != NULL)
 		data->capa |= IMAP_CAPA_AUTH_CRAM_MD5;
