@@ -1,0 +1,18 @@
+>+OK POP3
+<USER test
+>+OK
+<PASS test
+>+OK
+<STAT
+>+OK 1 0
+<UIDL
+>+OK
+>1 uidl1
+>.
+<LIST 1
+>+OK 1 0
+<RETR 1
+>+OK
+>.
+--
+empty message

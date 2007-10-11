@@ -10,9 +10,12 @@
 >1 uidl1
 >.
 <LIST 1
->+OK 1 5
+>+OK 1 10
 <RETR 1
 >+OK
+>Test.
 >.
---
-empty message
+<DELE 1
+>+OK
+<QUIT
+>+OK
