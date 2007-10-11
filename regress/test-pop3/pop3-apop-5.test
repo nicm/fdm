@@ -1,0 +1,5 @@
+>+OK POP3 <test>
+<APOP test 43372d1764a45cc8e0d92c5f81afaa28
+>-ERR test test test
+--
+unexpected data: -ERR test test test

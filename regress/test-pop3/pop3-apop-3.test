@@ -1,0 +1,9 @@
+>+OK POP3 test>
+<USER test
+>+OK
+<PASS test
+>+OK
+<STAT
+>+OK 0 0
+<QUIT
+>+OK
