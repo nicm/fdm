@@ -415,7 +415,7 @@ main(int argc, char **argv)
 	/* Set the umask. */
 	umask(conf.file_umask);
 
-	/* Figure out default user. */
+	/* Figure out default and command users. */
 	if (conf.def_user == (uid_t) -1) {
 		conf.def_user = geteuid();
 		if (conf.def_user == 0) {
@@ -423,6 +423,8 @@ main(int argc, char **argv)
 			exit(1);
 		}
 	}
+	if (conf.cmd_user == (uid_t) -1)
+		conf.cmd_user = geteuid();
 
 	/* Print proxy info. */
 	if (conf.proxy != NULL) {
