@@ -625,6 +625,7 @@ struct conf {
 	int			 allow_many;
 	int			 keep_all;
 	int			 no_received;
+	int			 no_create;
 	int			 verify_certs;
 	u_int			 purge_after;
 	enum decision		 impl_act;
@@ -831,14 +832,15 @@ struct io 	*connectproxy(struct server *, int, struct proxy *,
 struct io	*connectio(struct server *, int, const char *, int, char **);
 
 /* file.c */
-int printflike3	 mkpath(char *, size_t, const char *, ...);
-int		 vmkpath(char *, size_t, const char *, va_list);
+int printflike3	 ppath(char *, size_t, const char *, ...);
+int		 vppath(char *, size_t, const char *, va_list);
 int 		 openlock(const char *, int, u_int);
 int 		 createlock(const char *, int, uid_t, gid_t, mode_t, u_int);
 void 		 closelock(int, const char *, u_int);
 int		 locksleep(const char *, const char *, long long *);
 int 		 xcreate(const char *, int, uid_t, gid_t, mode_t);
 int		 xmkdir(const char *, uid_t, gid_t, mode_t);
+int		 xmkpath(const char *, uid_t, gid_t, mode_t);
 const char 	*checkmode(struct stat *, mode_t);
 const char 	*checkowner(struct stat *, uid_t);
 const char 	*checkgroup(struct stat *, gid_t);

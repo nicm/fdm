@@ -30,15 +30,15 @@ int	mklock(u_int, const char *);
 void	rmlock(u_int, const char *);
 int	lockfd(u_int, int);
 
-/* Make path into buffer. */
+/* Print path into buffer. */
 int
-mkpath(char *buf, size_t len, const char *fmt, ...)
+ppath(char *buf, size_t len, const char *fmt, ...)
 {
 	va_list	ap;
 	int	n;
 
 	va_start(ap, fmt);
-	n = vmkpath(buf, len, fmt, ap);
+	n = vppath(buf, len, fmt, ap);
 	va_end(ap);
 
 	return (n);
@@ -46,7 +46,7 @@ mkpath(char *buf, size_t len, const char *fmt, ...)
 
 /* Make path into buffer. */
 int
-vmkpath(char *buf, size_t len, const char *fmt, va_list ap)
+vppath(char *buf, size_t len, const char *fmt, va_list ap)
 {
 	if ((size_t) xvsnprintf(buf, len, fmt, ap) >= len) {
 		errno = ENAMETOOLONG;
@@ -66,7 +66,7 @@ mklock(u_int locks, const char *path)
 	if (!(locks & LOCK_DOTLOCK))
 		return (0);
 
-	if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
+	if (ppath(lock, sizeof lock, "%s.lock", path) != 0)
 		return (-1);
 
 	fd = xcreate(lock, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
@@ -90,7 +90,7 @@ rmlock(u_int locks, const char *path)
 	if (!(locks & LOCK_DOTLOCK))
 		return;
 
-	if (mkpath(lock, sizeof lock, "%s.lock", path) != 0)
+	if (ppath(lock, sizeof lock, "%s.lock", path) != 0)
 		fatal("unlink failed");
 
 	if (unlink(lock) != 0)
@@ -235,6 +235,36 @@ xmkdir(const char *path, uid_t uid, gid_t gid, mode_t mode)
 		if (chown(path, uid, gid) != 0)
 			return (-1);
 	}
+
+	return (0);
+}
+
+/* Create entire path. */
+int
+xmkpath(const char *path, uid_t uid, gid_t gid, mode_t mode)
+{
+	struct stat	sb;
+        char 	       *copy, *ptr, ch;
+
+	copy = ptr = xstrdup(path);
+        do {
+                ptr += strspn(ptr, "/");
+                ptr += strcspn(ptr, "/");
+		ch = *ptr;
+
+		*ptr = '\0';
+                if (stat(copy, &sb) != 0) {
+                        if (errno == ENOENT &&
+			    xmkdir(copy, uid, gid, mode) != 0 &&
+			    errno != EEXIST)
+				return (-1);
+                } else if (!S_ISDIR(sb.st_mode)) {
+			errno = ENOTDIR;
+                        return (-1);
+                }
+		*ptr = ch;
+	} while (ch != '\0');
+	xfree(copy);
 
 	return (0);
 }

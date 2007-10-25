@@ -33,7 +33,7 @@ netrc_open(const char *home, char **cause)
 	struct stat	 sb;
 	FILE		*f;
 
-	if (mkpath(path, sizeof path, "%s/%s", home, ".netrc") != 0) {
+	if (ppath(path, sizeof path, "%s/%s", home, ".netrc") != 0) {
 		xasprintf(cause, "%s", strerror(errno));
 		return (NULL);
 	}

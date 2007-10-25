@@ -1,3 +1,9 @@
+25 October 2007
+
+* New option, no-create, prevents fdm creating missing path components or files
+  when delivering to maildirs or mboxes.
+* Create entire paths if missing when delivering to maildirs or mboxes.
+
 10 October 2007
 
 * Don't accept "+OK N" as well as "+OK N M" in response to STAT.

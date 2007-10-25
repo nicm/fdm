@@ -144,6 +144,7 @@ static const struct token tokens[] = {
 	{ "nntp", TOKNNTP },
 	{ "nntps", TOKNNTPS },
 	{ "no-apop", TOKNOAPOP },
+	{ "no-create", TOKNOCREATE },
 	{ "no-received", TOKNORECEIVED },
 	{ "no-verify", TOKNOVERIFY },
 	{ "none", TOKNONE },

@@ -153,9 +153,9 @@ fetch_mbox_save(struct account *a, struct fetch_mbox_mbox *fmbox)
 	 * clever and save disk space, just create a new mbox and copy all the
 	 * kept mails into it.
 	 */
-	if (mkpath(path, sizeof path, "%s.XXXXXXXXXX", fmbox->path) != 0)
+	if (ppath(path, sizeof path, "%s.XXXXXXXXXX", fmbox->path) != 0)
 		goto error;
-	if (mkpath(saved, sizeof saved, "%s.XXXXXXXXXX", fmbox->path) != 0)
+	if (ppath(saved, sizeof saved, "%s.XXXXXXXXXX", fmbox->path) != 0)
 		goto error;
 	if ((fd = mkstemp(path)) == -1)
 		goto error;

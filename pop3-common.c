@@ -237,7 +237,7 @@ pop3_save(struct account *a)
 	if (data->path == NULL)
 		return (0);
 
-	if (mkpath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0)
+	if (ppath(tmp, sizeof tmp, "%s.XXXXXXXXXX", data->path) != 0)
 		goto error;
 	if ((fd = mkstemp(tmp)) == -1)
 		goto error;

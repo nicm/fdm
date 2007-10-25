@@ -46,7 +46,7 @@ shm_path(struct shm *shm)
 {
 	static char	path[MAXPATHLEN];
 
-	if (mkpath(path, sizeof path, "%s/%s", conf.tmp_dir, shm->name) != 0)
+	if (ppath(path, sizeof path, "%s/%s", conf.tmp_dir, shm->name) != 0)
 		return (NULL);
 	return (path);
 }
@@ -107,7 +107,7 @@ shm_create(struct shm *shm, size_t size)
         if (size == 0)
                 fatalx("zero size");
 
-	if (mkpath(
+	if (ppath(
 	    shm->name, sizeof shm->name, "%s.XXXXXXXXXX", __progname) != 0)
 		return (NULL);
 	if ((path = shm_path(shm)) == NULL)

@@ -98,8 +98,17 @@ deliver_maildir_create(struct account *a, const char *maildir)
 	char		path[MAXPATHLEN];
 	u_int		i;
 
+	if (conf.no_create)
+		return (0);
+
+	log_debug2("%s: creating %s", a->name, xdirname(maildir));
+	if (xmkpath(xdirname(maildir), -1, conf.file_group, DIRMODE) != 0) {
+		log_warn("%s: %s", a->name, maildir);
+		return (-1);
+	}
+
 	for (i = 0; names[i] != NULL; i++) {
-		if (mkpath(path, sizeof path, "%s%s", maildir, names[i]) != 0)
+		if (ppath(path, sizeof path, "%s%s", maildir, names[i]) != 0)
 			goto error;
 
 		if (xmkdir(path, -1, conf.file_group, DIRMODE) == 0) {
@@ -163,7 +172,7 @@ restart:
  		xasprintf(&name, "%ld.%ld_%u.%s",
 		    (long) time(NULL), (long) getpid(), delivered, host);
 
-		if (mkpath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {
+		if (ppath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {
 			log_warn("%s: %s/tmp/%s", a->name, path, name);
 			goto error;
 		}
@@ -189,7 +198,7 @@ restart:
 	 * Create the new path and attempt to link it. A failed link jumps
 	 * back to find another name in the tmp directory.
 	 */
-	if (mkpath(dst, sizeof dst, "%s/new/%s", path, name) != 0)
+	if (ppath(dst, sizeof dst, "%s/new/%s", path, name) != 0)
 		goto error_unlink;
 	log_debug2(
 	    "%s: linking .../tmp/%s to .../new/%s", a->name, name, name);

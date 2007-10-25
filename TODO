@@ -35,8 +35,6 @@
 - NNTP should warn if mail is dropped - generic flag
 - rml could be stored as actual tags, then command0-9 could go -- this means
   copying them... bad idea
-- no-create to stop creation of nonexistent mboxes/maildirs
-- create missing dirs when delivering
 - make-style filtering for tags :S/// etc
 - docs from Thomas@BIC:
 	clarify that first match stops without continue
@@ -52,3 +50,4 @@
 	check pipe command user
 - document cache commands
 - document command-user
+- document no-create and new creation behaviour
