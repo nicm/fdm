@@ -359,14 +359,18 @@ int
 imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
-	char			*line;
+	char			*line, *ptr;
 
 	if (imap_getln(a, fctx, IMAP_UNTAGGED, &line) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
-	if (strstr(line, "IMAP4rev1") == NULL) {
+	/* Convert to uppercase. */
+	for (ptr = line; *ptr != '\0'; ptr++)
+		*ptr = toupper((u_char) *ptr);
+
+	if (strstr(line, "IMAP4REV1") == NULL) {
 		log_warnx("%s: no IMAP4rev1 capability: %s", a->name, line);
 		return (FETCH_ERROR);
 	}
