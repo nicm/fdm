@@ -324,6 +324,8 @@ main(int argc, char **argv)
 		if (argc != 0)
 			usage();
 	} else {
+		if (argc < 1)
+			usage();
 		if (strncmp(argv[0], "poll", strlen(argv[0])) == 0) {
 			if (argc != 1)
 				usage();
