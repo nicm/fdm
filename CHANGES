@@ -1,3 +1,9 @@
+03 November 2007
+
+* Google IMAP has problems with naked flag lists on STORE commands (which are
+  valid). Change to enclose the flags list in brackets. Reported by Andrew
+  Pantyukhin.
+
 25 October 2007
 
 * New option, no-create, prevents fdm creating missing path components or files

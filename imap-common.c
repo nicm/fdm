@@ -710,8 +710,8 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 	if (!TAILQ_EMPTY(&data->dropped)) {
 		aux = TAILQ_FIRST(&data->dropped);
 
-		if (imap_putln(a,
-		    "%u STORE %u +FLAGS \\Deleted", ++data->tag, aux->idx) != 0)
+		if (imap_putln(a, "%u "
+		    "STORE %u +FLAGS (\\Deleted)", ++data->tag, aux->idx) != 0)
 			return (FETCH_ERROR);
 		fctx->state = imap_state_delete;
 		return (FETCH_BLOCK);
