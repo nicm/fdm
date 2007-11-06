@@ -1,5 +1,13 @@
+06 November 2007
+
+* Use +FLAGS.SILENT instead of +FLAGS to mark IMAP mail as deleted, as we
+  don't need the new flags.
+
 03 November 2007
 
+* Exchange sometimes includes a FLAGS update as part of its FETCH response,
+  which made fdm complain. Change to accept it without error. Reported by
+  Leo D'Angelo.
 * Google IMAP has problems with naked flag lists on STORE commands (which are
   valid). Change to enclose the flags list in brackets. Reported by Andrew
   Pantyukhin.

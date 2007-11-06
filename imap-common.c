@@ -710,8 +710,8 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 	if (!TAILQ_EMPTY(&data->dropped)) {
 		aux = TAILQ_FIRST(&data->dropped);
 
-		if (imap_putln(a, "%u "
-		    "STORE %u +FLAGS (\\Deleted)", ++data->tag, aux->idx) != 0)
+		if (imap_putln(a, "%u STORE %u "
+		    "+FLAGS.SILENT (\\Deleted)", ++data->tag, aux->idx) != 0)
 			return (FETCH_ERROR);
 		fctx->state = imap_state_delete;
 		return (FETCH_BLOCK);
@@ -876,7 +876,7 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	struct mail		*m = fctx->mail;
-	char			*line;
+	char			*line, *ptr;
 	size_t			 used, size, left;
 
 	for (;;) {
@@ -903,13 +903,33 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 
 	/*
 	 * Calculate the number of bytes still needed. The current line must be
-	 * those bytes plus a trailing close bracket.
+	 * those bytes plus either a trailing close bracket or a FLAGS
+	 * response plus a closing bracket.
 	 */
 	left = data->size - used;
-	if (size != left + 1)
+	if (size <= left)
 		return (imap_invalid(a, line));
-	if (line[left] != ')' || line[left + 1] != '\0')
-		return (imap_invalid(a, line));
+	if (size - left == 1) {
+		/* Closing bracket alone. */
+		if (line[left] != ')' || line[left + 1] != '\0')
+			return (imap_invalid(a, line));
+	} else {
+		if (left == 0) {
+			/* Exactly "FLAGS (...)" and no more. */
+			if (size < 7 || strncmp(line, "FLAGS (", 7) != 0)
+				return (imap_invalid(a, line));
+		} else {
+			/* " FLAGS (...)" after content. */
+			if (size - left < 8)
+				return (imap_invalid(a, line));
+			if (strncmp(line + left, " FLAGS (", 8) != 0)
+				return (imap_invalid(a, line));
+		}
+		/* Check for terminating )). */
+		ptr = strchr(line + left, ')');
+		if (ptr == NULL || ptr[1] != ')' || ptr[2] != '\0')
+			return (imap_invalid(a, line));
+	}
 
 	/* If there was data left, add it as a new line without trailing \n. */
 	if (left > 0) {
