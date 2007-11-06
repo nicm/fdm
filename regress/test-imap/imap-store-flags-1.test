@@ -20,7 +20,7 @@
 >* 1 FETCH (BODY[] {5}
 >Test.)
 >5 OK
-<6 STORE 1 +FLAGS \Deleted
+<6 STORE 1 +FLAGS.SILENT (\Deleted)
 >6 NO
 --
 unexpected data: 6 NO
