@@ -125,13 +125,15 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 
 		/* Compare against both given host and FQDN. */
 		if (fnmatch(ptr, srv->host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
-		    fnmatch(ptr, fqdn, FNM_NOESCAPE|FNM_CASEFOLD) == 0)
+		    (fqdn != NULL && 
+		    fnmatch(ptr, fqdn, FNM_NOESCAPE|FNM_CASEFOLD)) == 0)
 			break;
 
 		if (ptr2 != NULL)
 			*ptr2 = '/';
 	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
-	xfree(fqdn);
+	if (fqdn != NULL)
+		xfree(fqdn);
 
 	/* No valid CN found. */
 	if (ptr == NULL) {
