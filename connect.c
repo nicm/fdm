@@ -88,21 +88,20 @@ sslerror2(int n, const char *fn)
 int
 sslverify(struct server *srv, SSL *ssl, char **cause)
 {
-	X509	*x509;
-	int	 error;
-	char	*fqdn, name[256], *ptr, *ptr2;
+	X509		*x509;
+	int		 error;
+	char		*fqdn, name[256], *ptr, *ptr2;
+	const char	*s;
 
 	if ((x509 = SSL_get_peer_certificate(ssl)) == NULL) {
 		/* No certificate, error since we wanted to verify it. */
-		xasprintf(cause,
-		    "certificate verification failed: no certificate");
-		return (-1);
+		s = "no certificate";
+		goto error;
 	}
 
 	/* Verify certificate. */
 	if ((error = SSL_get_verify_result(ssl)) != X509_V_OK) {
-		xasprintf(cause, "certificate verification failed: %s",
-		    X509_verify_cert_error_string(error));
+		s = X509_verify_cert_error_string(error);
 		goto error;
 	}
 
@@ -111,7 +110,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 
 	/* Check for CN field. */
 	if ((ptr = strstr(name, "/CN=")) == NULL) {
-		xasprintf(cause, "certificate verification failed: CN missing");
+		s = "CN missing";
 		goto error;
 	}
 
@@ -136,8 +135,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 
 	/* No valid CN found. */
 	if (ptr == NULL) {
-		xasprintf(cause,
-		    "certificate verification failed: no matching CN");
+		s = "no matching CN";
 		goto error;
 	}
 
@@ -146,6 +144,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 	return (0);
 
 error:
+	xasprintf(cause, "certificate verification failed: %s", s);
 	if (x509 != NULL)
 		X509_free(x509);
 	return (-1);
