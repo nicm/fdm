@@ -64,6 +64,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	Attachments
 %%	Matching tags
 %%	Using caches
+%%	Cache commands
 ##	Setting options
 ##	Archiving and searching mail
 ##	Using fdm behind a proxy
@@ -315,7 +316,7 @@ temporary directory and the fdm options according to their needs.
 The fdm command has the following synopsis:
 
 	fdm [-klmnqv] [-f conffile] [-u user] [-a account] [-x account]
-		[-D name=value] [fetch | poll]
+		[-D name=value] [fetch | poll | cache ...]
 
 The meaning of the flags are covered in the fdm(1) man page, but a brief
 description is given below. The flags are also mentioned at relevant points
@@ -356,9 +357,11 @@ Flag	Meaning
 	configuration file.
 
 If -n is not specified, the flags must be followed by one of the keywords
-'fetch' or 'poll'. The 'fetch' keyword will fetch and deliver mail, the 'poll'
-keyword print an indication of how many mails are present in each account.
-'fetch' or 'poll' may be abbreviated.
+'fetch' or 'poll' or 'cache'. The 'fetch' keyword will fetch and deliver mail,
+the 'poll' keyword print an indication of how many mails are present in each
+account, and the 'cache' keyword is followed by one of a set of cache commands
+used to manipulate caches from the command-line (see the sections on caches
+below). 'fetch' or 'poll' or 'cache' may be abbreviated.
 
 Examples:
 
@@ -1273,6 +1276,38 @@ above:
 		match in-cache $db key $key action maildir "%h/mail/duplicates"
 		match all action add-to-cache $db key $key continue
 	}
+
+%%% Cache commands
+
+fdm includes a number of commands to manipulate caches from the command-line.
+These are invoked with the 'cache' keyword followed by a command. The
+following commands are supported:
+
+cache add <path> <string>
+cache remove <path> <string>
+	These add or remove <string> as a key in the cache <path>.
+
+cache list [<path>]
+	This lists the number of keys in a cache, or in all caches declared
+	in the configuration file if <path> is omitted.
+
+cache dump <path>
+	This dumps the contents of the cache <path> to stdout. Each key is
+	printed followed by a space and the timestamp as Unix time.
+
+cache clear <path>
+	Delete all keys from a cache.
+
+Examples:
+
+	$ fdm cache list
+	/export/home/nicholas/.fdm.d/duplicates: 4206 keys
+
+	$ touch my-cache
+	$ fdm cache dump my-cache
+	$ fdm cache add my-cache test
+	$ fdm cache dump my-cache
+	test 1195072403
 
 ### Setting options
 

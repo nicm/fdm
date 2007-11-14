@@ -48,6 +48,6 @@
 	case sensitivity
 	mention short-circuit evaluation
 	check pipe command user
-- document cache commands
+- document cache commands in man page
 - document command-user
 - document no-create and new creation behaviour
