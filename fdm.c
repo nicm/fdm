@@ -817,6 +817,17 @@ out:
 	COUNTFDS("parent");
 
 	/* Free everything. */
+	if (conf.proxy != NULL) {
+		if (conf.proxy->user != NULL)
+			xfree(conf.proxy->user);
+		if (conf.proxy->pass != NULL)
+ 			xfree(conf.proxy->pass);
+		if (conf.proxy->server.host != NULL)
+ 			xfree(conf.proxy->server.host);
+		if (conf.proxy->server.port != NULL)
+ 			xfree(conf.proxy->server.port);
+		xfree(conf.proxy);
+	}
 	while (!TAILQ_EMPTY(&conf.caches)) {
 		cache = TAILQ_FIRST(&conf.caches);
 		TAILQ_REMOVE(&conf.caches, cache, entry);
