@@ -91,7 +91,7 @@ const char 	*submatch(char, struct mail *, struct rmlist *, size_t *);
 void printflike3
 add_tag(struct strb **tags, const char *key, const char *value, ...)
 {
-	va_list		 ap;
+	va_list	ap;
 
 	va_start(ap, value);
 	strb_vadd(tags, key, value, ap);

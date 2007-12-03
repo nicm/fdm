@@ -35,7 +35,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	SSL certificate verification
 %%	The .netrc file
 %%	IMAP and IMAPS
-%%	IMAP over a pipe or ssh
+%%	IMAP or POP3 over a pipe or ssh
 %%	stdin and local mail
 %% 	From maildirs and mboxes
 %%	Using NNTP and NNTPS
