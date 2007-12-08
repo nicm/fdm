@@ -386,6 +386,8 @@ fetch_mbox_state_next(struct account *a, struct fetch_ctx *fctx)
 		data->index++;
 
 	if (data->index == ARRAY_LENGTH(&data->fmboxes)) {
+		if (!(fctx->flags & FETCH_EMPTY))
+			return (FETCH_BLOCK);
 		fctx->state = fetch_mbox_state_exit;
 		return (FETCH_AGAIN);
 	}

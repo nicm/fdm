@@ -268,6 +268,8 @@ fetch_maildir_state_next(struct account *a, struct fetch_ctx *fctx)
 		data->index++;
 
 	if (data->index == ARRAY_LENGTH(data->paths)) {
+		if (!(fctx->flags & FETCH_EMPTY))
+			return (FETCH_BLOCK);
 		fetch_maildir_freepaths(a);
 		return (FETCH_EXIT);
 	}

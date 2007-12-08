@@ -1,3 +1,9 @@
+08 December 2007
+
+* Don't let mbox or maildir fetch code exit and free stuff until all the mail is
+  dealt with (queues are empty). Fixes mbox fetching problems reported by
+  akarinotengoku at gmail.com.
+
 03 December 2007
 
 * Bug fix: restore non-blocking mode properly after constructing SSL
