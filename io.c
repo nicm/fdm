@@ -154,6 +154,7 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 	/* Do the poll. */
 	error = poll(pfds, n, timeout);
 	if (error == 0 || error == -1) {
+		IO_DEBUG(io, "poll returned: %d (errno=%d)", error, errno);
 		xfree(pfds);
 
 		if (error == 0) {
