@@ -355,7 +355,7 @@ pop3_state_init(struct account *a, struct fetch_ctx *fctx)
 
 /* Connect state. */
 int
-pop3_state_connect(struct account *a, unused struct fetch_ctx *fctx)
+pop3_state_connect(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 
@@ -689,7 +689,7 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 
 /* Next state. */
 int
-pop3_state_next(struct account *a, unused struct fetch_ctx *fctx)
+pop3_state_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct mail		*m = fctx->mail;

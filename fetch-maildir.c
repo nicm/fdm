@@ -264,7 +264,7 @@ fetch_maildir_state_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_maildir_data	*data = a->data;
 
-	if (data->index <= ARRAY_LENGTH(data->paths))
+	if (data->index < ARRAY_LENGTH(data->paths))
 		data->index++;
 
 	if (data->index == ARRAY_LENGTH(data->paths)) {
@@ -280,7 +280,7 @@ fetch_maildir_state_next(struct account *a, struct fetch_ctx *fctx)
 
 /* Open state. */
 int
-fetch_maildir_state_open(struct account *a, unused struct fetch_ctx *fctx)
+fetch_maildir_state_open(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_maildir_data	*data = a->data;
 	char				*path;
