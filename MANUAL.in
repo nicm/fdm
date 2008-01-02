@@ -854,9 +854,9 @@ Mails may be saved to a maildir through a 'maildir' action, defined like so:
 
 	action "mymaildiraction" maildir "/path/to/maildir"
 
-If the maildir does not exist, it is created. Mails saved to a maildir are
-tagged with a 'mail_file' tag containing the full path to the file in which
-they were saved.
+If any component of the maildir path does not exist, it is created, unless the
+no-create option is specified. Mails saved to a maildir are tagged with a
+'mail_file' tag containing the full path to the file in which they were saved.
 
 %%% Mboxes
 
@@ -874,7 +874,8 @@ fdm will append .gz to the mbox path (if it is not already present) and append
 compressed data. If the mbox exists but is not already compressed, uncompressed
 data will be appended.
 
-If the mbox does not exist, it is created. Mails saved to an mbox are tagged
+As with maildirs, if any component of the mbox path does not exist, it is
+created, unless the no-create option is set. Mails saved to an mbox are tagged
 with an 'mbox_file' tag with the path of the mbox.
 
 %%% SMTP
@@ -1432,6 +1433,11 @@ many are made too quickly, so this option should be used with care.
 
 If this option is present, fdm will not insert a 'Received' header into fetched
 mail.
+
+- no-create
+
+When this option is specified, fdm will not attempt to create maildir and
+mboxes or directories above them.
 
 - file-umask [user|<umask>]
 

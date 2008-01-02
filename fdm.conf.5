@@ -197,6 +197,11 @@ If this option is present,
 will not insert a
 .Sq Received
 header into each mail.
+.It Ic no-create
+If this option is set,
+.Xr fdm 1
+will not attempt to create maildirs and mboxes or missing elements of their
+paths.
 .It Ic file-umask Ic user | Ar umask
 This specifies the
 .Xr umask 2
@@ -712,7 +717,9 @@ conditions.
 .Xc
 Save the mail to the maildir specified by
 .Ar path .
-If the maildir does not exist, it is created.
+If the maildir or any part of its path does not exist, it is created, unless the
+.Ic no-create
+option is set.
 .Pp
 Mail delivered to a maildir is tagged with a mail_file tag containing the full
 path of the mail file.
@@ -731,7 +738,9 @@ to
 and attempt to write mail using
 .Xr gzip 1
 compression.
-If the mbox does not exist, it is created.
+If the mbox or any part of its path does not exist, it is created, unless the
+.Ic no-create
+option is set.
 .Pp
 Mail delivered to an mbox is tagged with a mbox_file tag containing the path of
 the mbox.
