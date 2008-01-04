@@ -192,11 +192,19 @@ log_vfatal(const char *msg, va_list ap)
 
 	if (errno != 0) {
 		if (asprintf(&fmt, "fatal: %s: %s", msg, strerror(errno)) == -1)
+#ifdef DEBUG
+			abort();
+#else
 			exit(1);
+#endif
 		log_vwrite(NULL, LOG_CRIT, fmt, ap);
 	} else {
 		if (asprintf(&fmt, "fatal: %s", msg) == -1)
-			exit(1);
+#ifdef DEBUG
+			abort();
+#else
+       			exit(1);
+#endif
 		log_vwrite(NULL, LOG_CRIT, fmt, ap);
 	}
 	free(fmt);
