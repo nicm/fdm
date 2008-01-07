@@ -1,3 +1,7 @@
+07 January 2008
+
+* Use <>s around envelope addresses when using SMTP. Reported by Marco Lopes.
+
 08 December 2007
 
 * Don't let mbox or maildir fetch code exit and free stuff until all the mail is
