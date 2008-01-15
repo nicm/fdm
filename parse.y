@@ -122,7 +122,7 @@ yyerror(const char *fmt, ...)
 
 %token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
 %token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE TOKAND TOKOR TOKTO TOKACTIONS TOKHEADERS TOKBODY
+%token TOKNONE TOKCASE TOKAND TOKOR TOKFROM TOKTO TOKACTIONS TOKHEADERS TOKBODY
 %token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
 %token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
 %token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKDROP
@@ -211,7 +211,7 @@ yyerror(const char *fmt, ...)
 %type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to folder xstrv strv replstrv replpathv val optval
+%type  <string> port to from folder xstrv strv replstrv replpathv val optval
 %type  <strings> stringslist pathslist
 %type  <strings> domains headers maildirs mboxes groups
 %type  <users> users userslist
@@ -1145,6 +1145,17 @@ to: /* empty */
 	    $$ = $2;
     }
 
+/** FROM: <string> (char *) */
+from: /* empty */
+      {
+	      $$ = NULL;
+      }
+    | TOKFROM strv
+/**   [$2: strv (char *)] */
+      {
+	      $$ = $2;
+      }
+
 /** COMPRESS: <flag> (int) */
 compress: TOKCOMPRESS
 	  {
@@ -1269,8 +1280,9 @@ actitem: execpipe strv
 		 data->path.str = $2;
 		 data->compress = $3;
 	 }
-       | TOKSMTP server to
-/**      [$2: server (struct { ... } server)] [$3: to (char *)] */
+       | TOKSMTP server from to
+/**      [$2: server (struct { ... } server)] [$3: from (char *)] */
+/**      [$4: to (char *)] */
 	 {
 		 struct deliver_smtp_data	*data;
 
@@ -1286,7 +1298,8 @@ actitem: execpipe strv
 		 else
 			 data->server.port = xstrdup("smtp");
 		 data->server.ai = NULL;
-		 data->to.str = $3;
+		 data->from.str = $3;
+		 data->to.str = $4;
 	 }
        | TOKSTDOUT
 	 {

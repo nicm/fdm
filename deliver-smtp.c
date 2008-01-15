@@ -74,6 +74,8 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	enum deliver_smtp_state		 state;
 	size_t		 		 len, llen;
 
+	from = to = NULL;
+	
 	io = connectproxy(&data->server,
 	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
 	if (io == NULL) {
@@ -84,9 +86,9 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	if (conf.debug > 3 && !conf.syslog)
 		io->dup_fd = STDOUT_FILENO;
 
-	xasprintf(&from, "%s@%s", conf.info.user, conf.info.host);
+	xasprintf(&ptr, "%s@%s", conf.info.user, conf.info.host);
 	if (data->to.str == NULL)
-		to = xstrdup(from);
+		to = xstrdup(ptr);
 	else {
 		to = replacestr(&data->to, m->tags, m, &m->rml);
 		if (to == NULL || *to == '\0') {
@@ -94,6 +96,16 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			goto error;
 		}
 	}
+	if (data->from.str == NULL)
+		from = xstrdup(ptr);
+	else {
+		from = replacestr(&data->from, m->tags, m, &m->rml);
+		if (from == NULL || *from == '\0') {
+			log_warnx("%s: empty from", a->name);
+			goto error;
+		}
+	}
+	xfree(ptr);
 
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);

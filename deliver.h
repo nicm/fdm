@@ -72,6 +72,7 @@ enum deliver_smtp_state {
 struct deliver_smtp_data {
 	struct server	server;
 	struct replstr	to;
+	struct replstr	from;
 };
 
 /* Deliver mbox data. */

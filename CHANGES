@@ -1,3 +1,8 @@
+10 January 2008
+
+* Added "from" to smtp action to specify envelope from. Requested by Marco
+  Lopes.
+
 07 January 2008
 
 * Use <>s around envelope addresses when using SMTP. Reported by Marco Lopes.

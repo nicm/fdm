@@ -100,6 +100,7 @@ static const struct token tokens[] = {
 	{ "file-umask", TOKFILEUMASK },
 	{ "flock", TOKFLOCK },
 	{ "folder", TOKFOLDER },
+	{ "from", TOKFROM },
 	{ "from-headers", TOKFROMHEADERS },
 	{ "g", TOKGIGABYTES },
 	{ "gb", TOKGIGABYTES },

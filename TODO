@@ -54,3 +54,4 @@
 - change setuid to seteuid
 - document cache commands in man page
 - document command-user
+- document from on smtp
