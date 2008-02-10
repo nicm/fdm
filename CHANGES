@@ -1,3 +1,7 @@
+10 February 2008
+
+* Correct mail_month/mail_dayofyear tags.
+
 10 January 2008
 
 * Added "from" to smtp action to specify envelope from. Requested by Marco

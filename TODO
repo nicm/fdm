@@ -48,6 +48,8 @@
 	case sensitivity
 	mention short-circuit evaluation
 	check pipe command user
+- when doing .netrc lookup, match the username if given as well to allow
+  multiple users on the same server
 - some way to limit number of accounts fetched in parallel, to avoid
   hitting server per-IP limits
 - set secondary groups when changing user
