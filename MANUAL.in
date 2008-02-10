@@ -910,6 +910,9 @@ Examples are:
 
 	action "domaildirexec" exec "~/.fdm.d/my-special-script %[mail_file]"
 
+Pipe and exec commands are run as the command user (by default the user who
+invoked fdm).
+
 %%% stdout
 
 fdm can write mails directly to stdout, using the 'stdout' action:
@@ -1368,6 +1371,11 @@ option.
 This option specifies a string to use as the path of the lock file. For example:
 
 	set lock-file "/tmp/my-lock-file"
+
+- command-user <user>
+
+This specifies the user used to run exec and pipe actions. By default it is
+the user who invoked fdm.
 
 - default-user <user>
 

@@ -54,5 +54,4 @@
   hitting server per-IP limits
 - set secondary groups when changing user
 - document cache commands in man page
-- document command-user
 - document from on smtp

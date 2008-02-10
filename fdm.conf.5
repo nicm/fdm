@@ -118,6 +118,13 @@ The default is
 for non-root users and
 .Pa /var/db/fdm.lock
 for root.
+.It Ic command-user Ar user
+This specifies the user used to run
+.Ic exec
+and
+.Ic pipe
+actions.
+By default it is the user who invoked fdm.
 .It Ic default-user Ar user
 This sets the default user to change to before delivering mail, if
 .Xr fdm 1
@@ -752,6 +759,10 @@ Execute
 .Xc
 Pipe the mail to
 .Ar command .
+.Ic exec
+and
+.Ic pipe
+commands are run as the command user.
 .It Xo Ic write Ar path
 .Xc
 Write the mail to
