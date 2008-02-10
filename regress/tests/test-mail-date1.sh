@@ -10,7 +10,7 @@ Date: Thu, 30 Aug 2007 18:31:04 +0200
 EOF
 
 cat <<EOF|test_out
-16 31 04 30 07 2007 Thu, 30 Aug 2007 16:31:04 +0000
+16 31 04 30 08 2007 Thu, 30 Aug 2007 16:31:04 +0000
 EOF
 
 cat <<EOF|test_run
