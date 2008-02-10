@@ -290,7 +290,7 @@ checkowner(struct stat *sb, uid_t uid)
 	static char	msg[128];
 
 	if (uid == (uid_t) -1)
-		uid = getuid();
+		uid = geteuid();
 	if (sb->st_uid == uid)
 		return (NULL);
 

@@ -1,5 +1,6 @@
 10 February 2008
 
+* Consistently use geteuid().
 * Correct mail_month/mail_dayofyear tags.
 
 10 January 2008

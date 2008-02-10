@@ -79,7 +79,7 @@ fill_info(const char *home)
 	uid_t		 uid;
 	char		 host[MAXHOSTNAMELEN];
 
-	uid = getuid();
+	uid = geteuid();
 	if (conf.info.valid && conf.info.last_uid == uid)
 		return;
 	conf.info.valid = 1;

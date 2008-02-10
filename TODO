@@ -53,7 +53,6 @@
 - some way to limit number of accounts fetched in parallel, to avoid
   hitting server per-IP limits
 - set secondary groups when changing user
-- change setuid to seteuid
 - document cache commands in man page
 - document command-user
 - document from on smtp
