@@ -773,12 +773,16 @@ Append the mail to
 .Ar path .
 .It Xo Ic smtp Ic server Ar host
 .Op Ic port Ar port
+.Op Ic from Ar from
 .Op Ic to Ar to
 .Xc
 Connect to an SMTP server and attempt to deliver the mail to it.
 If
+.Ar from
+or
 .Ar to
-is specified, it is passed to the server in the RCPT TO command.
+is specified, they are passed to the server in the MAIL FROM or RCPT TO
+commands.
 If not, the current user and host names are used.
 .It Xo Ic rewrite Ar command
 .Xc

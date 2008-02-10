@@ -881,15 +881,16 @@ with an 'mbox_file' tag with the path of the mbox.
 %%% SMTP
 
 An action may be defined to pass mail on over SMTP. The server host must be
-specified and optionally the port and a string to pass to the server with
-the RCPT TO command. If the port is not specified it defaults to "smtp".
-Examples include:
+specified and optionally the port and string to pass to the server with the
+RCPT TO and MAIL FROM commands. If the port is not specified it defaults to
+"smtp". Examples include:
 
 	action "mysmtpaction" smtp server "smtp.server"
 
 	action "mysmtpaction" smtp server "smtp.server" port 587
 
-	action "mysmtpaction" smtp server "smtp.server" port "submission"
+	action "mysmtpaction" smtp
+		server "smtp.server" port "submission" from "bob@server.com"
 
 	action "mysmtpaction" smtp server "smtp.server" to "me@somewhere"
 
