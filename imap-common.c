@@ -299,7 +299,7 @@ imap_total(struct account *a)
 	return (data->total);
 }
 
-/* Common initialisatio state. */
+/* Common initialisation state. */
 int
 imap_state_init(struct account *a, struct fetch_ctx *fctx)
 {

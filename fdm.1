@@ -40,7 +40,7 @@ program fetches mail from a POP3 or IMAP server or from
 and delivers it based on a ruleset in the configuration file.
 .Pp
 The options are as follows:
-.Bl -tag -width "-f conffileXXX"
+.Bl -tag -width Ds
 .It Fl a Ar name
 Process only the specified account.
 This option may appear multiple times.
@@ -112,7 +112,7 @@ As with
 .Fl a ,
 shell glob characters may be used.
 .Pp
-.It Ar fetch | poll
+.It Ar fetch | poll | cache
 The
 .Ar fetch
 command instructs
@@ -122,10 +122,36 @@ The
 .Ar poll
 command polls the accounts in the configuration file and reports a message
 count for each.
+.Ar cache
+allows
+.Nm
+cache files to be manipulated: see the next section.
 .Pp
 .El
+.Sh CACHE COMMANDS
+The following cache manipulation commands are supported:
+.Bl -tag -width Ds
+.It Ic cache Ic add Ar path Ar string
+.It Ic cache Ic remove Ar path Ar string
+Add or remove 
+.Ar string
+as a key in the cache at
+.Ar path .
+.It Ic cache Ic list Op Ar path
+List the number of keys in the specified cache, or if
+.Ar path
+is omitted, in all caches declared in the configuration file.
+.It Ic cache Ic dump Ar path
+Dump the contents of the cache
+.Ar path
+to stdout.
+Each key is printed followed by a space and the timestamp as Unix time.
+.It Ic cache Ic clear Ar path
+Delete all keys from the cache at
+.Ar path .
+.El
 .Sh FILES
-.Bl -tag -width "/var/db/fdm.lockXXX" -compact
+.Bl -tag -width Ds -compact
 .It Pa ~/.fdm.conf
 default
 .Nm
