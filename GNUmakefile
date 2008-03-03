@@ -6,7 +6,7 @@ PROG= fdm
 VERSION= 1.5
 DATE= $(shell date +%Y%m%d-%H%M)
 
-DEBUG= 1
+#DEBUG= 1
 
 PREFIX?= /usr/local
 

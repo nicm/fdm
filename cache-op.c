@@ -65,7 +65,7 @@ cache_op_add(int argc, char **argv)
 		exit(1);
 	}
 	
-	if (db_add(db, argv[1]) != NULL) {
+	if (db_add(db, argv[1]) != 0) {
 		log_warnx("%s: cache error", argv[0]);
 		exit(1);
 	}
@@ -90,7 +90,7 @@ cache_op_remove(int argc, char **argv)
 		log_warnx("%s: key not found: %s", argv[0], argv[1]);
 		exit(1);
 	}
-	if (db_remove(db, argv[1]) != NULL) {
+	if (db_remove(db, argv[1]) != 0) {
 		log_warnx("%s: cache error", argv[0]);
 		exit(1);
 	}
