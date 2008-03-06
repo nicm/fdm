@@ -482,6 +482,7 @@ free_account(struct account *a)
 		xfree(data->user);
 		xfree(data->pass);
 		free_strings(data->folders);
+ 		ARRAY_FREEALL(data->folders);
 		xfree(data->server.host);
 		xfree(data->server.port);
 		if (data->server.ai != NULL)
@@ -493,6 +494,7 @@ free_account(struct account *a)
 		if (data->pass != NULL)
 			xfree(data->pass);
 		free_strings(data->folders);
+ 		ARRAY_FREEALL(data->folders);
 		xfree(data->pipecmd);
 	} else if (a->fetch == &fetch_maildir) {
 		struct fetch_maildir_data	*data = a->data;
