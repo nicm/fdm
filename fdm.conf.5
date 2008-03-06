@@ -453,18 +453,35 @@ not be read from
 .Op Ic folder Ar name
 .Op Ar only
 .Xc
+.It Xo Ic imap Ic server Ar host
+.Op Ic port Ar port
+.Op Ar userpass
+.Op Ic folders
+.Li {
+.Ar name ...
+.Li }
+.Op Ar only
+.Xc
 .It Xo Ic imaps Ic server Ar host
 .Op Ic port Ar port
 .Op Ar userpass
-.Op Ic folder Ar name
+.Op Ar folders
 .Op Ar only
 .Op Ic no-verify
 .Xc
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3S account, aside from the additional
-.Ic folder
-option which allows the folder name to be specified (the default is to fetch
-from the inbox).
+.Ar folders
+option which sets the name of the folder or folders to use (the default is to
+fetch from the inbox). This has the form:
+.Bl -tag -width Ds
+.It Xo Ic folder Ar name | Ic folders
+.Li {
+.Ar name Ar ...
+.Li }
+.Xc
+.El
+.Pp
 The default ports used are 143 for IMAP and 993 for IMAPS.
 For IMAP, the
 .Ar only
@@ -475,7 +492,7 @@ or
 - a cache file is not required.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ar userpass
-.Op Ic folder Ar name
+.Op Ar folders
 .Op Ar only
 .Xc
 As with

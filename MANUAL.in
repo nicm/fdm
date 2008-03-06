@@ -647,9 +647,9 @@ fdm will abort if the .netrc file is world-writable or world-readable.
 
 IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
 and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
-port is 'imap' or 'imaps'. There is also an additional, optional 'folder'
-option to specify the folder from which mail should be fetched. If omitted,
-the folder defaults to the inbox.
+port is 'imap' or 'imaps'. There is also an additional, optional 'folders'
+option to specify the folders from which mail should be fetched. If omitted,
+fdm defaults to the inbox.
 
 Note that with IMAP and IMAPS, mail is still removed from the server unless the
 'keep' option is given, or the '-k' command line option used.
@@ -659,7 +659,7 @@ Examples of IMAP and IMAPS accounts include:
 	account "imapacct" imap server "imap.server.ca" user "bob" pass "pass"
 
 	account "oldimap" disabled imaps server "192.168.0.1" port 10993
-		user "nicholas" pass "pass" folder "Saved"
+		user "nicholas" pass "pass" folders { "Saved" "MyStuff" }
 
 	account "workspam" disabled imap server "my-work.ath.cx"
 		user "Nicholas" folder "Junk"

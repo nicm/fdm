@@ -53,4 +53,3 @@
 - some way to limit number of accounts fetched in parallel, to avoid
   hitting server per-IP limits
 - set secondary groups when changing user
-- multiple folders on IMAP fetching

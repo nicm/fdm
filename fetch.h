@@ -193,10 +193,13 @@ struct fetch_imap_data {
 
 	char		*user;
 	char		*pass;
-	char		*folder;
 	struct server	 server;
 	char		*pipecmd;
 
+	u_int		 folder;
+	struct strings	*folders;
+
+	int		 flags;
 	int		 capa;
 	int		 tag;
 

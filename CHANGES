@@ -1,3 +1,8 @@
+06 March 2008
+
+* Support multiple folders (folders { "a" "b" }) on IMAP fetching. Requested by
+  Claudio Alessi.
+
 05 March 2008
 
 * Print current progress on SIGINFO. Be careful with this, it is possible

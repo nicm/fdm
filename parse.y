@@ -120,24 +120,123 @@ yyerror(const char *fmt, ...)
 }
 %}
 
-%token TOKALL TOKACCOUNT TOKSERVER TOKPORT TOKUSER TOKPASS TOKACTION
-%token TOKSET TOKACCOUNTS TOKMATCH TOKIN TOKCONTINUE TOKSTDIN TOKPOP3 TOKPOP3S
-%token TOKNONE TOKCASE TOKAND TOKOR TOKFROM TOKTO TOKACTIONS TOKHEADERS TOKBODY
-%token TOKMAXSIZE TOKDELTOOBIG TOKLOCKTYPES TOKDEFUSER TOKDOMAIN TOKDOMAINS
-%token TOKHEADER TOKFROMHEADERS TOKUSERS TOKMATCHED TOKUNMATCHED TOKNOT
-%token TOKIMAP TOKIMAPS TOKDISABLED TOKFOLDER TOKPROXY TOKALLOWMANY TOKDROP
-%token TOKLOCKFILE TOKRETURNS TOKPIPE TOKSMTP TOKMAILDIR TOKMBOX TOKMBOXES
-%token TOKWRITE TOKAPPEND TOKREWRITE TOKTAG TOKTAGGED TOKSIZE TOKMAILDIRS
-%token TOKEXEC TOKSTRING TOKKEEP TOKIMPLACT TOKHOURS TOKMINUTES TOKSECONDS
-%token TOKDAYS TOKWEEKS TOKMONTHS TOKYEARS TOKAGE TOKINVALID TOKKILOBYTES
-%token TOKMEGABYTES TOKGIGABYTES TOKBYTES TOKATTACHMENT TOKCOUNT TOKTOTALSIZE
-%token TOKANYTYPE TOKANYNAME TOKANYSIZE TOKEQ TOKNE TOKNNTP TOKNNTPS
-%token TOKGROUP TOKGROUPS TOKPURGEAFTER TOKCOMPRESS TOKNORECEIVED TOKFILEUMASK
-%token TOKFILEGROUP TOKVALUE TOKTIMEOUT TOKREMOVEHEADER TOKREMOVEHEADERS
-%token TOKSTDOUT TOKNOVERIFY TOKADDHEADER TOKQUEUEHIGH TOKQUEUELOW TOKNOAPOP
-%token TOKVERIFYCERTS TOKEXPIRE TOKADDTOCACHE TOKREMOVEFROMCACHE TOKINCACHE
-%token TOKKEY TOKNEWONLY TOKOLDONLY TOKCACHE TOKFLOCK TOKFCNTL TOKDOTLOCK
-%token TOKSTRIPCHARACTERS TOKCMDUSER TOKNOCREATE
+%token TOKACCOUNT
+%token TOKACCOUNTS
+%token TOKACTION
+%token TOKACTIONS
+%token TOKADDHEADER
+%token TOKADDTOCACHE
+%token TOKAGE
+%token TOKALL
+%token TOKALLOWMANY
+%token TOKAND
+%token TOKANYNAME
+%token TOKANYSIZE
+%token TOKANYTYPE
+%token TOKAPPEND
+%token TOKATTACHMENT
+%token TOKBODY
+%token TOKBYTES
+%token TOKCACHE
+%token TOKCASE
+%token TOKCMDUSER
+%token TOKCOMPRESS
+%token TOKCONTINUE
+%token TOKCOUNT
+%token TOKDAYS
+%token TOKDEFUSER
+%token TOKDELTOOBIG
+%token TOKDISABLED
+%token TOKDOMAIN
+%token TOKDOMAINS
+%token TOKDOTLOCK
+%token TOKDROP
+%token TOKEQ
+%token TOKEXEC
+%token TOKEXPIRE
+%token TOKFCNTL
+%token TOKFILEGROUP
+%token TOKFILEUMASK
+%token TOKFLOCK
+%token TOKFOLDER
+%token TOKFOLDERS
+%token TOKFROM
+%token TOKFROMHEADERS
+%token TOKGIGABYTES
+%token TOKGROUP
+%token TOKGROUPS
+%token TOKHEADER
+%token TOKHEADERS
+%token TOKHOURS
+%token TOKIMAP
+%token TOKIMAPS
+%token TOKIMPLACT
+%token TOKIN
+%token TOKINCACHE
+%token TOKINVALID
+%token TOKKEEP
+%token TOKKEY
+%token TOKKILOBYTES
+%token TOKLOCKFILE
+%token TOKLOCKTYPES
+%token TOKMAILDIR
+%token TOKMAILDIRS
+%token TOKMATCH
+%token TOKMATCHED
+%token TOKMAXSIZE
+%token TOKMBOX
+%token TOKMBOXES
+%token TOKMEGABYTES
+%token TOKMINUTES
+%token TOKMONTHS
+%token TOKNE
+%token TOKNEWONLY
+%token TOKNNTP
+%token TOKNNTPS
+%token TOKNOAPOP
+%token TOKNOCREATE
+%token TOKNONE
+%token TOKNORECEIVED
+%token TOKNOT
+%token TOKNOVERIFY
+%token TOKOLDONLY
+%token TOKOR
+%token TOKPASS
+%token TOKPIPE
+%token TOKPOP3
+%token TOKPOP3S
+%token TOKPORT
+%token TOKPROXY
+%token TOKPURGEAFTER
+%token TOKQUEUEHIGH
+%token TOKQUEUELOW
+%token TOKREMOVEFROMCACHE
+%token TOKREMOVEHEADER
+%token TOKREMOVEHEADERS
+%token TOKRETURNS
+%token TOKREWRITE
+%token TOKSECONDS
+%token TOKSERVER
+%token TOKSET
+%token TOKSIZE
+%token TOKSMTP
+%token TOKSTDIN
+%token TOKSTDOUT
+%token TOKSTRING
+%token TOKSTRIPCHARACTERS
+%token TOKTAG
+%token TOKTAGGED
+%token TOKTIMEOUT
+%token TOKTO
+%token TOKTOTALSIZE
+%token TOKUNMATCHED
+%token TOKUSER
+%token TOKUSERS
+%token TOKVALUE
+%token TOKVERIFYCERTS
+%token TOKWEEKS
+%token TOKWRITE
+%token TOKYEARS
 
 %union
 {
@@ -211,9 +310,9 @@ yyerror(const char *fmt, ...)
 %type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to from folder xstrv strv replstrv replpathv val optval
+%type  <string> port to from xstrv strv replstrv replpathv val optval
 %type  <strings> stringslist pathslist
-%type  <strings> domains headers maildirs mboxes groups
+%type  <strings> domains headers maildirs mboxes groups folders folder
 %type  <users> users userslist
 %type  <userpass> userpass userpassreqd userpassnetrc
 %type  <uid> uid user
@@ -246,6 +345,9 @@ accountp: TOKACCOUNT
 /** GROUPP */
 groupp: TOKGROUP
       | TOKGROUPS
+/** FOLDERP */
+folderp: TOKFOLDER
+       | TOKFOLDERS
 /** MAILDIRP */
 maildirp: TOKMAILDIR
         | TOKMAILDIRS
@@ -918,6 +1020,23 @@ mboxes: mboxp replpathv
 	{
 		$$ = $3;
 	}
+
+/** FOLDERS: <strings> (struct strings *) */
+folders: folderp replstrv
+/**      [$2: replstrv (char *)] */
+	 {
+		 if (*$2 == '\0')
+			 yyerror("invalid folder");
+
+		 $$ = xmalloc(sizeof *$$);
+		 ARRAY_INIT($$);
+		 ARRAY_ADD($$, $2);
+	 }
+        | folderp '{' stringslist '}'
+/**       [$3: stringslist (struct strings *)] */
+	 {
+		 $$ = $3;
+	 }
 
 /** LOCK: <locks> (u_int) */
 lock: TOKFCNTL
@@ -2078,18 +2197,17 @@ rule: TOKMATCH expr perform
 	      print_rule($3);
       }
 
-/** FOLDER: <string> (char *) */
+/** FOLDER: <strings> (struct strings *) */
 folder: /* empty */
         {
-		$$ = NULL;
+		$$ = xmalloc(sizeof *$$);
+		ARRAY_INIT($$);
+		ARRAY_ADD($$, xstrdup("INBOX"));
         }
-      | TOKFOLDER replstrv
-/**     [$2: replstrv (char *)] */
+      | folders
+/**     [$1: folders (struct strings *)] */
 	{
-		if (*$2 == '\0')
-			yyerror("invalid folder");
-
-		$$ = $2;
+		$$ = $1;
 	}
 
 /** GROUPS: <strings> (struct strings *) */
@@ -2330,13 +2448,11 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 	   }
          | imaptype server userpassnetrc folder imaponly verify
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
-/**        [$3: userpassnetrc (struct { ... } userpass)] [$4: folder (char *)] */
-/**        [$5: imaponly (enum fetch_only)] [$6: verify (int)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] */
+/**        [$4: folder (struct strings *)] [$5: imaponly (enum fetch_only)] */
+/**        [$6: verify (int)] */
            {
 		   struct fetch_imap_data	*data;
-
-		   if ($4 != NULL && *$4 == '\0')
-			   yyerror("invalid folder");
 
 		   $$.fetch = &fetch_imap;
 		   data = xcalloc(1, sizeof *data);
@@ -2355,7 +2471,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 				   data->pass = $3.pass;
 		   }
 
-		   data->folder = $4 == NULL ? xstrdup("INBOX") : $4;
+		   data->folders = $4;
 		   data->server.ssl = $1;
 		   data->server.verify = $6;
 		   data->server.host = $2.host;
@@ -2370,20 +2486,17 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folder imaponly
 /**        [$3: replstrv (char *)] */
-/**        [$4: userpass (struct { ... } userpass)] [$5: folder (char *)] */
-/**        [$6: imaponly (enum fetch_only)] */
+/**        [$4: userpass (struct { ... } userpass)] */
+/**        [$5: folder (struct strings *)] [$6: imaponly (enum fetch_only)] */
 	   {
 		   struct fetch_imap_data	*data;
-
-		   if ($5 != NULL && *$5 == '\0')
-			   yyerror("invalid folder");
 
 		   $$.fetch = &fetch_imappipe;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 		   data->user = $4.user;
 		   data->pass = $4.pass;
-		   data->folder = $5 == NULL ? xstrdup("INBOX") : $5;
+		   data->folders = $5;
 		   data->pipecmd = $3;
 		   if (data->pipecmd == NULL || *data->pipecmd == '\0')
 			   yyerror("invalid pipe command");

@@ -127,9 +127,12 @@ void
 fetch_imap_desc(struct account *a, char *buf, size_t len)
 {
 	struct fetch_imap_data	*data = a->data;
+	char			*folders;
 
+	folders = fmt_strings("folders ", data->folders);
 	xsnprintf(buf, len,
-	    "imap%s server \"%s\" port %s user \"%s\" folder \"%s\"",
+	    "imap%s server \"%s\" port %s user \"%s\" %s",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->user, data->folder);
+	    data->user, folders);
+	xfree(folders);
 }

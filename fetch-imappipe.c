@@ -153,13 +153,15 @@ void
 fetch_imappipe_desc(struct account *a, char *buf, size_t len)
 {
 	struct fetch_imap_data	*data = a->data;
+	char			*folders;
 
+	folders = fmt_strings("folders ", data->folders);
 	if (data->user == NULL) {
-		xsnprintf(buf, len, "imap pipe \"%s\" folder \"%s\"",
-		    data->pipecmd, data->folder);
+		xsnprintf(buf, len, "imap pipe \"%s\" %s",
+		    data->pipecmd, folders);
 	} else {
-		xsnprintf(buf, len,
-		    "imap pipe \"%s\" user \"%s\" folder \"%s\"",
-		    data->pipecmd, data->user, data->folder);
+		xsnprintf(buf, len, "imap pipe \"%s\" user \"%s\" %s",
+		    data->pipecmd, data->user, folders);
 	}
+	xfree(folders);
 }

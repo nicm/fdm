@@ -70,8 +70,8 @@ int	imap_state_line(struct account *, struct fetch_ctx *);
 int	imap_state_mail(struct account *, struct fetch_ctx *);
 int	imap_state_delete(struct account *, struct fetch_ctx *);
 int	imap_state_expunge(struct account *, struct fetch_ctx *);
-int	imap_state_quit1(struct account *, struct fetch_ctx *);
-int	imap_state_quit2(struct account *, struct fetch_ctx *);
+int	imap_state_close(struct account *, struct fetch_ctx *);
+int	imap_state_quit(struct account *, struct fetch_ctx *);
 
 #define IMAP_TAG_NONE -1
 #define IMAP_TAG_CONTINUE -2
@@ -83,6 +83,8 @@ int	imap_state_quit2(struct account *, struct fetch_ctx *);
 #define IMAP_RAW 3
 
 #define IMAP_CAPA_AUTH_CRAM_MD5 0x1
+
+#define IMAP_FLAG_RESELECTING 0x1
 
 /* Put line to server. */
 int
@@ -310,6 +312,8 @@ imap_state_init(struct account *a, struct fetch_ctx *fctx)
 
 	data->tag = 0;
 
+	data->folder = 0;
+
 	fctx->state = imap_state_connect;
 	return (FETCH_AGAIN);
 }
@@ -513,8 +517,8 @@ imap_state_select1(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	if (imap_putln(a,
-	    "%u SELECT {%zu}", ++data->tag, strlen(data->folder)) != 0)
+	if (imap_putln(a, "%u SELECT {%zu}",
+	    ++data->tag, strlen(ARRAY_ITEM(data->folders, data->folder))) != 0)
 		return (FETCH_ERROR);
 	fctx->state = imap_state_select2;
 	return (FETCH_BLOCK);
@@ -532,7 +536,7 @@ imap_state_select2(struct account *a, struct fetch_ctx *fctx)
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
-	if (imap_putln(a, "%s", data->folder) != 0)
+	if (imap_putln(a, "%s", ARRAY_ITEM(data->folders, data->folder)) != 0)
 		return (FETCH_ERROR);
 	fctx->state = imap_state_select3;
 	return (FETCH_BLOCK);
@@ -556,12 +560,12 @@ imap_state_select3(struct account *a, struct fetch_ctx *fctx)
 	}
 	data->cur = 0;
 
-	/* Save total, if no previous total. */
-	if (data->total == 0) {
-		data->total = data->num;
+	/* Update total, if not reselecting (after expunge). */
+	if (!(data->flags & IMAP_FLAG_RESELECTING)) {
+		data->total += data->num;
 
 		/*
-		 * If not reconnecting and a subset of mail is required,
+		 * If not reselecting and a subset of mail is required,
 		 * skip to search for the right flags.
 		 */
 		if (data->only != FETCH_ONLY_ALL) {
@@ -569,6 +573,7 @@ imap_state_select3(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_AGAIN);
 		}
 	}
+	data->flags &= ~IMAP_FLAG_RESELECTING;
 
 	fctx->state = imap_state_select4;
 	return (FETCH_AGAIN);
@@ -592,7 +597,7 @@ imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 	if (fctx->flags & FETCH_POLL) {
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 			return (FETCH_ERROR);
-		fctx->state = imap_state_quit1;
+		fctx->state = imap_state_close;
 		return (FETCH_BLOCK);
 	}
 
@@ -688,7 +693,7 @@ imap_state_search3(struct account *a, struct fetch_ctx *fctx)
 	if (data->total == 0 || fctx->flags & FETCH_POLL) {
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 			return (FETCH_ERROR);
-		fctx->state = imap_state_quit1;
+		fctx->state = imap_state_close;
 		return (FETCH_BLOCK);
 	}
 
@@ -752,7 +757,7 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_BLOCK);
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 			return (FETCH_ERROR);
-		fctx->state = imap_state_quit1;
+		fctx->state = imap_state_close;
 		return (FETCH_BLOCK);
 	}
 
@@ -861,7 +866,8 @@ imap_state_body(struct account *a, struct fetch_ctx *fctx)
 		add_tag(&m->tags, "port", "%s", data->server.port);
 	}
 	add_tag(&m->tags, "server_uid", "%u", data->uid);
-	add_tag(&m->tags, "folder", "%s", data->folder);
+	add_tag(&m->tags,
+	    "folder", "%s", ARRAY_ITEM(data->folders, data->folder));
 
 	/* If we already know the mail is oversize, start off flushing it. */
 	data->flushing = data->size > conf.max_size;
@@ -993,7 +999,8 @@ imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 int
 imap_state_expunge(struct account *a, struct fetch_ctx *fctx)
 {
-	char	*line;
+	struct fetch_imap_data	*data = a->data;
+	char			*line;
 
 	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
 		return (FETCH_ERROR);
@@ -1002,13 +1009,15 @@ imap_state_expunge(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
+	data->flags &= IMAP_FLAG_RESELECTING;
+
 	fctx->state = imap_state_select1;
 	return (FETCH_AGAIN);
 }
 
-/* Quit state 1. */
+/* Close state. */
 int
-imap_state_quit1(struct account *a, struct fetch_ctx *fctx)
+imap_state_close(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
@@ -1020,15 +1029,21 @@ imap_state_quit1(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
+	data->folder++;
+	if (data->folder != ARRAY_LENGTH(data->folders)) {
+		fctx->state = imap_state_select1;
+		return (FETCH_AGAIN);
+	}
+
 	if (imap_putln(a, "%u LOGOUT", ++data->tag) != 0)
 		return (FETCH_ERROR);
-	fctx->state = imap_state_quit2;
+	fctx->state = imap_state_quit;
 	return (FETCH_BLOCK);
 }
 
-/* Quit state 2. */
+/* Quit state. */
 int
-imap_state_quit2(struct account *a, struct fetch_ctx *fctx)
+imap_state_quit(struct account *a, struct fetch_ctx *fctx)
 {
 	char	*line;
 
