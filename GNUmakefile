@@ -3,10 +3,10 @@
 .PHONY: clean
 
 PROG= fdm
-VERSION= 1.5
+VERSION= 1.6
 DATE= $(shell date +%Y%m%d-%H%M)
 
-#DEBUG= 1
+DEBUG= 1
 
 PREFIX?= /usr/local
 
@@ -14,6 +14,9 @@ BIN_OWNER= bin
 BIN_GROUP= root
 
 CC= gcc
+
+INCDIRS= -I$(PREFIX)/include
+LDFLAGS= -L$(PREFIX)/include
 
 ifeq ($(shell uname),SunOS)
 YACC= yacc
@@ -47,7 +50,9 @@ SRCS= fdm.c \
 ifeq ($(shell uname),Darwin)
 INCDIRS+= -I/usr/local/include/openssl -Icompat
 SRCS+= compat/strtonum.c
-DEFS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE
+DEFS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE \
+       -DNO_QUEUE_H -DNO_TREE_H
+LIBS+= -lresolv -lcrypto
 endif
 
 ifeq ($(shell uname),Linux)

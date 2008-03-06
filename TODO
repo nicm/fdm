@@ -54,5 +54,3 @@
   hitting server per-IP limits
 - set secondary groups when changing user
 - multiple folders on IMAP fetching
-- use getrusage for "processed in X seconds" messages rather than time elapsed
-- support SIGINFO during fetching to print state

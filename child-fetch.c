@@ -33,11 +33,12 @@
 #include "fetch.h"
 #include "match.h"
 
+void	fetch_status(struct account *, double);
 int	fetch_account(struct account *, struct io *, int, double);
 int	fetch_match(struct account *, struct msg *, struct msgbuf *);
 int	fetch_deliver(struct account *, struct msg *, struct msgbuf *);
 int	fetch_poll(struct account *, struct iolist *, struct io *, int);
-int	fetch_purge(struct account *);;
+int	fetch_purge(struct account *);
 void	fetch_free(void);
 void	fetch_free1(struct mail_ctx *);
 
@@ -304,6 +305,27 @@ fetch_purge(struct account *a)
 	return (1);
 }
 
+void
+fetch_status(struct account *a, double tim)
+{
+	u_int	n;
+
+	tim = get_time() - tim;
+	n = fetch_dropped + fetch_kept;
+	if (n > 0) {
+		log_info("%s: %u messages processed (%u kept) in %.3f seconds "
+		    "(average %.3f)", a->name, n, fetch_kept, tim, tim / n);
+	} else {
+		log_info("%s: 0 messages processed in %.3f seconds",
+		    a->name, tim);
+	}
+
+#ifdef DEBUG
+	log_debug("%s: polled for %.3f seconds (%.3f blocked)", a->name,
+	    fetch_time_polling, fetch_time_blocked);
+#endif
+}
+
 int
 fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 {
@@ -312,7 +334,6 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 	struct fetch_ctx fctx;
 	struct cache	*cache;
 	struct iolist 	 iol;
-	u_int		 n;
 	int		 aborted, complete, holding, timeout;
 
 	log_debug2("%s: fetching", a->name);
@@ -337,6 +358,13 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 
 	aborted = complete = holding = 0;
 	for (;;) {
+		if (siginfo) {
+			log_debug("%s: caught SIGINFO", a->name);
+			if (!(nflags & FETCH_POLL))
+				fetch_status(a, tim);
+			siginfo = 0;
+		}
+
 		fetch_blocked = 0;
 
 		/* Check for new privsep messages. */
@@ -458,24 +486,8 @@ finished:
 	/* Print results. */
 	if (nflags & FETCH_POLL)
 		log_info("%s: %u messages found", a->name, a->fetch->total(a));
-	else {
-		tim = get_time() - tim;
-		n = fetch_dropped + fetch_kept;
-		if (n > 0) {
-			log_info("%s: %u messages processed (%u kept) in %.3f "
-			    "seconds (average %.3f)", a->name, n, fetch_kept,
-			    tim, tim / n);
-		} else {
-			log_info("%s: 0 messages processed in %.3f seconds",
-			    a->name, tim);
-		}
-	}
-
-#ifdef DEBUG
-	log_debug("%s: polled for %.3f seconds (%.3f blocked)", a->name,
-	    fetch_time_polling, fetch_time_blocked);
-#endif
-
+	else
+		fetch_status(a, tim);
 	return (aborted);
 }
 

@@ -29,6 +29,9 @@ void
 child_sighandler(int sig)
 {
 	switch (sig) {
+	case SIGINFO:
+		siginfo = 1;
+		break;
 	case SIGTERM:
 		cleanup_purge();
 		_exit(1);
@@ -48,6 +51,7 @@ child_fork(void)
 		cleanup_flush();
 
 		sigemptyset(&act.sa_mask);
+		sigaddset(&act.sa_mask, SIGINFO);
 		sigaddset(&act.sa_mask, SIGINT);
 		sigaddset(&act.sa_mask, SIGTERM);
 		act.sa_flags = SA_RESTART;
@@ -57,6 +61,8 @@ child_fork(void)
 			fatal("sigaction failed");
 
 		act.sa_handler = child_sighandler;
+		if (sigaction(SIGINFO, &act, NULL) < 0)
+			fatal("sigaction failed");
 		if (sigaction(SIGTERM, &act, NULL) < 0)
 			fatal("sigaction failed");
 

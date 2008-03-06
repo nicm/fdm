@@ -116,6 +116,8 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 			fatal("dup2(stderr) failed");
 		close(fd_err[1]);
 
+                if (signal(SIGINFO, SIG_DFL) == SIG_ERR)
+			fatal("signal failed");
                 if (signal(SIGINT, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
                 if (signal(SIGTERM, SIG_DFL) == SIG_ERR)
