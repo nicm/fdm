@@ -16,7 +16,7 @@ BIN_GROUP= root
 CC= gcc
 
 INCDIRS= -I$(PREFIX)/include
-LDFLAGS= -L$(PREFIX)/include
+LDFLAGS= -L$(PREFIX)/lib
 
 ifeq ($(shell uname),SunOS)
 YACC= yacc
@@ -26,8 +26,9 @@ YACC= bison
 YFLAGS= -dy
 endif
 
-INSTALLBIN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 555
-INSTALLMAN= install -D -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
+INSTALLDIR= install -d
+INSTALLBIN= install -g $(BIN_OWNER) -o $(BIN_GROUP) -m 555
+INSTALLMAN= install -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 
 SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
@@ -103,8 +104,11 @@ y.tab.c y.tab.h: parse.y
 	$(YACC) $(YFLAGS) $<
 
 install:
+	${INSTALLDIR} ${DESTDIR}${PREFIX}/bin
 	$(INSTALLBIN) $(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
+	${INSTALLDIR} ${DESTDIR}${PREFIX}/man/man1
 	$(INSTALLMAN) $(PROG).1 $(DESTDIR)$(PREFIX)/man/man1/$(PROG).1
+	${INSTALLDIR} ${DESTDIR}${PREFIX}/man/man5
 	$(INSTALLMAN) $(PROG).conf.5 $(DESTDIR)$(PREFIX)/man/man5/$(PROG).conf.5
 
 clean:
