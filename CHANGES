@@ -8,6 +8,10 @@
 * Print current progress on SIGINFO. Be careful with this, it is possible
   there are places where an unhandled EINTR would cause fdm to die.
 
+04 March 2008
+
+* fdm 1.5 released.
+
 10 February 2008
 
 * Consistently use geteuid().
