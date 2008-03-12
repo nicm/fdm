@@ -74,8 +74,6 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	enum deliver_smtp_state		 state;
 	size_t		 		 len, llen;
 
-	from = to = NULL;
-	
 	io = connectproxy(&data->server,
 	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
 	if (io == NULL) {
@@ -86,13 +84,17 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	if (conf.debug > 3 && !conf.syslog)
 		io->dup_fd = STDOUT_FILENO;
 
+	llen = IO_LINESIZE;
+	lbuf = xmalloc(llen);
+
 	xasprintf(&ptr, "%s@%s", conf.info.user, conf.info.host);
 	if (data->to.str == NULL)
 		to = xstrdup(ptr);
 	else {
 		to = replacestr(&data->to, m->tags, m, &m->rml);
 		if (to == NULL || *to == '\0') {
-			log_warnx("%s: empty to", a->name);
+			xasprintf(&cause, "%s: empty to", a->name);
+			from = NULL;
 			goto error;
 		}
 	}
@@ -101,17 +103,14 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	else {
 		from = replacestr(&data->from, m->tags, m, &m->rml);
 		if (from == NULL || *from == '\0') {
-			log_warnx("%s: empty from", a->name);
+			xasprintf(&cause, "%s: empty from", a->name);
 			goto error;
 		}
 	}
 	xfree(ptr);
 
-	llen = IO_LINESIZE;
-	lbuf = xmalloc(llen);
-
 	state = SMTP_CONNECTING;
-	line = cause = NULL;
+	line = NULL;
 	done = 0;
 	do {
 		switch (io_pollline2(io,
@@ -124,6 +123,7 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		}
 		code = deliver_smtp_code(line);
 
+		cause = NULL;
 		switch (state) {
 		case SMTP_CONNECTING:
 			if (code != 220)
