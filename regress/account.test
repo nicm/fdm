@@ -94,18 +94,18 @@ account "name" imap server "server" user "user" pass "pass" folder
 @1 ^/dev/stdin: syntax error at line .$
 
 account "name" imap server "server" user "user" pass "pass"
-@0 ^added account "name": fetch=imap server "server" port imap user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imap server "server" port imap user "user" folders "INBOX"$
 account "name" imaps server "server" user "user" pass "pass"
-@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folder "INBOX"$
-account "name" imap server "server" user "user" pass "pass" folder "folder"
-@0 ^added account "name": fetch=imap server "server" port imap user "user" folder "folder"$
-account "name" imaps server "server" user "user" pass "pass" folder "folder"
-@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folder "folder"$
+@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folders "INBOX"$
+account "name" imap server "server" user "user" pass "pass" folders "folder"
+@0 ^added account "name": fetch=imap server "server" port imap user "user" folders "folder"$
+account "name" imaps server "server" user "user" pass "pass" folders "folder"
+@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folders "folder"$
 
 account "name" imap server "server" port 123 user "user" pass "pass"
-@0 ^added account "name": fetch=imap server "server" port 123 user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imap server "server" port 123 user "user" folders "INBOX"$
 account "name" imap server "server" port "port" user "user" pass "pass"
-@0 ^added account "name": fetch=imap server "server" port port user "user" folder "INBOX"$
+@0 ^added account "name": fetch=imap server "server" port port user "user" folders "INBOX"$
 account "name" imap server "server" port 0 user "user" pass "pass"
 @1 ^/dev/stdin: invalid port at line .$
 account "name" imap server "server" port 65536 user "user" pass "pass"
