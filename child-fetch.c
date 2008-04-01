@@ -358,11 +358,11 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 
 	aborted = complete = holding = 0;
 	for (;;) {
-		if (siginfo) {
-			log_debug("%s: caught SIGINFO", a->name);
+		if (sigusr1) {
+			log_debug("%s: caught SIGUSR1", a->name);
 			if (!(nflags & FETCH_POLL))
 				fetch_status(a, tim);
-			siginfo = 0;
+			sigusr1 = 0;
 		}
 
 		fetch_blocked = 0;

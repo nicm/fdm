@@ -46,7 +46,7 @@ void			 sighandler(int);
 
 struct conf		 conf;
 
-volatile sig_atomic_t	 siginfo;
+volatile sig_atomic_t	 sigusr1;
 volatile sig_atomic_t	 sigint;
 volatile sig_atomic_t	 sigterm;
 
@@ -54,8 +54,11 @@ void
 sighandler(int sig)
 {
 	switch (sig) {
+#ifdef SIGINFO
 	case SIGINFO:
-		siginfo = 1;
+#endif
+	case SIGUSR1:
+		sigusr1 = 1;
 		break;
 	case SIGINT:
 		sigint = 1;
@@ -611,7 +614,10 @@ main(int argc, char **argv)
 	/* Set up signal handlers. */
 	memset(&act, 0, sizeof act);
 	sigemptyset(&act.sa_mask);
+#ifdef SIGINFO
 	sigaddset(&act.sa_mask, SIGINFO);
+#endif
+	sigaddset(&act.sa_mask, SIGUSR1);
 	sigaddset(&act.sa_mask, SIGINT);
 	sigaddset(&act.sa_mask, SIGTERM);
 	act.sa_flags = SA_RESTART;
@@ -625,7 +631,11 @@ main(int argc, char **argv)
 		fatal("sigaction failed");
 
 	act.sa_handler = sighandler;
+#ifdef SIGINFO
 	if (sigaction(SIGINFO, &act, NULL) < 0)
+		fatal("sigaction failed");
+#endif
+	if (sigaction(SIGUSR1, &act, NULL) < 0)
 		fatal("sigaction failed");
 	if (sigaction(SIGINT, &act, NULL) < 0)
 		fatal("sigaction failed");

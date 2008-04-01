@@ -758,7 +758,7 @@ void		 netrc_close(FILE *);
 int		 netrc_lookup(FILE *, const char *, char **, char **);
 
 /* fdm.c */
-extern volatile sig_atomic_t siginfo;
+extern volatile sig_atomic_t sigusr1;
 extern volatile sig_atomic_t sigint;
 extern volatile sig_atomic_t sigterm;
 double		 get_time(void);

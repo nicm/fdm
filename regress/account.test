@@ -97,10 +97,14 @@ account "name" imap server "server" user "user" pass "pass"
 @0 ^added account "name": fetch=imap server "server" port imap user "user" folders "INBOX"$
 account "name" imaps server "server" user "user" pass "pass"
 @0 ^added account "name": fetch=imaps server "server" port imaps user "user" folders "INBOX"$
-account "name" imap server "server" user "user" pass "pass" folders "folder"
+account "name" imap server "server" user "user" pass "pass" folder "folder"
 @0 ^added account "name": fetch=imap server "server" port imap user "user" folders "folder"$
-account "name" imaps server "server" user "user" pass "pass" folders "folder"
+account "name" imaps server "server" user "user" pass "pass" folder "folder"
 @0 ^added account "name": fetch=imaps server "server" port imaps user "user" folders "folder"$
+account "name" imap server "server" user "user" pass "pass" folders { "folder1" "folder2" }
+@0 ^added account "name": fetch=imap server "server" port imap user "user" folders "folder1" "folder2"$
+account "name" imaps server "server" user "user" pass "pass" folders { "folder1" "folder2" }
+@0 ^added account "name": fetch=imaps server "server" port imaps user "user" folders "folder1" "folder2"$
 
 account "name" imap server "server" port 123 user "user" pass "pass"
 @0 ^added account "name": fetch=imap server "server" port 123 user "user" folders "INBOX"$
