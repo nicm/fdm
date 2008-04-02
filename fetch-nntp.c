@@ -106,7 +106,7 @@ fetch_nntp_code(char *line)
 }
 
 /*
- * Get line from server and check against list of codes.  Returns -1 on error,
+ * Get line from server and check against list of codes. Returns -1 on error,
  * 0 on success, a NULL line when out of data.
  */
 int
@@ -158,7 +158,7 @@ fetch_nntp_parse223(char *line, u_int *n, char **id)
 
 	ptr = strchr(line, '<');
 	if (ptr == NULL)
-		return (1);
+		return (-1);
 	ptr2 = strchr(ptr, '>');
 	if (ptr2 == NULL)
 		return (-1);

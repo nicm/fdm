@@ -1605,12 +1605,15 @@ on perl regexps.
 Unless you want or need some of the extensions, there is generally no
 compelling reason to choose one over the other. PCRE is faster than some
 POSIX regexp implementations, but few rulesets will include sufficient
-regexps for this to make any difference.
+regexps for this to make any difference. PCRE has had some security
+problems, but most regexp implementations pose a similar risk for their
+complexity if nothing else; fdm performs regexp matching as non-root in
+any case.
 
 The Debian package and FreeBSD port both use PCRE by default.
 
 Because I hate maintaining and testing two sets of code, there is a strong
-possibility that PCRE may become the fdm default as well at some point.
+possibility that PCRE may become the fdm default at some point.
 
 ================================================================================
 $Id$
