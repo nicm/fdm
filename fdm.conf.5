@@ -452,6 +452,8 @@ not be read from
 .Op Ar userpass
 .Op Ic folder Ar name
 .Op Ar only
+.Op Ic no-cram-md5
+.Op Ic no-login
 .Xc
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
@@ -468,6 +470,8 @@ not be read from
 .Op Ar folders
 .Op Ar only
 .Op Ic no-verify
+.Op Ic no-cram-md5
+.Op Ic no-login
 .Xc
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3S account, aside from the additional
@@ -490,6 +494,13 @@ item consists only of one of the keywords
 or
 .Ic old-only
 - a cache file is not required.
+.Pp
+Options
+.Ic no-cram-md5
+and
+.Ic no-login
+disable the given authentication method.
+The default is to use CRAM-MD5 if it is available, or LOGIN otherwise.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ar userpass
 .Op Ar folders
