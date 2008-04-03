@@ -929,7 +929,8 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 	} else {
 		if (left == 0) {
 			/* Exactly "FLAGS (...)" and no more. */
-			if (size < 7 || strncmp(line, "FLAGS (", 7) != 0)
+			if (size < 7 || (strncmp(line, "FLAGS (", 7) != 0 &&
+			    strncmp(line, " FLAGS (", 8) != 0)) {
 				return (imap_invalid(a, line));
 		} else {
 			/* " FLAGS (...)" after content. */

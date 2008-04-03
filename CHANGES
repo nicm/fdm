@@ -1,5 +1,7 @@
 03 April 2008
 
+* Support an extra space on the optional FLAGS response when fetching a mail,
+  fixes problems with CommuniGate Pro, thanks to Anthony Wood.
 * New flags, no-cram-md5 and no-login, on IMAP accounts to force fdm not to
   use cram-md5 or login authentication even if the server supports it. From
   Anthony Wood.
