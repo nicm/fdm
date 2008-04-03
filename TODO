@@ -54,3 +54,4 @@
   hitting server per-IP limits
 - set secondary groups when changing user
 - from-headers stuff can probably go at some point
+- regress fails as root

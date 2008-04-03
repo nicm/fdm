@@ -195,6 +195,8 @@ struct fetch_imap_data {
 	char		*pass;
 	struct server	 server;
 	char		*pipecmd;
+	int		 nocrammd5;
+	int		 nologin;
 
 	u_int		 folder;
 	struct strings	*folders;

@@ -401,7 +401,8 @@ imap_state_capability2(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	if (data->capa & IMAP_CAPA_AUTH_CRAM_MD5) {
+	/* Try CRAM-MD5, if server supports it and user allows it. */
+	if (!data->nocrammd5 && (data->capa & IMAP_CAPA_AUTH_CRAM_MD5)) {
 		if (imap_putln(a,
 		    "%u AUTHENTICATE CRAM-MD5", ++data->tag) != 0)
 			return (FETCH_ERROR);
@@ -409,11 +410,17 @@ imap_state_capability2(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 
-	if (imap_putln(a,
-	    "%u LOGIN {%zu}", ++data->tag, strlen(data->user)) != 0)
-		return (FETCH_ERROR);
-	fctx->state = imap_state_login;
-	return (FETCH_BLOCK);
+	/* Fall back to LOGIN, unless config disallows it. */
+	if (!data->nologin) {
+		if (imap_putln(a,
+		    "%u LOGIN {%zu}", ++data->tag, strlen(data->user)) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_login;
+		return (FETCH_BLOCK);
+	}
+
+	log_warnx("%s: no authentication methods", a->name);
+	return (FETCH_ERROR);
 }
 
 /* CRAM-MD5 auth state. */

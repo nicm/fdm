@@ -194,7 +194,9 @@ yyerror(const char *fmt, ...)
 %token TOKNNTP
 %token TOKNNTPS
 %token TOKNOAPOP
+%token TOKNOCRAMMD5
 %token TOKNOCREATE
+%token TOKNOLOGIN
 %token TOKNONE
 %token TOKNORECEIVED
 %token TOKNOT
@@ -299,7 +301,7 @@ yyerror(const char *fmt, ...)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont not disabled keep execpipe writeappend compress verify
-%type  <flag> apop poptype imaptype nntptype
+%type  <flag> apop poptype imaptype nntptype nocrammd5 nologin
 %type  <gid> gid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -2227,6 +2229,26 @@ groups: groupp replstrv
 		$$ = $3;
 	}
 
+/** NOCRAMMD5: <flag> (int) */
+nocrammd5: TOKNOCRAMMD5
+	   {
+		   $$ = 1;
+	   }
+         | /* empty */
+	   {
+		   $$ = 0;
+	   }
+
+/** NOLOGIN: <flag> (int) */
+nologin: TOKNOLOGIN
+	 {
+		 $$ = 1;
+	 }
+       | /* empty */
+	 {
+		 $$ = 0;
+	 }
+
 /** VERIFY: <flag> (int) */
 verify: TOKNOVERIFY
 	{
@@ -2446,11 +2468,11 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   data->path = $5.path;
 		   data->only = $5.only;
 	   }
-         | imaptype server userpassnetrc folder imaponly verify
+         | imaptype server userpassnetrc folder imaponly verify nocrammd5 nologin
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
 /**        [$4: folder (struct strings *)] [$5: imaponly (enum fetch_only)] */
-/**        [$6: verify (int)] */
+/**        [$6: verify (int)] [$7: nocrammd5 (int)] [$8: nologin (int)] */
            {
 		   struct fetch_imap_data	*data;
 
@@ -2483,6 +2505,8 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 			   data->server.port = xstrdup("imap");
 		   data->server.ai = NULL;
 		   data->only = $5;
+		   data->nocrammd5 = $7;
+		   data->nologin = $8;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folder imaponly
 /**        [$3: replstrv (char *)] */
