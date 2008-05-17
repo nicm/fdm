@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
+#include <signal.h>
 #include <string.h>
 #include <tdb.h>
 
