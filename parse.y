@@ -307,14 +307,13 @@ yyerror(const char *fmt, ...)
 %type  <number> size time numv retrc expire
 %type  <only> only imaponly
 %type  <poponly> poponly
-%type  <replstrs> replstrslist
-%type  <replstrs> actions rmheaders accounts
+%type  <replstrs> replstrslist actions rmheaders accounts
 %type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
-%type  <string> port to from xstrv strv replstrv replpathv val optval
+%type  <string> port to from xstrv strv replstrv replpathv val optval folder1
 %type  <strings> stringslist pathslist
-%type  <strings> domains headers maildirs mboxes groups folders folder
+%type  <strings> domains headers maildirs mboxes groups folders folderlist
 %type  <users> users userslist
 %type  <userpass> userpass userpassreqd userpassnetrc
 %type  <uid> uid user
@@ -1034,8 +1033,8 @@ folders: folderp replstrv
 		 ARRAY_INIT($$);
 		 ARRAY_ADD($$, $2);
 	 }
-        | folderp '{' stringslist '}'
-/**       [$3: stringslist (struct strings *)] */
+       | folderp '{' stringslist '}'
+/**      [$3: stringslist (struct strings *)] */
 	 {
 		 $$ = $3;
 	 }
@@ -1400,6 +1399,46 @@ actitem: execpipe strv
 
 		 data->path.str = $2;
 		 data->compress = $3;
+	 }
+       | imaptype server userpassnetrc folder1 verify nocrammd5 nologin
+/**      [$1: imaptype (int)] [$2: server (struct { ... } server)] */
+/**      [$3: userpassnetrc (struct { ... } userpass)] [$4: folder1 (char *)] */
+/**      [$5: verify (int)] */
+	 {
+		 struct deliver_imap_data	*data;
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_imap;
+
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+
+		 if ($3.user_netrc && $3.pass_netrc)
+			 find_netrc($2.host, &data->user, &data->pass);
+		 else {
+			 if ($3.user_netrc)
+				 find_netrc($2.host, &data->user, NULL);
+			 else
+				 data->user = $3.user;
+			 if ($3.pass_netrc)
+				 find_netrc($2.host, NULL, &data->pass);
+			 else
+				 data->pass = $3.pass;
+		 }
+
+		 data->folder.str = $4;
+		 data->server.ssl = $1;
+		 data->server.verify = $5;
+		 data->server.host = $2.host;
+		 if ($2.port != NULL)
+			 data->server.port = $2.port;
+		 else if ($1)
+			 data->server.port = xstrdup("imaps");
+		 else
+			 data->server.port = xstrdup("imap");
+		 data->server.ai = NULL;
+		 data->nocrammd5 = $6;
+		 data->nologin = $7;
 	 }
        | TOKSMTP server from to
 /**      [$2: server (struct { ... } server)] [$3: from (char *)] */
@@ -2199,18 +2238,30 @@ rule: TOKMATCH expr perform
 	      print_rule($3);
       }
 
-/** FOLDER: <strings> (struct strings *) */
-folder: /* empty */
-        {
-		$$ = xmalloc(sizeof *$$);
-		ARRAY_INIT($$);
-		ARRAY_ADD($$, xstrdup("INBOX"));
-        }
-      | folders
-/**     [$1: folders (struct strings *)] */
-	{
-		$$ = $1;
-	}
+/** FOLDERLIST: <strings> (struct strings *) */
+folderlist: /* empty */
+            {
+		    $$ = xmalloc(sizeof *$$);
+		    ARRAY_INIT($$);
+		    ARRAY_ADD($$, xstrdup("INBOX"));
+	    }
+          | folders
+/**         [$1: folders (struct strings *)] */
+	    {
+		    $$ = $1;
+	    }
+
+/** FOLDER1: <string> (char *) */
+folder1: /* empty */
+	 {
+		 $$ = xstrdup("INBOX");
+	 }
+       | folderp strv
+/**      [$2: strv (char *)] */
+	 {
+		 $$ = $2;
+	 }
+
 
 /** GROUPS: <strings> (struct strings *) */
 groups: groupp replstrv
@@ -2468,10 +2519,10 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   data->path = $5.path;
 		   data->only = $5.only;
 	   }
-         | imaptype server userpassnetrc folder imaponly verify nocrammd5 nologin
+         | imaptype server userpassnetrc folderlist imaponly verify nocrammd5 nologin
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
-/**        [$4: folder (struct strings *)] [$5: imaponly (enum fetch_only)] */
+/**        [$4: folderlist (struct strings *)] [$5: imaponly (enum fetch_only)] */
 /**        [$6: verify (int)] [$7: nocrammd5 (int)] [$8: nologin (int)] */
            {
 		   struct fetch_imap_data	*data;
@@ -2508,10 +2559,10 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   data->nocrammd5 = $7;
 		   data->nologin = $8;
 	   }
-	 | TOKIMAP TOKPIPE replstrv userpass folder imaponly
+	 | TOKIMAP TOKPIPE replstrv userpass folderlist imaponly
 /**        [$3: replstrv (char *)] */
 /**        [$4: userpass (struct { ... } userpass)] */
-/**        [$5: folder (struct strings *)] [$6: imaponly (enum fetch_only)] */
+/**        [$5: folderlist (struct strings *)] [$6: imaponly (enum fetch_only)] */
 	   {
 		   struct fetch_imap_data	*data;
 

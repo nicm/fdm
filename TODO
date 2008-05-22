@@ -14,7 +14,6 @@
 	match attachment (index > 1 and size < 200 and type "fnmatch")
 - attach get name from content-disposition
 - more attachment stuff: remove-attachment, write-/pipe-attachment etc
-- deliver to IMAP folder
 - refactor & clean up privsep mail transfer code
 - is there any reason struct mail shouldn't point to a struct account?
 - cumulative effect of a compound action sucks
@@ -55,3 +54,4 @@
 - set secondary groups when changing user
 - from-headers stuff can probably go at some point
 - regress fails as root
+- document deliver imap

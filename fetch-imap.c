@@ -28,10 +28,6 @@ void	fetch_imap_desc(struct account *, char *, size_t);
 
 int	fetch_imap_connect(struct account *);
 void	fetch_imap_disconnect(struct account *);
-int	fetch_imap_putln(struct account *, const char *, va_list);
-int	fetch_imap_getln(struct account *, struct fetch_ctx *, char **);
-
-int	fetch_imap_state_init(struct account *, struct fetch_ctx *);
 
 struct fetch fetch_imap = {
 	"imap",

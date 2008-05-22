@@ -32,30 +32,20 @@
 #include "fdm.h"
 #include "fetch.h"
 
-int	imap_putln(struct account *, const char *, ...);
-int	imap_getln(struct account *, struct fetch_ctx *, int, char **);
-
 void	imap_free(void *);
 
-int	imap_okay(char *);
 int	imap_parse(struct account *, int, char *);
-int	imap_tag(char *);
 
 char   *imap_base64_encode(char *);
 char   *imap_base64_decode(char *);
 
-int	imap_bad(struct account *, const char *);
-int	imap_invalid(struct account *, const char *);
-
 int	imap_state_connect(struct account *, struct fetch_ctx *);
-int	imap_state_connected(struct account *, struct fetch_ctx *);
 int	imap_state_capability1(struct account *, struct fetch_ctx *);
 int	imap_state_capability2(struct account *, struct fetch_ctx *);
 int	imap_state_cram_md5_auth(struct account *, struct fetch_ctx *);
 int	imap_state_login(struct account *, struct fetch_ctx *);
 int	imap_state_user(struct account *, struct fetch_ctx *);
 int	imap_state_pass(struct account *, struct fetch_ctx *);
-int	imap_state_select1(struct account *, struct fetch_ctx *);
 int	imap_state_select2(struct account *, struct fetch_ctx *);
 int	imap_state_select3(struct account *, struct fetch_ctx *);
 int	imap_state_select4(struct account *, struct fetch_ctx *);
@@ -72,15 +62,6 @@ int	imap_state_delete(struct account *, struct fetch_ctx *);
 int	imap_state_expunge(struct account *, struct fetch_ctx *);
 int	imap_state_close(struct account *, struct fetch_ctx *);
 int	imap_state_quit(struct account *, struct fetch_ctx *);
-
-#define IMAP_TAG_NONE -1
-#define IMAP_TAG_CONTINUE -2
-#define IMAP_TAG_ERROR -3
-
-#define IMAP_TAGGED 0
-#define IMAP_CONTINUE 1
-#define IMAP_UNTAGGED 2
-#define IMAP_RAW 3
 
 #define IMAP_CAPA_AUTH_CRAM_MD5 0x1
 
@@ -137,6 +118,20 @@ imap_okay(char *line)
 	if (ptr == NULL)
 		return (0);
 	if (ptr[1] != 'O' || ptr[2] != 'K' || (ptr[3] != ' ' && ptr[3] != '\0'))
+		return (0);
+	return (1);
+}
+
+/* Check for no from server. */
+int
+imap_no(char *line)
+{
+	char	*ptr;
+
+	ptr = strchr(line, ' ');
+	if (ptr == NULL)
+		return (0);
+	if (ptr[1] != 'N' || ptr[2] != 'O' || (ptr[3] != ' ' && ptr[3] != '\0'))
 		return (0);
 	return (1);
 }

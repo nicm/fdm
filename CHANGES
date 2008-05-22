@@ -1,3 +1,7 @@
+22 May 2008
+
+* deliver-imap fetch method; suggested by Jason Dixon a while ago.
+
 03 April 2008
 
 * Support an extra space on the optional FLAGS response when fetching a mail,
