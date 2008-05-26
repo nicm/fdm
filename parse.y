@@ -203,6 +203,7 @@ yyerror(const char *fmt, ...)
 %token TOKNOVERIFY
 %token TOKOLDONLY
 %token TOKOR
+%token TOKPARALLELACCOUNTS
 %token TOKPASS
 %token TOKPIPE
 %token TOKPOP3
@@ -692,6 +693,15 @@ set: TOKSET TOKMAXSIZE size
 	     if ($3 >= conf.queue_high)
 		     yyerror("queue-low must be smaller than queue-high");
 	     conf.queue_low = $3;
+     }
+   | TOKSET TOKPARALLELACCOUNTS numv
+/**  [$3: numv (long long)] */
+     {
+	     if ($3 > INT_MAX)
+		     yyerror("parallel-accounts too big: %lld", $3);
+	     if ($3 == 0)
+		     yyerror("parallel-accounts cannot be zero");
+	     conf.max_accts = $3;
      }
    | TOKSET domains
 /**  [$2: domains (struct strings *)] */
@@ -1403,7 +1413,7 @@ actitem: execpipe strv
        | imaptype server userpassnetrc folder1 verify nocrammd5 nologin
 /**      [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**      [$3: userpassnetrc (struct { ... } userpass)] [$4: folder1 (char *)] */
-/**      [$5: verify (int)] */
+/**      [$5: verify (int)] [$6: nocrammd5 (int)] [$7: nologin (int)] */
 	 {
 		 struct deliver_imap_data	*data;
 

@@ -243,6 +243,7 @@ main(int argc, char **argv)
 	struct stat	 sb;
 	time_t		 tt;
 	struct account	*a;
+	TAILQ_HEAD(, account) actaq; /* active accounts */
 	pid_t		 pid;
 	struct children	 children, dead_children;
 	struct child	*child;
@@ -279,6 +280,7 @@ main(int argc, char **argv)
 	conf.queue_low = -1;
 	conf.def_user = -1;
 	conf.cmd_user = -1;
+	conf.max_accts = -1;
 	conf.strip_chars = xstrdup(DEFSTRIPCHARS);
 
 	ARRAY_INIT(&conf.incl);
@@ -549,6 +551,10 @@ main(int argc, char **argv)
 		    "queue-high=%u, queue-low=%u, ", conf.queue_high,
 		    conf.queue_low);
 	}
+	if (sizeof tmp > off && conf.max_accts != -1) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "parallel-accounts=%d ", conf.max_accts);
+	}
 	if (sizeof tmp > off && conf.lock_file != NULL) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "lock-file=\"%s\", ", conf.lock_file);
@@ -670,31 +676,21 @@ main(int argc, char **argv)
 	COUNTFDS("parent");
 #endif
 
-	/* Start the children and build the array. */
-	ARRAY_INIT(&children);
-	ARRAY_INIT(&dead_children);
-
-	child = NULL;
+	/* Filter account list. */
+	TAILQ_INIT(&actaq);
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
-		if (!use_account(a, NULL))
-			continue;
-
-		cfd = xmalloc(sizeof *cfd);
-		cfd->account = a;
-		cfd->op = op;
-		cfd->children = &children;
-		child = child_start(&children, conf.child_uid, child_fetch,
-		    parent_fetch, cfd);
-
-		log_debug2("parent: child %ld (%s) started", (long) child->pid,
-		    a->name);
+		if (use_account(a, NULL))
+			TAILQ_INSERT_HEAD(&actaq, a, active_entry);
 	}
-
-	if (ARRAY_EMPTY(&children)) {
+	if (TAILQ_EMPTY(&actaq)) {
                 log_warnx("no accounts found");
 		res = 1;
 		goto out;
 	}
+
+	/* Initialise the child process arrays. */
+	ARRAY_INIT(&children);
+	ARRAY_INIT(&dead_children);
 
 #ifndef NO_SETPROCTITLE
 	setproctitle("parent");
@@ -704,9 +700,29 @@ main(int argc, char **argv)
 
 	res = 0;
 	ARRAY_INIT(&iol);
-	while (!ARRAY_EMPTY(&children)) {
+	while (!TAILQ_EMPTY(&actaq) || ARRAY_LENGTH(&children) != 0) {
+		log_debug2("parent: %u children, %u dead children",
+		    ARRAY_LENGTH(&children), ARRAY_LENGTH(&dead_children));
+		
+		/* Stop on signal. */
 		if (sigint || sigterm)
 			break;
+
+		/* While there is space, start another child. */
+		while (!TAILQ_EMPTY(&actaq) && (conf.max_accts < 0 ||
+		    ARRAY_LENGTH(&children) < (u_int) conf.max_accts)) {
+			a = TAILQ_FIRST(&actaq);
+			TAILQ_REMOVE(&actaq, a, active_entry);
+			
+			cfd = xmalloc(sizeof *cfd);
+			cfd->account = a;
+			cfd->op = op;
+			cfd->children = &children;
+			child = child_start(&children,
+			    conf.child_uid, child_fetch, parent_fetch, cfd);
+			log_debug2("parent: child %ld (%s) started", 
+			    (long) child->pid, a->name);	
+		}
 
 		/* Fill the io list. */
 		ARRAY_CLEAR(&iol);
@@ -724,57 +740,55 @@ main(int argc, char **argv)
 		case 0:
 			fatalx("child socket closed");
 		}
-
-		while (!ARRAY_EMPTY(&children)) {
-			/* Check all children for pending privsep messages. */
-			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-				child = ARRAY_ITEM(&children, i);
-				if (privsep_check(child->io))
-					break;
-			}
-			if (i == ARRAY_LENGTH(&children))
+		
+		/* Check all children for pending privsep messages. */
+		child = NULL;
+		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+			child = ARRAY_ITEM(&children, i);
+			if (child->io != NULL && privsep_check(child->io))
 				break;
-
-			/* And handle them if necessary. */
-			if (privsep_recv(child->io, &msg, &msgbuf) != 0)
-				fatalx("privsep_recv error");
-			log_debug3("parent: got message type %d, id %u from "
-			    "child %ld", msg.type, msg.id, (long) child->pid);
-
-			if (child->msg(child, &msg, &msgbuf) == 0)
-				continue;
-
-			/* Child has said it is ready to exit, tell it to. */
-			memset(&msg, 0, sizeof msg);
-			msg.type = MSG_EXIT;
-			if (privsep_send(child->io, &msg, NULL) != 0)
-				fatalx("privsep_send error");
-
-			/* Wait for the child. */
-			if (waitpid(child->pid, &status, 0) == -1)
-				fatal("waitpid failed");
-			if (WIFSIGNALED(status)) {
-				res = 1;
-				log_debug2("parent: child %ld got signal %d",
-				    (long) child->pid, WTERMSIG(status));
-			} else if (!WIFEXITED(status)) {
-				res = 1;
-				log_debug2("parent: child %ld didn't exit"
-				    "normally", (long) child->pid);
-			} else {
-				if (WEXITSTATUS(status) != 0)
-					res = 1;
-				log_debug2("parent: child %ld returned %d",
-				    (long) child->pid, WEXITSTATUS(status));
-			}
-
-			io_close(child->io);
-			io_free(child->io);
-			child->io = NULL;
-
-			ARRAY_REMOVE(&children, i);
-			ARRAY_ADD(&dead_children, child);
 		}
+		if (i == ARRAY_LENGTH(&children))
+			continue;
+			
+		/* And handle them if necessary. */
+		if (privsep_recv(child->io, &msg, &msgbuf) != 0)
+			fatalx("privsep_recv error");
+		log_debug3("parent: got message type %d, id %u from child %ld",
+		    msg.type, msg.id, (long) child->pid);
+		if (child->msg(child, &msg, &msgbuf) == 0)
+			continue;
+		
+		/* Child has said it is ready to exit, tell it to. */
+		memset(&msg, 0, sizeof msg);
+		msg.type = MSG_EXIT;
+		if (privsep_send(child->io, &msg, NULL) != 0)
+			fatalx("privsep_send error");
+		
+		/* Wait for the child. */
+		if (waitpid(child->pid, &status, 0) == -1)
+			fatal("waitpid failed");
+		if (WIFSIGNALED(status)) {
+			res = 1;
+			log_debug2("parent: child %ld got signal %d",
+			    (long) child->pid, WTERMSIG(status));
+		} else if (!WIFEXITED(status)) {
+			res = 1;
+			log_debug2("parent: child %ld didn't exit normally",
+			    (long) child->pid);
+		} else {
+			if (WEXITSTATUS(status) != 0)
+				res = 1;
+			log_debug2("parent: child %ld returned %d",
+			    (long) child->pid, WEXITSTATUS(status));
+		}
+		
+		io_close(child->io);
+		io_free(child->io);
+		child->io = NULL;
+		
+		ARRAY_REMOVE(&children, i);
+		ARRAY_ADD(&dead_children, child);
 	}
 	ARRAY_FREE(&iol);
 

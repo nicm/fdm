@@ -505,6 +505,7 @@ struct account {
 	void			*data;
 
 	TAILQ_ENTRY(account)	 entry;
+	TAILQ_ENTRY(account)	 active_entry;
 };
 
 /* Action item. */
@@ -629,6 +630,7 @@ struct conf {
 	int			 verify_certs;
 	u_int			 purge_after;
 	enum decision		 impl_act;
+	int			 max_accts;
 
 	int			 queue_high;
 	int			 queue_low;

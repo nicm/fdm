@@ -155,6 +155,7 @@ static const struct token tokens[] = {
 	{ "not", TOKNOT },
 	{ "old-only", TOKOLDONLY },
 	{ "or", TOKOR },
+	{ "parallel-accounts", TOKPARALLELACCOUNTS },
 	{ "pass", TOKPASS },
 	{ "pipe", TOKPIPE },
 	{ "pop3", TOKPOP3 },

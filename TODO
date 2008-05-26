@@ -32,8 +32,6 @@
 - generic flags on account so that no-verify/no-apop don't have to be in the
   right order also fix man page
 - NNTP should warn if mail is dropped - generic flag
-- rml could be stored as actual tags, then command0-9 could go -- this means
-  copying them... bad idea
 - make-style filtering for tags :S/// etc
 - docs from Thomas@BIC:
 	clarify that first match stops without continue
@@ -54,4 +52,6 @@
 - set secondary groups when changing user
 - from-headers stuff can probably go at some point
 - regress fails as root
+- rml could be stored as actual tags, then command0-9 could go... means
+  copying... get rid of %0
 - document deliver imap
