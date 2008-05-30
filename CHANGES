@@ -1,3 +1,7 @@
+30 May 2008
+
+* Handle 423/430 response from ARTICLE command in NNTP correctly.
+
 26 May 2008
 
 * New option: parallel-accounts. Sets number of accounts to fetch in parallel.
