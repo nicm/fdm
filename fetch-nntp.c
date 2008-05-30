@@ -30,6 +30,7 @@
 #include "fetch.h"
 
 void	fetch_nntp_fill(struct account *, struct iolist *);
+int	fetch_nntp_commit(struct account *, struct mail *);
 void	fetch_nntp_abort(struct account *);
 u_int	fetch_nntp_total(struct account *);
 void	fetch_nntp_desc(struct account *, char *, size_t);
@@ -62,7 +63,7 @@ struct fetch fetch_nntp = {
 	fetch_nntp_state_connect,
 
 	fetch_nntp_fill,
-	NULL,
+	fetch_nntp_commit,
 	fetch_nntp_abort,
 	NULL,
 	fetch_nntp_desc
@@ -323,6 +324,16 @@ fetch_nntp_fill(struct account *a, struct iolist *iol)
 
 	if (data->io != NULL)
 		ARRAY_ADD(iol, data->io);
+}
+
+/* Commit mail. We just do a save here. */
+int
+fetch_nntp_commit(struct account *a, unused struct mail *m)
+{
+	if (fetch_nntp_save(a) != 0)
+		return (FETCH_ERROR);
+
+	return (FETCH_AGAIN);
 }
 
 /* Abort fetch and free everything. */
@@ -671,8 +682,6 @@ fetch_nntp_state_quit(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
-
-	fetch_nntp_save(a);
 
 	fetch_nntp_abort(a);
 	return (FETCH_EXIT);

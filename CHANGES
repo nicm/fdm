@@ -1,5 +1,7 @@
 30 May 2008
 
+* Make NNTP fetching save the cache file after each mail since some NNTP
+  servers (such as my ISP's) are horrendously unreliable.
 * Handle 423/430 response from ARTICLE command in NNTP correctly.
 
 26 May 2008
