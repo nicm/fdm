@@ -46,8 +46,6 @@
 } while (0)
 
 #define ARRAY_SET(a, i, s) do {						\
-	if (((u_int) (i)) >= (a)->num)					\
-		abort();						\
 	(a)->list[i] = s;						\
 } while (0)
 
@@ -56,12 +54,19 @@
 	(a)->list[(a)->num] = s;					\
 	(a)->num++;							\
 } while (0)
+#define ARRAY_INSERT(a, i, s) do {					\
+	ENSURE_SIZE2((a)->list, (a)->space, (a)->num + 1, ARRAY_ITEMSIZE(a)); \
+	if ((i) < (a)->num) {						\
+		memmove((a)->list + (i) + 1, (a)->list + (i), 		\
+		    ARRAY_ITEMSIZE(a) * ((a)->num - (i)));		\
+	}								\
+	(a)->list[i] = s;						\
+	(a)->num++;							\
+} while (0)
 #define ARRAY_REMOVE(a, i) do {						\
-	if (((u_int) (i)) >= (a)->num)					\
-		abort();						\
-	if (i < (a)->num - 1) {						\
+	if ((i) < (a)->num - 1) {					\
 		memmove((a)->list + (i), (a)->list + (i) + 1, 		\
-		    ARRAY_ITEMSIZE(a) * ((a)->num - (i) - 1)); 		\
+		    ARRAY_ITEMSIZE(a) * ((a)->num - (i) - 1));		\
 	}								\
 	(a)->num--;							\
         if ((a)->num == 0)						\
