@@ -67,6 +67,7 @@
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define DIRMODE		(S_IRWXU|S_IRWXG|S_IRWXO)
+#define MAXUSERLEN	256
 
 extern char	*__progname;
 
@@ -426,7 +427,8 @@ struct msgdata {
 	struct actitem			*actitem;
 	struct match_command_data	*cmddata;
 
-	uid_t			 	 uid;
+	uid_t				 uid;
+	gid_t	 			 gid;
 };
 
 /* Privsep message buffer. */
@@ -473,6 +475,9 @@ struct child_deliver_data {
 
 	struct child 		*child; /* the source of the request */
 
+	uid_t			 uid;
+	gid_t			 gid;
+
 	u_int			 msgid;
 	const char		*name;
 
@@ -486,17 +491,13 @@ struct child_deliver_data {
 	struct match_command_data *cmddata;
 };
 
-/* Users list. */
-ARRAY_DECL(users, uid_t);
-
 /* Account entry. */
 struct account {
 	u_int			 idx;
 
 	char			 name[MAXNAMESIZE];
 
-	struct users		*users;
-	int			 find_uid;
+	struct replstrs		*users;
 
 	int			 disabled;
 	int			 keep;
@@ -525,8 +526,7 @@ TAILQ_HEAD(actlist, actitem);
 struct action {
 	char			 name[MAXNAMESIZE];
 
-	struct users		*users;
-	int			 find_uid;
+	struct replstrs		*users;
 
 	struct actlist		*list;
 
@@ -573,8 +573,7 @@ struct rule {
 
 	struct expr		*expr;
 
-	struct users		*users;
-	int			 find_uid;	/* find uids from headers */
+	struct replstrs		*users;
 
 	int			 stop;		/* stop matching at this rule */
 
@@ -590,6 +589,19 @@ struct rule {
 #define LOCK_FLOCK 0x2
 #define LOCK_DOTLOCK 0x4
 
+/* User info settings. */
+struct userdata {
+	char	*name;
+	char	*home;
+
+	uid_t	 uid;
+	gid_t	 gid;
+};
+
+/* User lookup order. */
+typedef struct userdata *(*userfunction)(const char *);
+ARRAY_DECL(userfunctions, userfunction);
+
 /* Configuration settings. */
 struct conf {
 	int 			 debug;
@@ -604,20 +616,12 @@ struct conf {
 
 	struct proxy		*proxy;
 
-	struct strings		*domains; /* domains to look for with users */
-	struct strings		*headers; /* headers to search for users */
+	char			*user_home;
+	struct userfunctions	*user_order;
 
-	struct {
-		int		 valid;
-		uid_t		 last_uid;
-
-		char		*home;
-		char		*user;
-		char		*uid;
-		char		*host;
-		char		*fqdn;
-		char		*addr;
-	} info;
+	char			*host_name;
+	char			*host_fqdn;
+	char			*host_address;
 
 	char			*conf_file;
 	char			*lock_file;
@@ -642,8 +646,9 @@ struct conf {
 	int			 timeout;
 	int		         del_big;
 	u_int			 lock_types;
-	uid_t			 def_user;
-	uid_t			 cmd_user;
+
+	char			*def_user;
+	char			*cmd_user;
 
 	TAILQ_HEAD(, cache)	 caches;
 	TAILQ_HEAD(, account)	 accounts;
@@ -731,11 +736,10 @@ int	 		parse_conf(const char *, struct strings *);
 __dead printflike1 void yyerror(const char *, ...);
 
 /* parse-fn.c */
-char		*expand_path(const char *);
+char		*expand_path(const char *, const char *);
 char		*run_command(const char *, const char *);
 char 		*fmt_replstrs(const char *, struct replstrs *);
 char 		*fmt_strings(const char *, struct strings *);
-char 		*fmt_users(const char *, struct users *);
 int		 have_accounts(char *);
 struct account	*find_account(char *);
 struct action  	*find_action(char *);
@@ -764,11 +768,11 @@ extern volatile sig_atomic_t sigusr1;
 extern volatile sig_atomic_t sigint;
 extern volatile sig_atomic_t sigterm;
 double		 get_time(void);
-void		 dropto(uid_t);
+void		 dropto(uid_t, gid_t);
 int		 check_incl(const char *);
 int	         check_excl(const char *);
 int		 use_account(struct account *, char **);
-void		 fill_info(const char *);
+void		 fill_host(void);
 __dead void	 usage(void);
 
 /* cache-op.c */
@@ -787,6 +791,14 @@ void printflike2 attach_log(struct attach *, const char *, ...);
 struct attach 	*attach_build(struct mail *);
 void		 attach_free(struct attach *);
 
+/* lookup.c */
+struct userdata *user_lookup(const char *, struct userfunctions *);
+void		 user_free(struct userdata *);
+struct userdata *user_copy(struct userdata *);
+
+/* lookup-passwd.c */
+struct userdata *passwd_lookup(const char *);
+
 /* privsep.c */
 int		 privsep_send(struct io *, struct msg *, struct msgbuf *);
 int		 privsep_check(struct io *);
@@ -801,9 +813,10 @@ void		 cmd_free(struct cmd *);
 /* child.c */
 int		 child_fork(void);
 __dead void	 child_exit(int);
-struct child 	*child_start(struct children *, uid_t, int (*)(struct child *,
-    		     struct io *), int (*)(struct child *, struct msg *,
-    		     struct msgbuf *), void *);
+struct child 	*child_start(struct children *, uid_t, gid_t, 
+    		     int (*)(struct child *, struct io *),
+    		     int (*)(struct child *, struct msg *, struct msgbuf *),
+    		     void *);
 
 /* child-fetch.c */
 int		 open_cache(struct account *, struct cache *);
@@ -866,10 +879,9 @@ char		*match_header(struct mail *, const char *, size_t *, int);
 size_t		 find_body(struct mail *);
 void		 count_lines(struct mail *, u_int *, u_int *);
 int		 append_line(struct mail *, const char *, size_t);
-struct users	*find_users(struct mail *);
 char		*find_address(char *, size_t, size_t *);
 void		 trim_from(struct mail *);
-char 	        *make_from(struct mail *);
+char 	        *make_from(struct mail *, char *);
 u_int		 fill_wrapped(struct mail *);
 void		 set_wrapped(struct mail *, char);
 
@@ -915,11 +927,12 @@ void printflike3 add_tag(struct strb **, const char *, const char *, ...);
 const char	*find_tag(struct strb *, const char *);
 const char	*match_tag(struct strb *, const char *);
 void		 default_tags(struct strb **, const char *);
-void		 update_tags(struct strb **);
+void		 update_tags(struct strb **, struct userdata *);
+void		 reset_tags(struct strb **);
 char 		*replacestr(struct replstr *, struct strb *, struct mail *,
     		     struct rmlist *);
 char 		*replacepath(struct replpath *, struct strb *, struct mail *,
-   		     struct rmlist *);
+		     struct rmlist *, const char *);
 
 /* log.c */
 void		 log_open(FILE *, int, int);

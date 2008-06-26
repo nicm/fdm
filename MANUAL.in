@@ -821,10 +821,6 @@ The <users> item may be either:
 
 	users { 1001 "nicholas" }
 
-- the keyword 'from-headers', that will attempt to ascertain a set of users
-  from the mail headers (see the 'domains' and 'headers' options in the
-  section on setting options).
-
 If users are specified, the action will be run once for each user, with fdm
 changing to that user before executing the action. Note that fdm will execute
 the action once for each user even when not started as root, but will not be
@@ -1397,28 +1393,6 @@ flock locking are mutually exclusive, but dotlock may be used with either.
 Some NFS servers do not support fcntl. The default is flock only. Example:
 
 	set lock-types fcntl dotlock
-
-- [domain|domains] <domains>
-
-This specifies a domain or list of domains to use when searching for users in
-mail headers with the 'from-headers' keyword. Examples include:
-
-	set domain "xyz.ath.cx"
-
-	set domains { "abc.ca" "def.co.uk" }
-
-The default is the hostname, FQDN and IP of the local machine.
-
-- [header|headers] <headers>
-
-This specifies a header or list of headers to search with the 'from-headers'
-keyword, such as:
-
-	set header { "to" "cc" }
-
-	set headers "x-envelope-to"
-
-The default is "to" "cc".
 
 - proxy <url>
 

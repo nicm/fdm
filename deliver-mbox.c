@@ -82,7 +82,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	f = gzf = NULL;
 	fd = -1;
 
-	path = replacepath(&data->path, m->tags, m, &m->rml);
+	path = replacepath(&data->path, m->tags, m, &m->rml, dctx->udata->home);
 	if (path == NULL || *path == '\0') {
 		log_warnx("%s: empty path", a->name);
 		goto error;
@@ -159,7 +159,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		fatal("sigprocmask failed");
 
 	/* Write the from line. */
-	from = make_from(m);
+	from = make_from(m, dctx->udata->name);
 	if (deliver_mbox_write(f, gzf, from, strlen(from)) < 0) {
 		xfree(from);
 		goto error_unblock;

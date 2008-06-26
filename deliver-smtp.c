@@ -87,7 +87,10 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	llen = IO_LINESIZE;
 	lbuf = xmalloc(llen);
 
-	xasprintf(&ptr, "%s@%s", conf.info.user, conf.info.host);
+	if (conf.host_fqdn != NULL)
+ 		xasprintf(&ptr, "%s@%s", dctx->udata->name, conf.host_fqdn);
+	else
+ 		xasprintf(&ptr, "%s@%s", dctx->udata->name, conf.host_name);
 	if (data->to.str == NULL)
 		to = xstrdup(ptr);
 	else {
@@ -129,7 +132,10 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			if (code != 220)
 				goto error;
 			state = SMTP_HELO;
-			io_writeline(io, "HELO %s", conf.info.host);
+			if (conf.host_fqdn != NULL)
+ 				io_writeline(io, "HELO %s", conf.host_fqdn);
+			else
+ 				io_writeline(io, "HELO %s", conf.host_name);
 			break;
 		case SMTP_HELO:
 			if (code != 250)

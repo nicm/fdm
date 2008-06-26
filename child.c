@@ -90,8 +90,9 @@ child_exit(int status)
 }
 
 struct child *
-child_start(struct children *children, uid_t uid, int (*start)(struct child *,
-    struct io *), int (*msg)(struct child *, struct msg *, struct msgbuf *),
+child_start(struct children *children, uid_t uid, gid_t gid, 
+    int (*start)(struct child *, struct io *), 
+    int (*msg)(struct child *, struct msg *, struct msgbuf *),
     void *data)
 {
 	struct child	*child, *childp;
@@ -117,7 +118,7 @@ child_start(struct children *children, uid_t uid, int (*start)(struct child *,
 		io_free(child->io);
 
 		if (geteuid() == 0)
-			dropto(uid);
+			dropto(uid, gid);
 
 		io = io_create(fds[1], NULL, IO_LF);
 		n = start(child, io);

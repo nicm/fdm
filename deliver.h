@@ -34,7 +34,7 @@ struct deliver_ctx {
 	struct account			*account;
 	struct mail			*mail;
 
-	uid_t				 uid;
+	struct userdata			*udata;
 
 	struct mail	 		 wr_mail;
 

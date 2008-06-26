@@ -43,7 +43,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	struct deliver_ctx	*dctx;
 	struct mail_ctx		*mctx;
 	struct mail		*m;
-
+ 
 	switch (msg->type) {
 	case MSG_ACTION:
 		if (msgbuf->buf == NULL || msgbuf->len == 0)
@@ -76,7 +76,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 		mctx = xcalloc(1, sizeof *mctx);
 		mctx->account = msg->data.account;
 		mctx->mail = m;
-
+		
 		parent_fetch_cmd(child, children, mctx, msg);
 		break;
 	case MSG_DONE:
@@ -102,10 +102,11 @@ parent_fetch_action(struct child *child, struct children *children,
     struct deliver_ctx *dctx, struct msg *msg)
 {
 	struct actitem			*ti = msg->data.actitem;
-	uid_t				 uid = msg->data.uid;
 	struct mail			*m = dctx->mail;
 	struct mail			*md = &dctx->wr_mail;
 	struct child_deliver_data	*data;
+ 	uid_t				 uid = msg->data.uid;
+	gid_t				 gid = msg->data.gid;
 
 	memset(md, 0, sizeof *md);
 	/*
@@ -137,7 +138,10 @@ parent_fetch_action(struct child *child, struct children *children,
 	data->dctx = dctx;
 	data->mail = m;
 	data->name = "deliver";
-	child = child_start(children, uid, child_deliver, parent_deliver, data);
+	data->uid = uid;
+	data->gid = gid;
+	child = child_start(
+	    children, uid, gid, child_deliver, parent_deliver, data);
 	log_debug3("parent: deliver "
 	    "child %ld started (uid %lu)", (long) child->pid, (u_long) uid);
 }
@@ -146,9 +150,10 @@ void
 parent_fetch_cmd(struct child *child, struct children *children,
     struct mail_ctx *mctx, struct msg *msg)
 {
-	uid_t				 uid = msg->data.uid;
 	struct mail			*m = mctx->mail;
 	struct child_deliver_data	*data;
+ 	uid_t				 uid = msg->data.uid;
+	gid_t				 gid = msg->data.gid;
 
 	data = xmalloc(sizeof *data);
 	data->child = child;
@@ -159,7 +164,10 @@ parent_fetch_cmd(struct child *child, struct children *children,
 	data->cmddata = msg->data.cmddata;
 	data->mail = m;
 	data->name = "command";
-	child = child_start(children, uid, child_deliver, parent_deliver, data);
+	data->uid = uid;
+	data->gid = gid;
+	child = child_start(
+	    children, uid, gid, child_deliver, parent_deliver, data);
 	log_debug3("parent: command "
 	    "child %ld started (uid %lu)", (long) child->pid, (u_long) uid);
 }

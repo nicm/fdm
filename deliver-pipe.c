@@ -49,7 +49,7 @@ deliver_pipe_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	char				*lbuf;
 	size_t				 llen;
 
-	s = replacepath(&data->cmd, m->tags, m, &m->rml);
+	s = replacepath(&data->cmd, m->tags, m, &m->rml, dctx->udata->home);
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;

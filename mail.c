@@ -419,89 +419,6 @@ append_line(struct mail *m, const char *line, size_t size)
 	return (0);
 }
 
-/* Fill array of users from headers. */
-struct users *
-find_users(struct mail *m)
-{
-	struct passwd	*pw;
-	struct users	*users;
-	char		*ptr, *last, *data, *hdr, *dom, *aptr, *dptr, *line;
-	u_int	 	 i, j;
-	size_t	 	 len, alen;
-
-	users = xmalloc(sizeof *users);
-	ARRAY_INIT(users);
-
-	line = NULL;
-	line_init(m, &ptr, &len);
-	while (ptr != NULL) {
-		if (ptr >= m->data + m->body)
-			break;
-		line = xmemstrdup(ptr, len);
-
-		/* Find separator. */
-		data = strchr(line, ':');
-		if (data == NULL)
-			goto next;
-		*data++ = '\0';
-		while (isspace((u_char) *data))
-			data++;
-		while ((last = strrchr(data, '\n')) != NULL)
-			*last = '\0';
-
-		/* Is this in the list of headers? */
-		for (i = 0; i < ARRAY_LENGTH(conf.headers); i++) {
-			hdr = ARRAY_ITEM(conf.headers, i);
-			if (*hdr == '\0')
-				continue;
-			if (fnmatch(hdr, line, FNM_CASEFOLD) == 0)
-				break;
-		}
-		if (i == ARRAY_LENGTH(conf.headers))
-			goto next;
-
-		/* Yes, try to find addresses. */
-		while (*data != '\0') {
-			aptr = find_address(data, strlen(data), &alen);
-			if (aptr == NULL)
-				break;
-			data = aptr + alen;
-
-			aptr = xmemstrdup(aptr, alen);
-			dptr = memchr(aptr, '@', alen);
-			*dptr++ = '\0';
-
-			for (j = 0; j < ARRAY_LENGTH(conf.domains); j++) {
-				dom = ARRAY_ITEM(conf.domains, j);
-				if (fnmatch(dom, dptr, FNM_CASEFOLD) != 0)
-					continue;
-
-				pw = getpwnam(aptr);
-				if (pw != NULL)
-					ARRAY_ADD(users, pw->pw_uid);
-				endpwent();
-				break;
-			}
-
-			xfree(aptr);
-		}
-
-	next:
-		if (line != NULL)
-			xfree(line);
-		line = NULL;
-
-		line_next(m, &ptr, &len);
-	}
-
-	if (ARRAY_EMPTY(users)) {
-		ARRAY_FREE(users);
-		xfree(users);
-		return (NULL);
-	}
-	return (users);
-}
-
 char *
 find_address(char *buf, size_t len, size_t *alen)
 {
@@ -609,11 +526,11 @@ trim_from(struct mail *m)
 }
 
 char *
-make_from(struct mail *m)
+make_from(struct mail *m, char *user)
 {
-	time_t	 t;
-	char	*s, *from = NULL;
-	size_t	 fromlen = 0;
+	time_t	t;
+	char   *s, *from = NULL;
+	size_t	fromlen = 0;
 
 	from = find_header(m, "from", &fromlen, 1);
 	if (from != NULL && fromlen > 0)
@@ -621,7 +538,7 @@ make_from(struct mail *m)
  	if (fromlen > INT_MAX)
 		from = NULL;
 	if (from == NULL) {
-		from = conf.info.user;
+		from = user;
 		fromlen = strlen(from);
 	}
 

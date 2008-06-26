@@ -48,12 +48,6 @@ child_deliver(struct child *child, struct io *pio)
 	setproctitle("%s[%lu]", data->name, (u_long) geteuid());
 #endif
 
-	/* Refresh user and home and fix tags. */
-	fill_info(NULL);
-	update_tags(&m->tags);
-	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
-	    conf.info.home);
-
 	/* Call the hook. */
 	memset(&msg, 0, sizeof msg);
 	data->hook(0, a, &msg, data, &msg.data.error);
@@ -111,10 +105,22 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 		return;
 	}
 
+	dctx->udata = xmalloc(sizeof *dctx->udata);
+	dctx->udata->uid = data->uid; 
+	dctx->udata->gid =  data->gid;
+	dctx->udata->name = xstrdup(find_tag(m->tags, "user"));
+	dctx->udata->home = xstrdup(find_tag(m->tags, "home"));
+	log_debug2("%s: deliver user is: %s (%lu/%lu), home is: %s", a->name,
+	    dctx->udata->name, (u_long) dctx->udata->uid, 
+	    (u_long) dctx->udata->gid, dctx->udata->home);
+
 	/* This is the child. do the delivery. */
 	*result = ti->deliver->deliver(dctx, ti);
-	if (ti->deliver->type != DELIVER_WRBACK || *result != DELIVER_SUCCESS)
+	if (ti->deliver->type != DELIVER_WRBACK || *result != DELIVER_SUCCESS) {
+		user_free(dctx->udata);
 		return;
+	}
+	user_free(dctx->udata);
 
 	mail_send(md, msg);
 	log_debug2("%s: using new mail, size %zu", a->name, md->size);
@@ -141,7 +147,8 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	}
 
 	/* Sort out the command. */
-	s = replacepath(&cmddata->cmd, m->tags, m, &m->rml);
+	s = replacepath(
+	    &cmddata->cmd, m->tags, m, &m->rml, find_tag(m->tags, "home"));
         if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;

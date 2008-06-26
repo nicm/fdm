@@ -41,6 +41,8 @@ match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 	struct io			*io = mctx->io;
 	struct msg			 msg;
 	struct msgbuf			 msgbuf;
+	struct userdata			*ud;
+	const char			*user;
 
 	set_wrapped(m, '\n');
 
@@ -54,9 +56,18 @@ match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 
 	msg.data.account = a;
 	msg.data.cmddata = data;
-	msg.data.uid = data->uid;
-	if (msg.data.uid == (uid_t) -1)
-		msg.data.uid = conf.cmd_user;
+
+	user = conf.cmd_user;
+	if (data->user != NULL)
+		user = data->user;
+	if ((ud = user_lookup(user, conf.user_order)) == NULL) {
+		log_warnx("%s: bad user: %s", a->name, user);
+		return (MATCH_ERROR);
+	}
+	msg.data.uid = ud->uid;
+	msg.data.gid = ud->gid;
+	update_tags(&m->tags, ud);
+	user_free(ud);
 
 	msgbuf.buf = m->tags;
 	msgbuf.len = STRB_SIZE(m->tags);
@@ -65,6 +76,8 @@ match_command_match(struct mail_ctx *mctx, struct expritem *ei)
 
 	if (privsep_send(io, &msg, &msgbuf) != 0)
 		fatalx("privsep_send error");
+
+	reset_tags(&m->tags);
 
 	mctx->msgid = msg.id;
 	return (MATCH_PARENT);
@@ -83,18 +96,19 @@ match_command_desc(struct expritem *ei, char *buf, size_t len)
 	type = data->pipe ? "pipe" : "exec";
 
 	if (data->re.str == NULL) {
-		if (data->uid != (uid_t) -1) {
-			xsnprintf(buf, len, "%s \"%s\" user %lu returns (%s, )",
-			    type, data->cmd.str, (u_long) data->uid, ret);
+		if (data->user != NULL) {
+			xsnprintf(buf, len, 
+			    "%s \"%s\" user \"%s\" returns (%s, )",
+			    type, data->cmd.str, data->user, ret);
 		} else {
 			xsnprintf(buf, len, "%s \"%s\" returns (%s, )", type,
 			    data->cmd.str, ret);
 		}
 	} else {
-		if (data->uid != (uid_t) -1) {
+		if (data->user != NULL) {
 			xsnprintf(buf, len,
-			    "%s \"%s\" user %lu returns (%s, \"%s\")",
-			    type, data->cmd.str, (u_long) data->uid, ret,
+			    "%s \"%s\" user \"%s\" returns (%s, \"%s\")",
+			    type, data->cmd.str, data->user, ret,
 			    data->re.str);
 		} else {
 			xsnprintf(buf, len,

@@ -90,7 +90,6 @@ static const struct token tokens[] = {
 	{ "delete-oversized", TOKDELTOOBIG },
 	{ "disabled", TOKDISABLED },
 	{ "domain", TOKDOMAIN },
-	{ "domains", TOKDOMAINS },
 	{ "dotlock", TOKDOTLOCK },
 	{ "drop", TOKDROP },
 	{ "exec", TOKEXEC },
@@ -102,7 +101,6 @@ static const struct token tokens[] = {
 	{ "folder", TOKFOLDER },
 	{ "folders", TOKFOLDERS },
 	{ "from", TOKFROM },
-	{ "from-headers", TOKFROMHEADERS },
 	{ "g", TOKGIGABYTES },
 	{ "gb", TOKGIGABYTES },
 	{ "gigabyte", TOKGIGABYTES },
@@ -127,6 +125,7 @@ static const struct token tokens[] = {
 	{ "lock-file", TOKLOCKFILE },
 	{ "lock-type", TOKLOCKTYPES },
 	{ "lock-types", TOKLOCKTYPES },
+	{ "lookup-order", TOKLOOKUPORDER },
 	{ "m", TOKMEGABYTES },
 	{ "maildir", TOKMAILDIR },
 	{ "maildirs", TOKMAILDIRS },
@@ -157,6 +156,7 @@ static const struct token tokens[] = {
 	{ "or", TOKOR },
 	{ "parallel-accounts", TOKPARALLELACCOUNTS },
 	{ "pass", TOKPASS },
+	{ "passwd", TOKPASSWD },
 	{ "pipe", TOKPIPE },
 	{ "pop3", TOKPOP3 },
 	{ "pop3s", TOKPOP3S },
@@ -217,7 +217,7 @@ yylex(void)
 			rp.str = read_string('"', 1);
 		else
 			rp.str = read_string('\'', 0);
-		path = replacepath(&rp, parse_tags, NULL, NULL);
+		path = replacepath(&rp, parse_tags, NULL, NULL, conf.user_home);
 		xfree(rp.str);
 		include_start(path);
 		lex_include = 0;

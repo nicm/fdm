@@ -26,18 +26,18 @@
 #include "fetch.h"
 #include "match.h"
 
-void		apply_result(struct expritem *, int *, int);
+void		 apply_result(struct expritem *, int *, int);
 
-struct users   *find_delivery_users(struct mail_ctx *, struct action *, int *);
-int		fill_from_strings(struct mail_ctx *, struct rule *,
-		    struct replstrs *);
-int		fill_from_string(struct mail_ctx *, struct rule *,
-		    struct replstr *);
-int		fill_from_action(struct mail_ctx *, struct rule *,
-    		    struct action *, struct users *);
+struct replstrs	*find_delivery_users(struct mail_ctx *, struct action *, int *);
+int		 fill_from_strings(struct mail_ctx *, struct rule *,
+		     struct replstrs *);
+int		 fill_from_string(struct mail_ctx *, struct rule *,
+		     struct replstr *);
+int		 fill_from_action(struct mail_ctx *, struct rule *,
+    		     struct action *, struct replstrs *);
 
-int		start_action(struct mail_ctx *, struct deliver_ctx *);
-int		finish_action(struct deliver_ctx *, struct msg *,
+int		 start_action(struct mail_ctx *, struct deliver_ctx *);
+int		 finish_action(struct deliver_ctx *, struct msg *,
 		    struct msgbuf *);
 
 #define ACTION_DONE 0
@@ -58,7 +58,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 	struct account	*a = mctx->account;
 	struct mail	*m = mctx->mail;
 	struct expritem	*ei;
-	struct users	*users;
+	struct replstrs	*users;
 	int		 should_free, this = -1, error = MAIL_CONTINUE;
 	char		 desc[DESCBUFSIZE];
 
@@ -75,7 +75,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		if (msgbuf->buf != NULL && msgbuf->len != 0) {
 			strb_destroy(&m->tags);
 			m->tags = msgbuf->buf;
-			update_tags(&m->tags);
+			update_tags(&m->tags, NULL);
 		}
 
 		ei = mctx->expritem;
@@ -307,44 +307,32 @@ done:
 	log_debug("%s: message %u delivered (rule %u, %s) in %.3f seconds",
 	    a->name, m->idx, dctx->rule->idx,
 	    dctx->actitem->deliver->name, get_time() - dctx->tim);
+	user_free(dctx->udata);
 	xfree(dctx);
 	return (MAIL_CONTINUE);
 }
 
-struct users *
+struct replstrs *
 find_delivery_users(struct mail_ctx *mctx, struct action *t, int *should_free)
 {
 	struct account	*a = mctx->account;
-	struct mail	*m = mctx->mail;
 	struct rule	*r = mctx->rule;
-	struct users	*users;
+	struct replstrs	*users;
 
 	*should_free = 0;
 	users = NULL;
-	if (r->find_uid) {			/* rule comes first */
-		*should_free = 1;
-		users = find_users(m);
-	} else if (r->users != NULL) {
-		*should_free = 0;
+	if (r->users != NULL)			/* rule comes first */
 		users = r->users;
-	} else if (t != NULL && t->find_uid) {	/* then action */
-		*should_free = 1;
-		users = find_users(m);
-	} else if (t != NULL && t->users != NULL) {
-		*should_free = 0;
+	else if (t != NULL && t->users != NULL)	/* then action */
 		users = t->users;
-	} else if (a->find_uid) {		/* then account */
-		*should_free = 1;
-		users = find_users(m);
-	} else if (a->users != NULL) {
-		*should_free = 0;
+	else if (a->users != NULL)		/* then account */
 		users = a->users;
-	}
 	if (users == NULL) {
 		*should_free = 1;
 		users = xmalloc(sizeof *users);
 		ARRAY_INIT(users);
-		ARRAY_ADD(users, conf.def_user);
+		ARRAY_EXPAND(users, 1);
+		ARRAY_LAST(users).str = conf.def_user;
 	}
 
 	return (users);
@@ -381,7 +369,7 @@ fill_from_string(struct mail_ctx *mctx, struct rule *r, struct replstr *rs)
 	struct actions	*ta;
 	u_int		 i;
 	char		*s;
-	struct users	*users;
+	struct replstrs *users;
 	int		 should_free;
 
 	s = replacestr(rs, m->tags, m, &m->rml);
@@ -420,7 +408,7 @@ empty:
 
 int
 fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
-    struct users *users)
+    struct replstrs *users)
 {
 	struct account			*a = mctx->account;
 	struct mail			*m = mctx->mail;
@@ -428,14 +416,28 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 	struct actitem			*ti;
 	struct deliver_ctx		*dctx;
 	u_int			 	 i;
+	const char			*user;
+	struct userdata			*udata;
 
 	for (i = 0; i < ARRAY_LENGTH(users); i++) {
+		user = replacestr(&ARRAY_ITEM(users, i), m->tags, m, &m->rml);
+		if (user == NULL || *user == '\0') {
+			log_warnx("%s: empty user", a->name);
+			return (-1);
+		}		
+		if ((udata = user_lookup(user, conf.user_order)) == NULL) {
+			log_warnx("%s: bad user: %s", a->name, user);
+			return (-1);
+		}
+
 		TAILQ_FOREACH(ti, t->list, entry) {
 			if (ti->deliver == NULL) {
 				data = ti->data;
 				if (fill_from_strings(
-				    mctx, r, data->actions) != 0)
+				    mctx, r, data->actions) != 0) {
+					user_free(udata);
 					return (-1);
+				}
 				continue;
 			}
 
@@ -445,13 +447,16 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 			dctx->account = a;
 			dctx->rule = r;
 			dctx->mail = m;
-			dctx->uid = ARRAY_ITEM(users, i);
 
-			log_debug3("%s: action %s:%u (%s), uid %lu", a->name,
+			dctx->udata = user_copy(udata);
+
+			log_debug3("%s: action %s:%u (%s), user %s", a->name,
 			    t->name, ti->idx, ti->deliver->name,
-			    (u_long) dctx->uid);
+			    ARRAY_ITEM(users, i).str);
 			TAILQ_INSERT_TAIL(&mctx->dqueue, dctx, entry);
 		}
+
+		user_free(udata);
 	}
 
 	return (0);
@@ -468,15 +473,21 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	struct msgbuf	 msgbuf;
 
 	dctx->tim = get_time();
-	log_debug2("%s: message %u, running action %s:%u (%s) as user %lu",
+	log_debug2("%s: message %u, running action %s:%u (%s) as user %s",
 	    a->name, m->idx, t->name, ti->idx, ti->deliver->name,
-	    (u_long) dctx->uid);
+	    dctx->udata->name);
 	add_tag(&m->tags, "action", "%s", t->name);
+
+	update_tags(&m->tags, dctx->udata);
 
 	/* Just deliver now for in-child delivery. */
 	if (ti->deliver->type == DELIVER_INCHILD) {
-		if (ti->deliver->deliver(dctx, ti) != DELIVER_SUCCESS)
+		if (ti->deliver->deliver(dctx, ti) != DELIVER_SUCCESS) {
+			reset_tags(&m->tags);
 			return (ACTION_ERROR);
+		}
+
+		reset_tags(&m->tags);
 		return (ACTION_DONE);
 	}
 
@@ -486,7 +497,9 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 
 	msg.data.account = a;
 	msg.data.actitem = ti;
-	msg.data.uid = dctx->uid;
+
+	msg.data.uid = dctx->udata->uid;
+	msg.data.gid = dctx->udata->gid;
 
 	msgbuf.buf = m->tags;
 	msgbuf.len = STRB_SIZE(m->tags);
@@ -498,6 +511,8 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 		fatalx("privsep_send error");
 
 	mctx->msgid = msg.id;
+
+	reset_tags(&m->tags);
 	return (ACTION_PARENT);
 }
 
@@ -512,7 +527,7 @@ finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 	if (msgbuf->buf != NULL && msgbuf->len != 0) {
 		strb_destroy(&m->tags);
 		m->tags = msgbuf->buf;
-		update_tags(&m->tags);
+		reset_tags(&m->tags);
 	}
 
 	if (msg->data.error != 0)

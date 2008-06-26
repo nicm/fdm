@@ -46,6 +46,7 @@ SRCS= fdm.c \
       match-in-cache.c match-matched.c match-regexp.c match-size.c \
       match-string.c match-tagged.c match-unmatched.c match-account.c \
       parent-deliver.c parent-fetch.c \
+      lookup.c lookup-passwd.c \
       y.tab.c parse-fn.c lex.c
 
 ifeq ($(shell uname),Darwin)

@@ -92,7 +92,7 @@ struct match_regexp_data {
 /* Match command data. */
 struct match_command_data {
 	struct replpath	 cmd;
-	uid_t		 uid;
+	char		*user;
 	int		 pipe;		/* pipe mail to command */
 
 	struct re	 re;		/* re->str NULL to not check */

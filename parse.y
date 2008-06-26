@@ -70,6 +70,7 @@ parse_conf(const char *path, struct strings *macros)
 
 	strb_create(&parse_tags);
 	default_tags(&parse_tags, NULL);
+	add_tag(&parse_tags, "home", "%s", conf.user_home);
 
 	TAILQ_INIT(&parse_macros);
 	parse_last = NULL;
@@ -148,7 +149,6 @@ yyerror(const char *fmt, ...)
 %token TOKDELTOOBIG
 %token TOKDISABLED
 %token TOKDOMAIN
-%token TOKDOMAINS
 %token TOKDOTLOCK
 %token TOKDROP
 %token TOKEQ
@@ -161,7 +161,6 @@ yyerror(const char *fmt, ...)
 %token TOKFOLDER
 %token TOKFOLDERS
 %token TOKFROM
-%token TOKFROMHEADERS
 %token TOKGIGABYTES
 %token TOKGROUP
 %token TOKGROUPS
@@ -179,6 +178,7 @@ yyerror(const char *fmt, ...)
 %token TOKKILOBYTES
 %token TOKLOCKFILE
 %token TOKLOCKTYPES
+%token TOKLOOKUPORDER
 %token TOKMAILDIR
 %token TOKMAILDIRS
 %token TOKMATCH
@@ -205,6 +205,7 @@ yyerror(const char *fmt, ...)
 %token TOKOR
 %token TOKPARALLELACCOUNTS
 %token TOKPASS
+%token TOKPASSWD
 %token TOKPIPE
 %token TOKPOP3
 %token TOKPOP3S
@@ -272,12 +273,7 @@ yyerror(const char *fmt, ...)
 		int		 flags;
 		char		*str;
 	} re;
-	uid_t			 uid;
-	gid_t			 gid;
-	struct {
-		struct users	*users;
-		int		 find_uid;
-	} users;
+	gid_t			 localgid;
 	enum cmp		 cmp;
 	struct rule		*rule;
 	struct {
@@ -286,6 +282,8 @@ yyerror(const char *fmt, ...)
 		char		*pass;
 		int		 pass_netrc;
 	} userpass;
+	userfunction		 ufn;
+	struct userfunctions    *ufns;
 }
 
 %token NONE
@@ -303,21 +301,20 @@ yyerror(const char *fmt, ...)
 %type  <fetch> fetchtype
 %type  <flag> cont not disabled keep execpipe writeappend compress verify
 %type  <flag> apop poptype imaptype nntptype nocrammd5 nologin
-%type  <gid> gid
+%type  <localgid> localgid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
 %type  <only> only imaponly
 %type  <poponly> poponly
-%type  <replstrs> replstrslist actions rmheaders accounts
+%type  <replstrs> replstrslist actions rmheaders accounts users
 %type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to from xstrv strv replstrv replpathv val optval folder1
-%type  <strings> stringslist pathslist
-%type  <strings> domains headers maildirs mboxes groups folders folderlist
-%type  <users> users userslist
+%type  <strings> stringslist pathslist maildirs mboxes groups folders folderlist
 %type  <userpass> userpass userpassreqd userpassnetrc
-%type  <uid> uid user
+%type  <ufn> ufn
+%type  <ufns> ufns ufnslist
 
 %%
 
@@ -359,12 +356,6 @@ mboxp: TOKMBOX
 /** RMHEADERP */
 rmheaderp: TOKREMOVEHEADER
          | TOKREMOVEHEADERS
-/** HEADERP */
-headerp: TOKHEADER
-       | TOKHEADERS
-/** DOMAINP */
-domainp: TOKDOMAIN
-       | TOKDOMAINS
 
 /** VAL: <string> (char *) */
 val: TOKVALUE strv
@@ -488,7 +479,7 @@ replpathv: strv
 		  struct replpath	rp;
 
 		  rp.str = $1;
-		  $$ = replacepath(&rp, parse_tags, NULL, NULL);
+		  $$ = replacepath(&rp, parse_tags, NULL, NULL, conf.user_home);
 		  xfree($1);
 	   }
 
@@ -647,13 +638,13 @@ set: TOKSET TOKMAXSIZE size
      {
 	     conf.allow_many = 1;
      }
-   | TOKSET TOKDEFUSER uid
-/**  [$3: uid (uid_t)] */
+   | TOKSET TOKDEFUSER strv
+/**  [$3: strv (char *)] */
      {
 	     conf.def_user = $3;
      }
-   | TOKSET TOKCMDUSER uid
-/**  [$3: uid (uid_t)] */
+   | TOKSET TOKCMDUSER strv
+/**  [$3: strv (char *)] */
      {
 	     conf.cmd_user = $3;
      }
@@ -702,34 +693,6 @@ set: TOKSET TOKMAXSIZE size
 	     if ($3 == 0)
 		     yyerror("parallel-accounts cannot be zero");
 	     conf.max_accts = $3;
-     }
-   | TOKSET domains
-/**  [$2: domains (struct strings *)] */
-     {
-	     u_int	i;
-
-	     if (conf.domains != NULL) {
-		     for (i = 0; i < ARRAY_LENGTH(conf.domains); i++)
-			     xfree(ARRAY_ITEM(conf.domains, i));
-		     ARRAY_FREE(conf.domains);
-		     xfree(conf.domains);
-	     }
-
-	     conf.domains = $2;
-     }
-   | TOKSET headers
-/**  [$2: headers (struct strings *)] */
-     {
-	     u_int	i;
-
-	     if (conf.headers != NULL) {
-		     for (i = 0; i < ARRAY_LENGTH(conf.headers); i++)
-			     xfree(ARRAY_ITEM(conf.headers, i));
-		     ARRAY_FREE(conf.headers);
-		     xfree(conf.headers);
-	     }
-
-	     conf.headers = $2;
      }
    | TOKSET TOKPROXY replstrv
 /**  [$3: replstrv (char *)] */
@@ -784,8 +747,8 @@ set: TOKSET TOKMAXSIZE size
      {
 	     conf.file_group = -1;
      }
-   | TOKSET TOKFILEGROUP gid
-/**  [$3: gid (gid_t)] */
+   | TOKSET TOKFILEGROUP localgid
+/**  [$3: localgid (gid_t)] */
      {
 	     conf.file_group = $3;
      }
@@ -793,6 +756,12 @@ set: TOKSET TOKMAXSIZE size
      {
 	     conf.file_umask = umask(0);
 	     umask(conf.file_umask);
+     }
+   | TOKSET TOKLOOKUPORDER ufns
+/**  [$3: ufns (struct userfunctions *)] */
+     {
+	     ARRAY_FREEALL(conf.user_order);
+	     conf.user_order = $3;
      }
    | TOKSET TOKFILEUMASK numv
 /**  [$3: numv (long long)] */
@@ -931,54 +900,40 @@ pathslist: pathslist replpathv
 		   ARRAY_ADD($$, $1);
 	   }
 
-/** USERSLIST: <users> (struct { ... } users) */
-userslist: userslist uid
-/**        [$1: userslist (struct { ... } users)] [$2: uid (uid_t)] */
-	   {
-		   $$ = $1;
-		   ARRAY_ADD($$.users, $2);
-	   }
-	 | uid
-/**        [$1: uid (uid_t)] */
-	   {
-		   $$.users = xmalloc(sizeof *$$.users);
-		   ARRAY_INIT($$.users);
-		   ARRAY_ADD($$.users, $1);
-	   }
+/** UFN: <ufn> (userfunction) */
+ufn: TOKPASSWD
+     {
+	     $$ = &passwd_lookup;
+     }
 
-/** DOMAINS: <strings> (struct strings *) */
-domains: domainp replstrv
-/**      [$2: replstrv (char *)] */
-	 {
-		 if (*$2 == '\0')
-			 yyerror("invalid domain");
+/** UFNS: <ufns> (struct userfunctions *) */
+ufns: ufn
+/**   [$1: ufn (userfunction)] */
+      {
+	      $$ = xmalloc(sizeof *$$);
+	       ARRAY_INIT($$);
+	       ARRAY_ADD($$, $1);
+      }
+    | '{' ufnslist '}'
+/**   [$2: ufnslist (struct userfunctions *)] */
+    {
+	    $$ = $2;
+    }
 
-		 $$ = xmalloc(sizeof *$$);
-		 ARRAY_INIT($$);
-		 ARRAY_ADD($$, $2);
-	 }
-       | domainp '{' stringslist '}'
-/**      [$3: stringslist (struct strings *)] */
-	 {
-		 $$ = $3;
-	 }
-
-/** HEADERS: <strings> (struct strings *) */
-headers: headerp replstrv
-/**      [$2: replstrv (char *)] */
-	 {
-		 if (*$2 == '\0')
-			 yyerror("invalid header");
-
-		 $$ = xmalloc(sizeof *$$);
-		 ARRAY_INIT($$);
-		 ARRAY_ADD($$, $2);
-	 }
-       | headerp '{' stringslist '}'
-/**      [$3: stringslist (struct strings *)] */
-	 {
-		 $$ = $3;
-	 }
+/** UFNSLIST: <ufns> (struct userfunctions *) */
+ufnslist: ufnslist ufn
+/**       [$1: ufnslist (struct userfunctions *)] [$2: ufn (userfunction)] */
+	     {
+		     $$ = $1;
+		     ARRAY_ADD($$, $2);
+	     }
+	   | ufn
+/**          [$1: ufn (userfunction)] */
+	     {
+		     $$ = xmalloc(sizeof *$$);
+		     ARRAY_INIT($$);
+		     ARRAY_ADD($$, $1);
+	     }
 
 /** RMHEADERS: <replstrs> (struct replstrs *) */
 rmheaders: rmheaderp strv
@@ -1079,105 +1034,54 @@ locklist: locklist lock
 		  $$ = 0;
 	  }
 
-/** UID: <uid> (uid_t) */
-uid: replstrv
-/**  [$1: replstrv (char *)] */
-     {
-	     struct passwd	*pw;
+/** LOCALGID: <localgid> (gid_t) */
+localgid: replstrv
+/**       [$1: replstrv (char *)] */
+     	  {
+		  struct group	*gr;
 
-	     if (*$1 == '\0')
-		     yyerror("invalid user");
+		  if (*$1 == '\0')
+			  yyerror("invalid group");
 
-	     pw = getpwnam($1);
-	     if (pw == NULL)
-		     yyerror("unknown user: %s", $1);
-	     $$ = pw->pw_uid;
-	     endpwent();
+		  gr = getgrnam($1);
+		  if (gr == NULL)
+			  yyerror("unknown group: %s", $1);
+		  $$ = gr->gr_gid;
+		  endgrent();
 
-	     xfree($1);
-     }
-   | numv
-/**  [$1: numv (long long)] */
-     {
-	     struct passwd	*pw;
+		  xfree($1);
+	  }
+        | numv
+/**       [$1: numv (long long)] */
+	  {
+		  struct group	*gr;
 
-	     if ($1 > UID_MAX)
-		     yyerror("invalid uid: %llu", $1);
-	     pw = getpwuid($1);
-	     if (pw == NULL)
-		     yyerror("unknown uid: %llu", $1);
-	     $$ = pw->pw_uid;
-	     endpwent();
-     }
+		  if ($1 > GID_MAX)
+			  yyerror("invalid gid: %llu", $1);
+		  gr = getgrgid($1);
+		  if (gr == NULL)
+			  yyerror("unknown gid: %llu", $1);
+		  $$ = gr->gr_gid;
+		  endgrent();
+	  }
 
-/** GID: <gid> (gid_t) */
-gid: replstrv
-/**  [$1: replstrv (char *)] */
-     {
-	     struct group	*gr;
-
-	     if (*$1 == '\0')
-		     yyerror("invalid group");
-
-	     gr = getgrnam($1);
-	     if (gr == NULL)
-		     yyerror("unknown group: %s", $1);
-	     $$ = gr->gr_gid;
-	     endgrent();
-
-	     xfree($1);
-     }
-   | numv
-/**  [$1: numv (long long)] */
-     {
-	     struct group	*gr;
-
-	     if ($1 > GID_MAX)
-		     yyerror("invalid gid: %llu", $1);
-	     gr = getgrgid($1);
-	     if (gr == NULL)
-		     yyerror("unknown gid: %llu", $1);
-	     $$ = gr->gr_gid;
-	     endgrent();
-     }
-
-/** USER: <uid> (uid_t) */
-user: /* empty */
-      {
-	      $$ = -1;
-      }
-    | TOKUSER uid
-/**   [$2: uid (uid_t)] */
-      {
-	      $$ = $2;
-      }
-
-
-/** USERS: <users> (struct { ... } users) */
+/** USERS: <replstrs> (struct replstrs *) */
 users: /* empty */
        {
-	       $$.users = NULL;
-	       $$.find_uid = 0;
+	       $$ = NULL;
        }
-     | userp TOKFROMHEADERS
+     | userp strv
+/**    [$2: strv (char *)] */
        {
-	       $$.users = NULL;
-	       $$.find_uid = 1;
+	       $$ = xmalloc(sizeof *$$);
+	       ARRAY_INIT($$);
+	       ARRAY_EXPAND($$, 1);
+	       ARRAY_LAST($$).str = $2;
        }
-     | userp uid
-/**    [$2: uid (uid_t)] */
-       {
-	       $$.users = xmalloc(sizeof *$$.users);
-	       ARRAY_INIT($$.users);
-	       ARRAY_ADD($$.users, $2);
-	       $$.find_uid = 0;
-       }
-     | userp '{' userslist '}'
-/**    [$3: userslist (struct { ... } users)] */
+     | userp '{' replstrslist '}'
+/**    [$3: replstrslist (struct replstrs *)] */
        {
 	       $$ = $3;
-	       $$.users = $$.users;
-	       $$.find_uid = 0;
        }
 
 /** CASERE: <re> (struct { ... } re) */
@@ -1583,7 +1487,7 @@ actlist: actlist actitem
 
 /** DEFACTION */
 defaction: TOKACTION replstrv users actitem
-/**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
+/**        [$2: replstrv (char *)] [$3: users (struct replstrs *)] */
 /**        [$4: actitem (struct actitem *)] */
 	   {
 		   struct action	*t;
@@ -1603,8 +1507,7 @@ defaction: TOKACTION replstrv users actitem
 		   TAILQ_INSERT_HEAD(t->list, $4, entry);
 		   $4->idx = 0;
 
-		   t->users = $3.users;
-		   t->find_uid = $3.find_uid;
+		   t->users = $3;
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
 		   print_action(t);
@@ -1612,7 +1515,7 @@ defaction: TOKACTION replstrv users actitem
 		   xfree($2);
 	   }
 	 | TOKACTION replstrv users '{' actlist '}'
-/**        [$2: replstrv (char *)] [$3: users (struct { ... } users)] */
+/**        [$2: replstrv (char *)] [$3: users (struct replstrs *)] */
 /**        [$5: actlist (struct actlist *)] */
 	   {
 		   struct action	*t;
@@ -1629,8 +1532,7 @@ defaction: TOKACTION replstrv users actitem
 
 		   t->list = $5;
 
-		   t->users = $3.users;
-		   t->find_uid = $3.find_uid;
+		   t->users = $3;
 		   TAILQ_INSERT_TAIL(&conf.actions, t, entry);
 
 		   print_action(t);
@@ -1833,9 +1735,9 @@ expritem: not TOKALL
 
 		  data->accounts = $2;
 	  }
-        | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
+        | not execpipe strv strv TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
-/**       [$4: user (uid_t)] [$7: retrc (long long)] */
+/**       [$4: strv (char *)] [$7: retrc (long long)] */
 /**       [$9: retre (struct { ... } re)] */
 	  {
 		  struct match_command_data	*data;
@@ -1853,7 +1755,7 @@ expritem: not TOKALL
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 
-		  data->uid = $4;
+		  data->user = $4;
 		  data->pipe = $2;
 		  data->cmd.str = $3;
 
@@ -2140,7 +2042,7 @@ expr: expritem
 
 /** PERFORM: <rule> (struct rule *) */
 perform: users actionp actitem cont
-/**      [$1: users (struct { ... } users)] [$3: actitem (struct actitem *)] */
+/**      [$1: users (struct replstrs *)] [$3: actitem (struct actitem *)] */
 /**      [$4: cont (int)] */
 	 {
 		 struct action	*t;
@@ -2150,13 +2052,11 @@ perform: users actionp actitem cont
 		 $$->actions = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$4;
-		 $$->users = $1.users;
-		 $$->find_uid = $1.find_uid;
+		 $$->users = $1;
 
 		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
 		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
 		 t->users = NULL;
-		 t->find_uid = 0;
 		 t->list = xmalloc(sizeof *t->list);
 		 TAILQ_INIT(t->list);
 		 TAILQ_INSERT_HEAD(t->list, $3, entry);
@@ -2168,7 +2068,7 @@ perform: users actionp actitem cont
 			 TAILQ_INSERT_TAIL(&parse_rule->rules, $$, entry);
 	 }
        | users actionp '{' actlist '}' cont
-/**      [$1: users (struct { ... } users)] */
+/**      [$1: users (struct replstrs *)] */
 /**      [$4: actlist (struct actlist *)] [$6: cont (int)] */
 	 {
 		 struct action	*t;
@@ -2178,13 +2078,11 @@ perform: users actionp actitem cont
 		 $$->actions = NULL;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$6;
-		 $$->users = $1.users;
-		 $$->find_uid = $1.find_uid;
+		 $$->users = $1;
 
 		 t = $$->lambda = xcalloc(1, sizeof *$$->lambda);
 		 xsnprintf(t->name, sizeof t->name, "<rule %u>", $$->idx);
 		 t->users = NULL;
-		 t->find_uid = 0;
 		 t->list = $4;
 
 		 if (parse_rule == NULL)
@@ -2193,7 +2091,7 @@ perform: users actionp actitem cont
 			 TAILQ_INSERT_TAIL(&parse_rule->rules, $$, entry);
 	 }
        | users actions cont
-/**      [$1: users (struct { ... } users)] */
+/**      [$1: users (struct replstrs *)] */
 /**      [$2: actions (struct replstrs *)] [$3: cont (int)] */
 	 {
 		 $$ = xcalloc(1, sizeof *$$);
@@ -2202,8 +2100,7 @@ perform: users actionp actitem cont
 		 $$->actions = $2;
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = !$3;
-		 $$->users = $1.users;
-		 $$->find_uid = $1.find_uid;
+		 $$->users = $1;
 
 		 if (parse_rule == NULL)
 			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
@@ -2219,7 +2116,6 @@ perform: users actionp actitem cont
 		 TAILQ_INIT(&$$->rules);
 		 $$->stop = 0;
 		 $$->users = NULL;
-		 $$->find_uid = 0;
 
 		 if (parse_rule == NULL)
 			 TAILQ_INSERT_TAIL(&conf.rules, $$, entry);
@@ -2650,7 +2546,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 /** ACCOUNT */
 account: TOKACCOUNT replstrv disabled users fetchtype keep
 /**      [$2: replstrv (char *)] [$3: disabled (int)] */
-/**      [$4: users (struct { ... } users)] [$5: fetchtype (struct { ... } fetch)] */
+/**      [$4: users (struct replstrs *)] [$5: fetchtype (struct { ... } fetch)] */
 /**      [$6: keep (int)] */
          {
 		 struct account		*a;
@@ -2667,14 +2563,13 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 		 strlcpy(a->name, $2, sizeof a->name);
 		 a->keep = $6;
 		 a->disabled = $3;
-		 a->users = $4.users;
-		 a->find_uid = $4.find_uid;
+		 a->users = $4;
 		 a->fetch = $5.fetch;
 		 a->data = $5.data;
 		 TAILQ_INSERT_TAIL(&conf.accounts, a, entry);
 
 		 if (a->users != NULL)
-			 su = fmt_users(" users=", a->users);
+			 su = fmt_replstrs(" users=", a->users);
 		 else
 			 su = xstrdup("");
 		 a->fetch->desc(a, desc, sizeof desc);

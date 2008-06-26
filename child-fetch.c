@@ -111,9 +111,7 @@ child_fetch(struct child *child, struct io *pio)
 	setproctitle("child: %s", a->name);
 #endif
 
-	fill_info(NULL);
-	log_debug2("%s: user is: %s, home is: %s", a->name, conf.info.user,
-	    conf.info.home);
+	log_debug2("%s: user is %lu", a->name, (u_long) geteuid());
 	tim = get_time();
 
 	/* Process fetch or poll. */
@@ -254,6 +252,7 @@ fetch_free1(struct mail_ctx *mctx)
 	while (!TAILQ_EMPTY(&mctx->dqueue)) {
 		dctx = TAILQ_FIRST(&mctx->dqueue);
 		TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
+		user_free(dctx->udata);
 		xfree(dctx);
 	}
 
@@ -598,9 +597,9 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 	if (!conf.no_received) {
 		error = 1;
 		if (rfc822time(time(NULL), rtime, sizeof rtime) != NULL) {
-			rhost = conf.info.fqdn;
+			rhost = conf.host_fqdn;
 			if (rhost == NULL)
-				rhost = conf.info.host;
+				rhost = conf.host_name;
 
 			error = insert_header(m, "received", "Received: by "
 			    "%.450s (%s " BUILD ", account \"%.450s\");\n\t%s",

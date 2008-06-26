@@ -148,23 +148,6 @@ and
 types are mutually exclusive.
 The default is
 .Em flock .
-.It Xo Ic domain Ar domain | Ic domains
-.Li {
-.Ar domain Ar ...
-.Li }
-.Xc
-This specifies the domains to be used when looking for users with the
-.Ic from-headers
-keyword.
-The default is the computer's hostname.
-.It Xo Ic header Ar header | Ic headers
-.Li {
-.Ar header Ar ...
-.Li }
-.Xc
-This allows the headers to be examined when looking for users to be set.
-The default is to look only at the "From" and "Cc" headers.
-The headers are case-insensitive.
 .It Ic proxy Ar url
 This instructs
 .Xr fdm 1
@@ -311,24 +294,10 @@ argument has the following form:
 .Li {
 .Ar user ...
 .Li } |
-.Ic user Ic from-headers
-.Xc
-.El
 .Pp
 The first two options specify a user or list of users as which the mail should
 be delivered when an action is executed.
-If
-.Ic user Ic from-headers
-is specified,
-.Xr fdm 1
-attempts to find the users from the mail headers, using the values of the
-.Ic headers
-and
-.Ic domains
-options.
-If no headers are specified, or
-.Xr fdm 1
-fails to find any valid users in the headers, the default user (set with
+If no users are specified, the default user (set with
 .Ic set Ic default-user )
 is used.
 Users specified as part of the account definition may be overridden by similar

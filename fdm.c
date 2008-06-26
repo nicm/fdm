@@ -80,77 +80,23 @@ get_time(void)
 }
 
 void
-fill_info(const char *home)
+fill_host(void)
 {
-	struct passwd	*pw;
-	uid_t		 uid;
-	char		 host[MAXHOSTNAMELEN];
+	char	host[MAXHOSTNAMELEN];
 
-	uid = geteuid();
-	if (conf.info.valid && conf.info.last_uid == uid)
-		return;
-	conf.info.valid = 1;
-	conf.info.last_uid = uid;
-
-	if (conf.info.uid != NULL) {
-		xfree(conf.info.uid);
-		conf.info.uid = NULL;
-	}
-	if (conf.info.user != NULL) {
-		xfree(conf.info.user);
-		conf.info.user = NULL;
-	}
-	if (conf.info.home != NULL) {
-		xfree(conf.info.home);
-		conf.info.home = NULL;
-	}
-
-	if (conf.info.host == NULL) {
-		if (gethostname(host, sizeof host) != 0)
-			fatal("gethostname failed");
-		conf.info.host = xstrdup(host);
-
-		getaddrs(host, &conf.info.fqdn, &conf.info.addr);
-	}
-
-	if (home != NULL && *home != '\0')
-		conf.info.home = xstrdup(home);
-
-	xasprintf(&conf.info.uid, "%lu", (u_long) uid);
-	pw = getpwuid(uid);
-	if (pw != NULL) {
-		if (conf.info.home == NULL) {
-			if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
-				conf.info.home = xstrdup(pw->pw_dir);
-			else
-				conf.info.home = xstrdup(".");
-		}
-		if (pw->pw_name != NULL && *pw->pw_name != '\0')
-			conf.info.user = xstrdup(pw->pw_name);
-	}
-	endpwent();
-	if (conf.info.user == NULL) {
-		conf.info.user = xstrdup(conf.info.uid);
-		log_warnx("can't find name for user %lu", (u_long) uid);
-	}
+	if (gethostname(host, sizeof host) != 0)
+		fatal("gethostname failed");
+	conf.host_name = xstrdup(host);
+	getaddrs(host, &conf.host_fqdn, &conf.host_address);
 }
 
 void
-dropto(uid_t uid)
+dropto(uid_t uid, gid_t gid)
 {
-	struct passwd	*pw;
-	gid_t		 gid;
-
 	if (uid == (uid_t) -1 || uid == 0)
 		return;
-
-	pw = getpwuid(uid);
-	if (pw == NULL) {
-		errno = ESRCH;
-		fatal("getpwuid failed");
-	}
-	gid = pw->pw_gid;
-	endpwent();
+	if (gid == (gid_t) -1 || gid == 0)
+		return;
 
 	if (setgroups(1, &gid) != 0)
 		fatal("setgroups failed");
@@ -235,8 +181,8 @@ main(int argc, char **argv)
         int		 opt, lockfd, status, res;
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
-	const char	*errstr, *proxy = NULL, *s;
-	char		 tmp[BUFSIZ], *ptr, *strs, *user = NULL, *lock = NULL;
+	const char	*proxy = NULL, *s;
+	char		 tmp[BUFSIZ], *ptr, *lock = NULL;
 	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
@@ -256,6 +202,7 @@ main(int argc, char **argv)
 	size_t		 off;
 	struct strings	 macros;
 	struct child_fetch_data *cfd;
+	struct userdata *ud;
 #ifdef DEBUG
 	struct rule	*r;
 	struct action	*t;
@@ -278,10 +225,14 @@ main(int argc, char **argv)
 	conf.file_group = -1;
 	conf.queue_high = -1;
 	conf.queue_low = -1;
-	conf.def_user = -1;
-	conf.cmd_user = -1;
+	conf.def_user = NULL;
+	conf.cmd_user = NULL;
 	conf.max_accts = -1;
 	conf.strip_chars = xstrdup(DEFSTRIPCHARS);
+
+	conf.user_order = xmalloc(sizeof *conf.user_order);
+	ARRAY_INIT(conf.user_order);
+	ARRAY_ADD(conf.user_order, passwd_lookup);
 
 	ARRAY_INIT(&conf.incl);
 	ARRAY_INIT(&conf.excl);
@@ -296,7 +247,8 @@ main(int argc, char **argv)
 			ARRAY_ADD(&macros, optarg);
 			break;
                 case 'f':
-                        conf.conf_file = xstrdup(optarg);
+			if (conf.conf_file == NULL)
+				conf.conf_file = xstrdup(optarg);
                         break;
 		case 'k':
 			conf.keep_all = 1;
@@ -311,7 +263,8 @@ main(int argc, char **argv)
 			conf.check_only = 1;
 			break;
 		case 'u':
-			user = optarg;
+			if (conf.def_user == NULL)
+				conf.def_user = xstrdup(optarg);
 			break;
                 case 'v':
 			if (conf.debug != -1)
@@ -349,28 +302,6 @@ main(int argc, char **argv)
 			usage();
 	}
 
-	/* Check the user. */
-	if (user != NULL) {
-		pw = getpwnam(user);
-		if (pw == NULL) {
-			endpwent();
-			n = strtonum(user, 0, UID_MAX, &errstr);
-			if (errstr != NULL) {
-				if (errno == ERANGE) {
-					log_warnx("invalid uid: %s", user);
-					exit(1);
-				}
-			} else
-				pw = getpwuid((uid_t) n);
-			if (pw == NULL) {
-				log_warnx("unknown user: %s", user);
-				exit(1);
-			}
-		}
-		conf.def_user = pw->pw_uid;
-		endpwent();
-	}
-
 	/* Set debug level and start logging to syslog if necessary. */
 	if (conf.syslog)
 		log_open(NULL, LOG_MAIL, conf.debug);
@@ -387,14 +318,28 @@ main(int argc, char **argv)
 	} else
 		log_debug2("uname: %s", strerror(errno));
 
-	/* Save the home dir and misc user info. */
-	fill_info(getenv("HOME"));
-	log_debug2("user is: %s, home is: %s", conf.info.user, conf.info.home);
+	/* Fill the hostname. */
+	fill_host();
+	log_debug2("host is: %s %s %s",
+	    conf.host_name, conf.host_fqdn, conf.host_address);
+
+	/* Find invoking user's details. */
+	if ((pw = getpwuid(geteuid())) == NULL) {
+		log_warnx("unknown user: %lu", (u_long) geteuid());
+		exit(1); 
+	}
+	if (conf.def_user == NULL)
+		conf.def_user = xstrdup(pw->pw_name);
+	if (conf.cmd_user == NULL)
+		conf.cmd_user = xstrdup(pw->pw_name);
+	conf.user_home = xstrdup(pw->pw_dir);
+	log_debug2("home is: %s", conf.user_home);
+	endpwent();
 
 	/* Find the config file. */
 	if (conf.conf_file == NULL) {
 		/* If no file specified, try ~ then /etc. */
-		xasprintf(&conf.conf_file, "%s/%s", conf.info.home, CONFFILE);
+		xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE);
 		if (access(conf.conf_file, R_OK) != 0) {
 			xfree(conf.conf_file);
 			conf.conf_file = xstrdup(SYSCONFFILE);
@@ -426,16 +371,23 @@ main(int argc, char **argv)
 	/* Set the umask. */
 	umask(conf.file_umask);
 
-	/* Figure out default and command users. */
-	if (conf.def_user == (uid_t) -1) {
-		conf.def_user = geteuid();
-		if (conf.def_user == 0) {
-			log_warnx("no default user specified");
-			exit(1);
+	/* Check default and command users. */
+	if (conf.def_user == NULL) {
+		ud = user_lookup(conf.def_user, conf.user_order);
+		if (ud == NULL) {
+			log_warnx("unknown user: %s", conf.def_user);
+			exit(1); 
 		}
+		user_free(ud);
 	}
-	if (conf.cmd_user == (uid_t) -1)
-		conf.cmd_user = geteuid();
+	if (conf.cmd_user == NULL) {
+		ud = user_lookup(conf.cmd_user, conf.user_order);
+		if (ud == NULL) {
+			log_warnx("unknown user: %s", conf.cmd_user);
+			exit(1); 
+		}
+		user_free(ud);
+	}
 
 	/* Print proxy info. */
 	if (conf.proxy != NULL) {
@@ -468,33 +420,6 @@ main(int argc, char **argv)
 	}
 	log_debug2("locking using: %s", tmp);
 
-	/* Initialise and print headers and domains. */
-	if (conf.headers == NULL) {
-		conf.headers = xmalloc(sizeof *conf.headers);
-		ARRAY_INIT(conf.headers);
-		ARRAY_ADD(conf.headers, xstrdup("to"));
-		ARRAY_ADD(conf.headers, xstrdup("cc"));
-	}
-	strs = fmt_strings("", conf.headers);
-	log_debug2("headers are: %s", strs);
-	xfree(strs);
-	if (conf.domains == NULL) {
-		conf.domains = xmalloc(sizeof *conf.domains);
-		ARRAY_INIT(conf.domains);
-		ARRAY_ADD(conf.domains, xstrdup(conf.info.host));
-		if (conf.info.fqdn != NULL) {
-			ptr = xstrdup(conf.info.fqdn);
-			ARRAY_ADD(conf.domains, ptr);
-		}
-		if (conf.info.addr != NULL) {
-			xasprintf(&ptr, "\\[%s\\]", conf.info.addr);
-			ARRAY_ADD(conf.domains, ptr);
-		}
-	}
-	strs = fmt_strings("", conf.domains);
-	log_debug2("domains are: %s", strs);
-	xfree(strs);
-
 	/* Print the other settings. */
 	*tmp = '\0';
 	off = 0;
@@ -522,11 +447,11 @@ main(int argc, char **argv)
 	}
 	if (sizeof tmp > off) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
-		    "default-user=%lu, ", (u_long) conf.def_user);
+		    "default-user=\"%s\", ", conf.def_user);
 	}
 	if (sizeof tmp > off) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
-		    "command-user=%lu, ", (u_long) conf.cmd_user);
+		    "command-user=\"%s\", ", conf.cmd_user);
 	}
 	if (sizeof tmp > off && conf.impl_act != DECISION_NONE) {
 		if (conf.impl_act == DECISION_DROP)
@@ -654,7 +579,7 @@ main(int argc, char **argv)
 		if (geteuid() == 0)
 			lock = xstrdup(SYSLOCKFILE);
 		else
-			xasprintf(&lock, "%s/%s", conf.info.home, LOCKFILE);
+			xasprintf(&lock, "%s/%s", conf.user_home, LOCKFILE);
 	}
 	if (*lock != '\0' && !conf.allow_many) {
 		lockfd = xcreate(lock, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
@@ -718,8 +643,9 @@ main(int argc, char **argv)
 			cfd->account = a;
 			cfd->op = op;
 			cfd->children = &children;
-			child = child_start(&children,
-			    conf.child_uid, child_fetch, parent_fetch, cfd);
+			child = child_start(&children, 
+			    conf.child_uid, conf.child_gid, 
+			    child_fetch, parent_fetch, cfd);
 			log_debug2("parent: child %ld (%s) started", 
 			    (long) child->pid, a->name);	
 		}
@@ -879,22 +805,19 @@ out:
 		TAILQ_REMOVE(&conf.actions, t, entry);
 		free_action(t);
 	}
-	xfree(conf.info.home);
-	xfree(conf.info.user);
-	xfree(conf.info.uid);
-	xfree(conf.info.host);
-	if (conf.info.fqdn != NULL)
-		xfree(conf.info.fqdn);
-	if (conf.info.addr != NULL)
-		xfree(conf.info.addr);
+	xfree(conf.def_user);
+	xfree(conf.cmd_user);
+	xfree(conf.user_home);
+	ARRAY_FREEALL(conf.user_order);
+	xfree(conf.host_name);
+	if (conf.host_fqdn != NULL)
+		xfree(conf.host_fqdn);
+	if (conf.host_address != NULL)
+		xfree(conf.host_address);
 	xfree(conf.conf_file);
 	xfree(conf.lock_file);
 	xfree(conf.tmp_dir);
 	xfree(conf.strip_chars);
-	free_strings(conf.domains);
-	ARRAY_FREEALL(conf.domains);
-	free_strings(conf.headers);
-	ARRAY_FREEALL(conf.headers);
 	free_strings(&conf.incl);
 	free_strings(&conf.excl);
 

@@ -46,7 +46,7 @@ deliver_write_deliver(struct deliver_ctx *dctx, struct actitem *ti)
         char				*path;
         FILE    			*f;
 
-	path = replacepath(&data->path, m->tags, m, &m->rml);
+	path = replacepath(&data->path, m->tags, m, &m->rml, dctx->udata->home);
         if (path == NULL || *path == '\0') {
 		if (path != NULL)
 			xfree(path);

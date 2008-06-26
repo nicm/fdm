@@ -1,3 +1,9 @@
+26 June 2008
+
+* Framework for changing user lookup method. At the moment only normal
+  Unix passwd (getpwnam(3)) is supported.
+* Get rid of from-headers which was ugly and unreliable.
+
 30 May 2008
 
 * Make NNTP fetching save the cache file after each mail since some NNTP

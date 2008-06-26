@@ -47,11 +47,13 @@
 	check pipe command user
 - when doing .netrc lookup, match the username if given as well to allow
   multiple users on the same server
-- some way to limit number of accounts fetched in parallel, to avoid
-  hitting server per-IP limits
 - set secondary groups when changing user
 - from-headers stuff can probably go at some point
 - regress fails as root
 - rml could be stored as actual tags, then command0-9 could go... means
   copying... get rid of %0
 - document deliver imap
+- add FAQ entry about no-apop since there are several servers out there
+  which claim to support it but do not
+- lookup uid/gid/home in eg courier-authlib
+  	 document lookup-order

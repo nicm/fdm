@@ -80,36 +80,6 @@ fmt_strings(const char *prefix, struct strings *sp)
 	return (buf);
 }
 
-char *
-fmt_users(const char *prefix, struct users *up)
-{
-	char	*buf;
-	size_t	 len;
-	uid_t	 uid;
-	ssize_t	 off, uidlen;
-	u_int	 i;
-
-	len = BUFSIZ;
-	buf = xmalloc(len);
-
-	ENSURE_SIZE(buf, len, strlen(prefix) + 1);
-	off = xsnprintf(buf, len, "%s", prefix);
-
-	for (i = 0; i < ARRAY_LENGTH(up); i++) {
-		uid = ARRAY_ITEM(up, i);
-		uidlen = xsnprintf(NULL, 0, "%lu ", (u_long) uid);
-		ENSURE_SIZE(buf, len, off + uidlen + 1);
-		off += xsnprintf(buf + off, len - off, "%lu ", (u_long) uid);
-	}
-
-	if (off == 0) {
-		ENSURE_SIZE(buf, len, off + 1);
-		buf[off] = '\0';
-	} else
-		buf[off - 1] = '\0';
-	return (buf);
-}
-
 struct account *
 find_account(char *name)
 {
@@ -243,7 +213,7 @@ print_rule(struct rule *r)
 		strlcat(s, " ", sizeof s);
 	}
 	if (r->users != NULL)
-		su = fmt_users(" users=", r->users);
+		su = fmt_replstrs(" users=", r->users);
 	else
 		su = xstrdup("");
 	if (r->lambda != NULL) {
@@ -267,7 +237,7 @@ print_action(struct action *t)
 	size_t		 off;
 
 	if (t->users != NULL)
-		su = fmt_users(" users=", t->users);
+		su = fmt_replstrs(" users=", t->users);
 	else
 		su = xstrdup("");
 	off = xsnprintf(s, sizeof s, "added action \"%s\":%s deliver=",
@@ -307,8 +277,10 @@ free_action(struct action *t)
 {
 	struct actitem	*ti;
 
-	if (t->users != NULL)
+	if (t->users != NULL) {
+		free_replstrs(t->users);
 		ARRAY_FREEALL(t->users);
+	}
 
 	while (!TAILQ_EMPTY(t->list)) {
 		ti = TAILQ_FIRST(t->list);
@@ -398,8 +370,10 @@ free_rule(struct rule *r)
 	struct rule	*rr;
 	struct expritem	*ei;
 
-	if (r->users != NULL)
+	if (r->users != NULL) {
+		free_replstrs(r->users);
 		ARRAY_FREEALL(r->users);
+	}
 	if (r->actions != NULL) {
 		free_replstrs(r->actions);
 		ARRAY_FREEALL(r->actions);
@@ -471,8 +445,10 @@ free_cache(struct cache *cache)
 void
 free_account(struct account *a)
 {
-	if (a->users != NULL)
+	if (a->users != NULL) {
+		free_replstrs(a->users);
 		ARRAY_FREEALL(a->users);
+	}
 
 	if (a->fetch == &fetch_pop3) {
 		struct fetch_pop3_data		*data = a->data;
@@ -535,7 +511,7 @@ free_account(struct account *a)
 }
 
 char *
-expand_path(const char *path)
+expand_path(const char *path, const char *home)
 {
 	const char	*src;
 	char		*ptr;
@@ -549,11 +525,11 @@ expand_path(const char *path)
 
 	/* ~ */
 	if (src[1] == '\0')
-		return (xstrdup(conf.info.home));
+		return (xstrdup(home));
 
 	/* ~/ */
 	if (src[1] == '/') {
-		xasprintf(&ptr, "%s/%s", conf.info.home, src + 2);
+		xasprintf(&ptr, "%s/%s", home, src + 2);
 		return (ptr);
 	}
 
@@ -584,7 +560,7 @@ find_netrc(const char *host, char **user, char **pass)
 	FILE	*f;
 	char	*cause;
 
-	if ((f = netrc_open(conf.info.home, &cause)) == NULL)
+	if ((f = netrc_open(conf.user_home, &cause)) == NULL)
 		yyerror("%s", cause);
 
 	if (netrc_lookup(f, host, user, pass) != 0)

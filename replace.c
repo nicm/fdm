@@ -129,16 +129,13 @@ default_tags(struct strb **tags, const char *src)
 	struct tm	*tm;
 	time_t		 t;
 
-	strb_clear(tags);
-	add_tag(tags, "home", "%s", conf.info.home);
-	add_tag(tags, "uid", "%s", conf.info.uid);
-	add_tag(tags, "user", "%s", conf.info.user);
+	strb_clear(tags);	
 
 	if (src != NULL)
 		add_tag(tags, "source", "%s", src);
 
-	if (conf.info.host != NULL)
-		add_tag(tags, "hostname", "%s", conf.info.host);
+	if (conf.host_name != NULL)
+		add_tag(tags, "hostname", "%s", conf.host_name);
 
 	t = time(NULL);
 	if ((tm = localtime(&t)) != NULL) {
@@ -168,11 +165,21 @@ default_tags(struct strb **tags, const char *src)
 }
 
 void
-update_tags(struct strb **tags)
+update_tags(struct strb **tags, struct userdata *ud)
 {
-	add_tag(tags, "home", "%s", conf.info.home);
-	add_tag(tags, "uid", "%s", conf.info.uid);
-	add_tag(tags, "user", "%s", conf.info.user);
+	add_tag(tags, "user", "%s", ud->name);
+	add_tag(tags, "home", "%s", ud->home);
+	add_tag(tags, "uid", "%lu", (u_long) ud->uid);
+	add_tag(tags, "gid", "%lu", (u_long) ud->gid);
+}
+
+void
+reset_tags(struct strb **tags)
+{
+	add_tag(tags, "user", "%s", "");
+	add_tag(tags, "home", "%s", "");
+	add_tag(tags, "uid", "%s", "");
+	add_tag(tags, "gid", "%s", "");
 }
 
 char *
@@ -184,16 +191,15 @@ replacestr(struct replstr *rs, struct strb *tags, struct mail *m,
 
 char *
 replacepath(struct replpath *rp, struct strb *tags, struct mail *m,
-    struct rmlist *rml)
+    struct rmlist *rml, const char *home)
 {
-	char	*s, *ss;
+	char	*s, *t;
 
 	s = replace(rp->str, tags, m, rml);
-	ss = expand_path(s);
-	if (ss == NULL)
+ 	if ((t = expand_path(s, home)) == NULL)
 		return (s);
 	xfree(s);
-	return (ss);
+	return (t);
 }
 
 const char *
