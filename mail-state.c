@@ -75,7 +75,7 @@ mail_match(struct mail_ctx *mctx, struct msg *msg, struct msgbuf *msgbuf)
 		if (msgbuf->buf != NULL && msgbuf->len != 0) {
 			strb_destroy(&m->tags);
 			m->tags = msgbuf->buf;
-			update_tags(&m->tags, NULL);
+			reset_tags(&m->tags);
 		}
 
 		ei = mctx->expritem;
