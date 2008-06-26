@@ -144,6 +144,7 @@ yyerror(const char *fmt, ...)
 %token TOKCOMPRESS
 %token TOKCONTINUE
 %token TOKCOUNT
+%token TOKCOURIER
 %token TOKDAYS
 %token TOKDEFUSER
 %token TOKDELTOOBIG
@@ -311,6 +312,7 @@ yyerror(const char *fmt, ...)
 %type  <rule> perform
 %type  <server> server
 %type  <string> port to from xstrv strv replstrv replpathv val optval folder1
+%type  <string> user
 %type  <strings> stringslist pathslist maildirs mboxes groups folders folderlist
 %type  <userpass> userpass userpassreqd userpassnetrc
 %type  <ufn> ufn
@@ -905,6 +907,12 @@ ufn: TOKPASSWD
      {
 	     $$ = &passwd_lookup;
      }
+   | TOKCOURIER
+     {
+#ifdef LOOKUP_COURIER
+	     $$ = &courier_lookup;
+#endif
+     }
 
 /** UFNS: <ufns> (struct userfunctions *) */
 ufns: ufn
@@ -1064,6 +1072,15 @@ localgid: replstrv
 		  $$ = gr->gr_gid;
 		  endgrent();
 	  }
+
+user: /* empty */
+      {
+	      $$ = NULL;
+      }
+    | TOKUSER strv
+      {
+	      $$ = $2;
+      }
 
 /** USERS: <replstrs> (struct replstrs *) */
 users: /* empty */
@@ -1735,7 +1752,7 @@ expritem: not TOKALL
 
 		  data->accounts = $2;
 	  }
-        | not execpipe strv strv TOKRETURNS '(' retrc ',' retre ')'
+        | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 /**       [$1: not (int)] [$2: execpipe (int)] [$3: strv (char *)] */
 /**       [$4: strv (char *)] [$7: retrc (long long)] */
 /**       [$9: retre (struct { ... } re)] */
@@ -1755,7 +1772,7 @@ expritem: not TOKALL
 		  data = xcalloc(1, sizeof *data);
 		  $$->data = data;
 
-		  data->user = $4;
+		  data->user.str = $4;
 		  data->pipe = $2;
 		  data->cmd.str = $3;
 

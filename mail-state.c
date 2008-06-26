@@ -416,19 +416,23 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 	struct actitem			*ti;
 	struct deliver_ctx		*dctx;
 	u_int			 	 i;
-	const char			*user;
+	char				*user;
 	struct userdata			*udata;
 
 	for (i = 0; i < ARRAY_LENGTH(users); i++) {
 		user = replacestr(&ARRAY_ITEM(users, i), m->tags, m, &m->rml);
 		if (user == NULL || *user == '\0') {
+			if (user != NULL)
+				xfree(user);
 			log_warnx("%s: empty user", a->name);
 			return (-1);
 		}		
 		if ((udata = user_lookup(user, conf.user_order)) == NULL) {
+			xfree(user);
 			log_warnx("%s: bad user: %s", a->name, user);
 			return (-1);
 		}
+		xfree(user);
 
 		TAILQ_FOREACH(ti, t->list, entry) {
 			if (ti->deliver == NULL) {

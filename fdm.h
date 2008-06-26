@@ -799,6 +799,11 @@ struct userdata *user_copy(struct userdata *);
 /* lookup-passwd.c */
 struct userdata *passwd_lookup(const char *);
 
+#ifdef LOOKUP_COURIER
+/* lookup-courier.c */
+struct userdata *courier_lookup(const char *);
+#endif
+
 /* privsep.c */
 int		 privsep_send(struct io *, struct msg *, struct msgbuf *);
 int		 privsep_check(struct io *);

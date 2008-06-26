@@ -84,6 +84,7 @@ static const struct token tokens[] = {
 	{ "compress", TOKCOMPRESS },
 	{ "continue", TOKCONTINUE },
 	{ "count", TOKCOUNT },
+	{ "courier", TOKCOURIER },
 	{ "day", TOKDAYS },
 	{ "days", TOKDAYS },
 	{ "default-user", TOKDEFUSER },

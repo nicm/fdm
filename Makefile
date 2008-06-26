@@ -30,7 +30,7 @@ SRCS= fdm.c \
       match-in-cache.c match-matched.c match-regexp.c match-size.c \
       match-string.c match-tagged.c match-unmatched.c match-account.c \
       parent-deliver.c parent-fetch.c \
-      lookup.c lookup-passwd.c \
+      lookup.c lookup-passwd.c lookup-courier.c \
       parse.y parse-fn.c lex.c
 HDRS= fdm.h array.h fetch.h match.h deliver.h
 
@@ -55,6 +55,11 @@ CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
 CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CFLAGS+= -Wundef -Wbad-function-cast -Winline -Wcast-align
+
+.ifdef COURIER
+CFLAGS+= -DLOOKUP_COURIER
+LIBS+= -lcourierauth
+.endif
 
 .ifdef PCRE
 CFLAGS+= -DPCRE
