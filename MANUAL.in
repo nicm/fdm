@@ -44,6 +44,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	Drop and keep
 %%	Maildirs
 %%	Mboxes
+%%	IMAP and IMAPS
 %%	SMTP
 %%	Write, pipe, exec and append
 %%	stdout
@@ -879,6 +880,21 @@ data will be appended.
 As with maildirs, if any component of the mbox path does not exist, it is
 created, unless the no-create option is set. Mails saved to an mbox are tagged
 with an 'mbox_file' tag with the path of the mbox.
+
+%%% IMAP and IMAPS
+
+An action may be defined to store mail in an IMAP folder. The specification is
+similar to the IMAP action. A server host and optionally port (default 'imap'
+or 'imaps') must be specified. A username and password may be supplied; if they
+are omitted, fdm will attempt to find a .netrc entry. Examples include:
+
+	action "myimapaction" imap server "imap.server"
+
+	action "myimapaction" imaps server "imap.server"
+		port "8993" user "user" pass "pass" folder "folder"
+
+	action "myimapaction" imaps server "imap.server"
+		user "user" pass "pass" no-verify no-login
 
 %%% SMTP
 
