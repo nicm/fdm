@@ -123,7 +123,7 @@ CLEANFILES= ${PROG} *.o compat/*.o y.tab.c y.tab.h .depend \
 all:		${PROG}
 
 ${PROG}:	${OBJS}
-		${CC} ${LDFLAGS} -o ${PROG} ${LIBS} ${OBJS}
+		${CC} ${LDFLAGS} -o ${PROG} ${OBJS} ${LIBS}
 
 dist:		clean manual
 		grep '^#DEBUG=' Makefile
