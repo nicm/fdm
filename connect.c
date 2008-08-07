@@ -37,11 +37,9 @@
 #include "fdm.h"
 
 int	sslverify(struct server *, SSL *, char **);
-#ifndef	NO_PROXY
 int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
-#endif
 SSL    *makessl(struct server *, int, int, int, char **);
 
 char *
@@ -177,7 +175,6 @@ getaddrs(const char *host, char **fqdn, char **addr)
 	freeaddrinfo(ai);
 }
 
-#ifndef NO_PROXY
 struct proxy *
 getproxy(const char *xurl)
 {
@@ -528,7 +525,6 @@ httpproxy(struct server *srv,
 		xfree(line);
 	}
 }
-#endif /* NO_PROXY */
 
 SSL *
 makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
