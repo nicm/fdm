@@ -290,18 +290,7 @@ retry:
 	fdata.disconnect(a);
 	return (DELIVER_SUCCESS);
 
-error:
-	io_writeline(io, "QUIT");
-	io_flush(io, conf.timeout, NULL);
-
-	xfree(fctx.lbuf);
-	if (folder != NULL)
-		xfree(folder);
-
-	fdata.disconnect(a);
-	return (DELIVER_FAILURE);
-
-try_create:
+try_create:	/* XXX function? */
 	/* Try to create the folder. */
 	if (imap_putln(a, "%u CREATE {%zu}", ++fdata.tag, strlen(folder)) != 0)
 		goto error;
@@ -312,6 +301,17 @@ try_create:
 	if (deliver_imap_waitokay(a, &fctx, io, &line) != 0)
 		goto error;	
 	goto retry;
+
+error:
+	io_writeline(io, "QUIT");
+	io_flush(io, conf.timeout, NULL);
+
+	xfree(fctx.lbuf);
+	if (folder != NULL)
+		xfree(folder);
+
+	fdata.disconnect(a);
+	return (DELIVER_FAILURE);
 }
 
 void
