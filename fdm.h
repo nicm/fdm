@@ -940,10 +940,13 @@ char 		*replacepath(struct replpath *, struct strb *, struct mail *,
 		     struct rmlist *, const char *);
 
 /* log.c */
-void		 log_open(FILE *, int, int);
+#define LOG_FACILITY LOG_MAIL
+void		 log_open_syslog(int);
+void		 log_open_tty(int);
+void		 log_open_file(int, const char *);
 void		 log_close(void);
-void		 log_vwrite(FILE *, int, const char *, va_list);
-void		 log_write(FILE *, int, const char *, ...);
+void		 log_vwrite(int, const char *, va_list);
+void		 log_write(int, const char *, ...);
 void printflike1 log_warn(const char *, ...);
 void printflike1 log_warnx(const char *, ...);
 void printflike1 log_info(const char *, ...);

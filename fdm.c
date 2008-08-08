@@ -209,7 +209,7 @@ main(int argc, char **argv)
 	struct cache	*cache;
 #endif
 
-	log_open(stderr, LOG_MAIL, 0);
+	log_open_tty(0);
 
 	memset(&conf, 0, sizeof conf);
 	TAILQ_INIT(&conf.accounts);
@@ -304,9 +304,9 @@ main(int argc, char **argv)
 
 	/* Set debug level and start logging to syslog if necessary. */
 	if (conf.syslog)
-		log_open(NULL, LOG_MAIL, conf.debug);
+		log_open_syslog(conf.debug);
 	else
-		log_open(stderr, LOG_MAIL, conf.debug);
+		log_open_tty(conf.debug);
 	tt = time(NULL);
 	log_debug("version is: %s " BUILD ", started at: %.24s", __progname,
 	    ctime(&tt));
