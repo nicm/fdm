@@ -321,7 +321,8 @@ match_header(struct mail *m, const char *patt, size_t *len, int value)
 
 		if ((last = memchr(ptr, ':', *len)) != NULL) {
 			hdrlen = last - ptr;
-			hdr = xmemstrdup(ptr, hdrlen);
+			hdr = xmalloc(hdrlen + 1);
+			strlcpy(hdr, ptr, hdrlen + 1);
 
 			if (fnmatch(patt, hdr, FNM_CASEFOLD) == 0)
 				break;
@@ -433,7 +434,8 @@ find_address(char *buf, size_t len, size_t *alen)
 	/* Duplicate the header as a string to work on it. */
 	if (len == 0)
 		return (NULL);
-	hdr = xmemstrdup(buf, len);
+	hdr = xmalloc(len + 1);
+	strlcpy(hdr, buf, len + 1);
 
 	/* First, replace any sections in "s with spaces. */
 	ptr = hdr;

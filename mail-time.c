@@ -104,7 +104,8 @@ mailtime(struct mail *m, time_t *tim)
 	if (hdr == NULL || len == 0)
 		return (-1);
 	/* Make a copy of the header. */
-	s = xmemstrdup(hdr, len);
+	s = xmalloc(len + 1);
+	strlcpy(s, hdr, len + 1);
 
 	/* Skip spaces. */
 	ptr = s;
