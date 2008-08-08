@@ -643,12 +643,14 @@ set: TOKSET TOKMAXSIZE size
    | TOKSET TOKDEFUSER strv
 /**  [$3: strv (char *)] */
      {
-	     conf.def_user = $3;
+	     if (conf.def_user == NULL)
+		     conf.def_user = $3;
      }
    | TOKSET TOKCMDUSER strv
 /**  [$3: strv (char *)] */
      {
-	     conf.cmd_user = $3;
+	     if (conf.cmd_user == NULL)
+		     conf.cmd_user = $3;
      }
    | TOKSET TOKSTRIPCHARACTERS strv
 /**  [$3: strv (char *)] */

@@ -182,7 +182,7 @@ main(int argc, char **argv)
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*proxy = NULL, *s;
-	char		 tmp[BUFSIZ], *ptr, *lock = NULL;
+	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user;
 	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
@@ -328,10 +328,7 @@ main(int argc, char **argv)
 		log_warnx("unknown user: %lu", (u_long) geteuid());
 		exit(1); 
 	}
-	if (conf.def_user == NULL)
-		conf.def_user = xstrdup(pw->pw_name);
-	if (conf.cmd_user == NULL)
-		conf.cmd_user = xstrdup(pw->pw_name);
+	user = xstrdup(pw->pw_name);
 	conf.user_home = xstrdup(pw->pw_dir);
 	log_debug2("home is: %s", conf.user_home);
 	endpwent();
@@ -358,6 +355,13 @@ main(int argc, char **argv)
 	}
 	ARRAY_FREE(&macros);
 	log_debug2("configuration loaded");
+
+	/* Fill in users if not set already in configuration file. */
+	if (conf.def_user == NULL)
+		conf.def_user = xstrdup(user);
+	if (conf.cmd_user == NULL)
+		conf.cmd_user = xstrdup(user);
+	xfree(user);
 
 	/* Sort out queue limits. */
 	if (conf.queue_high == -1)

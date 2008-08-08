@@ -57,3 +57,4 @@
 - ddocument lookup-order and courier-authlib support
 - option to relax group ownership checks to permit secondary groups,
   for shared mailboxes
+- fix IMAP new-only/old-only by building a want-queue of UIDs like POP3
