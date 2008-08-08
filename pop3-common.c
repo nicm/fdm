@@ -579,7 +579,7 @@ int
 pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
-	struct fetch_pop3_mail	*aux1, *aux2, *aux3;
+	struct fetch_pop3_mail	*aux1, *aux2, *aux3, *before;
 	char			*line;
 	u_int			 n;
 
@@ -640,11 +640,27 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 				break;
 			}
 
-			/* Copy the mail to the want queue. */
+			/* 
+			 * Copy the mail to the want queue. Keep the want
+			 * queue sorted by UIDL order from the server.
+			 */
 			aux2 = xcalloc(1, sizeof *aux2);
 			aux2->idx = aux1->idx;
 			aux2->uid = xstrdup(aux1->uid);
-			TAILQ_INSERT_TAIL(&data->wantq, aux2, qentry);
+
+			/* Find the first item higher than this one. */
+			before = NULL;
+			TAILQ_FOREACH(aux3, &data->wantq, qentry) {
+				if (aux3->idx > aux2->idx) {
+					before = aux3;
+					break;
+				}
+			}
+			if (before != NULL)
+				TAILQ_INSERT_BEFORE(before, aux2, qentry);
+			else
+				TAILQ_INSERT_TAIL(&data->wantq, aux2, qentry);
+
 			data->total++;
 		}
 

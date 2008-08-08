@@ -1,5 +1,7 @@
 08 August 2008
 
+* Sort fetch list for POP3 to preserve server mailbox order, requested
+  by Jeremy C Reed.
 * Fix bug where current user could overwrite default-user/command-user
   from configuration file.
 
