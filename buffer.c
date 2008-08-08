@@ -71,7 +71,12 @@ buffer_ensure(struct buffer *b, size_t size)
 		b->off = 0;
 	}
 
-	ENSURE_FOR(b->base, b->space, b->size, size);
+	if (SIZE_MAX - b->size < size)
+		fatalx("size too big");
+	while (b->space < b->size + size) {
+		b->base = xrealloc(b->base, 2, b->space);
+		b->space *= 2;
+	}
 }
 
 /* Adjust buffer after data appended. */
@@ -178,4 +183,45 @@ buffer_read(struct buffer *b, void *data, size_t size)
 
 	memcpy(data, BUFFER_OUT(b), size);
 	buffer_remove(b, size);
+}
+
+/* Store an 8-bit value. */
+void
+buffer_write8(struct buffer *b, uint8_t n)
+{
+	buffer_ensure(b, 1);
+	BUFFER_IN(b)[0] = n;
+	buffer_add(b, 1);
+}
+
+/* Store a 16-bit value. */
+void
+buffer_write16(struct buffer *b, uint16_t n)
+{
+	buffer_ensure(b, 2);
+	BUFFER_IN(b)[0] = n & 0xff;
+	BUFFER_IN(b)[1] = n >> 8;
+	buffer_add(b, 2);
+}
+
+/* Extract an 8-bit value. */
+uint8_t
+buffer_read8(struct buffer *b)
+{
+	uint8_t	n;
+
+	n = BUFFER_OUT(b)[0];
+	buffer_remove(b, 1);
+	return (n);
+}
+
+/* Extract a 16-bit value. */
+uint16_t
+buffer_read16(struct buffer *b)
+{
+	uint16_t	n;
+
+	n = BUFFER_OUT(b)[0] | (BUFFER_OUT(b)[1] << 8);
+	buffer_remove(b, 2);
+	return (n);
 }

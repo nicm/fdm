@@ -98,6 +98,10 @@ void		 buffer_insert_range(struct buffer *, size_t, size_t);
 void		 buffer_delete_range(struct buffer *, size_t, size_t);
 void		 buffer_write(struct buffer *, const void *, size_t);
 void		 buffer_read(struct buffer *, void *, size_t);
+void	 	 buffer_write8(struct buffer *, uint8_t);
+void	 	 buffer_write16(struct buffer *, uint16_t);
+uint8_t		 buffer_read8(struct buffer *);
+uint16_t 	 buffer_read16(struct buffer *);
 
 /* io.c */
 struct io	*io_create(int, SSL *, const char *);
