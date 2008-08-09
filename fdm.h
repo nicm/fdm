@@ -139,9 +139,6 @@ extern char	*__progname;
 #define ENSURE_SIZE(buf, len, size) do {				\
 	(buf) = ensure_size(buf, &(len), 1, size);			\
 } while (0)
-#define ENSURE_SIZE2(buf, len, nmemb, size) do {			\
-	(buf) = ensure_size(buf, &(len), nmemb, size);			\
-} while (0)
 #define ENSURE_FOR(buf, len, size, adj) do {				\
 	(buf) = ensure_for(buf, &(len), size, adj);			\
 } while (0)
