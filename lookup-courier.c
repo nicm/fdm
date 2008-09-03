@@ -63,7 +63,7 @@ struct userdata *
 courier_lookup(const char *user)
 {
 	courier_udata = NULL;
-	if (auth_getuserinfo("fdm", user, courier_callback, NULL) != 0)
+	if (auth_getuserinfo(__progname, user, courier_callback, NULL) != 0)
 		return (NULL);
 	return (courier_udata);
 }
