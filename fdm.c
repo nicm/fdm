@@ -43,6 +43,7 @@ const char		*malloc_options = "AFGJPRX";
 #endif
 
 void			 sighandler(int);
+struct child		*check_children(struct children *, u_int *);
 
 struct conf		 conf;
 
@@ -166,6 +167,20 @@ use_account(struct account *a, char **cause)
 	return (1);
 }
 
+/* Check each child for a privsep message. */
+struct child *
+check_children(struct children *children, u_int *idx)
+{
+	struct child	*child;
+
+	for (*idx = 0; *idx < ARRAY_LENGTH(children); (*idx)++) {
+		child = ARRAY_ITEM(children, *idx);
+		if (child->io != NULL && privsep_check(child->io))
+			return (child);
+	}
+	return (NULL);
+}	
+
 __dead void
 usage(void)
 {
@@ -192,7 +207,7 @@ main(int argc, char **argv)
 	TAILQ_HEAD(, account) actaq; /* active accounts */
 	pid_t		 pid;
 	struct children	 children, dead_children;
-	struct child	*child;
+	struct child	*child, *child2;
 	struct io       *rio;
 	struct iolist	 iol;
 	double		 tim;
@@ -649,7 +664,7 @@ main(int argc, char **argv)
 			cfd->children = &children;
 			child = child_start(&children, 
 			    conf.child_uid, conf.child_gid, 
-			    child_fetch, parent_fetch, cfd);
+			    child_fetch, parent_fetch, cfd, NULL);
 			log_debug2("parent: child %ld (%s) started", 
 			    (long) child->pid, a->name);	
 		}
@@ -672,53 +687,60 @@ main(int argc, char **argv)
 		}
 		
 		/* Check all children for pending privsep messages. */
-		child = NULL;
-		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-			child = ARRAY_ITEM(&children, i);
-			if (child->io != NULL && privsep_check(child->io))
-				break;
-		}
-		if (i == ARRAY_LENGTH(&children))
-			continue;
-			
-		/* And handle them if necessary. */
-		if (privsep_recv(child->io, &msg, &msgbuf) != 0)
-			fatalx("privsep_recv error");
-		log_debug3("parent: got message type %d, id %u from child %ld",
-		    msg.type, msg.id, (long) child->pid);
-		if (child->msg(child, &msg, &msgbuf) == 0)
-			continue;
+		while ((child = check_children(&children, &i)) != NULL) {
+			/* Handle this message. */
+			if (privsep_recv(child->io, &msg, &msgbuf) != 0)
+				fatalx("privsep_recv error");
+			log_debug3("parent: got message type %d, id %u from "
+			    "child %ld", msg.type, msg.id, (long) child->pid);
+			if (child->msg(child, &msg, &msgbuf) == 0)
+				continue;
 		
-		/* Child has said it is ready to exit, tell it to. */
-		memset(&msg, 0, sizeof msg);
-		msg.type = MSG_EXIT;
-		if (privsep_send(child->io, &msg, NULL) != 0)
-			fatalx("privsep_send error");
+			/* Child has said it is ready to exit, tell it to. */
+			memset(&msg, 0, sizeof msg);
+			msg.type = MSG_EXIT;
+			if (privsep_send(child->io, &msg, NULL) != 0)
+				fatalx("privsep_send error");
 		
-		/* Wait for the child. */
-		if (waitpid(child->pid, &status, 0) == -1)
-			fatal("waitpid failed");
-		if (WIFSIGNALED(status)) {
-			res = 1;
-			log_debug2("parent: child %ld got signal %d",
-			    (long) child->pid, WTERMSIG(status));
-		} else if (!WIFEXITED(status)) {
-			res = 1;
-			log_debug2("parent: child %ld didn't exit normally",
-			    (long) child->pid);
-		} else {
-			if (WEXITSTATUS(status) != 0)
+			/* Wait for the child. */
+			if (waitpid(child->pid, &status, 0) == -1)
+				fatal("waitpid failed");
+			if (WIFSIGNALED(status)) {
 				res = 1;
-			log_debug2("parent: child %ld returned %d",
-			    (long) child->pid, WEXITSTATUS(status));
+				log_debug2("parent: child %ld got signal %d",
+				    (long) child->pid, WTERMSIG(status));
+			} else if (!WIFEXITED(status)) {
+				res = 1;
+				log_debug2("parent: child %ld exited badly",
+				    (long) child->pid);
+			} else {
+				if (WEXITSTATUS(status) != 0)
+					res = 1;
+				log_debug2("parent: child %ld returned %d",
+				    (long) child->pid, WEXITSTATUS(status));
+			}
+			
+			io_close(child->io);
+			io_free(child->io);
+			child->io = NULL;
+			
+			ARRAY_REMOVE(&children, i);
+			ARRAY_ADD(&dead_children, child);
+			
+			/*
+			 * If this child was the parent of any others, kill
+			 * them too.
+			 */
+			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
+				child2 = ARRAY_ITEM(&children, i);
+				if (child2->parent != child)
+					continue;
+				
+				log_debug("parent: child %ld died: killing %ld",
+				    (long) child->pid, (long) child2->pid);
+				kill(child2->pid, SIGTERM);
+			}
 		}
-		
-		io_close(child->io);
-		io_free(child->io);
-		child->io = NULL;
-		
-		ARRAY_REMOVE(&children, i);
-		ARRAY_ADD(&dead_children, child);
 	}
 	ARRAY_FREE(&iol);
 

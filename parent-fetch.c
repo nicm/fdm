@@ -141,7 +141,7 @@ parent_fetch_action(struct child *child, struct children *children,
 	data->uid = uid;
 	data->gid = gid;
 	child = child_start(
-	    children, uid, gid, child_deliver, parent_deliver, data);
+	    children, uid, gid, child_deliver, parent_deliver, data, child);
 	log_debug3("parent: deliver "
 	    "child %ld started (uid %lu)", (long) child->pid, (u_long) uid);
 }
@@ -167,7 +167,7 @@ parent_fetch_cmd(struct child *child, struct children *children,
 	data->uid = uid;
 	data->gid = gid;
 	child = child_start(
-	    children, uid, gid, child_deliver, parent_deliver, data);
+	    children, uid, gid, child_deliver, parent_deliver, data, child);
 	log_debug3("parent: command "
 	    "child %ld started (uid %lu)", (long) child->pid, (u_long) uid);
 }

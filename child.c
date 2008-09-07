@@ -93,7 +93,7 @@ struct child *
 child_start(struct children *children, uid_t uid, gid_t gid, 
     int (*start)(struct child *, struct io *), 
     int (*msg)(struct child *, struct msg *, struct msgbuf *),
-    void *data)
+    void *data, struct child *parent)
 {
 	struct child	*child, *childp;
 	int		 fds[2], n;
@@ -107,6 +107,7 @@ child_start(struct children *children, uid_t uid, gid_t gid,
 	child->io = io_create(fds[0], NULL, IO_CRLF);
 	child->data = data;
 	child->msg = msg;
+	child->parent = parent;
 
 	if ((child->pid = child_fork()) == 0) {
 		for (i = 0; i < ARRAY_LENGTH(children); i++) {
