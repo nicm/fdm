@@ -31,7 +31,7 @@
 #define ARRAY_INITIALSPACE(a) (10 * ARRAY_ITEMSIZE(a))
 
 #define ARRAY_ENSURE(a, n) do {						\
-	if (SIZE_MAX - (n) < (a)->num)					\
+	if (UINT_MAX - (n) < (a)->num)					\
 		fatalx("number too big");				\
 	if (SIZE_MAX / ((a)->num + (n)) < ARRAY_ITEMSIZE(a))		\
 		fatalx("size too big");					\

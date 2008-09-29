@@ -422,7 +422,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 				if (fetch_enqueue(a, pio, fctx.mail) != 0)
 					goto abort;
 				fctx.mail = xcalloc(1, sizeof *fctx.mail);
-				break;
+				continue;
 			}
 		}
 
