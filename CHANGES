@@ -1,3 +1,8 @@
+28 October 2008
+
+* Alter IMAP fetching code to build a UID list of mails to fetch and then fetch
+  them, rather than iterating through all the mails regardless.
+
 07 September 2008
 
 * Process all privsep messages in parent rather than just the first.
@@ -15,7 +20,9 @@
 * Lookup using courier-authlib. Build with make -DLOOKUP_COURIER and
   use "set lookup-order { courier passwd }".
 * Framework for changing user lookup method. At the moment only normal
-  Unix passwd (getpwnam(3)) is supported.
+  Unix passwd (getpwnam(3)) is supported. This means only string
+  usernames are supported - to enter a numeric Unix UID, enclose it
+  in quotes.
 * Get rid of from-headers which was ugly and unreliable.
 
 30 May 2008

@@ -13,7 +13,7 @@
 <INBOX
 >* 1 EXISTS
 >3 OK
-<4 FETCH 1 UID
+<4 UID SEARCH ALL
 >4 OK
 --
 unexpected data: 4 OK

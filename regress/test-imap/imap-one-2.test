@@ -13,14 +13,14 @@
 <INBOX
 >* 1 EXISTS
 >3 OK test test
-<4 FETCH 1 UID
->* 1 FETCH (UID 1)
+<4 UID SEARCH ALL
+>* SEARCH 1
 >4 OK test test
-<5 FETCH 1 BODY[]
->* 1 FETCH (BODY[] {5}
+<5 UID FETCH 1 BODY[]
+>* 1 UID FETCH (BODY[] {5}
 >Test.)
 >5 OK test test
-<6 STORE 1 +FLAGS.SILENT (\Deleted)
+<6 UID STORE 1 +FLAGS.SILENT (\Deleted)
 >6 OK test test
 <7 CLOSE
 >7 OK test test

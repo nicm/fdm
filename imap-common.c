@@ -53,8 +53,6 @@ int	imap_state_search1(struct account *, struct fetch_ctx *);
 int	imap_state_search2(struct account *, struct fetch_ctx *);
 int	imap_state_search3(struct account *, struct fetch_ctx *);
 int	imap_state_next(struct account *, struct fetch_ctx *);
-int	imap_state_uid1(struct account *, struct fetch_ctx *);
-int	imap_state_uid2(struct account *, struct fetch_ctx *);
 int	imap_state_body(struct account *, struct fetch_ctx *);
 int	imap_state_line(struct account *, struct fetch_ctx *);
 int	imap_state_mail(struct account *, struct fetch_ctx *);
@@ -64,8 +62,6 @@ int	imap_state_close(struct account *, struct fetch_ctx *);
 int	imap_state_quit(struct account *, struct fetch_ctx *);
 
 #define IMAP_CAPA_AUTH_CRAM_MD5 0x1
-
-#define IMAP_FLAG_RESELECTING 0x1
 
 /* Put line to server. */
 int
@@ -256,14 +252,12 @@ imap_commit(struct account *a, struct mail *m)
 	struct fetch_imap_data	*data = a->data;
 	struct fetch_imap_mail	*aux = m->auxdata;
 
-	if (m->decision == DECISION_DROP) {
-		TAILQ_INSERT_TAIL(&data->dropped, aux, entry);
-	} else {
-		ARRAY_ADD(&data->kept, aux->uid);
-		xfree(aux);
-
+	if (m->decision == DECISION_DROP)
+		ARRAY_ADD(&data->dropped, aux->uid);
+	else
 		data->committed++;
-	}
+
+	xfree(aux);
 	m->auxdata = m->auxfree = NULL;
 
 	return (FETCH_AGAIN);
@@ -274,15 +268,9 @@ void
 imap_abort(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
-	struct fetch_imap_mail	*aux;
 
-	while (!TAILQ_EMPTY(&data->dropped)) {
-		aux = TAILQ_FIRST(&data->dropped);
-		TAILQ_REMOVE(&data->dropped, aux, entry);
-		imap_free(aux);
-	}
-
-	ARRAY_FREE(&data->kept);
+	ARRAY_FREE(&data->dropped);
+	ARRAY_FREE(&data->wanted);
 
 	data->disconnect(a);
 }
@@ -302,8 +290,8 @@ imap_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 
- 	TAILQ_INIT(&data->dropped);
-	ARRAY_INIT(&data->kept);
+ 	ARRAY_INIT(&data->dropped);
+	ARRAY_INIT(&data->wanted);
 
 	data->tag = 0;
 
@@ -557,54 +545,36 @@ imap_state_select3(struct account *a, struct fetch_ctx *fctx)
 		if (line == NULL)
 			return (FETCH_BLOCK);
 
-		if (sscanf(line, "* %u EXISTS", &data->num) == 1)
+		if (sscanf(line, "* %u EXISTS", &data->total) == 1)
 			break;
 	}
-	data->cur = 0;
-
-	/* Update total, if not reselecting (after expunge). */
-	if (!(data->flags & IMAP_FLAG_RESELECTING)) {
-		data->total += data->num;
-
-		/*
-		 * If not reselecting and a subset of mail is required,
-		 * skip to search for the right flags.
-		 */
-		if (data->only != FETCH_ONLY_ALL) {
-			fctx->state = imap_state_search1;
-			return (FETCH_AGAIN);
-		}
-	}
-	data->flags &= ~IMAP_FLAG_RESELECTING;
 
 	fctx->state = imap_state_select4;
 	return (FETCH_AGAIN);
 }
 
-/* Select state 4. Hold until select completes then get next mail. */
+/* Select state 4. Hold until select completes. */
 int
 imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
+ 
+ 	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+ 		return (FETCH_ERROR);
+ 	if (!imap_okay(line))
+ 		return (imap_bad(a, line));
 
-	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-	if (!imap_okay(line))
-		return (imap_bad(a, line));
-
-	/* If polling, stop here. */
-	if (fctx->flags & FETCH_POLL) {
+	/* If no mails, stop early. */
+	if (data->total == 0) {
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 			return (FETCH_ERROR);
 		fctx->state = imap_state_close;
 		return (FETCH_BLOCK);
 	}
 
-	fctx->state = imap_state_next;
-	return (FETCH_AGAIN);
+	fctx->state = imap_state_search1;
+ 	return (FETCH_AGAIN);
 }
 
 /* Search state 1. Request list of mail required. */
@@ -612,22 +582,21 @@ int
 imap_state_search1(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
-	char			*line;
 
-	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-	if (!imap_okay(line))
-		return (imap_bad(a, line));
-
-	/* Search for a list of the mail UIDs we want to ignore. */
-	if (data->only == FETCH_ONLY_NEW) {
-		if (imap_putln(a, "%u UID SEARCH SEEN", ++data->tag) != 0)
-			return (FETCH_ERROR);
-	} else {
+	/* Search for a list of the mail UIDs to fetch. */
+	switch (data->only) {
+	case FETCH_ONLY_NEW:
 		if (imap_putln(a, "%u UID SEARCH UNSEEN", ++data->tag) != 0)
 			return (FETCH_ERROR);
+		break;
+	case FETCH_ONLY_OLD:
+		if (imap_putln(a, "%u UID SEARCH SEEN", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		break;
+	default:
+		if (imap_putln(a, "%u UID SEARCH ALL", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		break;
 	}
 
 	fctx->state = imap_state_search2;
@@ -664,8 +633,8 @@ imap_state_search2(struct account *a, struct fetch_ctx *fctx)
 
 		if (sscanf(line, "%u", &uid) != 1)
 			return (imap_bad(a, line));
-		ARRAY_ADD(&data->kept, uid);
-		log_debug3("%s: skipping UID: %u", a->name, uid);
+		ARRAY_ADD(&data->wanted, uid);
+		log_debug3("%s: fetching UID: %u", a->name, uid);
 
 		line = ptr;
 	} while (*line == ' ');
@@ -688,10 +657,10 @@ imap_state_search3(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	/* Adjust the total. */
-	data->total -= ARRAY_LENGTH(&data->kept);
+	/* Save the total. */
+	data->total = ARRAY_LENGTH(&data->wanted);
 
-	/* If no mails left, or polling, stop here. */
+	/* If no mails, or polling, stop here. */
 	if (data->total == 0 || fctx->flags & FETCH_POLL) {
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
 			return (FETCH_ERROR);
@@ -711,15 +680,13 @@ int
 imap_state_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
-	struct fetch_imap_mail	*aux;
 
 	/* Handle dropped mail. */
-	if (!TAILQ_EMPTY(&data->dropped)) {
-		aux = TAILQ_FIRST(&data->dropped);
-
-		if (imap_putln(a, "%u STORE %u "
-		    "+FLAGS.SILENT (\\Deleted)", ++data->tag, aux->idx) != 0)
+	if (!ARRAY_EMPTY(&data->dropped)) {
+		if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT (\\Deleted)",
+		    ++data->tag, ARRAY_FIRST(&data->dropped)) != 0)
 			return (FETCH_ERROR);
+		ARRAY_REMOVE(&data->dropped, 0);
 		fctx->state = imap_state_delete;
 		return (FETCH_BLOCK);
 	}
@@ -749,12 +716,8 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 
-	/* Move to the next mail if possible. */
-	if (data->cur <= data->num)
-		data->cur++;
-
 	/* If last mail, wait for everything to be committed then close down. */
-	if (data->cur > data->num) {
+	if (ARRAY_EMPTY(&data->wanted)) {
 		if (data->committed != data->total)
 			return (FETCH_BLOCK);
 		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
@@ -763,59 +726,9 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 
-	/* List the next mail. */
-	if (imap_putln(a, "%u FETCH %u UID", ++data->tag, data->cur) != 0)
-		return (FETCH_ERROR);
-	fctx->state = imap_state_uid1;
-	return (FETCH_BLOCK);
-}
-
-/* UID state 1. */
-int
-imap_state_uid1(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_imap_data	*data = a->data;
-	char			*line;
-	u_int			 n;
-
-	if (imap_getln(a, fctx, IMAP_UNTAGGED, &line) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-
-	if (sscanf(line, "* %u FETCH (UID %u)", &n, &data->uid) != 2)
-		return (imap_invalid(a, line));
-	if (n != data->cur)
-		return (imap_bad(a, line));
-
-	fctx->state = imap_state_uid2;
-	return (FETCH_AGAIN);
-}
-
-/* UID state 2. */
-int
-imap_state_uid2(struct account *a, struct fetch_ctx *fctx)
-{
-	struct fetch_imap_data	*data = a->data;
-	char			*line;
-	u_int			 i;
-
-	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
-	if (!imap_okay(line))
-		return (imap_bad(a, line));
-
-	for (i = 0; i < ARRAY_LENGTH(&data->kept); i++) {
-		if (ARRAY_ITEM(&data->kept, i) == data->uid) {
-			/* Had this message before and kept, so skip. */
-			fctx->state = imap_state_next;
-			return (FETCH_AGAIN);
-		}
-	}
-
-	if (imap_putln(a, "%u FETCH %u BODY[]", ++data->tag, data->cur) != 0)
+	/* Fetch the next mail. */
+	if (imap_putln(a, "%u "
+	    "UID FETCH %u BODY[]",++data->tag, ARRAY_FIRST(&data->wanted)) != 0)
 		return (FETCH_ERROR);
 	fctx->state = imap_state_body;
 	return (FETCH_BLOCK);
@@ -843,16 +756,14 @@ imap_state_body(struct account *a, struct fetch_ctx *fctx)
 
 	if (sscanf(ptr, "BODY[] {%zu}", &data->size) != 1)
 		return (imap_invalid(a, line));
-	if (n != data->cur)
-		return (imap_bad(a, line));
 	data->lines = 0;
 
 	/* Fill in local data. */
 	aux = xcalloc(1, sizeof *aux);
-	aux->idx = data->cur;
-	aux->uid = data->uid;
+	aux->uid = ARRAY_FIRST(&data->wanted);
 	m->auxdata = aux;
 	m->auxfree = imap_free;
+	ARRAY_REMOVE(&data->wanted, 0);
 
 	/* Open the mail. */
 	if (mail_open(m, data->size) != 0) {
@@ -867,7 +778,7 @@ imap_state_body(struct account *a, struct fetch_ctx *fctx)
 		add_tag(&m->tags, "server", "%s", data->server.host);
 		add_tag(&m->tags, "port", "%s", data->server.port);
 	}
-	add_tag(&m->tags, "server_uid", "%u", data->uid);
+	add_tag(&m->tags, "server_uid", "%u", aux->uid);
 	add_tag(&m->tags,
 	    "folder", "%s", ARRAY_ITEM(data->folders, data->folder));
 
@@ -978,7 +889,6 @@ int
 imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
-	struct fetch_imap_mail	*aux;
 	char			*line;
 
 	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
@@ -987,10 +897,6 @@ imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
-
-	aux = TAILQ_FIRST(&data->dropped);
-	TAILQ_REMOVE(&data->dropped, aux, entry);
-	imap_free(aux);
 
 	data->committed++;
 
@@ -1002,8 +908,7 @@ imap_state_delete(struct account *a, struct fetch_ctx *fctx)
 int
 imap_state_expunge(struct account *a, struct fetch_ctx *fctx)
 {
-	struct fetch_imap_data	*data = a->data;
-	char			*line;
+	char	*line;
 
 	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
 		return (FETCH_ERROR);
@@ -1012,9 +917,7 @@ imap_state_expunge(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	data->flags &= IMAP_FLAG_RESELECTING;
-
-	fctx->state = imap_state_select1;
+	fctx->state = imap_state_next;
 	return (FETCH_AGAIN);
 }
 

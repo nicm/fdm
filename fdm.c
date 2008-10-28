@@ -197,7 +197,7 @@ main(int argc, char **argv)
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*proxy = NULL, *s;
-	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user;
+	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user, *home;
 	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
@@ -344,7 +344,11 @@ main(int argc, char **argv)
 		exit(1); 
 	}
 	user = xstrdup(pw->pw_name);
-	conf.user_home = xstrdup(pw->pw_dir);
+	home = getenv("HOME");
+	if (home != NULL && *home != '\0')
+		conf.user_home = xstrdup(home);
+	else
+		conf.user_home = xstrdup(pw->pw_dir);
 	log_debug2("home is: %s", conf.user_home);
 	endpwent();
 
