@@ -9,7 +9,7 @@ TARGETS=
 TARGETS+= ${n}
 ${n}:
 		@echo ${n}:
-		@HOME=. awk -v CMD="../fdm -vvvnf /dev/stdin" \
+		@HOME=. awk -v CMD="../fdm -hvvvnf /dev/stdin" \
 			-v DEBUG=${DEBUG} -f test.awk ${n}
 .endfor
 

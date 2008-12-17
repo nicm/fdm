@@ -1,3 +1,7 @@
+17 December 2008
+
+* Only look at HOME environment variable if -h flag is passed.
+
 28 October 2008
 
 * Alter IMAP fetching code to build a UID list of mails to fetch and then fetch

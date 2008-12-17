@@ -197,7 +197,7 @@ main(int argc, char **argv)
 	u_int		 i;
 	enum fdmop       op = FDMOP_NONE;
 	const char	*proxy = NULL, *s;
-	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user, *home;
+	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user, *home = NULL;
 	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
@@ -253,7 +253,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.excl);
 
 	ARRAY_INIT(&macros);
-        while ((opt = getopt(argc, argv, "a:D:f:klmnqu:vx:")) != -1) {
+        while ((opt = getopt(argc, argv, "a:D:f:hklmnqu:vx:")) != -1) {
                 switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, xstrdup(optarg));
@@ -265,6 +265,9 @@ main(int argc, char **argv)
 			if (conf.conf_file == NULL)
 				conf.conf_file = xstrdup(optarg);
                         break;
+		case 'h':
+			home = getenv("HOME");
+			break;
 		case 'k':
 			conf.keep_all = 1;
 			break;
@@ -339,12 +342,11 @@ main(int argc, char **argv)
 	    conf.host_name, conf.host_fqdn, conf.host_address);
 
 	/* Find invoking user's details. */
-	if ((pw = getpwuid(geteuid())) == NULL) {
+	if ((pw = getpwuid(getuid())) == NULL) {
 		log_warnx("unknown user: %lu", (u_long) geteuid());
 		exit(1); 
 	}
-	user = xstrdup(pw->pw_name);
-	home = getenv("HOME");
+ 	user = xstrdup(pw->pw_name);
 	if (home != NULL && *home != '\0')
 		conf.user_home = xstrdup(home);
 	else

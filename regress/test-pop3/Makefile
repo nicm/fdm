@@ -8,7 +8,7 @@ TARGETS=
 .for n in ${TESTFILES}
 TARGETS+= ${n}
 ${n}:
-		@HOME=. FDM=../../fdm sh test-pop3.sh ${n}
+		@HOME=. FDM="../../fdm -h" sh test-pop3.sh ${n}
 .endfor
 
 .MAIN:		all

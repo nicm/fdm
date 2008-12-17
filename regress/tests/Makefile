@@ -8,7 +8,7 @@ TARGETS=
 .for n in ${TESTFILES}
 TARGETS+= ${n}
 ${n}:
-		@HOME=. FDM=../../fdm sh ${n}
+		@HOME=. FDM="../../fdm -h" sh ${n}
 .endfor
 
 .MAIN:		all
