@@ -185,7 +185,7 @@ __dead void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: %s [-klmnqv] [-a name] [-D name=value] [-f conffile] "
+	    "usage: %s [-hklmnqv] [-a name] [-D name=value] [-f conffile] "
 	    "[-u user] [-x name] [fetch|poll|cache] [arguments]\n", __progname);
         exit(1);
 }
