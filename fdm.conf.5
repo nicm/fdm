@@ -134,6 +134,15 @@ This option may be overridden with the
 .Fl u
 switch on the command line.
 A default user must be given if running as root.
+.It Ic lookup-order Ar location Ar ...
+This specifies the order in which to do user lookup from left to right.
+Possible types are
+.Em passwd
+to use the
+.Xr passwd 5
+file, or
+.Em courier
+to use Courier authlib (if support is compiled).
 .It Ic lock-types Ar type Ar ...
 This specifies the locks to be used for mbox locking.
 Possible types are

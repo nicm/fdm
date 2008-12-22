@@ -316,7 +316,7 @@ yyerror(const char *fmt, ...)
 %type  <strings> stringslist pathslist maildirs mboxes groups folders folderlist
 %type  <userpass> userpass userpassreqd userpassnetrc
 %type  <ufn> ufn
-%type  <ufns> ufns ufnslist
+%type  <ufns> ufnlist
 
 %%
 
@@ -761,8 +761,8 @@ set: TOKSET TOKMAXSIZE size
 	     conf.file_umask = umask(0);
 	     umask(conf.file_umask);
      }
-   | TOKSET TOKLOOKUPORDER ufns
-/**  [$3: ufns (struct userfunctions *)] */
+   | TOKSET TOKLOOKUPORDER ufnlist
+/**  [$3: ufnlist (struct userfunctions *)] */
      {
 	     ARRAY_FREEALL(conf.user_order);
 	     conf.user_order = $3;
@@ -913,37 +913,25 @@ ufn: TOKPASSWD
      {
 #ifdef LOOKUP_COURIER
 	     $$ = &courier_lookup;
+#else
+	     yyerror("support for lookup-order courier is not enabled");
 #endif
      }
 
-/** UFNS: <ufns> (struct userfunctions *) */
-ufns: ufn
-/**   [$1: ufn (userfunction)] */
-      {
-	      $$ = xmalloc(sizeof *$$);
-	       ARRAY_INIT($$);
-	       ARRAY_ADD($$, $1);
-      }
-    | '{' ufnslist '}'
-/**   [$2: ufnslist (struct userfunctions *)] */
-    {
-	    $$ = $2;
-    }
-
-/** UFNSLIST: <ufns> (struct userfunctions *) */
-ufnslist: ufnslist ufn
-/**       [$1: ufnslist (struct userfunctions *)] [$2: ufn (userfunction)] */
-	     {
-		     $$ = $1;
-		     ARRAY_ADD($$, $2);
-	     }
-	   | ufn
-/**          [$1: ufn (userfunction)] */
-	     {
-		     $$ = xmalloc(sizeof *$$);
-		     ARRAY_INIT($$);
-		     ARRAY_ADD($$, $1);
-	     }
+/** UFNLIST: <ufns> (struct userfunctions *) */
+ufnlist: ufnlist ufn
+/**      [$1: ufnlist (struct userfunctions *)] [$2: ufn (userfunction)] */
+	 {
+		 $$ = $1;
+		 ARRAY_ADD($$, $2);
+	 }
+       | ufn
+/**      [$1: ufn (userfunction)] */
+	 {
+		 $$ = xmalloc(sizeof *$$);
+		 ARRAY_INIT($$);
+		 ARRAY_ADD($$, $1);
+	 }
 
 /** RMHEADERS: <replstrs> (struct replstrs *) */
 rmheaders: rmheaderp strv

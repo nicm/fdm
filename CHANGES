@@ -22,7 +22,7 @@
 26 June 2008
 
 * Lookup using courier-authlib. Build with make -DLOOKUP_COURIER and
-  use "set lookup-order { courier passwd }".
+  use "set lookup-order courier passwd".
 * Framework for changing user lookup method. At the moment only normal
   Unix passwd (getpwnam(3)) is supported. This means only string
   usernames are supported - to enter a numeric Unix UID, enclose it

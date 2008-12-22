@@ -14,7 +14,7 @@
 .\" IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
 .\" OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd August 14, 2006
+.Dd December 22, 2008
 .Dt FDM 1
 .Os
 .Sh NAME
@@ -23,7 +23,7 @@
 .Sh SYNOPSIS
 .Nm fdm
 .Bk -words
-.Op Fl klmnqv
+.Op Fl hklmnqv
 .Op Fl a Ar account
 .Oo Fl D Ar name Ns =
 .Ar value Oc
@@ -62,6 +62,10 @@ or
 .Pa /etc/fdm.conf
 if that doesn't exist.
 .Pp
+.It Fl h
+Look at the
+.Ev HOME
+environment variable to ascertain the user's home directory.
 .It Fl k
 Keep all mail after delivery, regardless of whether it matches a
 .Ic drop
