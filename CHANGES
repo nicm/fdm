@@ -1,3 +1,8 @@
+27 December 2008
+
+* Don't be as strict about format at the end of messages when using IMAP -
+  accept additional information as well as FLAGS. Reported by rivo nurges.
+
 17 December 2008
 
 * Only look at HOME environment variable if -h flag is passed.

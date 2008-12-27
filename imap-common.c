@@ -795,7 +795,7 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	struct mail		*m = fctx->mail;
-	char			*line, *ptr;
+	char			*line;
 	size_t			 used, size, left;
 
 	for (;;) {
@@ -821,35 +821,16 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	/*
-	 * Calculate the number of bytes still needed. The current line must be
-	 * those bytes plus either a trailing close bracket or a FLAGS
-	 * response plus a closing bracket.
+	 * Calculate the number of bytes still needed. The current line must
+	 * include at least that much data. Some servers include UID or FLAGS
+	 * after the message: we don't care about these so just ignore them and
+	 * make sure there is a terminating ).
 	 */
 	left = data->size - used;
 	if (size <= left)
 		return (imap_invalid(a, line));
-	if (size - left == 1) {
-		/* Closing bracket alone. */
-		if (line[left] != ')' || line[left + 1] != '\0')
-			return (imap_invalid(a, line));
-	} else {
-		if (left == 0) {
-			/* Exactly "FLAGS (...)" and no more. */
-			if (size < 7 || (strncmp(line, "FLAGS (", 7) != 0 &&
-			    strncmp(line, " FLAGS (", 8) != 0))
-				return (imap_invalid(a, line));
-		} else {
-			/* " FLAGS (...)" after content. */
-			if (size - left < 8)
-				return (imap_invalid(a, line));
-			if (strncmp(line + left, " FLAGS (", 8) != 0)
-				return (imap_invalid(a, line));
-		}
-		/* Check for terminating )). */
-		ptr = strchr(line + left, ')');
-		if (ptr == NULL || ptr[1] != ')' || ptr[2] != '\0')
-			return (imap_invalid(a, line));
-	}
+	if (line[size - 1] != ')')
+		return (imap_invalid(a, line));
 
 	/* If there was data left, add it as a new line without trailing \n. */
 	if (left > 0) {
