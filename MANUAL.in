@@ -58,6 +58,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	Lambda actions
 %%	The all condition
 %%	Matched and unmatched
+%%	Matching by account
 %%	Matching a regexp
 %%	Matching bracket expressions
 %%	Matching by age or size
@@ -134,7 +135,7 @@ accounts and delivering to one maildir may look similar to:
 	# Discard mail from Bob Idiot. Note that the regexp is an extended
 	# regexp, and case-insensitive by default. This action is a "lambda" or
 	# unnamed action, it is defined inline as part of the match rule.
-	match "From:.*bob@idiot\\.net" action drop
+	match "^From:.*bob@idiot\\.net" in headers action drop
 
 	# Match all other mail and deliver using the 'inbox' action.
 	match all action "inbox"
@@ -295,8 +296,9 @@ quotes are not.
 
 ### Invoking fdm
 
-fdm may be invoked manually from the command line or regularly using a program
-such as cron(8).
+fdm accepts a number of command line arguments and may be invoked as needed
+from the command line or by a mail transfer agent, such as sendmail, or at
+regular times using a program such as cron(8).
 
 %%% Temporary files
 

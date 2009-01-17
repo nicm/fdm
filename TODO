@@ -56,4 +56,7 @@
   which claim to support it but do not
 - option to relax group ownership checks to permit secondary groups,
   for shared mailboxes
- 
+- examples should have more explanation
+- some sort of against-file or matches-file command to match against
+  a whitelist. bloat vs grep?
+
