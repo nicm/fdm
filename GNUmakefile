@@ -4,19 +4,10 @@
 
 PROG= fdm
 VERSION= 1.6
+
 DATE= $(shell date +%Y%m%d-%H%M)
 
-#DEBUG= 1
-
-PREFIX?= /usr/local
-
-BIN_OWNER= bin
-BIN_GROUP= root
-
-CC= gcc
-
-INCDIRS= -I$(PREFIX)/include
-LDFLAGS= -L$(PREFIX)/lib
+FDEBUG= 1
 
 ifeq ($(shell uname),SunOS)
 YACC= yacc
@@ -25,10 +16,6 @@ else
 YACC= bison
 YFLAGS= -dy
 endif
-
-INSTALLDIR= install -d
-INSTALLBIN= install -g $(BIN_OWNER) -o $(BIN_GROUP) -m 555
-INSTALLMAN= install -g $(BIN_OWNER) -o $(BIN_GROUP) -m 444
 
 SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
@@ -49,10 +36,34 @@ SRCS= fdm.c \
       lookup.c lookup-passwd.c lookup-courier.c \
       y.tab.c parse-fn.c lex.c
 
+CC= gcc
+INCDIRS+= -I. -I- -I$(PREFIX)/include
+ifdef FDEBUG
+CFLAGS+= -g -ggdb -DDEBUG
+LDFLAGS+= -rdynamic
+LIBS+= -ldl
+CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
+else
+CFLAGS+= -DBUILD="\"$(VERSION)\""
+endif
+#CFLAGS+= -pedantic -std=c99
+CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
+CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
+CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
+
+LDFLAGS+= -L$(PREFIX)/lib
+LIBS+= -lssl -ltdb -lz
+
+PREFIX?= /usr/local
+INSTALLDIR= install -d
+INSTALLBIN= install -g bin -o root -m 555
+INSTALLMAN= install -g bin -o root -m 444
+
 ifeq ($(shell uname),Darwin)
 INCDIRS+= -I/usr/local/include/openssl -Icompat
 SRCS+= compat/strtonum.c
-DEFS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE \
+CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE \
        -DNO_QUEUE_H -DNO_TREE_H
 LIBS+= -lresolv -lcrypto
 endif
@@ -61,9 +72,9 @@ ifneq (, $(filter Linux GNU GNU/%, $(shell uname -s)))
 INCDIRS+= -I/usr/include/openssl -Icompat
 SRCS+= compat/strlcpy.c compat/strlcat.c compat/strtonum.c
 ifeq (, $(filter GNU/k%BSD, $(shell uname -s)))
-DEFS+= -DWITH_MREMAP
+CFLAGS+= -DWITH_MREMAP
 endif
-DEFS+= $(shell getconf LFS_CFLAGS) -D_GNU_SOURCE \
+CFLAGS+= $(shell getconf LFS_CFLAGS) -D_GNU_SOURCE \
        -DNO_STRLCPY -DNO_STRLCAT -DNO_STRTONUM -DNO_SETPROCTITLE \
        -DNO_QUEUE_H -DNO_TREE_H
 LIBS+= -lresolv
@@ -72,20 +83,6 @@ CFLAGS+= -std=c99
 endif
 
 OBJS= $(patsubst %.c,%.o,$(SRCS))
-CPPFLAGS+= $(DEFS) -I. -I- $(INCDIRS)
-ifdef DEBUG
-CFLAGS+= -g -ggdb -DDEBUG
-LDFLAGS+= -rdynamic
-LIBS+= -ldl
-DEFS+= -DBUILD="\"$(VERSION) ($(DATE))\""
-else
-DEFS+= -DBUILD="\"$(VERSION)\""
-endif
-#CFLAGS+= -pedantic -std=c99
-CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
-CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
-CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
-CFLAGS+= -Wundef -Wshadow -Wbad-function-cast -Winline -Wcast-align
 
 ifdef COURIER
 CFLAGS+= -DLOOKUP_COURIER
@@ -93,13 +90,13 @@ LIBS+= -lcourierauth
 endif
 
 ifdef PCRE
-DEFS+= -DPCRE
+CFLAGS+= -DPCRE
 LIBS+= -lpcre
 endif
 
-LIBS+= -lssl -ltdb -lz
-
 CLEANFILES= $(PROG) y.tab.c y.tab.h $(OBJS) .depend
+
+CPPFLAGS:= ${INCDIRS} ${CPPFLAGS}
 
 all: fdm
 

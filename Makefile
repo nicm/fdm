@@ -11,8 +11,7 @@ OS!= uname
 REL!= uname -r
 DATE!= date +%Y%m%d-%H%M
 
-# This must be empty as OpenBSD includes it in default CFLAGS.
-#DEBUG=
+FDEBUG= 1
 
 SRCS= fdm.c \
       attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
@@ -43,7 +42,7 @@ INCDIRS+= -I. -I- -I/usr/local/include
 CC= /usr/bin/gcc
 CFLAGS+= -pg -DPROFILE -fprofile-arcs -ftest-coverage -O0
 .endif
-.ifdef DEBUG
+.ifdef FDEBUG
 CFLAGS+= -g -ggdb -DDEBUG
 LDFLAGS+= -Wl,-E
 CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
@@ -113,12 +112,14 @@ DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] fdm-sanitize \
 CLEANFILES= ${PROG} *.o compat/*.o y.tab.c y.tab.h .depend \
 	    ${DISTDIR}.tar.gz *~ */*~ *.ln ${PROG}.core MANUAL index.html
 
+CPPFLAGS:= ${INCDIRS} ${CPPFLAGS} 
+
 .c.o:
-		${CC} ${CFLAGS} ${INCDIRS} -c ${.IMPSRC} -o ${.TARGET}
+		${CC} ${CPPFLAGS} ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
 
 .y.o:
 		${YACC} ${.IMPSRC}
-		${CC} ${CFLAGS} ${INCDIRS} -c y.tab.c -o ${.TARGET}
+		${CC} ${CPPFLAGS} ${CFLAGS} -c y.tab.c -o ${.TARGET}
 
 all:		${PROG}
 
@@ -138,7 +139,7 @@ lint:
 		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}
 
 depend:
-		mkdep ${CFLAGS} ${INCDIRS} ${SRCS:M*.c}
+		mkdep ${CPPFLAGS} ${CFLAGS} ${SRCS:M*.c}
 
 regress:	${PROG}
 		cd regress && ${MAKE}
@@ -163,7 +164,7 @@ manual:
 
 install:	all
 		${INSTALLDIR} ${DESTDIR}${PREFIX}/bin
-		${INSTALLBIN} ${PROG} ${DESTDIR}${PREFIX}/bin/${PROG}
+		${INSTALLBIN} ${PROG} ${DESTDIR}${PREFIX}/bin/
 		${INSTALLDIR} ${DESTDIR}${PREFIX}/man/man1
 		${INSTALLMAN} ${PROG}.1 ${DESTDIR}${PREFIX}/man/man1/
 		${INSTALLDIR} ${DESTDIR}${PREFIX}/man/man5
