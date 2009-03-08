@@ -1,3 +1,7 @@
+08 March 2009
+
+* Escape . properly when delivering to SMTP.
+
 27 December 2008
 
 * Don't be as strict about format at the end of messages when using IMAP -
