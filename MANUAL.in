@@ -1130,7 +1130,8 @@ must be taken to escape \s and "s properly.
 
 Examples include:
 
-	match "^From:.*bob@bobland\\.bob" in headers account "pop3" action "act"
+	match "^From:.*bob@bobland\\.bob" in headers and
+	      account "pop3" action "act"
 
 	match ".*YAHOO.*BOOTER.*" in body action "junk"
 
