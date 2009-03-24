@@ -527,11 +527,13 @@ but cause
 to fetch mail from an mbox or set of mboxes.
 .It Xo Ic nntp Ic server Ar host
 .Op Ic port Ar port
+.Op Ar userpass
 .Ic group Ar group
 .Ic cache Ar cache
 .Xc
 .It Xo Ic nntp Ic server Ar host
 .Op Ic port Ar port
+.Op Ar userpass
 .Ic groups
 .Li {
 .Ar group ...
@@ -540,11 +542,13 @@ to fetch mail from an mbox or set of mboxes.
 .Xc
 .It Xo Ic nntps Ic server Ar host
 .Op Ic port Ar port
+.Op Ar userpass
 .Ic group Ar group
 .Ic cache Ar cache
 .Xc
 .It Xo Ic nntps Ic server Ar host
 .Op Ic port Ar port
+.Op Ar userpass
 .Ic groups
 .Li {
 .Ar group ...
@@ -558,11 +562,11 @@ saved in the specified cache file.
 When
 .Xr fdm 1
 is run again, fetching begins at the cached article.
-.El
 Note that the
 .Ic keep
 option is completely ignored for NNTP accounts - all mail is kept, and the
 cache is always updated.
+.El
 .Sh TAGGING
 As mail is processed by
 .Xr fdm 1 ,

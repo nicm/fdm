@@ -2434,11 +2434,12 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   data->path = $5.path;
 		   data->only = $5.only;
 	   }
-         | imaptype server userpassnetrc folderlist imaponly verify nocrammd5 nologin
+         | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
 /**        [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
 /**        [$4: folderlist (struct strings *)] [$5: imaponly (enum fetch_only)] */
-/**        [$6: verify (int)] [$7: nocrammd5 (int)] [$8: nologin (int)] */
+/**        [$6: verify (int)] [$7: nocrammd5 (int)] */
+	   nologin
            {
 		   struct fetch_imap_data	*data;
 
@@ -2447,7 +2448,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   $$.data = data;
 
 		   if ($3.user_netrc && $3.pass_netrc)
-			  find_netrc($2.host, &data->user, &data->pass);
+			   find_netrc($2.host, &data->user, &data->pass);
 		   else {
 			   if ($3.user_netrc)
 				   find_netrc($2.host, &data->user, NULL);
@@ -2516,32 +2517,49 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 		   $$.data = data;
 		   data->mboxes = $1;
 	   }
-	 | nntptype server groups TOKCACHE replpathv verify
+	 | nntptype server userpassnetrc groups TOKCACHE replpathv verify
 /**        [$1: nntptype (int)] [$2: server (struct { ... } server)] */
-/**        [$3: groups (struct strings *)] [$5: replpathv (char *)] */
-/**        [$6: verify (int)] */
+/**        [$3: userpassnetrc (struct { ... } userpass)] */
+/**        [$4: groups (struct strings *)] [$6: replpathv (char *)] */
+/**        [$7: verify (int)] */
            {
 		   struct fetch_nntp_data	*data;
-		   char				*group;
+		   char				*cause;
 
-		   if (*$5 == '\0')
+		   if (*$6 == '\0')
 			   yyerror("invalid cache");
 
 		   $$.fetch = &fetch_nntp;
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
-		   data->names = $3;
 
-		   if (ARRAY_LENGTH($3) == 1)
-			   group = ARRAY_FIRST($3);
-		   else
-			   group = NULL;
-		   data->path = $5;
+		   if ($3.user_netrc && $3.pass_netrc) {
+			   if (find_netrc1($2.host,
+			       &data->user, &data->pass, &cause) != 0) {
+				   log_debug2("%s", cause);
+				   xfree(cause);
+				   data->user = NULL;
+				   data->pass = NULL;
+			   }
+
+		   } else {
+			   if ($3.user_netrc)
+				   find_netrc($2.host, &data->user, NULL);
+			   else
+				   data->user = $3.user;
+			   if ($3.pass_netrc)
+				   find_netrc($2.host, NULL, &data->pass);
+			   else
+				   data->pass = $3.pass;
+		   }
+
+		   data->names = $4;
+		   data->path = $6;
 		   if (data->path == NULL || *data->path == '\0')
 			   yyerror("invalid cache");
 
 		   data->server.ssl = $1;
-		   data->server.verify = $6;
+		   data->server.verify = $7;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;

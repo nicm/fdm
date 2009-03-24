@@ -121,6 +121,8 @@ struct fetch_nntp_group {
 struct fetch_nntp_data {
 	char		*path;
 
+	char		*user;
+	char		*pass;
 	struct server	 server;
 	struct strings	*names;
 

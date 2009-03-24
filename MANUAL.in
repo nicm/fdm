@@ -753,6 +753,7 @@ accounts are specified like so:
 		cache "%h/.fdm.cache/%[group]"
 
 	account "mynews" nntps server "ssl.news.server" port "nntps"
+		user "myuser" pass "mypass"
 		groups { "alt.test" "alt.humor.best-of-usenet" }
 		cache "%h/.fdm.cache"
 

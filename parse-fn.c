@@ -557,29 +557,54 @@ expand_path(const char *path, const char *home)
 void
 find_netrc(const char *host, char **user, char **pass)
 {
-	FILE	*f;
 	char	*cause;
 
-	if ((f = netrc_open(conf.user_home, &cause)) == NULL)
+	if (find_netrc1(host, user, pass, &cause) != 0)
 		yyerror("%s", cause);
+}
 
-	if (netrc_lookup(f, host, user, pass) != 0)
-		yyerror("error reading .netrc");
+int
+find_netrc1(const char *host, char **user, char **pass, char **cause)
+{
+	FILE	*f;
+
+	if ((f = netrc_open(conf.user_home, cause)) == NULL)
+		return (-1);
+
+	if (netrc_lookup(f, host, user, pass) != 0) {
+		xasprintf(cause, "error reading .netrc");
+		return (-1);
+	}
 
 	if (user != NULL) {
-		if (*user == NULL)
-			yyerror("can't find user for \"%s\" in .netrc", host);
-		if (**user == '\0')
-			yyerror("invalid user");
+		if (*user == NULL) {
+			xasprintf(cause,
+			    "can't find user for \"%s\" in .netrc", host);
+			goto bad;
+		}
+		if (**user == '\0') {
+			xasprintf(cause, "invalid user");
+			goto bad;
+		}
 	}
 	if (pass != NULL) {
-		if (*pass == NULL)
-			yyerror("can't find pass for \"%s\" in .netrc", host);
-		if (**pass == '\0')
-			yyerror("invalid pass");
+		if (*pass == NULL) {
+			xasprintf(cause,
+			    "can't find pass for \"%s\" in .netrc", host);
+			goto bad;
+		}
+		if (**pass == '\0') {
+			xasprintf(cause, "invalid pass");
+			goto bad;
+		}
 	}
 
-	netrc_close(f);
+	fclose(f);
+	return (0);
+	
+bad:
+	fclose(f); 
+	return (-1);
 }
 
 char *

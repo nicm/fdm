@@ -745,6 +745,7 @@ struct actions	*match_actions(const char *);
 struct macro 	*extract_macro(char *);
 struct macro	*find_macro(const char *);
 void		 find_netrc(const char *, char **, char **);
+int		 find_netrc1(const char *, char **, char **, char **);
 void		 free_account(struct account *);
 void		 free_action(struct action *);
 void		 free_actitem(struct actitem *);

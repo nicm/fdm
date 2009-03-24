@@ -1,3 +1,7 @@
+24 March 2009
+
+* Support user and pass on NNTP, requested by Michael Hamann.
+
 08 March 2009
 
 * Escape . properly when delivering to SMTP.

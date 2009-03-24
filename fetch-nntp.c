@@ -48,6 +48,8 @@ int	fetch_nntp_invalid(struct account *, const char *);
 
 int	fetch_nntp_state_connect(struct account *, struct fetch_ctx *);
 int	fetch_nntp_state_connected(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_auth1(struct account *, struct fetch_ctx *);
+int	fetch_nntp_state_auth2(struct account *, struct fetch_ctx *);
 int	fetch_nntp_state_switch(struct account *, struct fetch_ctx *);
 int	fetch_nntp_state_group(struct account *, struct fetch_ctx *);
 int	fetch_nntp_state_reset(struct account *, struct fetch_ctx *);
@@ -410,9 +412,48 @@ fetch_nntp_state_connect(struct account *a, struct fetch_ctx *fctx)
 int
 fetch_nntp_state_connected(struct account *a, struct fetch_ctx *fctx)
 {
-	char	*line;
+	struct fetch_nntp_data	*data = a->data;
+	char			*line;
 
 	if (fetch_nntp_check(a, fctx, &line, NULL, 2, 200, 201) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	if (data->user == NULL || data->pass == NULL) {
+ 		fctx->state = fetch_nntp_state_group;
+		return (FETCH_AGAIN);
+	}
+
+	io_writeline(data->io, "AUTHINFO USER %s", data->user);
+	fctx->state = fetch_nntp_state_auth1;
+	return (FETCH_BLOCK);
+}
+
+/* First authentication state. */
+int
+fetch_nntp_state_auth1(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_nntp_data	*data = a->data;
+	char			*line;
+
+	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 381) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	io_writeline(data->io, "AUTHINFO PASS %s", data->pass);
+	fctx->state = fetch_nntp_state_auth2;
+	return (FETCH_BLOCK);
+}
+
+/* Second authentication state. */
+int
+fetch_nntp_state_auth2(struct account *a, struct fetch_ctx *fctx)
+{
+	char	*line;
+
+	if (fetch_nntp_check(a, fctx, &line, NULL, 2, 281) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
