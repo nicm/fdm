@@ -150,8 +150,7 @@ yannotate:
 		trim parse.y
 
 upload-index.html:
-		scp index.html nicm,fdm@shell.sf.net:index.html
-		ssh nicm,fdm@shell.sf.net sh update-index-fdm.sh
+		scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdoc
 
 update-index.html: manual
 		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html

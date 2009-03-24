@@ -412,7 +412,7 @@ fetch_nntp_state_connected(struct account *a, struct fetch_ctx *fctx)
 {
 	char	*line;
 
-	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 200) != 0)
+	if (fetch_nntp_check(a, fctx, &line, NULL, 2, 200, 201) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
