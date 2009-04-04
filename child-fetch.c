@@ -423,6 +423,8 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 					goto abort;
 				fctx.mail = xcalloc(1, sizeof *fctx.mail);
 				continue;
+			default:
+				fatalx("unexpected fetch return");
 			}
 		}
 

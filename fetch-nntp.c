@@ -399,7 +399,7 @@ fetch_nntp_state_connect(struct account *a, struct fetch_ctx *fctx)
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
-		return (-1);
+		return (FETCH_ERROR);
 	}
 	if (conf.debug > 3 && !conf.syslog)
 		data->io->dup_fd = STDOUT_FILENO;
