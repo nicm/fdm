@@ -101,7 +101,7 @@ CPPFLAGS:= ${INCDIRS} ${CPPFLAGS}
 all: fdm
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) $(LIBS) -o $@ $+
+	$(CC) $(LDFLAGS) -o $@ $+ $(LIBS)
 
 depend: $(SRCS)
 	$(CC) $(CPPFLAGS) -MM $(SRCS) > .depend
