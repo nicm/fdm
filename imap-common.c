@@ -281,7 +281,7 @@ imap_total(struct account *a)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	return (data->total);
+	return (data->folders_total);
 }
 
 /* Common initialisation state. */
@@ -296,6 +296,7 @@ imap_state_init(struct account *a, struct fetch_ctx *fctx)
 	data->tag = 0;
 
 	data->folder = 0;
+	data->folders_total = 0;
 
 	fctx->state = imap_state_connect;
 	return (FETCH_AGAIN);
@@ -661,6 +662,9 @@ imap_state_search3(struct account *a, struct fetch_ctx *fctx)
 
 	/* Save the total. */
 	data->total = ARRAY_LENGTH(&data->wanted);
+
+	/* Update grand total. */
+	data->folders_total += data->total;
 
 	/* If no mails, or polling, stop here. */
 	if (data->total == 0 || fctx->flags & FETCH_POLL) {

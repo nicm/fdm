@@ -202,6 +202,7 @@ struct fetch_imap_data {
 
 	u_int		 folder;
 	struct strings	*folders;
+	u_int		 folders_total; /* total mail count */
 
 	int		 capa;
 	int		 tag;
