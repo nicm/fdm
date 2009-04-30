@@ -123,6 +123,8 @@ CPPFLAGS:= ${INCDIRS} ${CPPFLAGS}
 
 all:		${PROG}
 
+lex.o:		parse.o
+
 ${PROG}:	${OBJS}
 		${CC} ${LDFLAGS} -o ${PROG} ${OBJS} ${LIBS}
 

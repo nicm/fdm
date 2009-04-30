@@ -106,8 +106,10 @@ $(PROG): $(OBJS)
 depend: $(SRCS)
 	$(CC) $(CPPFLAGS) -MM $(SRCS) > .depend
 
-y.tab.c y.tab.h: parse.y
+y.tab.c: parse.y
 	$(YACC) $(YFLAGS) $<
+
+lex.o: y.tab.c
 
 install:
 	$(INSTALLDIR) $(DESTDIR)$(PREFIX)/bin
