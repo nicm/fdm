@@ -36,7 +36,6 @@
 - docs from Thomas@BIC:
 	clarify that first match stops without continue
 	shell commands: when evaluated (done?)
-	from-headers examples, lengthen discussion
 	clarify keep for NNTP (done?)
 	clarify action tag use/updating, and wrt lambda actions
 	man page: "The name of the last action executed for this mail."
@@ -48,7 +47,6 @@
 - when doing .netrc lookup, match the username if given as well to allow
   multiple users on the same server
 - set secondary groups when changing user
-- from-headers stuff can probably go at some point
 - regress fails as root
 - rml could be stored as actual tags, then command0-9 could go... means
   copying... get rid of %0
