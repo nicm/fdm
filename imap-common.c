@@ -56,7 +56,7 @@ int	imap_state_next(struct account *, struct fetch_ctx *);
 int	imap_state_body(struct account *, struct fetch_ctx *);
 int	imap_state_line(struct account *, struct fetch_ctx *);
 int	imap_state_mail(struct account *, struct fetch_ctx *);
-int	imap_state_delete(struct account *, struct fetch_ctx *);
+int	imap_state_commit(struct account *, struct fetch_ctx *);
 int	imap_state_expunge(struct account *, struct fetch_ctx *);
 int	imap_state_close(struct account *, struct fetch_ctx *);
 int	imap_state_quit(struct account *, struct fetch_ctx *);
@@ -255,7 +255,7 @@ imap_commit(struct account *a, struct mail *m)
 	if (m->decision == DECISION_DROP)
 		ARRAY_ADD(&data->dropped, aux->uid);
 	else
-		data->committed++;
+		ARRAY_ADD(&data->kept, aux->uid);
 
 	xfree(aux);
 	m->auxdata = m->auxfree = NULL;
@@ -270,6 +270,7 @@ imap_abort(struct account *a)
 	struct fetch_imap_data	*data = a->data;
 
 	ARRAY_FREE(&data->dropped);
+	ARRAY_FREE(&data->kept);
 	ARRAY_FREE(&data->wanted);
 
 	data->disconnect(a);
@@ -291,6 +292,7 @@ imap_state_init(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 
  	ARRAY_INIT(&data->dropped);
+ 	ARRAY_INIT(&data->kept);
 	ARRAY_INIT(&data->wanted);
 
 	data->tag = 0;
@@ -687,13 +689,25 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 
-	/* Handle dropped mail. */
+	/* Handle dropped and kept mail. */
 	if (!ARRAY_EMPTY(&data->dropped)) {
 		if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT (\\Deleted)",
 		    ++data->tag, ARRAY_FIRST(&data->dropped)) != 0)
 			return (FETCH_ERROR);
 		ARRAY_REMOVE(&data->dropped, 0);
-		fctx->state = imap_state_delete;
+		fctx->state = imap_state_commit;
+		return (FETCH_BLOCK);
+	}
+	if (!ARRAY_EMPTY(&data->kept)) {
+		/* 
+		 * GMail is broken and does not set the \Seen flag after mail
+		 * is fetched, so set it explicitly for kept mail.
+		 */
+		if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT (\\Seen)",
+		    ++data->tag, ARRAY_FIRST(&data->kept)) != 0)
+			return (FETCH_ERROR);
+		ARRAY_REMOVE(&data->kept, 0);
+		fctx->state = imap_state_commit;
 		return (FETCH_BLOCK);
 	}
 
@@ -871,9 +885,9 @@ imap_state_mail(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_MAIL);
 }
 
-/* Delete state. */
+/* Commit state. */
 int
-imap_state_delete(struct account *a, struct fetch_ctx *fctx)
+imap_state_commit(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;

@@ -1,3 +1,8 @@
+02 May 2009
+
+* GMail IMAP doesn't correctly set the \Seen flag after UID FETCH BODY[], so
+  explicitly set it with STORE when mail is kept. Reported by Patrice Clement.
+
 30 April 2009
 
 * Properly count mails when polling multiple folders on a single IMAP server,

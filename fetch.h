@@ -209,6 +209,7 @@ struct fetch_imap_data {
 
 	ARRAY_DECL(, u_int) wanted;
 	ARRAY_DECL(, u_int) dropped;
+	ARRAY_DECL(, u_int) kept;
 
 	u_int		 total;
 	u_int		 committed;

@@ -1569,11 +1569,16 @@ See the re_format(7) man page. It is online here (for OpenBSD):
 
 There are also a number of books and probably websites on the subject.
 
-%%% Keep doesn't work with gmail!
+%%% Keep doesn't work with GMail!
 
-This is because gmail is broken, see:
+This is because GMail is broken, see:
 
 	http://pyropus.ca/software/getmail/faq.html#faq-notabug-gmail-bug
+
+In addition, GMail IMAP doesn't set the \Seen flag when mail is fetched with
+the UID FETCH BODY[] command (RFC3501 says that the "\Seen flag is implicitly
+set"). fdm works around this bug by setting the flag explicitly when mail is
+kept.
 
 %%% Why doesn't fdm run as a daemon?
 
