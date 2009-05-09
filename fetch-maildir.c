@@ -366,6 +366,8 @@ restart:
 	maildir = xbasename(xdirname(path));
 	default_tags(&m->tags, maildir);
 	add_tag(&m->tags, "maildir", "%s", maildir);
+	add_tag(&m->tags, "maildir_path", "%s", xdirname(path));
+	add_tag(&m->tags, "maildir_file", "%s", path);
 
 	/* Add aux data. */
 	aux = xmalloc(sizeof *aux);
