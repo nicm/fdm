@@ -255,7 +255,7 @@ fetch_maildir_state_init(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	fctx->state = fetch_maildir_state_open;
-	return (0);
+	return (FETCH_AGAIN);
 }
 
 /* Next state. Move to next path. */
