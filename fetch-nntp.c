@@ -568,28 +568,33 @@ fetch_nntp_state_wait(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_nntp_group	*group;
 	char			*line, *id;
 	u_int			 n;
+	int			 code;
 
 	group = ARRAY_ITEM(&data->groups, data->group);
 
-	if (fetch_nntp_check(a, fctx, &line, NULL, 1, 223) != 0)
+	if (fetch_nntp_check(a, fctx, &line, &code, 2, 223, 423) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
-	if (fetch_nntp_parse223(line, &n, &id) != 0)
-		return (fetch_nntp_invalid(a, line));
-	if (n != group->last) {
-		log_warnx("%s: unexpected message number", a->name);
+	if (code == 223) {
+		if (fetch_nntp_parse223(line, &n, &id) != 0)
+			return (fetch_nntp_invalid(a, line));
+		if (n != group->last) {
+			log_warnx("%s: unexpected message number", a->name);
+			xfree(id);
+			return (FETCH_ERROR);
+		}
+		if (strcmp(id, group->id) != 0) {
+			xfree(id);
+			fctx->state = fetch_nntp_state_reset;
+			return (FETCH_AGAIN);
+		}
+		log_debug2(
+		    "%s: last message found: %u %s", a->name, group->last, id);
 		xfree(id);
-		return (FETCH_ERROR);
-	}
-	if (strcmp(id, group->id) != 0) {
-		xfree(id);
-		fctx->state = fetch_nntp_state_reset;
-		return (FETCH_AGAIN);
-	}
-	log_debug2("%s: last message found: %u %s", a->name, group->last, id);
-	xfree(id);
+	} else 
+		log_warnx("%s: could not get last message", a->name);
 
 	io_writeline(data->io, "NEXT");
 	fctx->state = fetch_nntp_state_next;
