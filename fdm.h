@@ -19,6 +19,8 @@
 #ifndef FDM_H
 #define FDM_H
 
+#include "config.h"
+
 #include <sys/param.h>
 #include <sys/cdefs.h>
 #include <sys/stat.h>
