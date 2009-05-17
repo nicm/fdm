@@ -55,7 +55,7 @@ courier_callback(struct authinfo *ai, unused void *data)
 		courier_udata->uid = *ai->sysuserid;
 		courier_udata->gid = ai->sysgroupid;
 	}
-	
+
 	return (0);
 }
 

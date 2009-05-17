@@ -529,7 +529,7 @@ pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 			return (pop3_bad(a, line));
 		line = strchr(line, ' ') + 1;
 
-		/* 
+		/*
 		 * Check UID validity. We are intolerant about validity since
 		 * accepting bad UIDs could potentially end up with UIDs that
 		 * conflict.
@@ -547,7 +547,7 @@ pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 		if (ptr > line + 70) {
 			log_warnx("%s: UID too big: %s", a->name, line);
 			return (FETCH_ERROR);
-		}			
+		}
 
 		aux = xcalloc(1, sizeof *aux);
 		aux->idx = n;
@@ -640,7 +640,7 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 				break;
 			}
 
-			/* 
+			/*
 			 * Copy the mail to the want queue. Keep the want
 			 * queue sorted by UIDL order from the server.
 			 */

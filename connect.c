@@ -123,7 +123,7 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 
 		/* Compare against both given host and FQDN. */
 		if (fnmatch(ptr, srv->host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
-		    (fqdn != NULL && 
+		    (fqdn != NULL &&
 		    fnmatch(ptr, fqdn, FNM_NOESCAPE|FNM_CASEFOLD)) == 0)
 			break;
 

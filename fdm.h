@@ -819,7 +819,7 @@ void		 cmd_free(struct cmd *);
 /* child.c */
 int		 child_fork(void);
 __dead void	 child_exit(int);
-struct child 	*child_start(struct children *, uid_t, gid_t, 
+struct child 	*child_start(struct children *, uid_t, gid_t,
     		     int (*)(struct child *, struct io *),
     		     int (*)(struct child *, struct msg *, struct msgbuf *),
 		     void *, struct child *);

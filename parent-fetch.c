@@ -43,7 +43,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 	struct deliver_ctx	*dctx;
 	struct mail_ctx		*mctx;
 	struct mail		*m;
- 
+
 	switch (msg->type) {
 	case MSG_ACTION:
 		if (msgbuf->buf == NULL || msgbuf->len == 0)
@@ -76,7 +76,7 @@ parent_fetch(struct child *child, struct msg *msg, struct msgbuf *msgbuf)
 		mctx = xcalloc(1, sizeof *mctx);
 		mctx->account = msg->data.account;
 		mctx->mail = m;
-		
+
 		parent_fetch_cmd(child, children, mctx, msg);
 		break;
 	case MSG_DONE:

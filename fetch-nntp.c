@@ -593,7 +593,7 @@ fetch_nntp_state_wait(struct account *a, struct fetch_ctx *fctx)
 		log_debug2(
 		    "%s: last message found: %u %s", a->name, group->last, id);
 		xfree(id);
-	} else 
+	} else
 		log_warnx("%s: could not get last message", a->name);
 
 	io_writeline(data->io, "NEXT");

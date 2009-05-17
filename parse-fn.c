@@ -601,9 +601,9 @@ find_netrc1(const char *host, char **user, char **pass, char **cause)
 
 	fclose(f);
 	return (0);
-	
+
 bad:
-	fclose(f); 
+	fclose(f);
 	return (-1);
 }
 

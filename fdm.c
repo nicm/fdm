@@ -179,7 +179,7 @@ check_children(struct children *children, u_int *idx)
 			return (child);
 	}
 	return (NULL);
-}	
+}
 
 __dead void
 usage(void)
@@ -344,7 +344,7 @@ main(int argc, char **argv)
 	/* Find invoking user's details. */
 	if ((pw = getpwuid(getuid())) == NULL) {
 		log_warnx("unknown user: %lu", (u_long) geteuid());
-		exit(1); 
+		exit(1);
 	}
  	user = xstrdup(pw->pw_name);
 	if (home != NULL && *home != '\0')
@@ -401,7 +401,7 @@ main(int argc, char **argv)
 		ud = user_lookup(conf.def_user, conf.user_order);
 		if (ud == NULL) {
 			log_warnx("unknown user: %s", conf.def_user);
-			exit(1); 
+			exit(1);
 		}
 		user_free(ud);
 	}
@@ -409,7 +409,7 @@ main(int argc, char **argv)
 		ud = user_lookup(conf.cmd_user, conf.user_order);
 		if (ud == NULL) {
 			log_warnx("unknown user: %s", conf.cmd_user);
-			exit(1); 
+			exit(1);
 		}
 		user_free(ud);
 	}
@@ -653,7 +653,7 @@ main(int argc, char **argv)
 	while (!TAILQ_EMPTY(&actaq) || ARRAY_LENGTH(&children) != 0) {
 		log_debug2("parent: %u children, %u dead children",
 		    ARRAY_LENGTH(&children), ARRAY_LENGTH(&dead_children));
-		
+
 		/* Stop on signal. */
 		if (sigint || sigterm)
 			break;
@@ -663,16 +663,16 @@ main(int argc, char **argv)
 		    ARRAY_LENGTH(&children) < (u_int) conf.max_accts)) {
 			a = TAILQ_FIRST(&actaq);
 			TAILQ_REMOVE(&actaq, a, active_entry);
-			
+
 			cfd = xmalloc(sizeof *cfd);
 			cfd->account = a;
 			cfd->op = op;
 			cfd->children = &children;
-			child = child_start(&children, 
-			    conf.child_uid, conf.child_gid, 
+			child = child_start(&children,
+			    conf.child_uid, conf.child_gid,
 			    child_fetch, parent_fetch, cfd, NULL);
-			log_debug2("parent: child %ld (%s) started", 
-			    (long) child->pid, a->name);	
+			log_debug2("parent: child %ld (%s) started",
+			    (long) child->pid, a->name);
 		}
 
 		/* Fill the io list. */
@@ -691,7 +691,7 @@ main(int argc, char **argv)
 		case 0:
 			fatalx("child socket closed");
 		}
-		
+
 		/* Check all children for pending privsep messages. */
 		while ((child = check_children(&children, &i)) != NULL) {
 			/* Handle this message. */
@@ -701,13 +701,13 @@ main(int argc, char **argv)
 			    "child %ld", msg.type, msg.id, (long) child->pid);
 			if (child->msg(child, &msg, &msgbuf) == 0)
 				continue;
-		
+
 			/* Child has said it is ready to exit, tell it to. */
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL) != 0)
 				fatalx("privsep_send error");
-		
+
 			/* Wait for the child. */
 			if (waitpid(child->pid, &status, 0) == -1)
 				fatal("waitpid failed");
@@ -725,14 +725,14 @@ main(int argc, char **argv)
 				log_debug2("parent: child %ld returned %d",
 				    (long) child->pid, WEXITSTATUS(status));
 			}
-			
+
 			io_close(child->io);
 			io_free(child->io);
 			child->io = NULL;
-			
+
 			ARRAY_REMOVE(&children, i);
 			ARRAY_ADD(&dead_children, child);
-			
+
 			/*
 			 * If this child was the parent of any others, kill
 			 * them too.
@@ -741,7 +741,7 @@ main(int argc, char **argv)
 				child2 = ARRAY_ITEM(&children, i);
 				if (child2->parent != child)
 					continue;
-				
+
 				log_debug("parent: child %ld died: killing %ld",
 				    (long) child->pid, (long) child2->pid);
 				kill(child2->pid, SIGTERM);

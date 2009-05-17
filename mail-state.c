@@ -426,7 +426,7 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 				xfree(user);
 			log_warnx("%s: empty user", a->name);
 			return (-1);
-		}		
+		}
 		if ((udata = user_lookup(user, conf.user_order)) == NULL) {
 			xfree(user);
 			log_warnx("%s: bad user: %s", a->name, user);

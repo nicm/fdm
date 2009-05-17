@@ -562,7 +562,7 @@ imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
- 
+
  	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
  		return (FETCH_ERROR);
 	if (line == NULL)
@@ -699,7 +699,7 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 	if (!ARRAY_EMPTY(&data->kept)) {
-		/* 
+		/*
 		 * GMail is broken and does not set the \Seen flag after mail
 		 * is fetched, so set it explicitly for kept mail.
 		 */

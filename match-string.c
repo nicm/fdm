@@ -48,10 +48,10 @@ match_string_match(struct mail_ctx *mctx, struct expritem *ei)
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
 		return (MATCH_ERROR);
-	} 
+	}
 	xfree(s);
 
-	if (n == 0) 
+	if (n == 0)
 		return (MATCH_FALSE);
 	return (MATCH_TRUE);
 }

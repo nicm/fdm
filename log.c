@@ -71,7 +71,7 @@ log_open_file(int level, const char *path)
 	log_file = fopen(path, "w");
 	if (log_file == NULL)
 		return;
-	
+
 	log_type = LOG_TYPE_FILE;
 	log_level = level;
 

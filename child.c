@@ -72,7 +72,7 @@ child_fork(void)
 			fatal("sigaction failed");
 #endif
 		if (sigaction(SIGUSR1, &act, NULL) < 0)
-			fatal("sigaction failed");		
+			fatal("sigaction failed");
 		if (sigaction(SIGTERM, &act, NULL) < 0)
 			fatal("sigaction failed");
 
@@ -90,8 +90,8 @@ child_exit(int status)
 }
 
 struct child *
-child_start(struct children *children, uid_t uid, gid_t gid, 
-    int (*start)(struct child *, struct io *), 
+child_start(struct children *children, uid_t uid, gid_t gid,
+    int (*start)(struct child *, struct io *),
     int (*msg)(struct child *, struct msg *, struct msgbuf *),
     void *data, struct child *parent)
 {

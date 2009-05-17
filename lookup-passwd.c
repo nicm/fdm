@@ -29,7 +29,7 @@ passwd_lookup(const char *user)
 	struct userdata	*ud;
 	uid_t		 uid;
 	const char	*errstr;
-	
+
 	if ((pw = getpwnam(user)) == NULL) {
 		endpwent();
 		uid = strtonum(user, 0, UID_MAX, &errstr);

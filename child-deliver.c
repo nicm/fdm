@@ -106,12 +106,12 @@ child_deliver_action_hook(pid_t pid, struct account *a, struct msg *msg,
 	}
 
 	dctx->udata = xmalloc(sizeof *dctx->udata);
-	dctx->udata->uid = data->uid; 
+	dctx->udata->uid = data->uid;
 	dctx->udata->gid =  data->gid;
 	dctx->udata->name = xstrdup(find_tag(m->tags, "user"));
 	dctx->udata->home = xstrdup(find_tag(m->tags, "home"));
 	log_debug2("%s: deliver user is: %s (%lu/%lu), home is: %s", a->name,
-	    dctx->udata->name, (u_long) dctx->udata->uid, 
+	    dctx->udata->name, (u_long) dctx->udata->uid,
 	    (u_long) dctx->udata->gid, dctx->udata->home);
 
 	/* This is the child. do the delivery. */

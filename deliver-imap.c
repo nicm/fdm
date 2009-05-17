@@ -115,7 +115,7 @@ deliver_imap_waitokay(struct account *a, struct fetch_ctx *fctx, struct io *io,
 
 /* Wait for continuation. */
 int
-deliver_imap_waitcontinue(struct account *a, struct fetch_ctx *fctx, 
+deliver_imap_waitcontinue(struct account *a, struct fetch_ctx *fctx,
     struct io *io, char **line)
 {
 	do {
@@ -130,10 +130,10 @@ deliver_imap_waitcontinue(struct account *a, struct fetch_ctx *fctx,
 
 /* Wait for append response. */
 int
-deliver_imap_waitappend(struct account *a, struct fetch_ctx *fctx, 
+deliver_imap_waitappend(struct account *a, struct fetch_ctx *fctx,
     struct io *io, char **line)
 {
-	struct fetch_imap_data	*data = a->data;	
+	struct fetch_imap_data	*data = a->data;
 	int			 tag;
 
 	for (;;) {
@@ -152,7 +152,7 @@ deliver_imap_waitappend(struct account *a, struct fetch_ctx *fctx,
 		if (tag != IMAP_TAG_NONE)
 			break;
 	}
-	
+
 	if (tag == IMAP_TAG_CONTINUE)
 		return (IMAP_TAG_CONTINUE);
 	if (tag != data->tag)
@@ -227,7 +227,7 @@ retry:
 		imap_invalid(a, line);
 		goto error;
 	}
-    
+
 	/* Send the mail size, not forgetting lines are CRLF terminated. */
 	count_lines(m, &total, &body);
 	if (imap_putln(a, "%s {%zu}", folder, m->size + total - 1) != 0)
@@ -252,14 +252,14 @@ retry:
 		if (len > 1)
 			io_write(io, ptr, len - 1);
 		io_writeline(io, NULL);
-		
+
 		/* Update if necessary. */
 		if (io_update(io, conf.timeout, &cause) != 1) {
 			log_warnx("%s: %s", a->name, cause);
 			xfree(cause);
 			goto error;
 		}
-		
+
 		line_next(m, &ptr, &len);
 	}
 
@@ -269,7 +269,7 @@ retry:
 	case IMAP_TAG_CONTINUE:
 		if (line != NULL)
 			imap_invalid(a, line);
-		goto error;		
+		goto error;
 	default:
 		if (imap_okay(line))
 			break;
@@ -297,9 +297,9 @@ try_create:	/* XXX function? */
 	if (deliver_imap_waitcontinue(a, &fctx, io, &line) != 0)
 		goto error;
 	if (imap_putln(a, "%s", folder) != 0)
-		goto error;		
+		goto error;
 	if (deliver_imap_waitokay(a, &fctx, io, &line) != 0)
-		goto error;	
+		goto error;
 	goto retry;
 
 error:

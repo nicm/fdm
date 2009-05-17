@@ -100,7 +100,7 @@ match_command_desc(struct expritem *ei, char *buf, size_t len)
 
 	if (data->re.str == NULL) {
 		if (data->user.str != NULL) {
-			xsnprintf(buf, len, 
+			xsnprintf(buf, len,
 			    "%s \"%s\" user \"%s\" returns (%s, )",
 			    type, data->cmd.str, data->user.str, ret);
 		} else {

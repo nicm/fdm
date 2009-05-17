@@ -129,7 +129,7 @@ default_tags(struct strb **tags, const char *src)
 	struct tm	*tm;
 	time_t		 t;
 
-	strb_clear(tags);	
+	strb_clear(tags);
 
 	if (src != NULL)
 		add_tag(tags, "source", "%s", src);
