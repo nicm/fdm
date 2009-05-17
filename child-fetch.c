@@ -107,7 +107,7 @@ child_fetch(struct child *child, struct io *pio)
 
 	log_debug2("%s: fetch started, pid %ld", a->name, (long) getpid());
 
-#ifndef NO_SETPROCTITLE
+#ifdef HAVE_SETPROCTITLE
 	setproctitle("child: %s", a->name);
 #endif
 

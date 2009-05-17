@@ -140,9 +140,10 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 
 	/* XXX Check if the child has actually started. */
 	if (kill(cmd->pid, 0) != 0) {
-		if (errno != ESRCH)
+		if (errno == ESRCH)
+			CMD_DEBUG(cmd, "child not running");
+		else if (errno != EPERM)
 			fatal("kill");
-		CMD_DEBUG(cmd, "child not running");
 	}
 
 	/* Parent. */

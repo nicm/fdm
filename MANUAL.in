@@ -83,7 +83,7 @@ Ensure it is installed, then download the source tarball and build fdm with:
 
 	$ tar -zxvf fdm-?.?.tar.gz
 	$ cd fdm-?.?
-	$ make
+	$ ./configure && make
 
 Then run 'make install' to install fdm to the default locations under
 /usr/local. The PREFIX environment variable may be set to specify an

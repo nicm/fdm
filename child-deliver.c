@@ -44,7 +44,7 @@ child_deliver(struct child *child, struct io *pio)
 
 	log_debug2("%s: deliver started, pid %ld", a->name, (long) getpid());
 
-#ifndef NO_SETPROCTITLE
+#ifdef HAVE_SETPROCTITLE
 	setproctitle("%s[%lu]", data->name, (u_long) geteuid());
 #endif
 

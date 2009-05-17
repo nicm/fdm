@@ -208,7 +208,7 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
         if (SIZE_MAX / nmemb < size)
                 fatalx("nmemb * size > SIZE_MAX");
 
-#ifndef WITH_MREMAP
+#ifndef HAVE_MREMAP
 	if (munmap(shm->data, shm->size) != 0)
 		fatal("munmap failed");
 	shm->data = NULL;
@@ -217,7 +217,7 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	if (shm_expand(shm, newsize) != 0)
 		return (NULL);
 
-#ifdef WITH_MREMAP
+#ifdef HAVE_MREMAP
 	shm->data = mremap(shm->data, shm->size, newsize, MREMAP_MAYMOVE);
 #else
 	shm->data = mmap(NULL, newsize, SHM_PROT, SHM_FLAGS, shm->fd, 0);

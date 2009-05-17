@@ -1,59 +1,35 @@
 # $Id$
 
-.SUFFIXES: .c .o .y .h
-.PHONY: clean lint regress yannotate manual \
-	update-index.html upload-index.html
+.SUFFIXES: .c .o
+.PHONY: clean regress
 
-PROG= fdm
-VERSION= 1.6
-
-OS!= uname
-REL!= uname -r
-DATE!= date +%Y%m%d-%H%M
+VERSION= 1.7
 
 FDEBUG= 1
 
-SRCS= fdm.c \
-      attach.c buffer.c cleanup.c command.c connect.c io.c log.c netrc.c \
-      child-deliver.c child-fetch.c child.c \
-      pcre.c re.c privsep.c replace.c shm-mmap.c strb.c db-tdb.c \
-      xmalloc-debug.c xmalloc.c timer.c \
-      deliver-add-header.c deliver-drop.c deliver-keep.c deliver-maildir.c \
-      deliver-mbox.c deliver-pipe.c deliver-remove-header.c deliver-rewrite.c \
-      deliver-smtp.c deliver-stdout.c deliver-tag.c deliver-add-to-cache.c \
-      deliver-remove-from-cache.c deliver-write.c deliver-imap.c \
-      fetch-imap.c fetch-imappipe.c fetch-maildir.c fetch-nntp.c fetch-pop3.c \
-      fetch-pop3pipe.c fetch-stdin.c fetch-mbox.c pop3-common.c imap-common.c \
-      mail-state.c mail-time.c mail.c file.c cache-op.c \
-      match-all.c match-age.c match-attachment.c match-command.c \
-      match-in-cache.c match-matched.c match-regexp.c match-size.c \
-      match-string.c match-tagged.c match-unmatched.c match-account.c \
-      parent-deliver.c parent-fetch.c \
-      lookup.c lookup-passwd.c lookup-courier.c \
-      parse.y parse-fn.c lex.c
-HDRS= fdm.h array.h fetch.h match.h deliver.h
-
-YACC= yacc -d
-
 CC?= cc
-INCDIRS+= -I. -I- -I/usr/local/include
-.ifdef PROFILE
-# Don't use ccache
-CC= /usr/bin/gcc
-CFLAGS+= -pg -DPROFILE -fprofile-arcs -ftest-coverage -O0
-.endif
-.ifdef FDEBUG
-CFLAGS+= -g -ggdb -DDEBUG
-LDFLAGS+= -Wl,-E
-CFLAGS+= -DBUILD="\"$(VERSION) ($(DATE))\""
-.else
+YACC= yacc -d
 CFLAGS+= -DBUILD="\"$(VERSION)\""
+LDFLAGS+= -L/usr/local/lib
+LIBS+= -lssl -lcrypto -ltdb -lz
+
+# This sort of sucks but gets rid of the stupid warning and should work on
+# most platforms...
+CCV!= (${CC} -v 2>&1|awk '/gcc version 4/') || true
+.if empty(CCV)
+CPPFLAGS:= -I. -I- -I/usr/local/include ${CPPFLAGS}
+.else
+CPPFLAGS:= -iquote. -I/usr/local/include ${CPPFLAGS}
 .endif
-#CFLAGS+= -pedantic -std=c99
+
+.ifdef FDEBUG
+LDFLAGS+= -Wl,-E
+CFLAGS+= -g -ggdb -DDEBUG
 CFLAGS+= -Wno-long-long -Wall -W -Wnested-externs -Wformat=2
 CFLAGS+= -Wmissing-prototypes -Wstrict-prototypes -Wmissing-declarations
-CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CFLAGS+= -Wwrite-strings -Wshadow -Wpointer-arith -Wsign-compare
 CFLAGS+= -Wundef -Wbad-function-cast -Winline -Wcast-align
+.endif
 
 .ifdef COURIER
 CFLAGS+= -DLOOKUP_COURIER
@@ -65,103 +41,39 @@ CFLAGS+= -DPCRE
 LIBS+= -lpcre
 .endif
 
-# OS X
-.if ${OS} == "Darwin"
-SRCS+= compat/strtonum.c
-INCDIRS+= -Icompat -I/usr/local/include/openssl
-CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID -DNO_SETPROCTITLE
-.endif
-
-# NetBSD
-.if ${OS} == "NetBSD"
-SRCS+= compat/strtonum.c
-INCDIRS+= -Icompat -I/usr/pkg/include
-CFLAGS+= -DNO_STRTONUM -DNO_SETRESUID -DNO_SETRESGID
-LDFLAGS+= -L/usr/pkg/lib
-.endif
-
-# FreeBSD
-.if ${OS} == "FreeBSD"
-INCDIRS+= -Icompat -I/usr/include/openssl
-
-# FreeBSD 5
-.if ${REL:R} == 5
-SRCS+= compat/strtonum.c
-CFLAGS+= -DNO_STRTONUM
-.endif
-.endif
-
 PREFIX?= /usr/local
 INSTALLDIR= install -d
 INSTALLBIN= install -g bin -o root -m 555
 INSTALLMAN= install -g bin -o root -m 444
 
-LDFLAGS+= -L/usr/local/lib
-.ifdef PROFILE
-LDFLAGS+= -pg
-.endif
-LIBS+= -lssl -lcrypto -ltdb -lz
-
-OBJS= ${SRCS:S/.c/.o/:S/.y/.o/}
-
-DISTDIR= ${PROG}-${VERSION}
-DISTFILES= *.[chyl] Makefile GNUmakefile *.[1-9] fdm-sanitize \
-	   README MANUAL TODO CHANGES \
-	   `find examples compat regress -type f -and ! -path '*CVS*'`
-
-CLEANFILES= ${PROG} *.o compat/*.o y.tab.c y.tab.h .depend \
-	    ${DISTDIR}.tar.gz *~ */*~ *.ln ${PROG}.core MANUAL index.html
-
-CPPFLAGS:= ${INCDIRS} ${CPPFLAGS} 
+SRCS!= echo *.c|sed 's|y.tab.c||g'; echo y.tab.c
+.include "config.mk"
+OBJS= ${SRCS:S/.c/.o/}
 
 .c.o:
 		${CC} ${CPPFLAGS} ${CFLAGS} -c ${.IMPSRC} -o ${.TARGET}
 
-.y.o:
-		${YACC} ${.IMPSRC}
-		${CC} ${CPPFLAGS} ${CFLAGS} -c y.tab.c -o ${.TARGET}
+all:		fdm
 
-all:		${PROG}
+lex.o:		y.tab.c
 
-lex.o:		parse.o
+y.tab.c:	parse.y
+		${YACC} parse.y
 
-${PROG}:	${OBJS}
-		${CC} ${LDFLAGS} -o ${PROG} ${OBJS} ${LIBS}
-
-dist:		clean manual
-		grep '^#DEBUG=' Makefile
-		grep '^#DEBUG=' GNUmakefile
-		[ "`(grep '^VERSION' Makefile; grep '^VERSION' GNUmakefile)| \
-			uniq -u`" = "" ]
-		tar -zc \
-			-s '/.*/${DISTDIR}\/\0/' \
-			-f ${DISTDIR}.tar.gz ${DISTFILES}
-
-lint:
-		lint -cehvx ${CFLAGS:M-D*} ${SRCS:M*.c}
+fdm:		${OBJS}
+		${CC} ${LDFLAGS} -o fdm ${OBJS} ${LIBS}
 
 depend:
 		mkdep ${CPPFLAGS} ${CFLAGS} ${SRCS:M*.c}
 
-regress:	${PROG}
+clean:
+		rm -f fdm *.o .depend *~ *.core *.log compat/*.o y.tab.[ch]
+
+clean-all:	clean
+		rm -f config.h config.mk
+
+regress:	fdm
 		cd regress && ${MAKE}
-
-yannotate:
-		awk -f yannotate.awk parse.y > parse.y.new
-		mv parse.y.new parse.y
-		trim parse.y
-
-upload-index.html:
-		scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdoc
-
-update-index.html: manual
-		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
-		nroff -mdoc fdm.1|m2h -u > fdm.1.html
-		awk -v V=${VERSION} -f makeindex.awk index.html.in > index.html
-		rm -f fdm.conf.5.html fdm.1.html
-
-manual:
-		awk -f makemanual.awk MANUAL.in > MANUAL
 
 install:	all
 		${INSTALLDIR} ${DESTDIR}${PREFIX}/bin
@@ -175,6 +87,3 @@ uninstall:
 		rm -f ${DESTDIR}${PREFIX}/bin/${PROG}
 		rm -f ${DESTDIR}${PREFIX}/man/man1/${PROG}.1
 		rm -f ${DESTDIR}${PREFIX}/man/man5/${PROG}.conf.5
-
-clean:
-		rm -f ${CLEANFILES}

@@ -1,3 +1,7 @@
+17 May 2009
+
+* Introduce a configure script and tidy up build infrastructure.
+
 02 May 2009
 
 * GMail IMAP doesn't correctly set the \Seen flag after UID FETCH BODY[], so

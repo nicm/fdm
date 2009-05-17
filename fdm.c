@@ -642,7 +642,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&children);
 	ARRAY_INIT(&dead_children);
 
-#ifndef NO_SETPROCTITLE
+#ifdef HAVE_SETPROCTITLE
 	setproctitle("parent");
 #endif
 	log_debug2("parent: started, pid is %ld", (long) getpid());

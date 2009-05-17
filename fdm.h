@@ -23,13 +23,13 @@
 #include <sys/cdefs.h>
 #include <sys/stat.h>
 
-#ifndef NO_QUEUE_H
+#ifdef HAVE_QUEUE_H
 #include <sys/queue.h>
 #else
 #include "compat/queue.h"
 #endif
 
-#ifndef NO_TREE_H
+#ifdef HAVE_TREE_H
 #include <sys/tree.h>
 #else
 #include "compat/tree.h"
@@ -690,25 +690,25 @@ struct file {
 };
 ARRAY_DECL(files, struct file *);
 
-#ifdef NO_SETRESUID
+#ifndef HAVE_SETRESUID
 #define setresuid(r, e, s) setreuid(r, e)
 #endif
 
-#ifdef NO_SETRESGID
+#ifndef HAVE_SETRESGID
 #define setresgid(r, e, s) setregid(r, e)
 #endif
 
-#ifdef NO_STRTONUM
+#ifndef HAVE_STRTONUM
 /* strtonum.c */
 long long	 strtonum(const char *, long long, long long, const char **);
 #endif
 
-#ifdef NO_STRLCPY
+#ifndef HAVE_STRLCPY
 /* strlcpy.c */
 size_t	 	 strlcpy(char *, const char *, size_t);
 #endif
 
-#ifdef NO_STRLCAT
+#ifndef HAVE_STRLCAT
 /* strlcat.c */
 size_t	 	 strlcat(char *, const char *, size_t);
 #endif
