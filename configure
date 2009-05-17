@@ -46,10 +46,13 @@ EOF
 #define HAVE_QUEUE_H
 #define HAVE_STRLCAT
 #define HAVE_STRLCPY
-#define HAVE_TREE_H
 EOF
 	cat <<EOF >>$CONFIG_MK
-CPPFLAGS+= -I/usr/local/include/openssl
+CPPFLAGS+= -I/usr/local/include/openssl \
+	-I/opt/local/include \
+	-I/sw/include
+LDFLAGS+= -L/opt/local/lib \
+	-L/sw/lib
 LIBS+= -lresolv -lcrypto
 SRCS+= compat/strtonum.c
 EOF
