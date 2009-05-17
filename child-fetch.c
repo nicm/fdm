@@ -195,16 +195,24 @@ fetch_match(struct account *a, struct msg *msg, struct msgbuf *msgbuf)
 		    "trying (match) message %u", a->name, this->mail->idx);
 		switch (mail_match(this, msg, msgbuf)) {
 		case MAIL_ERROR:
+			log_debug3("%s: match"
+			    " message %u, error", a->name, this->mail->idx);
 			return (-1);
 		case MAIL_DELIVER:
+			log_debug3("%s: match"
+			    " message %u, deliver", a->name, this->mail->idx);
 			TAILQ_REMOVE(&fetch_matchq, this, entry);
 			TAILQ_INSERT_TAIL(&fetch_deliverq, this, entry);
 			break;
 		case MAIL_DONE:
+			log_debug3("%s: match"
+			    " message %u, done", a->name, this->mail->idx);
 			if (fetch_dequeue(a, this) != 0)
 				return (-1);
 			break;
 		case MAIL_BLOCKED:
+			log_debug3("%s: match"
+			    " message %u, blocked", a->name, this->mail->idx);
 			fetch_blocked++;
 			break;
 		}
@@ -230,12 +238,18 @@ fetch_deliver(struct account *a, struct msg *msg, struct msgbuf *msgbuf)
 		    " trying (deliver) message %u", a->name, this->mail->idx);
 		switch (mail_deliver(this, msg, msgbuf)) {
 		case MAIL_ERROR:
+			log_debug3("%s: deliver"
+			    " message %u, error", a->name, this->mail->idx);
 			return (-1);
 		case MAIL_MATCH:
+			log_debug3("%s: deliver"
+			    " message %u, match", a->name, this->mail->idx);
 			TAILQ_REMOVE(&fetch_deliverq, this, entry);
 			TAILQ_INSERT_TAIL(&fetch_matchq, this, entry);
 			break;
 		case MAIL_BLOCKED:
+			log_debug3("%s: deliver"
+			    " message %u, blocked", a->name, this->mail->idx);
 			fetch_blocked++;
 			break;
 		}
@@ -357,6 +371,8 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 
 	aborted = complete = holding = 0;
 	for (;;) {
+		log_debug3("%s: fetch loop start", a->name);
+
 		if (sigusr1) {
 			log_debug("%s: caught SIGUSR1", a->name);
 			if (!(nflags & FETCH_POLL))
@@ -403,22 +419,29 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 				fctx.flags |= FETCH_EMPTY;
 
 			/* Call the fetch function. */
+			log_debug3("%s: calling fetch state (%p, flags 0x%02x)",
+			    a->name, fctx.state, fctx.flags);
 			switch (fctx.state(a, &fctx)) {
 			case FETCH_ERROR:
 				/* Fetch error. */
+				log_debug3("%s: fetch, error", a->name);
 				goto abort;
 			case FETCH_EXIT:
 				/* Fetch completed. */
+				log_debug3("%s: fetch, exit", a->name);
 				complete = 1;
 				break;
 			case FETCH_AGAIN:
 				/* Fetch again - no blocking. */
+				log_debug3("%s: fetch, again", a->name);
 				continue;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
+				log_debug3("%s: fetch, block", a->name);
 				break;
 			case FETCH_MAIL:
 				/* Mail ready. */
+				log_debug3("%s: fetch, mail", a->name);
 				if (fetch_enqueue(a, pio, fctx.mail) != 0)
 					goto abort;
 				fctx.mail = xcalloc(1, sizeof *fctx.mail);
