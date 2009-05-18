@@ -1,0 +1,98 @@
+#!/bin/sh
+# $Id$
+
+FDM_PLATFORM=${FDM_PLATFORM:-`uname -s`}
+
+CONFIG_H=config.h
+echo "/* $FDM_PLATFORM */" >|$CONFIG_H
+
+CONFIG_MK=config.mk
+echo "# $FDM_PLATFORM" >|$CONFIG_MK
+
+case $FDM_PLATFORM in
+# ------------------------------------------------------------------------------
+    OpenBSD)
+	cat <<EOF >>$CONFIG_H
+#define HAVE_QUEUE_H
+#define HAVE_SETPROCTITLE
+#define HAVE_SETRESGID
+#define HAVE_SETRESUID
+#define HAVE_STRLCAT
+#define HAVE_STRLCPY
+#define HAVE_STRTONUM
+#define HAVE_TREE_H
+EOF
+	cat <<EOF >>$CONFIG_MK
+EOF
+	;;
+# ------------------------------------------------------------------------------
+    Linux)
+	cat <<EOF >>$CONFIG_H
+#define HAVE_SETRESUID
+#define HAVE_SETRESGID
+#define HAVE_MREMAP
+EOF
+	cat <<EOF >>$CONFIG_MK
+SRCS+=  compat/strlcat.c \
+	compat/strlcpy.c \
+	compat/strtonum.c
+CFLAGS+= -std=c99 -D_GNU_SOURCE -D_POSIX_SOURCE `getconf LFS_CFLAGS`
+LIBS+= -lresolv
+EOF
+	;;
+# ------------------------------------------------------------------------------
+    Darwin)
+	cat <<EOF >>$CONFIG_H
+#define HAVE_QUEUE_H
+#define HAVE_STRLCAT
+#define HAVE_STRLCPY
+EOF
+	cat <<EOF >>$CONFIG_MK
+CPPFLAGS+= -I/usr/local/include/openssl \
+	-I/opt/local/include \
+	-I/sw/include
+LDFLAGS+= -L/opt/local/lib \
+	-L/sw/lib
+LIBS+= -lresolv -lcrypto
+SRCS+= compat/strtonum.c
+EOF
+	;;
+# ------------------------------------------------------------------------------
+    FreeBSD|DragonFly)
+	cat <<EOF >>$CONFIG_H
+#define HAVE_QUEUE_H
+#define HAVE_SETPROCTITLE
+#define HAVE_SETRESGID
+#define HAVE_SETRESUID
+#define HAVE_STRLCAT
+#define HAVE_STRLCPY
+#define HAVE_STRTONUM
+#define HAVE_TREE_H
+EOF
+	cat <<EOF >>$CONFIG_MK
+CPPFLAGS+= -I/usr/include/openssl
+EOF
+	;;
+# ------------------------------------------------------------------------------
+    NetBSD)
+	cat <<EOF >>$CONFIG_H
+#define HAVE_QUEUE_H
+#define HAVE_SETPROCTITLE
+#define HAVE_STRLCAT
+#define HAVE_STRLCPY
+#define HAVE_TREE_H
+EOF
+	cat <<EOF >>$CONFIG_MK
+SRCS+= compat/strtonum.c
+CPPFLAGS+= -I/usr/pkg/include
+LDFLAGS+= -L/usr/pkg/lib
+EOF
+	;;
+# ------------------------------------------------------------------------------
+    *)
+	echo Unable to configure for $FDM_PLATFORM
+	exit 1
+esac
+
+echo Configured for $FDM_PLATFORM
+exit 0
