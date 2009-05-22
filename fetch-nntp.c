@@ -627,10 +627,6 @@ fetch_nntp_state_next(struct account *a, struct fetch_ctx *fctx)
 	/* 223 code. Save this as last article. */
 	if (fetch_nntp_parse223(line, &n, &id) != 0)
 		return (fetch_nntp_invalid(a, line));
-	if (n < group->last) {
-		log_warnx("%s: message number out of order", a->name);
-		return (FETCH_ERROR);
-	}
 	group->last = n;
 	if (group->id != NULL)
 		xfree(group->id);

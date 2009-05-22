@@ -13,6 +13,7 @@ dist:          	manual
 		grep '^#FDEBUG=' GNUmakefile
 		[ "`(grep '^VERSION' Makefile; grep '^VERSION' GNUmakefile)| \
 		        uniq -u`" = "" ]
+		chmod +x configure
 		tar -zc \
 		        -s '/.*/${DISTDIR}\/\0/' \
 		        -f ${DISTDIR}.tar.gz ${DISTFILES}
