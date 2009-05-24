@@ -57,4 +57,5 @@
 - examples should have more explanation
 - some sort of against-file or matches-file command to match against
   a whitelist. bloat vs grep?
+- privsep/child error handling is crappy. audit. how to do this better?
 
