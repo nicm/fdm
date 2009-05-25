@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 
 #include <unistd.h>
 
@@ -34,6 +35,8 @@ child_sighandler(int sig)
 #endif
 	case SIGUSR1:
 		sigusr1 = 1;
+		break;
+	case SIGCHLD:
 		break;
 	case SIGTERM:
 		cleanup_purge();
@@ -60,6 +63,7 @@ child_fork(void)
 		sigaddset(&act.sa_mask, SIGUSR1);
 		sigaddset(&act.sa_mask, SIGINT);
 		sigaddset(&act.sa_mask, SIGTERM);
+		sigaddset(&act.sa_mask, SIGCHLD);
 		act.sa_flags = SA_RESTART;
 
 		act.sa_handler = SIG_IGN;
@@ -74,6 +78,8 @@ child_fork(void)
 		if (sigaction(SIGUSR1, &act, NULL) < 0)
 			fatal("sigaction failed");
 		if (sigaction(SIGTERM, &act, NULL) < 0)
+			fatal("sigaction failed");
+		if (sigaction(SIGCHLD, &act, NULL) < 0)
 			fatal("sigaction failed");
 
 		return (0);
