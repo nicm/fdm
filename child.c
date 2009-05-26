@@ -132,18 +132,6 @@ child_start(struct children *children, uid_t uid, gid_t gid,
 		io_close(io);
 		io_free(io);
 
-#ifdef PROFILE
-		/*
-		 * We want to use _exit rather than exit in the child process,
-		 * and it doesn't run atexit handlers, so run _mcleanup
-		 * manually to force the profiler to dump its statistics.
-		 *
-		 * This is icky but it works, and is only for profiling.
-		 */
-		extern void _mcleanup(void);
-		_mcleanup();
-#endif
-
 		child_exit(n);
 	}
 	close(fds[1]);
