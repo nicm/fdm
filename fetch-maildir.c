@@ -95,24 +95,28 @@ fetch_maildir_makepaths(struct account *a)
 			ARRAY_ADD(data->paths, path);
 			if (stat(path, &sb) != 0) {
 				log_warn("%s: %s", a->name, path);
-				goto error;
+				ARRAY_TRUNC(data->paths, 1);
+				continue;
 			}
 			if (!S_ISDIR(sb.st_mode)) {
 				errno = ENOTDIR;
 				log_warn("%s: %s", a->name, path);
-				goto error;
+				ARRAY_TRUNC(data->paths, 1);
+				continue;
 			}
 
 			xasprintf(&path, "%s/new", g.gl_pathv[j]);
 			ARRAY_ADD(data->paths, path);
 			if (stat(path, &sb) != 0) {
 				log_warn("%s", path);
-				goto error;
+				ARRAY_TRUNC(data->paths, 2);
+				continue;
 			}
 			if (!S_ISDIR(sb.st_mode)) {
 				errno = ENOTDIR;
 				log_warn("%s", path);
-				goto error;
+				ARRAY_TRUNC(data->paths, 2);
+				continue;
 			}
 		}
 
@@ -240,7 +244,7 @@ fetch_maildir_state_init(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	if (ARRAY_EMPTY(data->paths)) {
 		log_warnx("%s: no maildirs found", a->name);
-		return (-1);
+		return (FETCH_ERROR);
 	}
 
 	data->index = 0;

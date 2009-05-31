@@ -1,3 +1,8 @@
+31 May 2009
+
+* Print a warning on missing maildirs when fetching from them rather than
+  crashing or giving an error. Reported by Frank Terbeck.
+
 17 May 2009
 
 * Introduce a configure script and tidy up build infrastructure.
