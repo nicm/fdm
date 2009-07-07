@@ -428,8 +428,8 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 			return (-1);
 		}
 		if ((udata = user_lookup(user, conf.user_order)) == NULL) {
-			xfree(user);
 			log_warnx("%s: bad user: %s", a->name, user);
+			xfree(user);
 			return (-1);
 		}
 		xfree(user);
