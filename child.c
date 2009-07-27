@@ -118,8 +118,10 @@ child_start(struct children *children, uid_t uid, gid_t gid,
 	if ((child->pid = child_fork()) == 0) {
 		for (i = 0; i < ARRAY_LENGTH(children); i++) {
 			childp = ARRAY_ITEM(children, i);
-			io_close(childp->io);
-			io_free(childp->io);
+			if (childp->io != NULL) {
+				io_close(childp->io);
+				io_free(childp->io);
+			}
 		}
 		io_close(child->io);
 		io_free(child->io);

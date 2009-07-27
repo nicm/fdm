@@ -137,10 +137,14 @@ fetch_maildir_freepaths(struct account *a)
 	struct fetch_maildir_data	*data = a->data;
 	u_int			 	 i;
 
+	if (data->paths == NULL)
+		return;
+
 	for (i = 0; i < ARRAY_LENGTH(data->paths); i++)
 		xfree(ARRAY_ITEM(data->paths, i));
 
 	ARRAY_FREEALL(data->paths);
+	data->paths = NULL;
 }
 
 /* Count maildir total. */

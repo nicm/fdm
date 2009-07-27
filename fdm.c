@@ -44,9 +44,12 @@ const char		*malloc_options = "AFGJPRX";
 
 void			 sighandler(int);
 struct child		*check_children(struct children *, u_int *);
+int			 wait_children(
+			     struct children *, struct children *, int);
 
 struct conf		 conf;
 
+volatile sig_atomic_t	 sigchld;
 volatile sig_atomic_t	 sigusr1;
 volatile sig_atomic_t	 sigint;
 volatile sig_atomic_t	 sigterm;
@@ -66,6 +69,9 @@ sighandler(int sig)
 		break;
 	case SIGTERM:
 		sigterm = 1;
+		break;
+	case SIGCHLD:
+		sigchld = 1;
 		break;
 	}
 }
@@ -181,6 +187,81 @@ check_children(struct children *children, u_int *idx)
 	return (NULL);
 }
 
+/* Wait for a child and deal with its exit. */
+int
+wait_children(
+    struct children *children, struct children *dead_children, int no_hang)
+{
+	struct child	*child, *child2;
+	pid_t		 pid;
+	int		 status, flags, retcode = 0;
+	u_int		 i, j;
+
+	flags = no_hang ? WNOHANG : 0;
+	for (;;) {
+		log_debug3("parent: waiting for children");
+		/* Wait for a child. */
+		switch (pid = waitpid(WAIT_ANY, &status, flags)) {
+		case 0:
+			return (0);
+		case -1:
+			if (errno == ECHILD)
+				return (0);
+			fatal("waitpid failed");
+		}
+
+		/* Handle the exit status. */
+		if (WIFSIGNALED(status)) {
+			retcode = 1;
+			log_debug2("parent: child %ld got signal %d",
+			    (long) pid, WTERMSIG(status));
+		} else if (!WIFEXITED(status)) {
+			retcode = 1;
+			log_debug2("parent: child %ld exited badly",
+			    (long) pid);
+		} else {
+			if (WEXITSTATUS(status) != 0)
+				retcode = 1;
+			log_debug2("parent: child %ld returned %d",
+			    (long) pid, WEXITSTATUS(status));
+		}
+		
+		/* Find this child. */
+		child = NULL;
+		for (i = 0; i < ARRAY_LENGTH(children); i++) {
+			child = ARRAY_ITEM(children, i);
+			if (pid == child->pid)
+				break;
+		}
+		if (i == ARRAY_LENGTH(children)) {
+			log_debug2("parent: unidentified child %ld",
+			    (long) pid);
+			continue;
+		}
+
+		if (child->io != NULL) {
+			io_close(child->io);
+			io_free(child->io);
+			child->io = NULL;
+		}
+		ARRAY_REMOVE(children, i);
+		ARRAY_ADD(dead_children, child);
+		
+		/* If this child was the parent of any others, kill them too. */
+		for (j = 0; j < ARRAY_LENGTH(children); j++) {
+			child2 = ARRAY_ITEM(children, j);
+			if (child2->parent != child)
+				continue;
+			
+			log_debug2("parent: child %ld died: killing %ld",
+			    (long) child->pid, (long) child2->pid);
+			kill(child2->pid, SIGTERM);
+		}
+	}
+
+	return (retcode);
+}
+
 __dead void
 usage(void)
 {
@@ -198,7 +279,6 @@ main(int argc, char **argv)
 	enum fdmop       op = FDMOP_NONE;
 	const char	*proxy = NULL, *s;
 	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user, *home = NULL;
-	long		 n;
 	struct utsname	 un;
 	struct passwd	*pw;
 	struct stat	 sb;
@@ -207,8 +287,8 @@ main(int argc, char **argv)
 	TAILQ_HEAD(, account) actaq; /* active accounts */
 	pid_t		 pid;
 	struct children	 children, dead_children;
-	struct child	*child, *child2;
-	struct io       *rio;
+	struct child	*child;
+	struct io       *dead_io;
 	struct iolist	 iol;
 	double		 tim;
 	struct sigaction act;
@@ -676,21 +756,29 @@ main(int argc, char **argv)
 			    (long) child->pid, a->name);
 		}
 
-		/* Fill the io list. */
+		/* Check children and fill the io list. */
 		ARRAY_CLEAR(&iol);
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i);
-			ARRAY_ADD(&iol, child->io);
+			if (child->io != NULL)
+				ARRAY_ADD(&iol, child->io);
 		}
 
 		/* Poll the io list. */
-		n = io_polln(
-		    ARRAY_DATA(&iol), ARRAY_LENGTH(&iol), &rio, INFTIM, NULL);
-		switch (n) {
-		case -1:
-			fatalx("child socket error");
-		case 0:
-			fatalx("child socket closed");
+		if (ARRAY_LENGTH(&iol) != 0) {
+			switch (io_polln(ARRAY_DATA(&iol), ARRAY_LENGTH(&iol), 
+			    &dead_io, INFTIM, NULL)) {
+			case -1:
+			case 0:
+				break;
+			default:
+				dead_io = NULL;
+				break;
+			}
+		} else {
+			/* No more children. Sleep until all are waited. */
+			if (wait_children(&children, &dead_children, 0) != 0)
+				res = 1;
 		}
 
 		/* Check all children for pending privsep messages. */
@@ -704,48 +792,32 @@ main(int argc, char **argv)
 				continue;
 
 			/* Child has said it is ready to exit, tell it to. */
+			log_debug2("parent: sending exit message to child %ld",
+			    (long) child->pid);
 			memset(&msg, 0, sizeof msg);
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL) != 0)
 				fatalx("privsep_send error");
+		}
 
-			/* Wait for the child. */
-			if (waitpid(child->pid, &status, 0) == -1)
-				fatal("waitpid failed");
-			if (WIFSIGNALED(status)) {
-				res = 1;
-				log_debug2("parent: child %ld got signal %d",
-				    (long) child->pid, WTERMSIG(status));
-			} else if (!WIFEXITED(status)) {
-				res = 1;
-				log_debug2("parent: child %ld exited badly",
-				    (long) child->pid);
-			} else {
-				if (WEXITSTATUS(status) != 0)
-					res = 1;
-				log_debug2("parent: child %ld returned %d",
-				    (long) child->pid, WEXITSTATUS(status));
-			}
+		/* Collect any dead children. */
+		if (sigchld && wait_children(&children, &dead_children, 1) != 0)
+			res = 1;
+		sigchld = 0;
 
-			io_close(child->io);
-			io_free(child->io);
-			child->io = NULL;
-
-			ARRAY_REMOVE(&children, i);
-			ARRAY_ADD(&dead_children, child);
-
-			/*
-			 * If this child was the parent of any others, kill
-			 * them too.
-			 */
+		/* Close dead buffers (no more data coming now). */
+		if (dead_io != NULL) {
 			for (i = 0; i < ARRAY_LENGTH(&children); i++) {
-				child2 = ARRAY_ITEM(&children, i);
-				if (child2->parent != child)
+				child = ARRAY_ITEM(&children, i);
+				if (dead_io != child->io)
 					continue;
-
-				log_debug("parent: child %ld died: killing %ld",
-				    (long) child->pid, (long) child2->pid);
-				kill(child2->pid, SIGTERM);
+				log_debug2("parent: child %ld socket error",
+				    (long) child->pid);
+				kill(child->pid, SIGTERM);
+					
+				io_close(child->io);
+				io_free(child->io);
+				child->io = NULL;
 			}
 		}
 	}
