@@ -190,7 +190,7 @@ restart:
 	log_debug2("%s: writing to %s", a->name, src);
 	n = write(fd, m->data, m->size);
 	if (n < 0 || (size_t) n != m->size || fsync(fd) != 0)
-		goto error_unlink;
+		goto error_cleanup;
 	close(fd);
 	fd = -1;
 
@@ -199,24 +199,18 @@ restart:
 	 * back to find another name in the tmp directory.
 	 */
 	if (ppath(dst, sizeof dst, "%s/new/%s", path, name) != 0)
-		goto error_unlink;
+		goto error_cleanup;
 	log_debug2(
-	    "%s: linking .../tmp/%s to .../new/%s", a->name, name, name);
-	if (link(src, dst) != 0) {
+	    "%s: moving .../tmp/%s to .../new/%s", a->name, name, name);
+	if (safemove(src, dst) != 0) {
 		if (errno == EEXIST) {
-			log_debug2("%s: %s: link failed", a->name, src);
-			if (unlink(src) != 0)
-				fatal("unlink failed");
+			log_debug2("%s: %s: moving failed", a->name, src);
 			cleanup_deregister(src);
 			goto restart;
 		}
-		goto error_unlink;
+		goto error_cleanup;
 	}
 
-	/* Unlink the original tmp file. */
-	log_debug2("%s: unlinking .../tmp/%s", a->name, name);
-	if (unlink(src) != 0)
-		goto error_unlink;
 	cleanup_deregister(src);
 
 	/* Save the mail file as a tag. */
@@ -226,9 +220,7 @@ restart:
 	xfree(path);
 	return (DELIVER_SUCCESS);
 
-error_unlink:
-	if (unlink(src) != 0)
-		fatal("unlink failed");
+error_cleanup:
 	cleanup_deregister(src);
 
 error_log:

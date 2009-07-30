@@ -868,6 +868,7 @@ int		 xmkpath(const char *, uid_t, gid_t, mode_t);
 const char 	*checkmode(struct stat *, mode_t);
 const char 	*checkowner(struct stat *, uid_t);
 const char 	*checkgroup(struct stat *, gid_t);
+int		 safemove(const char *, const char *);
 
 /* mail.c */
 int		 mail_open(struct mail *, size_t);

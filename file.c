@@ -314,3 +314,39 @@ checkgroup(struct stat *sb, gid_t gid)
 	    "bad group: %lu, should be %lu", (u_long) sb->st_gid, (u_long) gid);
 	return (msg);
 }
+
+/*
+ * Move file oldpath to newpath. oldpath is always removed even in case of
+ * failure.
+ *
+ * It returns 0 on success and -1 on failure with errno set.
+ *
+ * This function use link + unlink or stat + rename if link fail with EXDEV.
+ * (see http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=538194)
+ */
+int
+safemove(const char *oldpath, const char *newpath)
+{
+	int		ret;
+	int		errsave;
+	struct stat	sb;
+
+	ret = link(oldpath, newpath);
+	if (ret != 0 && errno == EXDEV) {
+		ret = stat(newpath, &sb);
+		if (ret == -1) {
+			if (errno == ENOENT)
+				ret = rename(oldpath, newpath);
+		} else {
+			ret = -1;
+			errno = EEXIST;
+		}
+	}
+
+	errsave = errno;
+	if (unlink(oldpath) != 0 && errno != ENOENT)
+		fatal("unlink failed");
+	errno = errsave;
+
+	return (ret);
+}
