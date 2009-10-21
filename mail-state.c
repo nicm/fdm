@@ -481,6 +481,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	    a->name, m->idx, t->name, ti->idx, ti->deliver->name,
 	    dctx->udata->name);
 	add_tag(&m->tags, "action", "%s", t->name);
+	add_tag(&m->tags, "rule", "%u", mctx->rule->idx);
 
 	update_tags(&m->tags, dctx->udata);
 
