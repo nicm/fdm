@@ -379,6 +379,7 @@ struct mail_ctx {
 	struct io			*io;
 	struct mail			*mail;
 
+	u_int				 ruleidx;
 	struct rule			*rule;
 	ARRAY_DECL(, struct rule *)	 stack;
 	struct expritem			*expritem;

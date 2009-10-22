@@ -230,6 +230,7 @@ next_expritem:
 
 next_rule:
 	/* Move to the next rule. */
+	mctx->ruleidx = mctx->rule->idx;	/* save last index */
 	mctx->rule = TAILQ_NEXT(mctx->rule, entry);
 
 	/* If no more rules, try to move up the stack. */
@@ -481,7 +482,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 	    a->name, m->idx, t->name, ti->idx, ti->deliver->name,
 	    dctx->udata->name);
 	add_tag(&m->tags, "action", "%s", t->name);
-	add_tag(&m->tags, "rule", "%u", mctx->rule->idx);
+	add_tag(&m->tags, "rule", "%u", mctx->ruleidx);
 
 	update_tags(&m->tags, dctx->udata);
 
