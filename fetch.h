@@ -67,6 +67,8 @@ struct fetch_maildir_data {
 
 	u_int		 total;
 
+	struct strings	 unlinklist;
+
 	struct strings	*paths;
 	u_int		 index;
 	DIR		*dirp;

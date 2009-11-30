@@ -207,12 +207,13 @@ fetch_maildir_poll(struct account *a)
 int
 fetch_maildir_commit(struct account *a, struct mail *m)
 {
+	struct fetch_maildir_data	*data = a->data;
 	struct fetch_maildir_mail	*aux;
 
 	aux = m->auxdata;
-	if (m->decision == DECISION_DROP && unlink(aux->path) != 0) {
-		log_warn("%s: %s: unlink", a->name, aux->path);
-		return (FETCH_ERROR);
+	if (m->decision == DECISION_DROP) {
+		/* Add mail to the unlink list. */
+		ARRAY_ADD(&data->unlinklist, xstrdup(aux->path));
 	}
 
 	return (FETCH_AGAIN);
@@ -223,6 +224,11 @@ void
 fetch_maildir_abort(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
+	u_int				 i;
+
+	for (i = 0; i < ARRAY_LENGTH(&data->unlinklist); i++)
+		xfree(ARRAY_ITEM(&data->unlinklist, i));
+	ARRAY_FREE(&data->unlinklist);
 
 	if (data->dirp != NULL)
 		closedir(data->dirp);
@@ -253,6 +259,7 @@ fetch_maildir_state_init(struct account *a, struct fetch_ctx *fctx)
 
 	data->index = 0;
 	data->dirp = NULL;
+	ARRAY_INIT(&data->unlinklist);
 
 	/* Poll counts mails and exits. */
 	if (fctx->flags & FETCH_POLL) {
@@ -271,6 +278,19 @@ int
 fetch_maildir_state_next(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_maildir_data	*data = a->data;
+	char				*path;
+	u_int				 i;
+	
+	for (i = 0; i < ARRAY_LENGTH(&data->unlinklist); i++) {
+		path = ARRAY_ITEM(&data->unlinklist, i);
+		log_debug2("%s: unlinking: %s", a->name, path);
+		if (unlink(path) != 0) {
+			log_warn("%s: %s: unlink", a->name, path);
+			return (FETCH_ERROR);
+		}
+		xfree(path);
+	}
+	ARRAY_FREE(&data->unlinklist);
 
 	if (data->index < ARRAY_LENGTH(data->paths))
 		data->index++;
