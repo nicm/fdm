@@ -150,6 +150,7 @@ static const struct token tokens[] = {
 	{ "no-create", TOKNOCREATE },
 	{ "no-login", TOKNOLOGIN },
 	{ "no-received", TOKNORECEIVED },
+	{ "no-uidl", TOKNOUIDL },
 	{ "no-verify", TOKNOVERIFY },
 	{ "none", TOKNONE },
 	{ "not", TOKNOT },

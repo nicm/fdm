@@ -201,6 +201,7 @@ yyerror(const char *fmt, ...)
 %token TOKNONE
 %token TOKNORECEIVED
 %token TOKNOT
+%token TOKNOUIDL
 %token TOKNOVERIFY
 %token TOKOLDONLY
 %token TOKOR
@@ -301,7 +302,7 @@ yyerror(const char *fmt, ...)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont not disabled keep execpipe writeappend compress verify
-%type  <flag> apop poptype imaptype nntptype nocrammd5 nologin
+%type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl
 %type  <localgid> localgid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -2215,6 +2216,16 @@ nologin: TOKNOLOGIN
 		 $$ = 0;
 	 }
 
+/** UIDL: <flag> (int) */
+uidl: TOKNOUIDL
+	{
+		$$ = 0;
+	}
+      | /* empty */
+	{
+		$$ = 1;
+	}
+
 /** VERIFY: <flag> (int) */
 verify: TOKNOVERIFY
 	{
@@ -2376,10 +2387,11 @@ imaponly: only
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server userpassnetrc poponly apop verify
+fetchtype: poptype server userpassnetrc poponly apop verify uidl
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
 /**        [$4: poponly (struct { ... } poponly)] [$5: apop (int)] [$6: verify (int)] */
+/**        [$7: uidl (int)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2411,6 +2423,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify
 			   data->server.port = xstrdup("pop3");
 		   data->server.ai = NULL;
 		   data->apop = $5;
+		   data->uidl = $7;
 
 		   data->path = $4.path;
 		   data->only = $4.only;

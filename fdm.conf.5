@@ -351,12 +351,14 @@ for details.
 .Op Ic pass Ar pass
 .Op Ar only
 .Op Ic no-apop
+.Op Ic no-uidl
 .Xc
 .It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
 .Op Ar userpass
 .Op Ar only
 .Op Ic no-apop
+.Op Ic no-uidl
 .Op Ic no-verify
 .Xc
 These statements define a POP3 or POP3S account.
@@ -412,6 +414,12 @@ not to use the POP3 APOP command for authentication, and the
 keyword instructs
 .Xr fdm 1
 to skip SSL certificate validation for this account.
+The
+.Ic no-uidl
+keyword makes
+.Xr fdm 1
+not use the UIDL command to retrieve mails.
+This is mainly useful for broken POP3 servers.
 .It Xo Ic pop3 Ic pipe Ar command
 .Op Ar userpass
 .Op Ar only

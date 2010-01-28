@@ -150,6 +150,7 @@ struct fetch_pop3_data {
 	struct server	 server;
 	char		*pipecmd;
 	int		 apop;
+	int		 uidl;
 
 	u_int		 cur;
 	u_int		 num;

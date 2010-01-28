@@ -451,8 +451,10 @@ int
 pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
+	struct fetch_pop3_mail	*aux;
 	char			*line;
 	u_int			 n;
+	u_int			 i;
 
 	if (pop3_getln(a, fctx, &line) != 0)
 		return (FETCH_ERROR);
@@ -478,6 +480,20 @@ pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_ERROR);
 		fctx->state = pop3_state_quit;
 		return (FETCH_BLOCK);
+	}
+
+	if (! data->uidl) { 
+		/* broken pop3, directly setup wantq instead of using uidl result */
+		for (i=1; i <= data->num; ++i) {
+			aux = xcalloc(1, sizeof *aux);
+			aux->idx = i;
+			aux->uid = xstrdup("");
+			
+			TAILQ_INSERT_TAIL(&data->wantq, aux, qentry);
+			data->total++;
+		}
+		fctx->state = pop3_state_next;
+		return (FETCH_AGAIN);
 	}
 
 	if (pop3_putln(a, "UIDL") != 0)
