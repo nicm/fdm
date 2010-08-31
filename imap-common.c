@@ -61,8 +61,6 @@ int	imap_state_expunge(struct account *, struct fetch_ctx *);
 int	imap_state_close(struct account *, struct fetch_ctx *);
 int	imap_state_quit(struct account *, struct fetch_ctx *);
 
-#define IMAP_CAPA_AUTH_CRAM_MD5 0x1
-
 /* Put line to server. */
 int
 imap_putln(struct account *a, const char *fmt, ...)
@@ -368,6 +366,10 @@ imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 	data->capa = 0;
 	if (strstr(line, "AUTH=CRAM-MD5") != NULL)
 		data->capa |= IMAP_CAPA_AUTH_CRAM_MD5;
+
+	/* Use XYZZY to detect Google brokenness. */
+	if (strstr(line, "XYZZY") != NULL)
+		data->capa |= IMAP_CAPA_XYZZY;
 
 	fctx->state = imap_state_capability2;
 	return (FETCH_AGAIN);

@@ -170,7 +170,7 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct fetch_ctx		 fctx;
 	struct fetch_imap_data		 fdata;
 	char				*cause, *folder, *ptr, *line;
-	size_t		 		 len;
+	size_t		 		 len, maillen;
 	u_int				 total, body;
 
 	/* Connect to the IMAP server. */
@@ -228,9 +228,18 @@ retry:
 		goto error;
 	}
 
-	/* Send the mail size, not forgetting lines are CRLF terminated. */
+	/*
+	 * Send the mail size, not forgetting lines are CRLF terminated. The
+	 * Google IMAP server is written strangely, so send the size as if
+	 * every CRLF was a CR if the server has XYZZY.
+	 */
 	count_lines(m, &total, &body);
-	if (imap_putln(a, "%s {%zu}", folder, m->size + total - 1) != 0)
+	maillen = m->size + total - 1;
+	if (fdata.capa & IMAP_CAPA_XYZZY) {
+		log_debug2("%s: adjusting size: actual %zu", a->name, maillen);
+		maillen = m->size;
+	}
+	if (imap_putln(a, "%s {%zu}", folder, maillen) != 0)
 		goto error;
 	switch (deliver_imap_waitappend(a, &fctx, io, &line)) {
 	case IMAP_TAG_ERROR:
