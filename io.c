@@ -191,6 +191,7 @@ error:
 	if (cause != NULL)
 		*cause = xstrdup(io->error);
 	xfree(pfds);
+	errno = 0;
 	return (-1);
 }
 
@@ -344,6 +345,10 @@ again:
 			case SSL_ERROR_WANT_WRITE:
 				io->flags |= IOF_NEEDFILL;
 				break;
+			case SSL_ERROR_SYSCALL:
+				if (errno == EAGAIN || errno == EINTR)
+					break;
+				/* FALLTHROUGH */
 			default:
 				if (io->error != NULL)
 					xfree(io->error);
@@ -414,6 +419,10 @@ io_push(struct io *io)
 				 * so this can be ignored
 				 */
 				break;
+			case SSL_ERROR_SYSCALL:
+				if (errno == EAGAIN || errno == EINTR)
+					break;
+				/* FALLTHROUGH */
 			default:
 				if (io->error != NULL)
 					xfree(io->error);
