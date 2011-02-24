@@ -482,13 +482,15 @@ pop3_state_first(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	}
 
-	if (! data->uidl) { 
-		/* broken pop3, directly setup wantq instead of using uidl result */
-		for (i=1; i <= data->num; ++i) {
+	if (!data->uidl) {
+		/*
+		 * Broken pop3, directly create wantq instead of using UIDL
+		 * result.
+		 */
+		for (i = 1; i <= data->num; i++) {
 			aux = xcalloc(1, sizeof *aux);
 			aux->idx = i;
 			aux->uid = xstrdup("");
-			
 			TAILQ_INSERT_TAIL(&data->wantq, aux, qentry);
 			data->total++;
 		}
