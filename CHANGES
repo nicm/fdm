@@ -1,3 +1,7 @@
+07 May 2011
+
+* Add mbox tags for messages fetched from a mbox
+
 01 September 2010
 
 * Detect GMail's XYZZY capability for IMAP and use it to try and workaround

@@ -434,6 +434,9 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 
 	/* Tag mail. */
 	default_tags(&m->tags, NULL);
+	add_tag(&m->tags, "mbox", "%s", xbasename(fmbox->path));
+	add_tag(&m->tags, "mbox_path", "%s", xdirname(fmbox->path));
+	add_tag(&m->tags, "mbox_file", "%s", fmbox->path);
 
 	/*
 	 * We start at a "From " line and include it in the mail (it can be

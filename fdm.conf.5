@@ -520,6 +520,9 @@ This allows
 .Xr fdm 1
 to be used to filter mail, fetching from a maildir and deleting (dropping)
 unwanted mail, or delivering mail to another maildir or to an mbox.
+.Pp
+Mail fetched from a maildir is tagged with a maildir tag containing
+the basename of the mail file.
 .It Ic mbox Ar path
 .It Xo Ic mboxes
 .Li {
@@ -533,6 +536,9 @@ and
 but cause
 .Xr fdm 1
 to fetch mail from an mbox or set of mboxes.
+.Pp
+Mail fetched from a mbox is tagged with a mbox tag containing the
+basename of the mbox file.
 .It Xo Ic nntp Ic server Ar host
 .Op Ic port Ar port
 .Op Ar userpass
