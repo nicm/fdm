@@ -130,7 +130,7 @@ child_fetch(struct child *child, struct io *pio)
 	do {
 		log_debug3("%s: waiting for exit message from parent", a->name);
 		if (privsep_recv(pio, &msg, NULL) != 0)
-			fatalx("privsep_recv error");			
+			fatalx("privsep_recv error");
 	} while (msg.type != MSG_EXIT);
 
 #ifdef DEBUG

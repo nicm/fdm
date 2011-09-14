@@ -280,7 +280,7 @@ fetch_maildir_state_next(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_maildir_data	*data = a->data;
 	char				*path;
 	u_int				 i;
-	
+
 	for (i = 0; i < ARRAY_LENGTH(&data->unlinklist); i++) {
 		path = ARRAY_ITEM(&data->unlinklist, i);
 		log_debug2("%s: unlinking: %s", a->name, path);

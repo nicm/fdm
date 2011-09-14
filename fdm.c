@@ -225,7 +225,7 @@ wait_children(
 			log_debug2("parent: child %ld returned %d",
 			    (long) pid, WEXITSTATUS(status));
 		}
-		
+
 		/* Find this child. */
 		child = NULL;
 		for (i = 0; i < ARRAY_LENGTH(children); i++) {
@@ -246,13 +246,13 @@ wait_children(
 		}
 		ARRAY_REMOVE(children, i);
 		ARRAY_ADD(dead_children, child);
-		
+
 		/* If this child was the parent of any others, kill them too. */
 		for (j = 0; j < ARRAY_LENGTH(children); j++) {
 			child2 = ARRAY_ITEM(children, j);
 			if (child2->parent != child)
 				continue;
-			
+
 			log_debug2("parent: child %ld died: killing %ld",
 			    (long) child->pid, (long) child2->pid);
 			kill(child2->pid, SIGTERM);
@@ -766,7 +766,7 @@ main(int argc, char **argv)
 
 		/* Poll the io list. */
 		if (ARRAY_LENGTH(&iol) != 0) {
-			switch (io_polln(ARRAY_DATA(&iol), ARRAY_LENGTH(&iol), 
+			switch (io_polln(ARRAY_DATA(&iol), ARRAY_LENGTH(&iol),
 			    &dead_io, INFTIM, NULL)) {
 			case -1:
 			case 0:
@@ -814,7 +814,7 @@ main(int argc, char **argv)
 				log_debug2("parent: child %ld socket error",
 				    (long) child->pid);
 				kill(child->pid, SIGTERM);
-					
+
 				io_close(child->io);
 				io_free(child->io);
 				child->io = NULL;

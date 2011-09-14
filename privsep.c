@@ -52,7 +52,7 @@ int
 privsep_recv(struct io *io, struct msg *msg, struct msgbuf *msgbuf)
 {
 	char	*tmpbuf;
-	
+
 	if (msgbuf != NULL) {
 		msgbuf->buf = NULL;
 		msgbuf->len = 0;
