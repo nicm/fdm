@@ -589,7 +589,7 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 		add_tag(&m->tags, "mail_dayofweek", "%d", tm->tm_wday);
 		add_tag(&m->tags, "mail_dayofyear", "%.2d", tm->tm_yday + 1);
 		add_tag(&m->tags,
-		    "mail_quarter", "%d", (tm->tm_mon - 1) / 3 + 1);
+		    "mail_quarter", "%d", tm->tm_mon / 3 + 1);
 	}
 	if (rfc822time(t, rtime, sizeof rtime) != NULL)
 		add_tag(&m->tags, "mail_rfc822date", "%s", rtime);
