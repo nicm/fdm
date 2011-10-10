@@ -22,6 +22,9 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
+#ifndef _PUBLIC_
+#define _PUBLIC_
+#endif
 #include <tdb.h>
 
 #include "fdm.h"

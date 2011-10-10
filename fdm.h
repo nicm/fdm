@@ -41,6 +41,9 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <stdint.h>
+#ifndef _PUBLIC_
+#define _PUBLIC_
+#endif
 #include <tdb.h>
 #include <regex.h>
 
