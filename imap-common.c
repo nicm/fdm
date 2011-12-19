@@ -849,9 +849,7 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 	 * make sure there is a terminating ).
 	 */
 	left = data->size - used;
-	if (size <= left)
-		return (imap_invalid(a, line));
-	if (line[size - 1] != ')')
+	if (line[size - 1] != ')' && size <= left)
 		return (imap_invalid(a, line));
 
 	/* If there was data left, add it as a new line without trailing \n. */
