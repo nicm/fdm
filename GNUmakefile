@@ -41,9 +41,11 @@ LIBS+= -lpcre
 endif
 
 PREFIX?= /usr/local
+BINDIR?= $(PREFIX)/bin
+MANDIR?= $(PREFIX)/man
 INSTALLDIR= install -d
-INSTALLBIN= install -g bin -o root -m 555
-INSTALLMAN= install -g bin -o root -m 444
+INSTALLBIN= install -m 755
+INSTALLMAN= install -m 644
 
 SRCS= $(shell echo *.c|sed 's|y.tab.c||g'; echo y.tab.c)
 include config.mk
@@ -69,9 +71,9 @@ clean-all:	clean
 		rm -f config.h config.mk
 
 install:	all
-		$(INSTALLDIR) $(DESTDIR)$(PREFIX)/bin
-		$(INSTALLBIN) fdm $(DESTDIR)$(PREFIX)/bin/fdm
-		$(INSTALLDIR) $(DESTDIR)$(PREFIX)/man/man1
-	 	$(INSTALLMAN) fdm.1 $(DESTDIR)$(PREFIX)/man/man1/fdm.1
-		$(INSTALLDIR) $(DESTDIR)$(PREFIX)/man/man5
-		$(INSTALLMAN) fdm.conf.5 $(DESTDIR)$(PREFIX)/man/man5/fdm.conf.5
+		$(INSTALLDIR) $(DESTDIR)$(BINDIR)
+		$(INSTALLBIN) fdm $(DESTDIR)$(BINDIR)
+		$(INSTALLDIR) $(DESTDIR)$(MANDIR)/man1
+		$(INSTALLMAN) fdm.1 $(DESTDIR)$(MANDIR)/man1
+		$(INSTALLDIR) $(DESTDIR)$(MANDIR)/man5
+		$(INSTALLMAN) fdm.conf.5 $(DESTDIR)$(MANDIR)/man5
