@@ -1,6 +1,6 @@
 # $Id$
 
-VERSION= 1.6
+VERSION= 1.7
 
 DISTDIR= fdm-${VERSION}
 DISTFILES= *.[chl] Makefile GNUmakefile configure *.[1-9] fdm-sanitize \
@@ -27,11 +27,11 @@ yannotate:
 		trim parse.y
 
 upload-index.html: update-index.html
-		scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdoc
+		scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdocs
 
 update-index.html: manual
-		nroff -mdoc fdm.conf.5|m2h -u > fdm.conf.5.html
-		nroff -mdoc fdm.1|m2h -u > fdm.1.html
+		mandoc -Thtml fdm.conf.5 > fdm.conf.5.html
+		mandoc -Thtml fdm.1 > fdm.1.html
 		awk -v V=${VERSION} -f tools/makeindex.awk \
 			index.html.in > index.html
 		rm -f fdm.conf.5.html fdm.1.html
