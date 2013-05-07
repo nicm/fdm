@@ -177,7 +177,6 @@ next_expritem:
 	/* If the result was false, skip to find the next rule. */
 	if (!mctx->result)
 		goto next_rule;
-	mctx->matched = 1;
 	log_debug2("%s: matched to rule %u", a->name, mctx->rule->idx);
 
 	/*
@@ -201,6 +200,7 @@ next_expritem:
 		mctx->rule = TAILQ_FIRST(&mctx->rule->rules);
 		return (MAIL_CONTINUE);
 	}
+	mctx->matched = 1;
 
 	/* Handle lambda actions. */
 	if (mctx->rule->lambda != NULL) {

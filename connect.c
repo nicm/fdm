@@ -40,6 +40,7 @@ int	sslverify(struct server *, SSL *, char **);
 int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
+
 SSL    *makessl(struct server *, int, int, int, char **);
 
 char *
@@ -534,7 +535,10 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 	int	 n, mode;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
-        SSL_CTX_set_options(ctx, SSL_OP_ALL);
+	if (srv->tls1)
+		SSL_CTX_set_options(ctx, SSL_OP_ALL);
+	else
+		SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_NO_TLSv1);
         SSL_CTX_set_default_verify_paths(ctx);
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 

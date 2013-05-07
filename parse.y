@@ -201,6 +201,7 @@ yyerror(const char *fmt, ...)
 %token TOKNONE
 %token TOKNORECEIVED
 %token TOKNOT
+%token TOKNOTLS1
 %token TOKNOUIDL
 %token TOKNOVERIFY
 %token TOKOLDONLY
@@ -301,7 +302,7 @@ yyerror(const char *fmt, ...)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont not disabled keep execpipe writeappend compress verify
+%type  <flag> cont not disabled keep execpipe writeappend compress verify tls1
 %type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl
 %type  <localgid> localgid
 %type  <locks> lock locklist
@@ -1324,10 +1325,11 @@ actitem: execpipe strv
 		 data->path.str = $2;
 		 data->compress = $3;
 	 }
-       | imaptype server userpassnetrc folder1 verify nocrammd5 nologin
+       | imaptype server userpassnetrc folder1 verify nocrammd5 nologin tls1
 /**      [$1: imaptype (int)] [$2: server (struct { ... } server)] */
 /**      [$3: userpassnetrc (struct { ... } userpass)] [$4: folder1 (char *)] */
 /**      [$5: verify (int)] [$6: nocrammd5 (int)] [$7: nologin (int)] */
+/**      [$8: tls1 (int)] */
 	 {
 		 struct deliver_imap_data	*data;
 
@@ -1353,6 +1355,7 @@ actitem: execpipe strv
 		 data->folder.str = $4;
 		 data->server.ssl = $1;
 		 data->server.verify = $5;
+		 data->server.tls1 = $8;
 		 data->server.host = $2.host;
 		 if ($2.port != NULL)
 			 data->server.port = $2.port;
@@ -2216,6 +2219,16 @@ nologin: TOKNOLOGIN
 		 $$ = 0;
 	 }
 
+/** TLS1: <flag> (int) */
+tls1: TOKNOTLS1
+	{
+		$$ = 0;
+	}
+      | /* empty */
+	{
+		$$ = 1;
+	}
+
 /** UIDL: <flag> (int) */
 uidl: TOKNOUIDL
 	{
@@ -2387,11 +2400,11 @@ imaponly: only
 	  }
 
 /** FETCHTYPE: <fetch> (struct { ... } fetch) */
-fetchtype: poptype server userpassnetrc poponly apop verify uidl
+fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1
 /**        [$1: poptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
 /**        [$4: poponly (struct { ... } poponly)] [$5: apop (int)] [$6: verify (int)] */
-/**        [$7: uidl (int)] */
+/**        [$7: uidl (int)] [$8: tls1 (int)] */
            {
 		   struct fetch_pop3_data	*data;
 
@@ -2414,6 +2427,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl
 
 		   data->server.ssl = $1;
 		   data->server.verify = $6;
+		   data->server.tls1 = $8;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2452,7 +2466,8 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
 /**        [$4: folderlist (struct strings *)] [$5: imaponly (enum fetch_only)] */
 /**        [$6: verify (int)] [$7: nocrammd5 (int)] */
-	   nologin
+	   nologin tls1
+/**        [$8: nologin (int)] [$9: tls1 (int)] */
            {
 		   struct fetch_imap_data	*data;
 
@@ -2476,6 +2491,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl
 		   data->folders = $4;
 		   data->server.ssl = $1;
 		   data->server.verify = $6;
+		   data->server.tls1 = $9;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2530,11 +2546,11 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl
 		   $$.data = data;
 		   data->mboxes = $1;
 	   }
-	 | nntptype server userpassnetrc groups TOKCACHE replpathv verify
+	 | nntptype server userpassnetrc groups TOKCACHE replpathv verify tls1
 /**        [$1: nntptype (int)] [$2: server (struct { ... } server)] */
 /**        [$3: userpassnetrc (struct { ... } userpass)] */
 /**        [$4: groups (struct strings *)] [$6: replpathv (char *)] */
-/**        [$7: verify (int)] */
+/**        [$7: verify (int)] [$8: tls1 (int)] */
            {
 		   struct fetch_nntp_data	*data;
 		   char				*cause;
@@ -2573,6 +2589,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl
 
 		   data->server.ssl = $1;
 		   data->server.verify = $7;
+		   data->server.tls1 = $8;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
