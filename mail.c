@@ -441,6 +441,7 @@ find_address(char *buf, size_t len, size_t *alen)
 	ptr = hdr;
 	while (*ptr != '\0') {
 		if (*ptr == '"') {
+			ptr++;
 			while (*ptr != '"' && *ptr != '\0')
 				*ptr++ = ' ';
 			if (*ptr == '\0')
