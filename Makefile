@@ -9,18 +9,10 @@ FDEBUG= 1
 
 CC?= cc
 YACC= yacc -d
+CPPFLAGS+= -I/usr/local/include -I.
 CFLAGS+= -DBUILD="\"$(VERSION)\""
 LDFLAGS+= -L/usr/local/lib
 LIBS+= -lssl -lcrypto -ltdb -lz
-
-# This sort of sucks but gets rid of the stupid warning and should work on
-# most platforms...
-CCV!= (LC_ALL=C ${CC} -v 2>&1|awk '/gcc version 4/') || true
-.if empty(CCV)
-CPPFLAGS:= -I. -I- -I/usr/local/include ${CPPFLAGS}
-.else
-CPPFLAGS:= -iquote. -I/usr/local/include ${CPPFLAGS}
-.endif
 
 .ifdef FDEBUG
 LDFLAGS+= -Wl,-E
