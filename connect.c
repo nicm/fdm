@@ -37,6 +37,7 @@
 
 #include "fdm.h"
 
+char   *check_alt_names(char *, char *, X509 *);
 int	sslverify(struct server *, SSL *, char **);
 int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
