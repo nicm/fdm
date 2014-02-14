@@ -33,6 +33,7 @@
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/x509v3.h>
 
 #include "fdm.h"
 
@@ -84,6 +85,38 @@ sslerror2(int n, const char *fn)
 	return (cause);
 }
 
+char *
+check_alt_names(char *host, char *fqdn, X509 *x509)
+{
+	char			*found, *buf;
+	const GENERAL_NAMES	*ans;
+	const GENERAL_NAME	*p;
+	int			 n;
+
+	ans = X509_get_ext_d2i(x509, NID_subject_alt_name, NULL, NULL);
+	if (ans == NULL)
+		return (NULL);
+	n = sk_GENERAL_NAME_num(ans);
+
+	found = NULL;
+	while (n-- > 0 && found == NULL) {
+		p = sk_GENERAL_NAME_value(ans, n);
+		if (p == NULL || p->type != GEN_DNS)
+			continue;
+		ASN1_STRING_to_UTF8((u_char **)&buf, p->d.dNSName);
+		if (buf == NULL)
+			continue;
+		if (fnmatch(buf, host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
+		    (fqdn != NULL &&
+		    fnmatch(buf, fqdn, FNM_NOESCAPE|FNM_CASEFOLD) == 0))
+			found = buf;
+		OPENSSL_free(buf);
+	}
+
+	sk_GENERAL_NAME_free(ans);
+	return (found);
+}
+
 int
 sslverify(struct server *srv, SSL *ssl, char **cause)
 {
@@ -131,6 +164,11 @@ sslverify(struct server *srv, SSL *ssl, char **cause)
 		if (ptr2 != NULL)
 			*ptr2 = '/';
 	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
+
+	/* No valid CN found. Try alternative names. */
+	if (ptr == NULL)
+		ptr = check_alt_names(srv->host, fqdn, x509);
+
 	if (fqdn != NULL)
 		xfree(fqdn);
 
