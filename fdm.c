@@ -583,7 +583,7 @@ main(int argc, char **argv)
 	}
 	if (sizeof tmp > off && conf.max_accts != -1) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
-		    "parallel-accounts=%d ", conf.max_accts);
+		    "parallel-accounts=%d, ", conf.max_accts);
 	}
 	if (sizeof tmp > off && conf.lock_file != NULL) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
