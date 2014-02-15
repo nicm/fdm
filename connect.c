@@ -104,8 +104,7 @@ check_alt_names(char *host, char *fqdn, X509 *x509)
 		p = sk_GENERAL_NAME_value(ans, n);
 		if (p == NULL || p->type != GEN_DNS)
 			continue;
-		ASN1_STRING_to_UTF8((u_char **)&buf, p->d.dNSName);
-		if (buf == NULL)
+		if (ASN1_STRING_to_UTF8((u_char **)&buf, p->d.dNSName) <= 0)
 			continue;
 		if (fnmatch(buf, host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
 		    (fqdn != NULL &&
