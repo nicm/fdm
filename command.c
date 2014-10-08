@@ -27,9 +27,9 @@
 
 #include "fdm.h"
 
-#define CMD_DEBUG(io, fmt, ...)
+#define CMD_DEBUG(cmd, fmt, ...)
 #ifndef CMD_DEBUG
-#define CMD_DEBUG(cmt, fmt, ...) \
+#define CMD_DEBUG(cmd, fmt, ...) \
 	log_debug3("%s: (%d) " fmt, __func__, cmd->pid, ## __VA_ARGS__)
 #endif
 
@@ -280,7 +280,7 @@ cmd_poll(struct cmd *cmd, char **out, char **err,
 			return (-1);
 		case 0:
 			CMD_DEBUG(cmd, "poll closed");
-			kill(cmd->pid, SIGTERM);
+
 			/*
 			 * Check for closed. It'd be nice for closed input to
 			 * be an error, but we can't tell the difference
