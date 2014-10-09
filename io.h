@@ -35,7 +35,7 @@ struct buffer {
 };
 
 /* Limits at which to fail. */
-#define IO_MAXLINELEN (1024 * 1024) 		/* 1 MB */
+#define IO_MAXLINELEN (16 * 1024 * 1024)	/* 16 MB */
 
 /* IO line endings. */
 #define IO_CRLF "\r\n"
