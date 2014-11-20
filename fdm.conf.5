@@ -53,7 +53,6 @@ Options are configured using the
 .Ic set
 command.
 It may be followed by the following options, one per command:
-.Pp
 .Bl -tag -width Ds
 .It Ic maximum-size Ar size
 This is used to set the maximum size of a mail.
@@ -134,48 +133,49 @@ This option may be overridden with the
 .Fl u
 switch on the command line.
 A default user must be given if running as root.
-.It Ic lookup-order Ar location Ar ...
+.It Ic lookup-order Ar location ...
 This specifies the order in which to do user lookup from left to right.
 Possible types are
-.Em passwd
+.Cm passwd
 to use the
 .Xr passwd 5
 file, or
-.Em courier
+.Cm courier
 to use Courier authlib (if support is compiled).
 .It Ic lock-types Ar type Ar ...
 This specifies the locks to be used for mbox locking.
 Possible types are
-.Em fcntl ,
-.Em flock ,
+.Cm fcntl ,
+.Cm flock ,
 and
-.Em dotlock .
+.Cm dotlock .
 The
-.Em flock
+.Cm flock
 and
-.Em fcntl
+.Cm fcntl
 types are mutually exclusive.
 The default is
-.Em flock .
+.Cm flock .
 .It Ic proxy Ar url
 This instructs
 .Xr fdm 1
 to proxy all connections through
 .Ar url .
 HTTP and SOCKS5 proxies are supported at present (URLs of the form
-.Em http://host[:port] or
-.Em socks://[user:pass@]host[:port]) .
+.Pf http:// Ar host Ns Op : Ns Ar port
+or
+.Pf socks:// Oo Ar user Ns : Ns Ar pass Ns @ Oc Ns host Ns Op : Ns Ar port ) .
 No authentication is supported for HTTP.
-.It Ic unmatched-mail Ar drop | Ar keep
+.It Ic unmatched-mail Cm drop | keep
 This option controls what
 .Xr fdm 1
 does with mail that reaches the end of the ruleset (mail that matches no rules
 or matches only rules with the
 .Ic continue
 keyword).
-.Ar drop
+.Cm drop
 will cause such mail to be discarded, and
-.Ar keep
+.Cm keep
 will attempt to leave the mail on the server.
 The default is to keep the mail and log a warning that it reached the end of
 the ruleset.
@@ -245,9 +245,11 @@ The file to include is searched for first as an absolute path and then relative
 to the directory containing the main configuration file.
 .Sh MACROS
 Macros may be defined using the following syntax:
-.Bl -tag -width Ds
-.It Ar $name Ic = Ar string
-.It Ar %name Ic = Ar number
+.Bl -item
+.It
+.Cm $ Ns Ar name Ic = Ar string
+.It
+.Cm % Ns Ar name Ic = Ar number
 .El
 .Pp
 Macros are prefixed with $ to indicate a string value and % to indicate a
@@ -272,7 +274,7 @@ and
 blocks may be nested.
 .Sh SHELL COMMANDS
 The result of a shell command may be used at any point a string or number is
-expected by wrapping it in $() or %(). 
+expected by wrapping it in $() or %().
 If the former is used, the command result is used as a string; if the latter,
 it is converted to an integer.
 Shell commands are executed when the configuration file is parsed.
@@ -334,11 +336,10 @@ deleted) even if it matches a
 action.
 .Pp
 Supported account types and arguments are:
-.Pp
 .Bl -tag -width Ds
 .It Ic stdin
 This account type reads mail from
-.Em stdin ,
+.Dv stdin ,
 if it is connected to a pipe.
 This may be used to deliver mail from
 .Xr sendmail 8 ,
@@ -440,7 +441,7 @@ This account type uses the POP3 protocol piped through
 such as
 .Xr ssh 1 .
 If the command produces any output to
-.Em stderr ,
+.Dv stderr ,
 it is logged.
 For POP3 over a pipe, providing a user and password is not optional and it may
 not be read from
@@ -515,7 +516,7 @@ If the optional IMAP
 and
 .Ar pass
 are supplied, they will be used if necessary, but if one is provided, both must
-be - using
+be \(en using
 .Pa ~/.netrc
 is not permitted.
 .It Ic maildir Ar path
@@ -591,7 +592,7 @@ When
 is run again, fetching begins at the cached article.
 Note that the
 .Ic keep
-option is completely ignored for NNTP accounts - all mail is kept, and the
+option is completely ignored for NNTP accounts \(en all mail is kept, and the
 cache is always updated.
 .El
 .Sh TAGGING
@@ -621,32 +622,32 @@ The automatically added tags are:
 The name of the account from which the mail was fetched.
 .It home (%h)
 The delivery user's home directory.
-.It uid	(%n)
+.It uid (%n)
 The delivery user's uid.
 .It action (%t)
 The name of the last action executed for this mail.
 .It user (%u)
 The delivery user's username.
 .It hour (%H)
-The current hour (00-23).
+The current hour (00\(en23).
 .It minute (%M)
-The current minute (00-59).
+The current minute (00\(en59).
 .It second (%S)
-The current second (00-59).
-.It day	(%d)
-The current day of the month (01-31).
+The current second (00\(en59).
+.It day (%d)
+The current day of the month (01\(en31).
 .It month (%m)
-The current month (01-12).
+The current month (01\(en12).
 .It year (%y)
 The current year.
 .It year2
 The current year as two digits.
 .It dayofweek (%W)
-The current day of the week (0-6, Sunday is 0).
+The current day of the week (0\(en6, Sunday is 0).
 .It dayofyear (%Y)
-The current day of the year (001-366).
+The current day of the year (001\(en366).
 .It quarter (%Q)
-The current quarter (1-4).
+The current quarter (1\(en4).
 .It rfc822date
 The current date in RFC822 format.
 .It mail_hour
@@ -669,7 +670,7 @@ The day of the week from the mail's date header.
 .It mail_dayofyear
 The day of the year from the mail's date header.
 .It mail_quarter
-The quarter (1-4) from the mail's date header.
+The quarter (1\(en4) from the mail's date header.
 .It mail_rfc822date
 The mail's date in RFC822 format.
 .It hostname
@@ -862,12 +863,12 @@ pattern
 .Ar name .
 .It Ic stdout
 Write the mail to
-.Em stdout .
+.Dv stdout .
 .It Ic add-to-cache Ar path Ic key Ar key
 This action adds the string
 .Ar key
 to the cache specified by
-.Ar path . 
+.Ar path .
 If
 .Ar key
 already exists in the cache, it is replaced.
@@ -941,15 +942,13 @@ case-insensitive matching.
 .It Xo Ic exec Ar command
 .Op Ic user Ar user
 .Ic returns
-.Li (
-.Ar return code ,
+.Pf ( Ar return code ,
 .Ar stdout regexp )
 .Xc
 .It Xo Ic pipe Ar command
 .Op Ic user Ar user
 .Ic returns
-.Li (
-.Ar return code ,
+.Pf ( Ar return code ,
 .Op Ic case
 .Ar stdout regexp )
 .Xc
@@ -961,13 +960,13 @@ The
 argument is the numeric return code expected and
 .Ar stdout regexp
 is a regexp to be tested against the output of the command to
-.Em stdout .
+.Dv stdout .
 Either of these two arguments may be omitted: if both are specified,
 both must match for the condition to be true.
 The
 .Ic pipe
 version will pipe the mail to the command's
-.Em stdin
+.Dv stdin
 when executing it.
 If a user is specified,
 .Xr fdm 1
@@ -1100,7 +1099,6 @@ It is either of a similar form:
 .El
 .Pp
 Or may specify a number of actions inline (lambda actions):
-.Pp
 .Bl -tag -width Ds
 .It Ic action Ar action
 .It Xo Ic action
@@ -1158,4 +1156,4 @@ lock file for root user
 .Xr fdm 1 ,
 .Xr re_format 7
 .Sh AUTHORS
-.An Nicholas Marriott Aq nicm@users.sourceforge.net
+.An Nicholas Marriott Aq Mt nicm@users.sourceforge.net

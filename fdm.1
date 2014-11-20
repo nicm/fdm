@@ -25,18 +25,17 @@
 .Bk -words
 .Op Fl hklmnqv
 .Op Fl a Ar account
-.Oo Fl D Ar name Ns =
-.Ar value Oc
+.Op Fl D Ar name Ns = Ns Ar value
 .Op Fl f Ar conffile
 .Op Fl u Ar user
 .Op Fl x Ar account
-.Op Ar fetch | poll
+.Op Cm fetch | poll | cache
 .Ek
 .Sh DESCRIPTION
 The
 .Nm
 program fetches mail from a POP3 or IMAP server or from
-.Em stdin
+.Dv stdin
 and delivers it based on a ruleset in the configuration file.
 .Pp
 The options are as follows:
@@ -45,7 +44,6 @@ The options are as follows:
 Process only the specified account.
 This option may appear multiple times.
 The account name may include shell glob characters to match multiple accounts.
-.Pp
 .It Fl D Ar name Ns = Ns Ar value
 This option defines a macro for use when parsing the configuration file.
 The macro name must be prefixed with
@@ -61,7 +59,6 @@ Default is
 or
 .Pa /etc/fdm.conf
 if that doesn't exist.
-.Pp
 .It Fl h
 Look at the
 .Ev HOME
@@ -77,23 +74,19 @@ if it is run again on the same account.
 Log using
 .Xr syslog 3
 rather than to
-.Em stderr .
-.Pp
+.Dv stderr .
 .It Fl m
 Ignore the lock file and run regardless of other instances of
 .Nm .
 .It Fl n
 Do not process any accounts, just verify the configuration file syntax and exit.
-.Pp
 .It Fl q
 Quiet mode. Only print errors.
-.Pp
 .It Fl u Ar user
 Specify the default user for delivery.
 This overrides the
 .Ic default-user
 option in the configuration file.
-.Pp
 .It Fl v
 Request verbose logging.
 This option may be specified multiple times.
@@ -102,11 +95,10 @@ will print information on configuration (useful with
 .Fl n ) .
 .Fl vvvv
 duplicates all traffic to and from remote servers to
-.Em stdout .
+.Dv stdout .
 This feature is disabled when using the
 .Fl l
 flag.
-.Pp
 .It Fl x Ar name
 Exclude the named account.
 Multiple
@@ -115,29 +107,27 @@ options may be specified.
 As with
 .Fl a ,
 shell glob characters may be used.
-.Pp
-.It Ar fetch | poll | cache
+.It Cm fetch | poll | cache
 The
-.Ar fetch
+.Cm fetch
 command instructs
 .Nm
 to fetch and deliver messages.
 The
-.Ar poll
+.Cm poll
 command polls the accounts in the configuration file and reports a message
 count for each.
-.Ar cache
+.Cm cache
 allows
 .Nm
 cache files to be manipulated: see the next section.
-.Pp
 .El
 .Sh CACHE COMMANDS
 The following cache manipulation commands are supported:
 .Bl -tag -width Ds
 .It Ic cache Ic add Ar path Ar string
 .It Ic cache Ic remove Ar path Ar string
-Add or remove 
+Add or remove
 .Ar string
 as a key in the cache at
 .Ar path .
@@ -148,7 +138,8 @@ is omitted, in all caches declared in the configuration file.
 .It Ic cache Ic dump Ar path
 Dump the contents of the cache
 .Ar path
-to stdout.
+to
+.Dv stdout .
 Each key is printed followed by a space and the timestamp as Unix time.
 .It Ic cache Ic clear Ar path
 Delete all keys from the cache at
@@ -172,4 +163,4 @@ lock file for root user
 .Xr fdm.conf 5 ,
 .Xr sendmail 8
 .Sh AUTHORS
-.An Nicholas Marriott Aq nicm@users.sourceforge.net
+.An Nicholas Marriott Aq Mt nicm@users.sourceforge.net
