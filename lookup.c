@@ -41,7 +41,6 @@ user_free(struct userdata *ud)
 	xfree(ud->name);
 	xfree(ud->home);
 	xfree(ud);
-
 }
 
 struct userdata *
