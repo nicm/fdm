@@ -3,9 +3,9 @@
 .SUFFIXES: .c .o
 .PHONY: clean regress
 
-VERSION= 1.7
+VERSION= 1.8
 
-FDEBUG= 1
+#FDEBUG= 1
 
 CC?= cc
 YACC= yacc -d

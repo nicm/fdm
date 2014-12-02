@@ -1,6 +1,6 @@
 # $Id$
 
-VERSION= 1.7
+VERSION= 1.8
 
 DISTDIR= fdm-${VERSION}
 DISTFILES= *.[chl] Makefile GNUmakefile configure *.[1-9] fdm-sanitize \

@@ -2,9 +2,9 @@
 
 .PHONY: clean
 
-VERSION= 1.7
+VERSION= 1.8
 
-FDEBUG= 1
+#FDEBUG= 1
 
 CC?= gcc
 YACC= yacc -d
