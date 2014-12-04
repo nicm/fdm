@@ -3,7 +3,7 @@
 VERSION= 1.8
 
 DISTDIR= fdm-${VERSION}
-DISTFILES= *.[chl] Makefile GNUmakefile configure *.[1-9] fdm-sanitize \
+DISTFILES= *.[chly] Makefile GNUmakefile configure *.[1-9] fdm-sanitize \
 	   README MANUAL TODO CHANGES \
 	   `find examples compat regress -type f -and ! -path '*CVS*'`
 
