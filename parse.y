@@ -144,7 +144,6 @@ yyerror(const char *fmt, ...)
 %token TOKCOMPRESS
 %token TOKCONTINUE
 %token TOKCOUNT
-%token TOKCOURIER
 %token TOKDAYS
 %token TOKDEFUSER
 %token TOKDELTOOBIG
@@ -839,14 +838,6 @@ pathslist: pathslist replpathv
 ufn: TOKPASSWD
      {
 	     $$ = &passwd_lookup;
-     }
-   | TOKCOURIER
-     {
-#ifdef LOOKUP_COURIER
-	     $$ = &courier_lookup;
-#else
-	     yyerror("support for lookup-order courier is not enabled");
-#endif
      }
 
 ufnlist: ufnlist ufn

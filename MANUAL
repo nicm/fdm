@@ -832,14 +832,6 @@ able to change to the user. The user keyword is primarily of use in multiuser
 configurations. If users are present on an action, they override any specified
 by the account definition.
 
-Users are looked up in the Unix passwd file or optionally (if fdm is built
-with "make -DCOURIER" or "make COURIER=1") using courier-authlib. The
-order of lookups may be specified with the lookup-order option:
-
-      set lookup-order courier passwd
-
-      set lookup-order passwd
-
 If running as root and no user is specified on either the action or on the
 filtering rule (see the section on filtering below), the default user is
 used, see the '-u' command line option and the 'default-user' option in the
