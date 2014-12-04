@@ -27,6 +27,9 @@ CPPFLAGS += -DDEBUG
 endif
 YFLAGS += -d
 
+dist_man1_MANS = fdm.1
+dist_man5_MANS = fdm.conf.5
+
 dist_fdm_SOURCES = \
 	attach.c \
 	buffer.c \
