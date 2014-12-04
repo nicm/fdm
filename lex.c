@@ -27,7 +27,7 @@
 
 #include "fdm.h"
 #include "fetch.h"
-#include "y.tab.h"
+#include "parse.h"
 
 int	  lex_include;
 u_int	  lex_ifdef;

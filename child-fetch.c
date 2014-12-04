@@ -627,7 +627,7 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 				rhost = conf.host_name;
 
 			error = insert_header(m, "received", "Received: by "
-			    "%.450s (%s " BUILD ", account \"%.450s\");\n\t%s",
+			    "%.450s (%s " VERSION ", account \"%.450s\");\n\t%s",
 			    rhost, __progname, a->name, rtime);
 		}
 		if (error != 0)

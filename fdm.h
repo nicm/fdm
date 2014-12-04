@@ -19,8 +19,6 @@
 #ifndef FDM_H
 #define FDM_H
 
-#include "config.h"
-
 #include <sys/param.h>
 #include <sys/cdefs.h>
 #include <sys/stat.h>
@@ -56,9 +54,7 @@
 
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
-#define SYSCONFFILE	"/etc/fdm.conf"
 #define LOCKFILE	".fdm.lock"
-#define SYSLOCKFILE	"/var/run/fdm.lock"
 #define MAXQUEUEVALUE	50
 #define DEFMAILQUEUE	2
 #define DEFMAILSIZE	(32 * 1024 * 1024)		/* 32 MB */

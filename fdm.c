@@ -406,7 +406,7 @@ main(int argc, char **argv)
 	else
 		log_open_tty(conf.debug);
 	tt = time(NULL);
-	log_debug("version is: %s " BUILD ", started at: %.24s", __progname,
+	log_debug("version is: %s " VERSION ", started at: %.24s", __progname,
 	    ctime(&tt));
 
 	/* And the OS version. */
