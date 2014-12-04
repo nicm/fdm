@@ -85,11 +85,11 @@ Ensure it is installed, then download the source tarball and build fdm with:
 	$ cd fdm-?.?
 	$ ./configure && make
 
-Then run 'make install' to install fdm to the default locations under
-/usr/local. The PREFIX environment variable may be set to specify an
-alternative installation location:
+Then run 'make install' to install fdm to the default location under
+/usr/local. The --prefix argument may be set to specify an alternative
+installation location:
 
-	$ export PREFIX=/opt		# defaults to /usr/local
+	$ ./configure --prefix=/opt/fdm && make
 	$ sudo make install
 
 If being run as root, fdm requires a user named "_fdm" to exist. It will drop
