@@ -18,3 +18,4 @@ Makefile.in
 configure
 parse.c
 parse.h
+index.html

@@ -1,6 +1,7 @@
 # $Id$
 
 bin_PROGRAMS = fdm
+CLEANFILES = parse.c parse.h
 
 EXTRA_DIST = \
 	CHANGES README MANUAL \
@@ -117,3 +118,9 @@ endif
 if NO_STRTONUM
 nodist_fdm_SOURCES += compat/strtonum.c
 endif
+
+upload-index.html: update-index.html
+	scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdocs
+
+update-index.html:
+	sed "s|%%VERSION%%|${VERSION}|g" <index.html.in >index.html
