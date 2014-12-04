@@ -110,4 +110,40 @@ if test "x$found_strtonum" = xyes; then
 fi
 AM_CONDITIONAL(NO_STRTONUM, [test "x$found_strtonum" = xno])
 
+AC_MSG_CHECKING(for b64_ntop)
+AC_TRY_LINK(
+	[
+		#include <sys/types.h>
+		#include <netinet/in.h>
+		#include <resolv.h>
+	],
+	[b64_ntop(NULL, 0, NULL, 0);],
+	found_b64_ntop=yes,
+	found_b64_ntop=no
+)
+if test "x$found_b64_ntop" = xno; then
+	AC_MSG_RESULT(no)
+
+	AC_MSG_CHECKING(for b64_ntop with -lresolv)
+	LIBS="$LIBS -lresolv"
+	AC_TRY_LINK(
+		[
+			#include <sys/types.h>
+			#include <netinet/in.h>
+			#include <resolv.h>
+		],
+		[b64_ntop(NULL, 0, NULL, 0);],
+		found_b64_ntop=yes,
+		found_b64_ntop=no
+	)
+	if test "x$found_b64_ntop" = xno; then
+		AC_MSG_RESULT(no)
+	fi
+fi
+if test "x$found_b64_ntop" = xyes; then
+	AC_DEFINE(HAVE_B64_NTOP)
+	AC_MSG_RESULT(yes)
+fi
+AM_CONDITIONAL(NO_B64_NTOP, [test "x$found_b64_ntop" = xno])
+
 AC_OUTPUT(Makefile)
