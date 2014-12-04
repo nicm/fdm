@@ -14,7 +14,7 @@ EXTRA_DIST = \
 	match.h
 
 CPPFLAGS += \
-	-DSYSCONFFILE="\"$(sysconfdir)/tmux.conf\"" \
+	-DSYSCONFFILE="\"$(sysconfdir)/fdm.conf\"" \
 	-DSYSLOCKFILE="\"$(localstatedir)/run/fdm.lock\""
 CFLAGS += -D_GNU_SOURCE -std=gnu99 -O2
 if IS_DEBUG
