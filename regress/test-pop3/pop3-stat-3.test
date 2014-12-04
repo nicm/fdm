@@ -1,9 +1,0 @@
->+OK POP3
-<USER test
->+OK
-<PASS test
->+OK
-<STAT
->+OK 0 0 test test test
-<QUIT
->+OK
