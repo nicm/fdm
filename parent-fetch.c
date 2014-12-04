@@ -31,7 +31,7 @@
 
 void	parent_fetch_error(struct child *, struct msg *);
 void	parent_fetch_action(struct child *, struct children *,
-    	    struct deliver_ctx *, struct msg *);
+	    struct deliver_ctx *, struct msg *);
 void	parent_fetch_cmd(struct child *, struct children *, struct mail_ctx *,
 	    struct msg *);
 
@@ -105,7 +105,7 @@ parent_fetch_action(struct child *child, struct children *children,
 	struct mail			*m = dctx->mail;
 	struct mail			*md = &dctx->wr_mail;
 	struct child_deliver_data	*data;
- 	uid_t				 uid = msg->data.uid;
+	uid_t				 uid = msg->data.uid;
 	gid_t				 gid = msg->data.gid;
 
 	memset(md, 0, sizeof *md);
@@ -152,7 +152,7 @@ parent_fetch_cmd(struct child *child, struct children *children,
 {
 	struct mail			*m = mctx->mail;
 	struct child_deliver_data	*data;
- 	uid_t				 uid = msg->data.uid;
+	uid_t				 uid = msg->data.uid;
 	gid_t				 gid = msg->data.gid;
 
 	data = xmalloc(sizeof *data);

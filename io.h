@@ -39,8 +39,8 @@ struct buffer {
 
 /* IO line endings. */
 #define IO_CRLF "\r\n"
-#define IO_CR   "\r"
-#define IO_LF   "\n"
+#define IO_CR	"\r"
+#define IO_LF	"\n"
 
 /* Initial block size of buffer and minimum amount to try to read. */
 #define IO_BLOCKSIZE 16384
@@ -86,7 +86,7 @@ struct io {
 ARRAY_DECL(iolist, struct io *);
 
 /* buffer.c */
-struct buffer 	*buffer_create(size_t);
+struct buffer	*buffer_create(size_t);
 void		 buffer_destroy(struct buffer *);
 void		 buffer_clear(struct buffer *);
 void		 buffer_ensure(struct buffer *, size_t);
@@ -98,10 +98,10 @@ void		 buffer_insert_range(struct buffer *, size_t, size_t);
 void		 buffer_delete_range(struct buffer *, size_t, size_t);
 void		 buffer_write(struct buffer *, const void *, size_t);
 void		 buffer_read(struct buffer *, void *, size_t);
-void	 	 buffer_write8(struct buffer *, uint8_t);
-void	 	 buffer_write16(struct buffer *, uint16_t);
+void		 buffer_write8(struct buffer *, uint8_t);
+void		 buffer_write16(struct buffer *, uint16_t);
 uint8_t		 buffer_read8(struct buffer *);
-uint16_t 	 buffer_read16(struct buffer *);
+uint16_t	 buffer_read16(struct buffer *);
 
 /* io.c */
 struct io	*io_create(int, SSL *, const char *);
@@ -112,10 +112,10 @@ void		 io_close(struct io *);
 int		 io_polln(struct io **, u_int, struct io **, int, char **);
 int		 io_poll(struct io *, int, char **);
 int		 io_read2(struct io *, void *, size_t);
-void 		*io_read(struct io *, size_t);
+void		*io_read(struct io *, size_t);
 void		 io_write(struct io *, const void *, size_t);
-char 		*io_readline2(struct io *, char **, size_t *);
-char 		*io_readline(struct io *);
+char		*io_readline2(struct io *, char **, size_t *);
+char		*io_readline(struct io *);
 void printflike2 io_writeline(struct io *, const char *, ...);
 void		 io_vwriteline(struct io *, const char *, va_list);
 int		 io_pollline2(struct io *, char **, char **, size_t *, int,

@@ -43,16 +43,16 @@ deliver_write_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
 	struct deliver_write_data	*data = ti->data;
-        char				*path;
-        FILE    			*f;
+	char				*path;
+	FILE				*f;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml, dctx->udata->home);
-        if (path == NULL || *path == '\0') {
+	if (path == NULL || *path == '\0') {
 		if (path != NULL)
 			xfree(path);
 		log_warnx("%s: empty command", a->name);
-                return (DELIVER_FAILURE);
-        }
+		return (DELIVER_FAILURE);
+	}
 
 	if (data->append) {
 		log_debug2("%s: appending to %s", a->name, path);
@@ -61,7 +61,7 @@ deliver_write_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		log_debug2("%s: writing to %s", a->name, path);
 		f = fopen(path, "w");
 	}
-        if (f == NULL) {
+	if (f == NULL) {
 		log_warn("%s: %s: fopen", a->name, path);
 		goto error;
 	}

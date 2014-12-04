@@ -43,17 +43,17 @@ deliver_pipe_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
 	struct deliver_pipe_data	*data = ti->data;
-        char				*s, *cause, *err;
+	char				*s, *cause, *err;
 	int				 status;
 	struct cmd			*cmd = NULL;
 	char				*lbuf;
 	size_t				 llen;
 
 	s = replacepath(&data->cmd, m->tags, m, &m->rml, dctx->udata->home);
-        if (s == NULL || *s == '\0') {
+	if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;
-        }
+	}
 
 	if (data->pipe) {
 		log_debug2("%s: piping to \"%s\"", a->name, s);
@@ -76,7 +76,7 @@ deliver_pipe_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 			xfree(lbuf);
 			goto error_cause;
 		}
-       		if (status == 0 && err != NULL)
+		if (status == 0 && err != NULL)
 			log_warnx("%s: %s: %s", a->name, s, err);
 	} while (status == 0);
 	status--;

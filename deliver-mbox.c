@@ -71,12 +71,12 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct deliver_mbox_data	*data = ti->data;
 	char				*path, *ptr, *lptr, *from = NULL;
 	const char			*msg;
-	size_t	 			 len, llen;
-	int	 			 fd, saved_errno;
+	size_t				 len, llen;
+	int				 fd, saved_errno;
 	FILE				*f;
 	gzFile				 gzf;
 	long long			 used;
-	sigset_t	 		 set, oset;
+	sigset_t			 set, oset;
 	struct stat			 sb;
 
 	f = gzf = NULL;
@@ -154,7 +154,7 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	 * done.
 	 */
 	sigemptyset(&set);
- 	sigaddset(&set, SIGTERM);
+	sigaddset(&set, SIGTERM);
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
 		fatal("sigprocmask failed");
 

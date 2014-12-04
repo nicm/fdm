@@ -218,7 +218,7 @@ invalid:
 error:
 	if (f != NULL)
 		fclose(f);
-        if (fd != -1)
+	if (fd != -1)
 		closelock(fd, data->path, conf.lock_types);
 	return (-1);
 }
@@ -882,7 +882,7 @@ pop3_state_retr(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 	struct mail		*m = fctx->mail;
- 	struct fetch_pop3_mail	*aux = m->auxdata;
+	struct fetch_pop3_mail	*aux = m->auxdata;
 	char			*line;
 
 	if (pop3_getln(a, fctx, &line) != 0)

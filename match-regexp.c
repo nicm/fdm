@@ -39,7 +39,7 @@ match_regexp_match(struct mail_ctx *mctx, struct expritem *ei)
 	struct account			*a = mctx->account;
 	struct mail			*m = mctx->mail;
 	int				 res;
-	char			        *cause;
+	char				*cause;
 	size_t				 so, eo;
 
 	so = 0;

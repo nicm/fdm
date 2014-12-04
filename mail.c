@@ -40,7 +40,7 @@ mail_open(struct mail *m, size_t size)
 
 	if ((m->base = shm_create(&m->shm, m->space)) == NULL)
 		return (-1);
- 	SHM_REGISTER(&m->shm);
+	SHM_REGISTER(&m->shm);
 
 	m->off = 0;
 	m->data = m->base + m->off;
@@ -90,7 +90,7 @@ mail_receive(struct mail *m, struct msg *msg, int destroy)
 	memcpy(m, mm, sizeof *m);
 	if ((m->base = shm_reopen(&m->shm)) == NULL)
 		return (-1);
- 	SHM_REGISTER(&m->shm);
+	SHM_REGISTER(&m->shm);
 
 	m->data = m->base + m->off;
 	ARRAY_INIT(&m->wrapped);
@@ -452,7 +452,7 @@ find_address(char *buf, size_t len, size_t *alen)
 
 	/*
 	 * Now, look for sections matching:
-	 * 	[< ][A-Za-z0-9._%+-]+@[A-Za-z0-9.\[\]-]+[> ,;].
+	 *	[< ][A-Za-z0-9._%+-]+@[A-Za-z0-9.\[\]-]+[> ,;].
 	 */
 #define isfirst(c) ((c) == '<' || (c) == ' ')
 #define islast(c) ((c) == '>' || (c) == ' ' || (c) == ',' || (c) == ';')
@@ -538,7 +538,7 @@ make_from(struct mail *m, char *user)
 	from = find_header(m, "from", &fromlen, 1);
 	if (from != NULL && fromlen > 0)
 		from = find_address(from, fromlen, &fromlen);
- 	if (fromlen > INT_MAX)
+	if (fromlen > INT_MAX)
 		from = NULL;
 	if (from == NULL) {
 		from = user;
@@ -560,7 +560,7 @@ u_int
 fill_wrapped(struct mail *m)
 {
 	char		*ptr;
-	size_t	 	 end, off;
+	size_t		 end, off;
 	u_int		 n;
 
 	if (!ARRAY_EMPTY(&m->wrapped))

@@ -91,7 +91,7 @@ fetch_nntp_code(char *line)
 {
 	char		 ch;
 	const char	*errstr;
-	int	 	 n;
+	int		 n;
 	size_t		 len;
 
 	len = strspn(line, "0123456789");
@@ -255,7 +255,7 @@ invalid:
 error:
 	if (f != NULL)
 		fclose(f);
-        if (fd != -1)
+	if (fd != -1)
 		closelock(fd, data->path, conf.lock_types);
 	return (-1);
 }
@@ -421,7 +421,7 @@ fetch_nntp_state_connected(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 
 	if (data->user == NULL || data->pass == NULL) {
- 		fctx->state = fetch_nntp_state_group;
+		fctx->state = fetch_nntp_state_group;
 		return (FETCH_AGAIN);
 	}
 

@@ -40,7 +40,7 @@ deliver_remove_header_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct mail				*m = dctx->mail;
 	struct deliver_remove_header_data	*data = ti->data;
 	char					*ptr, *hdr;
-	size_t				  	 len, off, wrap;
+	size_t					 len, off, wrap;
 	u_int					 i, j;
 
 

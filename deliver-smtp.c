@@ -45,7 +45,7 @@ deliver_smtp_code(char *line)
 {
 	char		 ch;
 	const char	*errstr;
-	int	 	 n;
+	int		 n;
 	size_t		 len;
 
 	len = strspn(line, "0123456789");
@@ -68,11 +68,11 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct account			*a = dctx->account;
 	struct mail			*m = dctx->mail;
 	struct deliver_smtp_data	*data = ti->data;
-	int		 		 done, code;
+	int				 done, code;
 	struct io			*io;
 	char				*cause, *to, *from, *line, *ptr, *lbuf;
 	enum deliver_smtp_state		 state;
-	size_t		 		 len, llen;
+	size_t				 len, llen;
 
 	io = connectproxy(&data->server,
 	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
@@ -88,9 +88,9 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	lbuf = xmalloc(llen);
 
 	if (conf.host_fqdn != NULL)
- 		xasprintf(&ptr, "%s@%s", dctx->udata->name, conf.host_fqdn);
+		xasprintf(&ptr, "%s@%s", dctx->udata->name, conf.host_fqdn);
 	else
- 		xasprintf(&ptr, "%s@%s", dctx->udata->name, conf.host_name);
+		xasprintf(&ptr, "%s@%s", dctx->udata->name, conf.host_name);
 	if (data->to.str == NULL)
 		to = xstrdup(ptr);
 	else {
@@ -133,9 +133,9 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 				goto error;
 			state = SMTP_HELO;
 			if (conf.host_fqdn != NULL)
- 				io_writeline(io, "HELO %s", conf.host_fqdn);
+				io_writeline(io, "HELO %s", conf.host_fqdn);
 			else
- 				io_writeline(io, "HELO %s", conf.host_name);
+				io_writeline(io, "HELO %s", conf.host_name);
 			break;
 		case SMTP_HELO:
 			if (code != 250)

@@ -131,7 +131,7 @@ int
 io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 {
 	struct io	*io;
-	struct pollfd   *pfds;
+	struct pollfd	*pfds;
 	int		 error;
 	u_int		 i;
 
@@ -178,7 +178,7 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 	/* Check all the ios. */
 	for (i = 0; i < n; i++) {
 		io = iop[i];
- 		if (rio != NULL)
+		if (rio != NULL)
 			*rio = io;
 		if (io_after_poll(io, &pfds[i]) == -1)
 			goto error;
@@ -366,7 +366,7 @@ again:
 		if (io->dup_fd != -1) {
 			write(io->dup_fd, "< ", 2);
 			write(io->dup_fd, BUFFER_IN(io->rd), n);
- 		}
+		}
 
 		/* Adjust the buffer size. */
 		buffer_add(io->rd, n);
@@ -458,7 +458,7 @@ io_read(struct io *io, size_t len)
 {
 	void	*buf;
 
- 	IO_DEBUG(io, "in: %zu bytes, rd: used=%zu, free=%zu", len,
+	IO_DEBUG(io, "in: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	if (io->error != NULL)
@@ -470,7 +470,7 @@ io_read(struct io *io, size_t len)
 	buf = xmalloc(len);
 	buffer_read(io->rd, buf, len);
 
- 	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu", len,
+	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (buf);
@@ -483,7 +483,7 @@ io_read2(struct io *io, void *buf, size_t len)
 	if (io->error != NULL)
 		return (-1);
 
- 	IO_DEBUG(io, "in: %zu bytes, rd: used=%zu, free=%zu", len,
+	IO_DEBUG(io, "in: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	if (BUFFER_USED(io->rd) < len)
@@ -491,7 +491,7 @@ io_read2(struct io *io, void *buf, size_t len)
 
 	buffer_read(io->rd, buf, len);
 
- 	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu", len,
+	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (0);
@@ -504,12 +504,12 @@ io_write(struct io *io, const void *buf, size_t len)
 	if (io->error != NULL)
 		return;
 
- 	IO_DEBUG(io, "in: %zu bytes, wr: used=%zu, free=%zu", len,
+	IO_DEBUG(io, "in: %zu bytes, wr: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 
 	buffer_write(io->wr, buf, len);
 
- 	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu", len,
+	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu", len,
 	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
 
@@ -533,7 +533,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	if (BUFFER_USED(io->rd) < eollen)
 		return (NULL);
 
- 	IO_DEBUG(io, "in: rd: used=%zu, free=%zu",
+	IO_DEBUG(io, "in: rd: used=%zu, free=%zu",
 	    BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	base = ptr = BUFFER_OUT(io->rd);
@@ -598,7 +598,7 @@ io_readline2(struct io *io, char **buf, size_t *len)
 	/* Discard the EOL from the buffer. */
 	buffer_remove(io->rd, eollen);
 
- 	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu",
+	IO_DEBUG(io, "out: %zu bytes, rd: used=%zu, free=%zu",
 	    size, BUFFER_USED(io->rd), BUFFER_FREE(io->rd));
 
 	return (*buf);
@@ -647,7 +647,7 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 	if (io->error != NULL)
 		return;
 
- 	IO_DEBUG(io, "in: wr: used=%zu, free=%zu",
+	IO_DEBUG(io, "in: wr: used=%zu, free=%zu",
 	    BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 
 	if (fmt != NULL) {
@@ -656,13 +656,13 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		va_end(aq);
 
 		buffer_ensure(io->wr, n + 1);
- 		xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
+		xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
 		buffer_add(io->wr, n);
 	} else
 		n = 0;
 	io_write(io, io->eol, strlen(io->eol));
 
- 	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu",
+	IO_DEBUG(io, "out: %zu bytes, wr: used=%zu, free=%zu",
 	    n + strlen(io->eol), BUFFER_USED(io->wr), BUFFER_FREE(io->wr));
 }
 

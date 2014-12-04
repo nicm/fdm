@@ -104,11 +104,11 @@ int
 db_print_item(
     unused TDB_CONTEXT *tdb, unused TDB_DATA key, TDB_DATA value, void *ptr)
 {
-	void 			(*p)(const char *, ...) = ptr;
+	void			(*p)(const char *, ...) = ptr;
 	struct cacheitem	v;
 	uint64_t		tim;
 
- 	if (value.dsize != sizeof v)
+	if (value.dsize != sizeof v)
 		return (-1);
 	memcpy(&v, value.dptr, sizeof v);
 
@@ -132,7 +132,7 @@ db_expire_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
 	uint64_t	       *lim = ptr;
 	struct cacheitem	v;
 
- 	if (value.dsize != sizeof v)
+	if (value.dsize != sizeof v)
 		return (-1);
 	memcpy(&v, value.dptr, sizeof v);
 
@@ -159,7 +159,7 @@ db_expire(TDB_CONTEXT *db, uint64_t age)
 int
 db_clear_item(TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, unused void *ptr)
 {
- 	if (value.dsize != sizeof (struct cacheitem))
+	if (value.dsize != sizeof (struct cacheitem))
 		return (-1);
 
 	return (tdb_delete(tdb, key));

@@ -302,7 +302,7 @@ fetch_mbox_state_open(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_mbox_data	*data = a->data;
 	struct fetch_mbox_mbox	*fmbox;
 	char			*ptr;
-	struct stat	         sb;
+	struct stat		 sb;
 	uintmax_t		 size;
 	long long		 used;
 

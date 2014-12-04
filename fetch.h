@@ -33,7 +33,7 @@
 
 /* Fetch context. */
 struct fetch_ctx {
-	int 	         (*state)(struct account *, struct fetch_ctx *);
+	int		 (*state)(struct account *, struct fetch_ctx *);
 	int		 flags;
 
 	struct mail	*mail;
@@ -91,7 +91,7 @@ struct fetch_mbox_data {
 };
 
 struct fetch_mbox_mbox {
-	char	        *path;
+	char		*path;
 	u_int		 reference;
 	u_int		 total;
 
@@ -101,7 +101,7 @@ struct fetch_mbox_mbox {
 };
 
 struct fetch_mbox_mail {
- 	size_t		 off;
+	size_t		 off;
 	size_t		 size;
 
 	struct fetch_mbox_mbox *fmbox;
@@ -249,31 +249,31 @@ struct fetch_imap_mail {
 #define IMAP_CAPA_XYZZY 0x2
 
 /* fetch-maildir.c */
-extern struct fetch 	 fetch_maildir;
+extern struct fetch	 fetch_maildir;
 
 /* fetch-mbx.c */
-extern struct fetch 	 fetch_mbox;
+extern struct fetch	 fetch_mbox;
 
 /* fetch-stdin.c */
-extern struct fetch 	 fetch_stdin;
+extern struct fetch	 fetch_stdin;
 
 /* fetch-nntp.c */
-extern struct fetch 	 fetch_nntp;
+extern struct fetch	 fetch_nntp;
 
 /* fetch-pop3.c */
-extern struct fetch 	 fetch_pop3;
+extern struct fetch	 fetch_pop3;
 
 /* fetch-pop3pipe.c */
-extern struct fetch 	 fetch_pop3pipe;
+extern struct fetch	 fetch_pop3pipe;
 
 /* fetch-imap.c */
-extern struct fetch 	 fetch_imap;
+extern struct fetch	 fetch_imap;
 int	fetch_imap_putln(struct account *, const char *, va_list);
 int	fetch_imap_getln(struct account *, struct fetch_ctx *, char **);
 int	fetch_imap_state_init(struct account *, struct fetch_ctx *);
 
 /* fetch-imappipe.c */
-extern struct fetch 	 fetch_imappipe;
+extern struct fetch	 fetch_imappipe;
 
 /* imap-common.c */
 int	imap_tag(char *);

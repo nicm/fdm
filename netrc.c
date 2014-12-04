@@ -154,7 +154,7 @@ netrc_token(FILE *f, char **cpp)
 {
 	static char	 token[BUFSIZ];
 	char		*cp;
-	int 		 c;
+	int		 c;
 
 	if (feof(f) || ferror(f))
 		return (1);

@@ -25,68 +25,68 @@
 
 #include "fdm.h"
 
-#define ALIAS_IDX(ch) /* LINTED */ 				\
-	(((ch) >= 'a' && (ch) <= 'z') ? (ch) - 'a' :       	\
+#define ALIAS_IDX(ch) /* LINTED */				\
+	(((ch) >= 'a' && (ch) <= 'z') ? (ch) - 'a' :		\
 	(((ch) >= 'A' && (ch) <= 'Z') ? 26 + (ch) - 'A' : -1))
 
 static const char *aliases[] = {
-	"account", 	/* a */
-	NULL, 		/* b */
-	NULL, 		/* c */
-	"day", 		/* d */
-	NULL, 		/* e */
-	NULL, 		/* f */
-	NULL, 		/* g */
-	"home", 	/* h */
-	NULL, 		/* i */
-	NULL, 		/* j */
-	NULL, 		/* l */
-	NULL, 		/* l */
-	"month", 	/* m */
-	"uid", 		/* n */
-	NULL, 		/* o */
-	NULL, 		/* p */
-	NULL, 		/* q */
-	NULL, 		/* r */
-	"source", 	/* s */
-	"action", 	/* t */
-	"user", 	/* u */
-	NULL, 		/* v */
-	NULL, 		/* w */
-	NULL, 		/* x */
-	"year", 	/* y */
-	NULL, 		/* z */
+	"account",	/* a */
+	NULL,		/* b */
+	NULL,		/* c */
+	"day",		/* d */
+	NULL,		/* e */
+	NULL,		/* f */
+	NULL,		/* g */
+	"home",		/* h */
+	NULL,		/* i */
+	NULL,		/* j */
+	NULL,		/* l */
+	NULL,		/* l */
+	"month",	/* m */
+	"uid",		/* n */
+	NULL,		/* o */
+	NULL,		/* p */
+	NULL,		/* q */
+	NULL,		/* r */
+	"source",	/* s */
+	"action",	/* t */
+	"user",		/* u */
+	NULL,		/* v */
+	NULL,		/* w */
+	NULL,		/* x */
+	"year",		/* y */
+	NULL,		/* z */
 
-	NULL, 		/* A */
-	NULL, 		/* B */
-	NULL, 		/* C */
-	NULL, 		/* D */
-	NULL, 		/* E */
-	NULL, 		/* F */
-	NULL, 		/* G */
-	"hour", 	/* H */
-	NULL, 		/* I */
-	NULL, 		/* J */
-	NULL, 		/* K */
-	NULL, 		/* L */
-	"minute", 	/* M */
-	NULL, 		/* N */
-	NULL, 		/* O */
-	NULL, 		/* P */
+	NULL,		/* A */
+	NULL,		/* B */
+	NULL,		/* C */
+	NULL,		/* D */
+	NULL,		/* E */
+	NULL,		/* F */
+	NULL,		/* G */
+	"hour",		/* H */
+	NULL,		/* I */
+	NULL,		/* J */
+	NULL,		/* K */
+	NULL,		/* L */
+	"minute",	/* M */
+	NULL,		/* N */
+	NULL,		/* O */
+	NULL,		/* P */
 	"quarter",	/* Q */
-	NULL, 		/* R */
+	NULL,		/* R */
 	"second",	/* S */
-	NULL, 		/* T */
-	NULL, 		/* U */
-	NULL, 		/* V */
-	"dayofweek", 	/* W */
-	NULL, 		/* X */
-	"dayofyear", 	/* Y */
-	NULL, 		/* Z */
+	NULL,		/* T */
+	NULL,		/* U */
+	NULL,		/* V */
+	"dayofweek",	/* W */
+	NULL,		/* X */
+	"dayofyear",	/* Y */
+	NULL,		/* Z */
 };
 
 char		*replace(char *, struct strb *, struct mail *, struct rmlist *);
-const char 	*submatch(char, struct mail *, struct rmlist *, size_t *);
+const char	*submatch(char, struct mail *, struct rmlist *, size_t *);
 
 void printflike3
 add_tag(struct strb **tags, const char *key, const char *value, ...)
@@ -196,7 +196,7 @@ replacepath(struct replpath *rp, struct strb *tags, struct mail *m,
 	char	*s, *t;
 
 	s = replace(rp->str, tags, m, rml);
- 	if ((t = expand_path(s, home)) == NULL)
+	if ((t = expand_path(s, home)) == NULL)
 		return (s);
 	xfree(s);
 	return (t);
@@ -223,7 +223,7 @@ replace(char *src, struct strb *tags, struct mail *m, struct rmlist *rml)
 {
 	const char	*tptr, *alias;
 	char		*ptr, *tend, *dst, ch;
-	size_t	 	 i, off, len, tlen;
+	size_t		 i, off, len, tlen;
 	int		 strip;
 
 	if (src == NULL)

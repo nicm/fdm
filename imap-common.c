@@ -84,7 +84,7 @@ int
 imap_getln(struct account *a, struct fetch_ctx *fctx, int type, char **line)
 {
 	struct fetch_imap_data	*data = a->data;
- 	int			 n;
+	int			 n;
 
 	do {
 		if (data->getln(a, fctx, line) != 0)
@@ -176,7 +176,7 @@ invalid:
 int
 imap_tag(char *line)
 {
-	int	 	 tag;
+	int		 tag;
 	const char	*errstr;
 	char		*ptr;
 
@@ -289,8 +289,8 @@ imap_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 
- 	ARRAY_INIT(&data->dropped);
- 	ARRAY_INIT(&data->kept);
+	ARRAY_INIT(&data->dropped);
+	ARRAY_INIT(&data->kept);
 	ARRAY_INIT(&data->wanted);
 
 	data->tag = 0;
@@ -565,12 +565,12 @@ imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
 
- 	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
- 		return (FETCH_ERROR);
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
- 	if (!imap_okay(line))
- 		return (imap_bad(a, line));
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
 
 	/* If no mails, stop early. */
 	if (data->total == 0) {
@@ -581,7 +581,7 @@ imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	fctx->state = imap_state_search1;
- 	return (FETCH_AGAIN);
+	return (FETCH_AGAIN);
 }
 
 /* Search state 1. Request list of mail required. */

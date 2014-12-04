@@ -170,7 +170,7 @@ struct strbent *
 strb_match(struct strb *sb, const char *patt)
 {
 	static struct strbent	 sbe;
-	u_int		 	 i;
+	u_int			 i;
 
 	for (i = 0; i < sb->ent_used; i++) {
 		memcpy(&sbe, STRB_ENTRY(sb, i), sizeof sbe);

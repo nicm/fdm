@@ -135,7 +135,7 @@ void
 fetch_maildir_freepaths(struct account *a)
 {
 	struct fetch_maildir_data	*data = a->data;
-	u_int			 	 i;
+	u_int				 i;
 
 	if (data->paths == NULL)
 		return;
@@ -313,7 +313,7 @@ fetch_maildir_state_open(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_maildir_data	*data = a->data;
 	char				*path;
 
- 	path = ARRAY_ITEM(data->paths, data->index);
+	path = ARRAY_ITEM(data->paths, data->index);
 
 	/* Open the directory. */
 	log_debug2("%s: trying path: %s", a->name, path);
@@ -334,13 +334,13 @@ fetch_maildir_state_mail(struct account *a, struct fetch_ctx *fctx)
 	struct mail			*m = fctx->mail;
 	struct fetch_maildir_mail	*aux;
 	struct dirent			*dp;
-	char	       			*path, *maildir, name[MAXPATHLEN];
+	char				*path, *maildir, name[MAXPATHLEN];
 	struct stat			 sb;
 	uintmax_t			 size;
 	int				 fd;
 	ssize_t				 n;
 
- 	path = ARRAY_ITEM(data->paths, data->index);
+	path = ARRAY_ITEM(data->paths, data->index);
 
 restart:
 	/* Read the next dir entry. */

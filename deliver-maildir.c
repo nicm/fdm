@@ -33,7 +33,7 @@
 int	 deliver_maildir_deliver(struct deliver_ctx *, struct actitem *);
 void	 deliver_maildir_desc(struct actitem *, char *, size_t);
 
-char 	*deliver_maildir_host(void);
+char	*deliver_maildir_host(void);
 int	 deliver_maildir_create(struct account *, const char *);
 
 struct deliver deliver_maildir = {
@@ -144,8 +144,8 @@ deliver_maildir_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	static u_int			 delivered = 0;
 	char				*host, *name, *path;
 	char				 src[MAXPATHLEN], dst[MAXPATHLEN];
-	int	 			 fd;
-	ssize_t			 	 n;
+	int				 fd;
+	ssize_t				 n;
 
 	name = NULL;
 	fd = -1;
@@ -169,7 +169,7 @@ restart:
 	do {
 		if (name != NULL)
 			xfree(name);
- 		xasprintf(&name, "%ld.%ld_%u.%s",
+		xasprintf(&name, "%ld.%ld_%u.%s",
 		    (long) time(NULL), (long) getpid(), delivered, host);
 
 		if (ppath(src, sizeof src, "%s/tmp/%s", path, name) != 0) {

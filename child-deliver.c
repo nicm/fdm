@@ -136,7 +136,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	int				 flags, status, found = 0;
 	char				*s, *cause, *lbuf, *out, *err, tag[24];
 	size_t				 llen;
-	struct cmd		 	*cmd = NULL;
+	struct cmd			*cmd = NULL;
 	struct rmlist			 rml;
 	u_int				 i;
 
@@ -149,10 +149,10 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 	/* Sort out the command. */
 	s = replacepath(
 	    &cmddata->cmd, m->tags, m, &m->rml, find_tag(m->tags, "home"));
-        if (s == NULL || *s == '\0') {
+	if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;
-        }
+	}
 
 	log_debug2("%s: %s: started (ret=%d re=%s)", a->name, s, cmddata->ret,
 	    cmddata->re.str == NULL ? "none" : cmddata->re.str);
@@ -184,7 +184,7 @@ child_deliver_cmd_hook(pid_t pid, struct account *a, unused struct msg *msg,
 			log_warnx("%s: %s: %s", a->name, s, cause);
 			goto error;
 		}
-       		if (status != 0)
+		if (status != 0)
 			break;
 		if (err != NULL)
 			log_warnx("%s: %s: %s", a->name, s, err);

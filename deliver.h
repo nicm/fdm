@@ -25,7 +25,7 @@
 
 /* Deliver context. */
 struct deliver_ctx {
-	double		 		 tim;
+	double				 tim;
 
 	struct action			*action;
 	struct actitem			*actitem;
@@ -36,7 +36,7 @@ struct deliver_ctx {
 
 	struct userdata			*udata;
 
-	struct mail	 		 wr_mail;
+	struct mail			 wr_mail;
 
 	TAILQ_ENTRY(deliver_ctx)	 entry;
 };
@@ -53,7 +53,7 @@ struct deliver {
 	const char	*name;
 	enum delivertype type;
 
-	int	 	 (*deliver)(struct deliver_ctx *, struct actitem *);
+	int		 (*deliver)(struct deliver_ctx *, struct actitem *);
 	void		 (*desc)(struct actitem *, char *, size_t);
 };
 
@@ -161,16 +161,16 @@ extern struct deliver	 deliver_stdout;
 extern struct deliver	 deliver_tag;
 
 /* deliver-pipe.c */
-extern struct deliver 	 deliver_pipe;
+extern struct deliver	 deliver_pipe;
 
 /* deliver-drop.c */
-extern struct deliver 	 deliver_drop;
+extern struct deliver	 deliver_drop;
 
 /* deliver-keep.c */
-extern struct deliver 	 deliver_keep;
+extern struct deliver	 deliver_keep;
 
 /* deliver-maildir.c */
-extern struct deliver 	 deliver_maildir;
+extern struct deliver	 deliver_maildir;
 
 /* deliver-remove-header.c */
 extern struct deliver	 deliver_remove_header;
@@ -179,18 +179,18 @@ extern struct deliver	 deliver_remove_header;
 extern struct deliver	 deliver_add_header;
 
 /* deliver-mbox.c */
-extern struct deliver 	 deliver_mbox;
+extern struct deliver	 deliver_mbox;
 
 /* deliver-write.c */
-extern struct deliver 	 deliver_write;
+extern struct deliver	 deliver_write;
 
 /* deliver-rewrite.c */
-extern struct deliver 	 deliver_rewrite;
+extern struct deliver	 deliver_rewrite;
 
 /* deliver-add-to-cache.c */
-extern struct deliver 	 deliver_add_to_cache;
+extern struct deliver	 deliver_add_to_cache;
 
 /* deliver-remove-from-cache.c */
-extern struct deliver 	 deliver_remove_from_cache;
+extern struct deliver	 deliver_remove_from_cache;
 
 #endif

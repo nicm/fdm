@@ -244,24 +244,24 @@ int
 xmkpath(const char *path, uid_t uid, gid_t gid, mode_t mode)
 {
 	struct stat	sb;
-        char 	       *copy, *ptr, ch;
+	char	       *copy, *ptr, ch;
 
 	copy = ptr = xstrdup(path);
-        do {
-                ptr += strspn(ptr, "/");
-                ptr += strcspn(ptr, "/");
+	do {
+		ptr += strspn(ptr, "/");
+		ptr += strcspn(ptr, "/");
 		ch = *ptr;
 
 		*ptr = '\0';
-                if (stat(copy, &sb) != 0) {
-                        if (errno == ENOENT &&
+		if (stat(copy, &sb) != 0) {
+			if (errno == ENOENT &&
 			    xmkdir(copy, uid, gid, mode) != 0 &&
 			    errno != EEXIST)
 				return (-1);
-                } else if (!S_ISDIR(sb.st_mode)) {
+		} else if (!S_ISDIR(sb.st_mode)) {
 			errno = ENOTDIR;
-                        return (-1);
-                }
+			return (-1);
+		}
 		*ptr = ch;
 	} while (ch != '\0');
 	xfree(copy);

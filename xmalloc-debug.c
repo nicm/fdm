@@ -86,7 +86,7 @@ xmalloc_cmp(struct xmalloc_blk *blk1, struct xmalloc_blk *blk2)
 void
 xmalloc_clear(void)
 {
- 	struct xmalloc_blk	*blk;
+	struct xmalloc_blk	*blk;
 
 	xmalloc_allocated = 0;
 	xmalloc_freed = 0;
@@ -106,17 +106,17 @@ xmalloc_clear(void)
 void
 xmalloc_report(pid_t pid, const char *hdr)
 {
- 	struct xmalloc_blk	*blk;
+	struct xmalloc_blk	*blk;
 	u_char			*iptr;
- 	char	 		 buf[4 * XMALLOC_BYTES + 1], *optr;
- 	size_t		 	 len;
-  	u_int	 		 n;
+	char			 buf[4 * XMALLOC_BYTES + 1], *optr;
+	size_t			 len;
+	u_int			 n;
 	Dl_info			 info;
 
- 	XMALLOC_PRINT("%s: %ld: allocated=%zu, freed=%zu, difference=%zd, "
+	XMALLOC_PRINT("%s: %ld: allocated=%zu, freed=%zu, difference=%zd, "
 	    "peak=%zu", hdr, (long) pid, xmalloc_allocated, xmalloc_freed,
 	    xmalloc_allocated - xmalloc_freed, xmalloc_peak);
- 	XMALLOC_PRINT("%s: %ld: mallocs=%u, reallocs=%u, frees=%u", hdr,
+	XMALLOC_PRINT("%s: %ld: mallocs=%u, reallocs=%u, frees=%u", hdr,
 	    (long) pid, xmalloc_mallocs, xmalloc_reallocs, xmalloc_frees);
 
 	n = 0;
@@ -204,7 +204,7 @@ xmalloc_change(void *caller, void *oldptr, void *newptr, size_t newsize)
 
 	SPLAY_REMOVE(xmalloc_tree, &xmalloc_tree, blk);
 
- 	blk->ptr = newptr;
+	blk->ptr = newptr;
 	blk->size = newsize;
 
 	blk->caller = caller;

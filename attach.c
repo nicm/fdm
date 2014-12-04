@@ -23,7 +23,7 @@
 
 #include "fdm.h"
 
-char 		*attach_type(struct mail *, char *, const char *, char **);
+char		*attach_type(struct mail *, char *, const char *, char **);
 struct attach	*attach_get(struct mail *, char **, size_t *, const char *,
 		    int *);
 
@@ -181,7 +181,7 @@ attach_type(struct mail *m, char *hdr, const char *name, char **value)
 		if (ptr == NULL)
 			break;
 		if (ptr - hdr == namelen && strncmp(hdr, name, namelen) == 0) {
- 			llen -= (ptr - hdr + 1);
+			llen -= (ptr - hdr + 1);
 			hdr = ptr + 1;
 
 			ptr = memchr(hdr, ';', llen);

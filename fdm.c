@@ -268,15 +268,15 @@ usage(void)
 	fprintf(stderr,
 	    "usage: %s [-hklmnqv] [-a name] [-D name=value] [-f conffile] "
 	    "[-u user] [-x name] [fetch|poll|cache] [arguments]\n", __progname);
-        exit(1);
+	exit(1);
 }
 
 int
 main(int argc, char **argv)
 {
-        int		 opt, lockfd, status, res;
+	int		 opt, lockfd, status, res;
 	u_int		 i;
-	enum fdmop       op = FDMOP_NONE;
+	enum fdmop	 op = FDMOP_NONE;
 	const char	*proxy = NULL, *s;
 	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user, *home = NULL;
 	struct utsname	 un;
@@ -288,7 +288,7 @@ main(int argc, char **argv)
 	pid_t		 pid;
 	struct children	 children, dead_children;
 	struct child	*child;
-	struct io       *dead_io;
+	struct io	*dead_io;
 	struct iolist	 iol;
 	double		 tim;
 	struct sigaction act;
@@ -333,18 +333,18 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.excl);
 
 	ARRAY_INIT(&macros);
-        while ((opt = getopt(argc, argv, "a:D:f:hklmnqu:vx:")) != -1) {
-                switch (opt) {
+	while ((opt = getopt(argc, argv, "a:D:f:hklmnqu:vx:")) != -1) {
+		switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, xstrdup(optarg));
 			break;
 		case 'D':
 			ARRAY_ADD(&macros, optarg);
 			break;
-                case 'f':
+		case 'f':
 			if (conf.conf_file == NULL)
 				conf.conf_file = xstrdup(optarg);
-                        break;
+			break;
 		case 'h':
 			home = getenv("HOME");
 			break;
@@ -364,20 +364,20 @@ main(int argc, char **argv)
 			if (conf.def_user == NULL)
 				conf.def_user = xstrdup(optarg);
 			break;
-                case 'v':
+		case 'v':
 			if (conf.debug != -1)
 				conf.debug++;
-                        break;
+			break;
 		case 'q':
 			conf.debug = -1;
 			break;
 		case 'x':
 			ARRAY_ADD(&conf.excl, xstrdup(optarg));
 			break;
-                default:
-                        usage();
-                }
-        }
+		default:
+			usage();
+		}
+	}
 	argc -= optind;
 	argv += optind;
 	if (conf.check_only) {
@@ -426,7 +426,7 @@ main(int argc, char **argv)
 		log_warnx("unknown user: %lu", (u_long) geteuid());
 		exit(1);
 	}
- 	user = xstrdup(pw->pw_name);
+	user = xstrdup(pw->pw_name);
 	if (home != NULL && *home != '\0')
 		conf.user_home = xstrdup(home);
 	else
@@ -445,13 +445,13 @@ main(int argc, char **argv)
 	}
 	log_debug2("loading configuration from %s", conf.conf_file);
 	if (stat(conf.conf_file, &sb) == -1) {
-                log_warn("%s", conf.conf_file);
+		log_warn("%s", conf.conf_file);
 		exit(1);
 	}
 	if (geteuid() != 0 && (sb.st_mode & (S_IROTH|S_IWOTH)) != 0)
 		log_warnx("%s: world readable or writable", conf.conf_file);
-        if (parse_conf(conf.conf_file, &macros) != 0) {
-                log_warn("%s", conf.conf_file);
+	if (parse_conf(conf.conf_file, &macros) != 0) {
+		log_warn("%s", conf.conf_file);
 		exit(1);
 	}
 	ARRAY_FREE(&macros);
@@ -471,7 +471,7 @@ main(int argc, char **argv)
 		conf.queue_low = conf.queue_high * 3 / 4;
 		if (conf.queue_low >= conf.queue_high)
 			conf.queue_low = conf.queue_high - 1;
- 	}
+	}
 
 	/* Set the umask. */
 	umask(conf.file_umask);
@@ -619,12 +619,12 @@ main(int argc, char **argv)
 	/* If -n, bail now, otherwise check there is something to work with. */
 	if (conf.check_only)
 		exit(0);
-        if (TAILQ_EMPTY(&conf.accounts)) {
-                log_warnx("no accounts specified");
+	if (TAILQ_EMPTY(&conf.accounts)) {
+		log_warnx("no accounts specified");
 		exit(1);
 	}
-        if (op == FDMOP_FETCH && TAILQ_EMPTY(&conf.rules)) {
-                log_warnx("no rules specified");
+	if (op == FDMOP_FETCH && TAILQ_EMPTY(&conf.rules)) {
+		log_warnx("no rules specified");
 		exit(1);
 	}
 
@@ -700,8 +700,8 @@ main(int argc, char **argv)
 	}
 	conf.lock_file = lock;
 
-        SSL_library_init();
-        SSL_load_error_strings();
+	SSL_library_init();
+	SSL_load_error_strings();
 
 #ifdef DEBUG
 	COUNTFDS("parent");
@@ -714,7 +714,7 @@ main(int argc, char **argv)
 			TAILQ_INSERT_HEAD(&actaq, a, active_entry);
 	}
 	if (TAILQ_EMPTY(&actaq)) {
-                log_warnx("no accounts found");
+		log_warnx("no accounts found");
 		res = 1;
 		goto out;
 	}
@@ -869,7 +869,7 @@ main(int argc, char **argv)
 	}
 
 	tim = get_time() - tim;
- 	log_debug2("parent: finished, total time %.3f seconds", tim);
+	log_debug2("parent: finished, total time %.3f seconds", tim);
 
 out:
 	if (!conf.allow_many && *conf.lock_file != '\0')
@@ -883,11 +883,11 @@ out:
 		if (conf.proxy->user != NULL)
 			xfree(conf.proxy->user);
 		if (conf.proxy->pass != NULL)
- 			xfree(conf.proxy->pass);
+			xfree(conf.proxy->pass);
 		if (conf.proxy->server.host != NULL)
- 			xfree(conf.proxy->server.host);
+			xfree(conf.proxy->server.host);
 		if (conf.proxy->server.port != NULL)
- 			xfree(conf.proxy->server.port);
+			xfree(conf.proxy->server.port);
 		xfree(conf.proxy);
 	}
 	while (!TAILQ_EMPTY(&conf.caches)) {

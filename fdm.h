@@ -62,7 +62,7 @@
 #define DEFSTRIPCHARS	"\\<>$%^&*|{}[]\"'`;"
 #define MAXACTIONCHAIN	5
 #define DEFTIMEOUT	(900 * 1000)
-#define LOCKSLEEPTIME	10000 				/* 0.1 seconds */
+#define LOCKSLEEPTIME	10000				/* 0.1 seconds */
 #define LOCKTOTALTIME	10000000			/* 10 seconds */
 #define MAXNAMESIZE	64
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
@@ -122,7 +122,7 @@ extern char	*__progname;
 /* Convert a file mode for %o%o%o printf. */
 #define MODE(m) \
 	(m & S_IRUSR ? 4 : 0) + (m & S_IWUSR ? 2 : 0) + (m & S_IXUSR ? 1 : 0), \
-    	(m & S_IRGRP ? 4 : 0) +	(m & S_IWGRP ? 2 : 0) +	(m & S_IXGRP ? 1 : 0), \
+	(m & S_IRGRP ? 4 : 0) +	(m & S_IWGRP ? 2 : 0) +	(m & S_IXGRP ? 1 : 0), \
 	(m & S_IROTH ? 4 : 0) +	(m & S_IWOTH ? 2 : 0) + (m & S_IXOTH ? 1 : 0)
 
 /* Definition to shut gcc up about unused arguments. */
@@ -265,7 +265,7 @@ struct strb {
 	u_int		 ent_max;
 
 	size_t		 str_used;
-	size_t	 	 str_size;
+	size_t		 str_size;
 };
 
 /* Initial string block slots and block size. */
@@ -316,15 +316,15 @@ struct rmlist {
 
 /* Cache data. */
 struct cache {
-	TDB_CONTEXT	       	*db;
+	TDB_CONTEXT		*db;
 
-	char		      	*path;
+	char			*path;
 	uint64_t		 expire;
 
 	TAILQ_ENTRY(cache)	 entry;
 };
 struct cacheitem {
-	uint64_t 		 tim;
+	uint64_t		 tim;
 	uint32_t		 pad[4];
 } __packed;
 
@@ -345,10 +345,10 @@ struct mail {
 	char			*data;
 	size_t			 off;
 
-	size_t	 	 	 size;		/* size of mail */
-	size_t	 	 	 space;		/* size of allocated area */
+	size_t			 size;		/* size of mail */
+	size_t			 space;		/* size of allocated area */
 
-	size_t		 	 body;		/* offset of body */
+	size_t			 body;		/* offset of body */
 
 	ARRAY_DECL(, size_t)	 wrapped;	/* list of wrapped lines */
 	char			 wrapchar;	/* wrapped character */
@@ -394,11 +394,11 @@ TAILQ_HEAD(mail_queue, mail_ctx);
 
 /* An attachment. */
 struct attach {
-	u_int	 	 	 idx;
+	u_int			 idx;
 
-	size_t		 	 data;
-	size_t	 	 	 body;
-	size_t   	 	 size;
+	size_t			 data;
+	size_t			 body;
+	size_t			 size;
 
 	char			*type;
 	char			*name;
@@ -419,8 +419,8 @@ enum msgtype {
 
 /* Privsep message data. */
 struct msgdata {
-	int	 		 	 error;
-	struct mail		 	 mail;
+	int				 error;
+	struct mail			 mail;
 
 	/* These only work so long as they aren't moved in either process. */
 	struct account			*account;
@@ -428,7 +428,7 @@ struct msgdata {
 	struct match_command_data	*cmddata;
 
 	uid_t				 uid;
-	gid_t	 			 gid;
+	gid_t				 gid;
 };
 
 /* Privsep message buffer. */
@@ -474,7 +474,7 @@ struct child_deliver_data {
 	void			 (*hook)(int, struct account *, struct msg *,
 				      struct child_deliver_data *, int *);
 
-	struct child 		*child; /* the source of the request */
+	struct child		*child; /* the source of the request */
 
 	uid_t			 uid;
 	gid_t			 gid;
@@ -605,14 +605,14 @@ ARRAY_DECL(userfunctions, userfunction);
 
 /* Configuration settings. */
 struct conf {
-	int 			 debug;
+	int			 debug;
 	int			 syslog;
 
 	uid_t			 child_uid;
 	gid_t			 child_gid;
 	char			*tmp_dir;
 
-	struct strings	 	 incl;
+	struct strings		 incl;
 	struct strings		 excl;
 
 	struct proxy		*proxy;
@@ -645,7 +645,7 @@ struct conf {
 
 	size_t			 max_size;
 	int			 timeout;
-	int		         del_big;
+	int			 del_big;
 	u_int			 lock_types;
 
 	char			*def_user;
@@ -653,19 +653,19 @@ struct conf {
 
 	TAILQ_HEAD(, cache)	 caches;
 	TAILQ_HEAD(, account)	 accounts;
- 	TAILQ_HEAD(, action)	 actions;
+	TAILQ_HEAD(, action)	 actions;
 	struct rules		 rules;
 };
 extern struct conf		 conf;
 
 /* Command flags. */
-#define CMD_IN  0x1
+#define CMD_IN	0x1
 #define CMD_OUT 0x2
 #define CMD_ONCE 0x4
 
 /* Command data. */
 struct cmd {
-	pid_t	 	 pid;
+	pid_t		 pid;
 	int		 status;
 	int		 flags;
 
@@ -708,16 +708,16 @@ long long	 strtonum(const char *, long long, long long, const char **);
 
 #ifndef HAVE_STRLCPY
 /* strlcpy.c */
-size_t	 	 strlcpy(char *, const char *, size_t);
+size_t		 strlcpy(char *, const char *, size_t);
 #endif
 
 #ifndef HAVE_STRLCAT
 /* strlcat.c */
-size_t	 	 strlcat(char *, const char *, size_t);
+size_t		 strlcat(char *, const char *, size_t);
 #endif
 
 /* shm.c */
-char  		*shm_path(struct shm *);
+char		*shm_path(struct shm *);
 void		*shm_create(struct shm *, size_t);
 int		 shm_owner(struct shm *, uid_t, gid_t);
 void		 shm_destroy(struct shm *);
@@ -726,26 +726,26 @@ void		*shm_reopen(struct shm *);
 void		*shm_resize(struct shm *, size_t, size_t);
 
 /* lex.c */
-int 	 	 	yylex(void);
+int			yylex(void);
 
 /* parse.y */
 extern struct macros	parse_macros;
-extern struct files     parse_filestack;
+extern struct files	parse_filestack;
 extern struct file     *parse_file;
 extern struct strb     *parse_tags;
-int	 		parse_conf(const char *, struct strings *);
+int			parse_conf(const char *, struct strings *);
 __dead printflike1 void yyerror(const char *, ...);
 
 /* parse-fn.c */
 char		*expand_path(const char *, const char *);
 char		*run_command(const char *, const char *);
-char 		*fmt_replstrs(const char *, struct replstrs *);
-char 		*fmt_strings(const char *, struct strings *);
+char		*fmt_replstrs(const char *, struct replstrs *);
+char		*fmt_strings(const char *, struct strings *);
 int		 have_accounts(char *);
 struct account	*find_account(char *);
-struct action  	*find_action(char *);
+struct action	*find_action(char *);
 struct actions	*match_actions(const char *);
-struct macro 	*extract_macro(char *);
+struct macro	*extract_macro(char *);
 struct macro	*find_macro(const char *);
 void		 find_netrc(const char *, char **, char **);
 int		 find_netrc1(const char *, char **, char **, char **);
@@ -761,7 +761,7 @@ void		 print_action(struct action *);
 void		 print_rule(struct rule *);
 
 /* netrc.c */
-FILE 		*netrc_open(const char *, char **);
+FILE		*netrc_open(const char *, char **);
 void		 netrc_close(FILE *);
 int		 netrc_lookup(FILE *, const char *, char **, char **);
 
@@ -772,7 +772,7 @@ extern volatile sig_atomic_t sigterm;
 double		 get_time(void);
 void		 dropto(uid_t, gid_t);
 int		 check_incl(const char *);
-int	         check_excl(const char *);
+int		 check_excl(const char *);
 int		 use_account(struct account *, char **);
 void		 fill_host(void);
 __dead void	 usage(void);
@@ -788,9 +788,9 @@ int		 re_block(struct re *, const void *, size_t, struct rmlist *,
 void		 re_free(struct re *);
 
 /* attach.c */
-struct attach 	*attach_visit(struct attach *, u_int *);
+struct attach	*attach_visit(struct attach *, u_int *);
 void printflike2 attach_log(struct attach *, const char *, ...);
-struct attach 	*attach_build(struct mail *);
+struct attach	*attach_build(struct mail *);
 void		 attach_free(struct attach *);
 
 /* lookup.c */
@@ -808,7 +808,7 @@ int		 privsep_check(struct io *);
 int		 privsep_recv(struct io *, struct msg *, struct msgbuf *);
 
 /* command.c */
-struct cmd 	*cmd_start(const char *, int, const char *, size_t, char **);
+struct cmd	*cmd_start(const char *, int, const char *, size_t, char **);
 int		 cmd_poll(struct cmd *, char **, char **, char **, size_t *,
 		     int, char **);
 void		 cmd_free(struct cmd *);
@@ -816,9 +816,9 @@ void		 cmd_free(struct cmd *);
 /* child.c */
 int		 child_fork(void);
 __dead void	 child_exit(int);
-struct child 	*child_start(struct children *, uid_t, gid_t,
-    		     int (*)(struct child *, struct io *),
-    		     int (*)(struct child *, struct msg *, struct msgbuf *),
+struct child	*child_start(struct children *, uid_t, gid_t,
+		     int (*)(struct child *, struct io *),
+		     int (*)(struct child *, struct msg *, struct msgbuf *),
 		     void *, struct child *);
 
 /* child-fetch.c */
@@ -828,9 +828,9 @@ int		 child_fetch(struct child *, struct io *);
 /* child-deliver.c */
 int		 child_deliver(struct child *, struct io *);
 void		 child_deliver_action_hook(int, struct account *, struct msg *,
-    		     struct child_deliver_data *, int *);
+		     struct child_deliver_data *, int *);
 void		 child_deliver_cmd_hook(int, struct account *, struct msg *,
-    		     struct child_deliver_data *, int *);
+		     struct child_deliver_data *, int *);
 
 /* parent-fetch.c */
 int		 parent_fetch(struct child *, struct msg *, struct msgbuf *);
@@ -844,27 +844,27 @@ void		 timer_set(int);
 void		 timer_cancel(void);
 
 /* connect.c */
-char 		*sslerror(const char *);
+char		*sslerror(const char *);
 char		*sslerror2(int, const char *);
 void		 getaddrs(const char *, char **, char **);
-struct proxy 	*getproxy(const char *);
-struct io 	*connectproxy(struct server *, int, struct proxy *,
-    		     const char *, int, char **);
+struct proxy	*getproxy(const char *);
+struct io	*connectproxy(struct server *, int, struct proxy *,
+		     const char *, int, char **);
 struct io	*connectio(struct server *, int, const char *, int, char **);
 
 /* file.c */
 int printflike3	 ppath(char *, size_t, const char *, ...);
 int		 vppath(char *, size_t, const char *, va_list);
-int 		 openlock(const char *, int, u_int);
-int 		 createlock(const char *, int, uid_t, gid_t, mode_t, u_int);
-void 		 closelock(int, const char *, u_int);
+int		 openlock(const char *, int, u_int);
+int		 createlock(const char *, int, uid_t, gid_t, mode_t, u_int);
+void		 closelock(int, const char *, u_int);
 int		 locksleep(const char *, const char *, long long *);
-int 		 xcreate(const char *, int, uid_t, gid_t, mode_t);
+int		 xcreate(const char *, int, uid_t, gid_t, mode_t);
 int		 xmkdir(const char *, uid_t, gid_t, mode_t);
 int		 xmkpath(const char *, uid_t, gid_t, mode_t);
-const char 	*checkmode(struct stat *, mode_t);
-const char 	*checkowner(struct stat *, uid_t);
-const char 	*checkgroup(struct stat *, gid_t);
+const char	*checkmode(struct stat *, mode_t);
+const char	*checkowner(struct stat *, uid_t);
+const char	*checkgroup(struct stat *, gid_t);
 int		 safemove(const char *, const char *);
 
 /* mail.c */
@@ -885,7 +885,7 @@ void		 count_lines(struct mail *, u_int *, u_int *);
 int		 append_line(struct mail *, const char *, size_t);
 char		*find_address(char *, size_t, size_t *);
 void		 trim_from(struct mail *);
-char 	        *make_from(struct mail *, char *);
+char		*make_from(struct mail *, char *);
 u_int		 fill_wrapped(struct mail *);
 void		 set_wrapped(struct mail *, char);
 
@@ -912,19 +912,19 @@ int		 db_clear(TDB_CONTEXT *);
 void		 cleanup_check(void);
 void		 cleanup_flush(void);
 void		 cleanup_purge(void);
-void 		 cleanup_register(const char *);
-void 		 cleanup_deregister(const char *);
+void		 cleanup_register(const char *);
+void		 cleanup_deregister(const char *);
 
 /* strb.c */
 void		 strb_create(struct strb **);
 void		 strb_clear(struct strb **);
 void		 strb_destroy(struct strb **);
 void		 strb_dump(struct strb *, const char *,
-    		     void (*)(const char *, ...));
+		     void (*)(const char *, ...));
 void printflike3 strb_add(struct strb **, const char *, const char *, ...);
 void		 strb_vadd(struct strb **, const char *, const char *, va_list);
 struct strbent	*strb_find(struct strb *, const char *);
-struct strbent 	*strb_match(struct strb *, const char *);
+struct strbent	*strb_match(struct strb *, const char *);
 
 /* replace.c */
 void printflike3 add_tag(struct strb **, const char *, const char *, ...);
@@ -933,9 +933,9 @@ const char	*match_tag(struct strb *, const char *);
 void		 default_tags(struct strb **, const char *);
 void		 update_tags(struct strb **, struct userdata *);
 void		 reset_tags(struct strb **);
-char 		*replacestr(struct replstr *, struct strb *, struct mail *,
-    		     struct rmlist *);
-char 		*replacepath(struct replpath *, struct strb *, struct mail *,
+char		*replacestr(struct replstr *, struct strb *, struct mail *,
+		     struct rmlist *);
+char		*replacepath(struct replpath *, struct strb *, struct mail *,
 		     struct rmlist *, const char *);
 
 /* log.c */
@@ -969,8 +969,8 @@ int		 xvasprintf(char **, const char *, va_list);
 int printflike3	 xsnprintf(char *, size_t, const char *, ...);
 int		 xvsnprintf(char *, size_t, const char *, va_list);
 int printflike3	 printpath(char *, size_t, const char *, ...);
-char 		*xdirname(const char *);
-char 		*xbasename(const char *);
+char		*xdirname(const char *);
+char		*xbasename(const char *);
 
 /* xmalloc-debug.c */
 #ifdef DEBUG

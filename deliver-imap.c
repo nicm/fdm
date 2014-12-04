@@ -170,7 +170,7 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct fetch_ctx		 fctx;
 	struct fetch_imap_data		 fdata;
 	char				*cause, *folder, *ptr, *line;
-	size_t		 		 len, maillen;
+	size_t				 len, maillen;
 	u_int				 total, body;
 
 	/* Connect to the IMAP server. */

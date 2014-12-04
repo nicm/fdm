@@ -38,7 +38,7 @@ cleanup_check(void)
 
 	if (!TAILQ_EMPTY(&cleanlist)) {
 		TAILQ_FOREACH(cent, &cleanlist, entry)
-		        log_debug("cleanup: %s", cent->path);
+			log_debug("cleanup: %s", cent->path);
 		fatalx("list not empty");
 	}
 }
@@ -54,7 +54,7 @@ cleanup_purge(void)
 	 */
 
 	saved_errno = errno;
- 	TAILQ_FOREACH(cent, &cleanlist, entry) {
+	TAILQ_FOREACH(cent, &cleanlist, entry) {
 		if (unlink(cent->path) != 0) {
 			write(STDERR_FILENO, "unlink failed\n", 14);
 			_exit(1);
@@ -117,7 +117,7 @@ cleanup_deregister(const char *path)
 	struct cleanent	*cent;
 
 #if 0
- 	log_debug("cleanup_deregister: %s by %ld", path, (long) getpid());
+	log_debug("cleanup_deregister: %s by %ld", path, (long) getpid());
 #endif
 
 	if (path == NULL || *path == '\0')
@@ -127,7 +127,7 @@ cleanup_deregister(const char *path)
 	if (sigprocmask(SIG_BLOCK, &set, &oset) < 0)
 		fatal("sigprocmask failed");
 
- 	TAILQ_FOREACH(cent, &cleanlist, entry) {
+	TAILQ_FOREACH(cent, &cleanlist, entry) {
 		if (strcmp(cent->path, path) == 0) {
 			TAILQ_REMOVE(&cleanlist, cent, entry);
 			xfree(cent->path);

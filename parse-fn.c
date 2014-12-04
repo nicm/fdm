@@ -254,7 +254,7 @@ make_actlist(struct actlist *tl, char *buf, size_t len)
 	struct actitem			*ti;
 	struct deliver_action_data	*data;
 	char				 desc[DESCBUFSIZE], *s;
-	size_t		 		 off;
+	size_t				 off;
 
 	off = 0;
 	TAILQ_FOREACH(ti, tl, entry) {
@@ -452,7 +452,7 @@ free_account(struct account *a)
 
 	if (a->fetch == &fetch_pop3) {
 		struct fetch_pop3_data		*data = a->data;
- 		if (data->path != NULL)
+		if (data->path != NULL)
 			xfree(data->path);
 		xfree(data->user);
 		xfree(data->pass);
@@ -462,7 +462,7 @@ free_account(struct account *a)
 			freeaddrinfo(data->server.ai);
 	} else if (a->fetch == &fetch_pop3pipe) {
 		struct fetch_pop3_data		*data = a->data;
- 		if (data->path != NULL)
+		if (data->path != NULL)
 			xfree(data->path);
 		xfree(data->user);
 		xfree(data->pass);
@@ -472,7 +472,7 @@ free_account(struct account *a)
 		xfree(data->user);
 		xfree(data->pass);
 		free_strings(data->folders);
- 		ARRAY_FREEALL(data->folders);
+		ARRAY_FREEALL(data->folders);
 		xfree(data->server.host);
 		xfree(data->server.port);
 		if (data->server.ai != NULL)
@@ -484,7 +484,7 @@ free_account(struct account *a)
 		if (data->pass != NULL)
 			xfree(data->pass);
 		free_strings(data->folders);
- 		ARRAY_FREEALL(data->folders);
+		ARRAY_FREEALL(data->folders);
 		xfree(data->pipecmd);
 	} else if (a->fetch == &fetch_maildir) {
 		struct fetch_maildir_data	*data = a->data;

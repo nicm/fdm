@@ -38,7 +38,7 @@ struct cmd *
 cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 {
 	struct cmd	*cmd;
-	int	 	 fd_in[2], fd_out[2], fd_err[2];
+	int		 fd_in[2], fd_out[2], fd_err[2];
 
 	cmd = xmalloc(sizeof *cmd);
 	cmd->pid = -1;
@@ -117,22 +117,22 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 		close(fd_err[1]);
 
 #ifdef SIGINFO
-                if (signal(SIGINFO, SIG_DFL) == SIG_ERR)
+		if (signal(SIGINFO, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
 #endif
-                if (signal(SIGUSR1, SIG_DFL) == SIG_ERR)
+		if (signal(SIGUSR1, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
-                if (signal(SIGINT, SIG_DFL) == SIG_ERR)
+		if (signal(SIGINT, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
-                if (signal(SIGTERM, SIG_DFL) == SIG_ERR)
+		if (signal(SIGTERM, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
-                if (signal(SIGPIPE, SIG_DFL) == SIG_ERR)
+		if (signal(SIGPIPE, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
-                if (signal(SIGUSR1, SIG_DFL) == SIG_ERR)
+		if (signal(SIGUSR1, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
-                if (signal(SIGUSR2, SIG_DFL) == SIG_ERR)
+		if (signal(SIGUSR2, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
-                if (signal(SIGCHLD, SIG_DFL) == SIG_ERR)
+		if (signal(SIGCHLD, SIG_DFL) == SIG_ERR)
 			fatal("signal failed");
 
 		execl(_PATH_BSHELL, "sh", "-c", s, (char *) NULL);
@@ -161,7 +161,7 @@ cmd_start(const char *s, int flags, const char *buf, size_t len, char **cause)
 	if (fd_in[1] != -1) {
 		cmd->io_in = io_create(fd_in[1], NULL, IO_LF);
 		io_writeonly(cmd->io_in);
- 		if (cmd->len != 0)
+		if (cmd->len != 0)
 			cmd->io_in->flags |= IOF_MUSTWR;
 	}
 	cmd->io_out = NULL;

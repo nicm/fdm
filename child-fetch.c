@@ -50,14 +50,14 @@ double			 fetch_time_polling = 0.0;
 double			 fetch_time_blocked = 0.0;
 #endif
 
-struct mail_queue 	 fetch_matchq;
-struct mail_queue 	 fetch_deliverq;
+struct mail_queue	 fetch_matchq;
+struct mail_queue	 fetch_deliverq;
 
-u_int		  	 fetch_dropped;
-u_int		  	 fetch_kept;
+u_int			 fetch_dropped;
+u_int			 fetch_kept;
 
-u_int			 fetch_queued;   /* number of mails queued */
-u_int			 fetch_blocked;  /* blocked for parent */
+u_int			 fetch_queued;	 /* number of mails queued */
+u_int			 fetch_blocked;	 /* blocked for parent */
 
 int
 open_cache(struct account *a, struct cache *cache)
@@ -94,9 +94,9 @@ int
 child_fetch(struct child *child, struct io *pio)
 {
 	struct child_fetch_data	*data = child->data;
-	enum fdmop 		 op = data->op;
-	struct account 		*a = data->account;
-	struct msg	 	 msg;
+	enum fdmop		 op = data->op;
+	struct account		*a = data->account;
+	struct msg		 msg;
 	int			 error, flags;
 	double			 tim;
 
@@ -346,13 +346,13 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 	struct msgbuf	 msgbuf;
 	struct fetch_ctx fctx;
 	struct cache	*cache;
-	struct iolist 	 iol;
+	struct iolist	 iol;
 	int		 aborted, complete, holding, timeout;
 
 	log_debug2("%s: fetching", a->name);
 
 	TAILQ_INIT(&fetch_matchq);
- 	TAILQ_INIT(&fetch_deliverq);
+	TAILQ_INIT(&fetch_deliverq);
 	fetch_queued = fetch_dropped = fetch_kept = 0;
 
 	if (nflags & FETCH_POLL && a->fetch->total == NULL) {
@@ -524,11 +524,11 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 {
 	struct mail_ctx		*mctx;
 	char			*hdr, rtime[128], *rhost, total[16];
-	u_int		 	 n, b;
-	size_t		 	 size;
-	int		 	 error;
- 	struct tm		*tm;
-	time_t		 	 t;
+	u_int			 n, b;
+	size_t			 size;
+	int			 error;
+	struct tm		*tm;
+	time_t			 t;
 
 	/*
 	 * Check for oversize mails. This must be first since there is no
@@ -550,13 +550,13 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 		return (0);
 	}
 
- 	/*
+	/*
 	 * Find the mail body (needed by trim_from). This is probably slower
 	 * than doing it during fetching but it guarantees consistency.
 	 */
 	m->body = find_body(m);
 
- 	/* Trim "From" line, if any. */
+	/* Trim "From" line, if any. */
 	trim_from(m);
 
 	/* Check for empty mails. */
@@ -571,7 +571,7 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 	m->tim = get_time();
 
 	/* Add account name tag. */
- 	add_tag(&m->tags, "account", "%s", a->name);
+	add_tag(&m->tags, "account", "%s", a->name);
 
 	/* Add mail time tags. */
 	if (mailtime(m, &t) != 0) {

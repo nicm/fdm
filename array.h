@@ -38,7 +38,7 @@
 	if (SIZE_MAX / ((a)->num + (n)) < ARRAY_ITEMSIZE(a))		\
 		fatalx("size too big");					\
 	if ((a)->space == 0) {						\
-	       	(a)->space = ARRAY_INITIALSPACE(a);			\
+		(a)->space = ARRAY_INITIALSPACE(a);			\
 		(a)->list = xrealloc((a)->list, 1, (a)->space);		\
 	}								\
 	while ((a)->space <= ((a)->num + (n)) * ARRAY_ITEMSIZE(a)) {	\
@@ -56,7 +56,7 @@
 
 #define ARRAY_INIT(a) do {						\
 	(a)->num = 0;							\
-	(a)->list = NULL;		 				\
+	(a)->list = NULL;						\
 	(a)->space = 0;							\
 } while (0)
 #define ARRAY_CLEAR(a) do {						\
@@ -75,7 +75,7 @@
 #define ARRAY_INSERT(a, i, s) do {					\
 	ARRAY_ENSURE(a, 1);						\
 	if ((i) < (a)->num) {						\
-		memmove((a)->list + (i) + 1, (a)->list + (i), 		\
+		memmove((a)->list + (i) + 1, (a)->list + (i),		\
 		    ARRAY_ITEMSIZE(a) * ((a)->num - (i)));		\
 	}								\
 	(a)->list[i] = s;						\
@@ -83,7 +83,7 @@
 } while (0)
 #define ARRAY_REMOVE(a, i) do {						\
 	if ((i) < (a)->num - 1) {					\
-		memmove((a)->list + (i), (a)->list + (i) + 1, 		\
+		memmove((a)->list + (i), (a)->list + (i) + 1,		\
 		    ARRAY_ITEMSIZE(a) * ((a)->num - (i) - 1));		\
 	}								\
 	(a)->num--;							\
@@ -97,7 +97,7 @@
 } while (0)
 #define ARRAY_TRUNC(a, n) do {						\
 	if ((a)->num > n)						\
-		(a)->num -= n;				       		\
+		(a)->num -= n;						\
 	else								\
 		ARRAY_FREE(a);						\
 } while (0)

@@ -34,7 +34,7 @@ int		 fill_from_strings(struct mail_ctx *, struct rule *,
 int		 fill_from_string(struct mail_ctx *, struct rule *,
 		     struct replstr *);
 int		 fill_from_action(struct mail_ctx *, struct rule *,
-    		     struct action *, struct replstrs *);
+		     struct action *, struct replstrs *);
 
 int		 start_action(struct mail_ctx *, struct deliver_ctx *);
 int		 finish_action(struct deliver_ctx *, struct msg *,
@@ -47,7 +47,7 @@ int		 finish_action(struct deliver_ctx *, struct msg *,
 /*
  * Number of chained actions. Limit on recursion with things like:
  *
- * 	action "name" { action "name" }
+ *	action "name" { action "name" }
  */
 u_int	chained;
 
@@ -416,7 +416,7 @@ fill_from_action(struct mail_ctx *mctx, struct rule *r, struct action *t,
 	struct deliver_action_data	*data;
 	struct actitem			*ti;
 	struct deliver_ctx		*dctx;
-	u_int			 	 i;
+	u_int				 i;
 	char				*user;
 	struct userdata			*udata;
 
@@ -472,7 +472,7 @@ start_action(struct mail_ctx *mctx, struct deliver_ctx *dctx)
 {
 	struct account	*a = dctx->account;
 	struct action	*t = dctx->action;
- 	struct actitem	*ti = dctx->actitem;
+	struct actitem	*ti = dctx->actitem;
 	struct mail	*m = dctx->mail;
 	struct msg	 msg;
 	struct msgbuf	 msgbuf;
@@ -526,7 +526,7 @@ int
 finish_action(struct deliver_ctx *dctx, struct msg *msg, struct msgbuf *msgbuf)
 {
 	struct account	*a = dctx->account;
- 	struct actitem	*ti = dctx->actitem;
+	struct actitem	*ti = dctx->actitem;
 	struct mail	*m = dctx->mail;
 	u_int		 lines;
 

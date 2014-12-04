@@ -225,11 +225,11 @@ getproxy(const char *xurl)
 		int		 ssl;
 		const char	*port;
 	} *proxyent, proxylist[] = {
-		{ "http://",    PROXY_HTTP,   0, "http" },
-		{ "https://",   PROXY_HTTPS,  1, "https" },
-		{ "socks://",   PROXY_SOCKS5, 0, "socks" },
-		{ "socks5://",  PROXY_SOCKS5, 0, "socks" },
-		{ NULL,	        0,	      0, NULL }
+		{ "http://",	PROXY_HTTP,   0, "http" },
+		{ "https://",	PROXY_HTTPS,  1, "https" },
+		{ "socks://",	PROXY_SOCKS5, 0, "socks" },
+		{ "socks5://",	PROXY_SOCKS5, 0, "socks" },
+		{ NULL,		0,	      0, NULL }
 	};
 
 	/* Copy the url so we can mangle it. */
@@ -357,7 +357,7 @@ int
 getport(char *port)
 {
 	struct servent	*sv;
-	int	         n;
+	int		 n;
 	const char	*errstr;
 
 	sv = getservbyname(port, "tcp");
@@ -577,7 +577,7 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 		SSL_CTX_set_options(ctx, SSL_OP_ALL);
 	else
 		SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_NO_TLSv1);
-        SSL_CTX_set_default_verify_paths(ctx);
+	SSL_CTX_set_default_verify_paths(ctx);
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
 	ssl = SSL_new(ctx);

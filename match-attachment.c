@@ -162,7 +162,7 @@ void
 match_attachment_desc(struct expritem *ei, char *buf, size_t len)
 {
 	struct match_attachment_data	*data = ei->data;
-	const char 			*cmp = "";
+	const char			*cmp = "";
 
 	if (data->cmp == CMP_LT)
 		cmp = "<";

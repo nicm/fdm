@@ -32,7 +32,7 @@ struct match {
 	const char	*name;
 
 	int		 (*match)(struct mail_ctx *, struct expritem *);
-	void 		 (*desc)(struct expritem *, char *, size_t);
+	void		 (*desc)(struct expritem *, char *, size_t);
 };
 
 /* Match attachment data. */
@@ -45,7 +45,7 @@ struct match_attachment_data {
 		ATTACHOP_ANYNAME
 	} op;
 
-	enum cmp	 	 cmp;
+	enum cmp		 cmp;
 	union {
 		size_t		 size;
 		long long	 num;
@@ -79,14 +79,14 @@ struct match_tagged_data {
 /* Match string data. */
 struct match_string_data {
 	struct replstr	 str;
-	struct re 	 re;
+	struct re	 re;
 };
 
 /* Match regexp data. */
 struct match_regexp_data {
 	struct re	 re;
 
-	enum area 	 area;
+	enum area	 area;
 };
 
 /* Match command data. */

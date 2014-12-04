@@ -46,17 +46,17 @@ deliver_rewrite_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct mail			*m = dctx->mail;
 	struct deliver_rewrite_data	*data = ti->data;
 	struct mail			*md = &dctx->wr_mail;
-        char				*s, *cause, *out, *err;
-	int	 			 status;
+	char				*s, *cause, *out, *err;
+	int				 status;
 	struct cmd			*cmd = NULL;
 	char				*lbuf;
 	size_t				 llen;
 
 	s = replacepath(&data->cmd, m->tags, m, &m->rml, dctx->udata->home);
-        if (s == NULL || *s == '\0') {
+	if (s == NULL || *s == '\0') {
 		log_warnx("%s: empty command", a->name);
 		goto error;
-        }
+	}
 
 	log_debug2("%s: rewriting using \"%s\"", a->name, s);
 

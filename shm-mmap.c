@@ -104,8 +104,8 @@ shm_create(struct shm *shm, size_t size)
 	int	 saved_errno;
 	char	*path;
 
-        if (size == 0)
-                fatalx("zero size");
+	if (size == 0)
+		fatalx("zero size");
 
 	if (ppath(
 	    shm->name, sizeof shm->name, "%s.XXXXXXXXXX", __progname) != 0)
@@ -204,9 +204,9 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 	size_t	 newsize = nmemb * size;
 
 	if (size == 0)
-                fatalx("zero size");
-        if (SIZE_MAX / nmemb < size)
-                fatalx("nmemb * size > SIZE_MAX");
+		fatalx("zero size");
+	if (SIZE_MAX / nmemb < size)
+		fatalx("nmemb * size > SIZE_MAX");
 
 #ifndef HAVE_MREMAP
 	if (munmap(shm->data, shm->size) != 0)
