@@ -68,7 +68,6 @@ dist_fdm_SOURCES = \
 	io.c \
 	io.h \
 	log.c \
-	lookup-courier.c \
 	lookup-passwd.c \
 	lookup.c \
 	mail-state.c \
