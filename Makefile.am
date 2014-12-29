@@ -123,4 +123,4 @@ upload-index.html: update-index.html
 	scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdocs
 
 update-index.html:
-	sed "s|%%VERSION%%|${VERSION}|g" <index.html.in >index.html
+	sed "s|%%RELEASE%%|${RELEASE}|g" <index.html.in >index.html
