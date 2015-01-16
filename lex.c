@@ -111,6 +111,7 @@ static const struct token tokens[] = {
 	{ "headers", TOKHEADERS },
 	{ "hour", TOKHOURS },
 	{ "hours", TOKHOURS },
+	{ "ignore-errors", TOKIGNOREERRORS },
 	{ "imap", TOKIMAP },
 	{ "imaps", TOKIMAPS },
 	{ "in", TOKIN },

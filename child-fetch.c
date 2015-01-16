@@ -240,6 +240,20 @@ fetch_deliver(struct account *a, struct msg *msg, struct msgbuf *msgbuf)
 		case MAIL_ERROR:
 			log_debug3("%s: deliver"
 			    " message %u, error", a->name, this->mail->idx);
+
+			if (conf.ignore_errors) {
+				log_warnx("%s: fetching error. ignored",
+				    a->name);
+
+				TAILQ_REMOVE(&fetch_deliverq, this, entry);
+				TAILQ_INSERT_TAIL(&fetch_matchq, this, entry);
+
+				this->mail->decision = DECISION_KEEP;
+				if (fetch_dequeue(a, this) != 0)
+					return (-1);
+				break;
+			}
+
 			return (-1);
 		case MAIL_MATCH:
 			log_debug3("%s: deliver"

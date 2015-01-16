@@ -167,6 +167,7 @@ yyerror(const char *fmt, ...)
 %token TOKHEADER
 %token TOKHEADERS
 %token TOKHOURS
+%token TOKIGNOREERRORS
 %token TOKIMAP
 %token TOKIMAPS
 %token TOKIMPLACT
@@ -590,6 +591,10 @@ set: TOKSET TOKMAXSIZE size
    | TOKSET TOKDELTOOBIG
      {
 	     conf.del_big = 1;
+     }
+   | TOKSET TOKIGNOREERRORS
+     {
+	     conf.ignore_errors = 1;
      }
    | TOKSET TOKALLOWMANY
      {

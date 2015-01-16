@@ -646,6 +646,7 @@ struct conf {
 	size_t			 max_size;
 	int			 timeout;
 	int			 del_big;
+	int			 ignore_errors;
 	u_int			 lock_types;
 
 	char			*def_user;

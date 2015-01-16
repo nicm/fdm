@@ -105,6 +105,10 @@ This is the length to which the message queue must drop before fetching
 continues after the
 .Ic queue-high
 limit has been reached.
+.It Ic ignore-errors
+If set,
+.Nm
+will continue to process mail if a delivery fails rather than aborting.
 .It Ic allow-multiple
 If this option is specified,
 .Xr fdm 1

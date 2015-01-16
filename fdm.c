@@ -538,6 +538,8 @@ main(int argc, char **argv)
 		off = strlcat(tmp, "delete-oversized, ", sizeof tmp);
 	if (conf.verify_certs)
 		off = strlcat(tmp, "verify-certificates, ", sizeof tmp);
+	if (conf.ignore_errors)
+		off = strlcat(tmp, "ignore-errors, ", sizeof tmp);
 	if (sizeof tmp > off && conf.purge_after > 0) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "purge-after=%u, ", conf.purge_after);

@@ -1471,6 +1471,12 @@ a connection. The default is 900 seconds.
 This instructs fdm to verify SSL certificates for all SSL connections, see the
 previous section on SSL certificate verification.
 
+- ignore-errors
+
+By default, fdm will stop processing mail and exit if any delivery fails; if
+this option is set, it will instead continue and try the next mail when
+delivery of one fails.
+
 ### Archiving and searching mail
 
 As fdm can fetch from maildirs, it can be used to filter mail from one maildir
