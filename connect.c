@@ -505,11 +505,11 @@ socks5proxy(struct server *srv,
 	case 1: /* IPv4 */
 		len = 5;
 		break;
-	case 3: /* IPv6 */
-		len = 17;
-		break;
-	case 4: /* host */
+	case 3: /* host */
 		len = buf[4] + 2;
+		break;
+	case 4: /* IPv6 */
+		len = 17;
 		break;
 	default:
 		xasprintf(cause, "unknown address type: %d", buf[3]);
