@@ -159,20 +159,24 @@ int
 locksleep(const char *hdr, const char *path, long long *used)
 {
 	useconds_t	us;
+	char		prefix[PATH_MAX * 2];
+
+	if (hdr != NULL)
+		snprintf(prefix, sizeof prefix, "%s: %s:", hdr, path);
+	else
+		snprintf(prefix, sizeof prefix, "%s:", path);
 
 	if (*used == 0)
 		srandom((u_int) getpid());
 
 	us = LOCKSLEEPTIME + (random() % LOCKSLEEPTIME);
-	log_debug3("%s: %s: "
-	    "sleeping %.3f seconds for lock", hdr, path, us / 1000000.0);
+	log_debug3("%s sleeping %.3f seconds for lock", prefix, us / 1000000.0);
 	usleep(us);
 
 	*used += us;
-	if (*used < LOCKTOTALTIME)
+	if (*used < conf.lock_timeout * 1000000LL)
 		return (0);
-	log_warnx("%s: %s: "
-	    "couldn't get lock in %.3f seconds", hdr, path, *used / 1000000.0);
+	log_warnx("%s couldn't get lock in %.3f seconds", prefix, *used / 1000000.0);
 	return (-1);
 }
 

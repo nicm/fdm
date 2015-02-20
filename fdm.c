@@ -279,6 +279,7 @@ main(int argc, char **argv)
 	enum fdmop	 op = FDMOP_NONE;
 	const char	*proxy = NULL, *s;
 	char		 tmp[BUFSIZ], *ptr, *lock = NULL, *user, *home = NULL;
+	long long	 used = 0;
 	struct utsname	 un;
 	struct passwd	*pw;
 	struct stat	 sb;
@@ -311,6 +312,8 @@ main(int argc, char **argv)
 	TAILQ_INIT(&conf.rules);
 	TAILQ_INIT(&conf.actions);
 	TAILQ_INIT(&conf.caches);
+	conf.lock_wait = 0;
+	conf.lock_timeout = DEFLOCKTIMEOUT;
 	conf.max_size = DEFMAILSIZE;
 	conf.timeout = DEFTIMEOUT;
 	conf.lock_types = LOCK_FLOCK;
@@ -591,6 +594,12 @@ main(int argc, char **argv)
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "lock-file=\"%s\", ", conf.lock_file);
 	}
+	if (sizeof tmp > off && conf.lock_timeout != DEFLOCKTIMEOUT) {
+		off += xsnprintf(tmp + off, (sizeof tmp) - off,
+		    "lock-timeout=%d, ", conf.lock_timeout);
+	}
+	if (conf.lock_wait)
+		off = strlcat(tmp, "lock-wait, ", sizeof tmp);
 	if (sizeof tmp > off) {
 		off += xsnprintf(tmp + off, (sizeof tmp) - off,
 		    "strip-characters=\"%s\", ", conf.strip_chars);
@@ -689,9 +698,15 @@ main(int argc, char **argv)
 		else
 			xasprintf(&lock, "%s/%s", conf.user_home, LOCKFILE);
 	}
+retry:
 	if (*lock != '\0' && !conf.allow_many) {
 		lockfd = xcreate(lock, O_WRONLY, -1, -1, S_IRUSR|S_IWUSR);
 		if (lockfd == -1 && errno == EEXIST) {
+			if (conf.lock_wait) {
+				if (locksleep(NULL, lock, &used) == 0)
+					goto retry;
+				exit(1);
+			}
 			log_warnx("already running (%s exists)", lock);
 			exit(1);
 		} else if (lockfd == -1) {

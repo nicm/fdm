@@ -55,6 +55,7 @@
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
 #define LOCKFILE	".fdm.lock"
+#define DEFLOCKTIMEOUT	10
 #define MAXQUEUEVALUE	50
 #define DEFMAILQUEUE	2
 #define DEFMAILSIZE	(32 * 1024 * 1024)		/* 32 MB */
@@ -63,7 +64,6 @@
 #define MAXACTIONCHAIN	5
 #define DEFTIMEOUT	(900 * 1000)
 #define LOCKSLEEPTIME	10000				/* 0.1 seconds */
-#define LOCKTOTALTIME	10000000			/* 10 seconds */
 #define MAXNAMESIZE	64
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
 #define FILEMODE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
@@ -625,7 +625,6 @@ struct conf {
 	char			*host_address;
 
 	char			*conf_file;
-	char			*lock_file;
 	char			*strip_chars;
 	int			 check_only;
 	int			 allow_many;
@@ -636,6 +635,10 @@ struct conf {
 	u_int			 purge_after;
 	enum decision		 impl_act;
 	int			 max_accts;
+
+	char			*lock_file;
+	int			 lock_wait;
+	int			 lock_timeout;
 
 	int			 queue_high;
 	int			 queue_low;

@@ -178,7 +178,9 @@ yyerror(const char *fmt, ...)
 %token TOKKEY
 %token TOKKILOBYTES
 %token TOKLOCKFILE
+%token TOKLOCKTIMEOUT
 %token TOKLOCKTYPES
+%token TOKLOCKWAIT
 %token TOKLOOKUPORDER
 %token TOKMAILDIR
 %token TOKMAILDIRS
@@ -587,6 +589,14 @@ set: TOKSET TOKMAXSIZE size
 	     if (conf.lock_file != NULL)
 		     xfree(conf.lock_file);
 	     conf.lock_file = $3;
+     }
+   | TOKSET TOKLOCKWAIT
+     {
+	     conf.lock_wait = 1;
+     }
+   | TOKSET TOKLOCKTIMEOUT time
+     {
+	     conf.lock_timeout = $3;
      }
    | TOKSET TOKDELTOOBIG
      {

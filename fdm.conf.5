@@ -121,6 +121,18 @@ The default is
 for non-root users and
 .Pa /var/db/fdm.lock
 for root.
+.It Ic lock-timeout Ar time
+Sets how long
+.Nm
+will try a lock file before giving up.
+.It Ic lock-wait
+If present,
+.Nm
+will wait for
+.Ic lock-file
+for
+.Ic lock-timeout
+rather than exiting immediately with an error.
 .It Ic command-user Ar user
 This specifies the user used to run
 .Ic exec
