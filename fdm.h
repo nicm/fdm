@@ -850,6 +850,7 @@ void		 timer_cancel(void);
 /* connect.c */
 char		*sslerror(const char *);
 char		*sslerror2(int, const char *);
+SSL		*makessl(struct server *, int, int, int, char **);
 void		 getaddrs(const char *, char **, char **);
 struct proxy	*getproxy(const char *);
 struct io	*connectproxy(struct server *, int, struct proxy *,

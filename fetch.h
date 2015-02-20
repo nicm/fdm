@@ -149,6 +149,7 @@ struct fetch_pop3_data {
 	char		*pass;
 	struct server	 server;
 	char		*pipecmd;
+	int		 starttls;
 	int		 apop;
 	int		 uidl;
 
@@ -200,6 +201,7 @@ struct fetch_imap_data {
 	char		*pass;
 	struct server	 server;
 	char		*pipecmd;
+	int		 starttls;
 	int		 nocrammd5;
 	int		 nologin;
 
@@ -247,6 +249,7 @@ struct fetch_imap_mail {
 
 #define IMAP_CAPA_AUTH_CRAM_MD5 0x1
 #define IMAP_CAPA_XYZZY 0x2
+#define IMAP_CAPA_STARTTLS 0x4
 
 /* fetch-maildir.c */
 extern struct fetch	 fetch_maildir;

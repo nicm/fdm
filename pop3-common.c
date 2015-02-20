@@ -52,6 +52,7 @@ int	pop3_bad(struct account *, const char *);
 int	pop3_invalid(struct account *, const char *);
 
 int	pop3_state_connect(struct account *, struct fetch_ctx *);
+int	pop3_state_starttls(struct account *, struct fetch_ctx *);
 int	pop3_state_connected(struct account *, struct fetch_ctx *);
 int	pop3_state_user(struct account *, struct fetch_ctx *);
 int	pop3_state_cache1(struct account *, struct fetch_ctx *);
@@ -362,6 +363,30 @@ pop3_state_connect(struct account *a, struct fetch_ctx *fctx)
 	if (data->connect(a) != 0)
 		return (FETCH_ERROR);
 
+	if (data->starttls)
+		fctx->state = pop3_state_starttls;
+	else
+		fctx->state = pop3_state_connected;
+	return (FETCH_BLOCK);
+}
+
+/* STARTTLS state. */
+int
+pop3_state_starttls(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	if (pop3_getln(a, fctx, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!pop3_okay(line))
+		return (pop3_bad(a, line));
+
+	if (pop3_putln(a, "STLS") != 0)
+		return (FETCH_ERROR);
+
 	fctx->state = pop3_state_connected;
 	return (FETCH_BLOCK);
 }
@@ -371,7 +396,7 @@ int
 pop3_state_connected(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
-	char			*line, *ptr, *src;
+	char			*line, *ptr, *src, *cause;
 	char			 out[MD5_DIGEST_LENGTH * 2 + 1];
 	u_char			 digest[MD5_DIGEST_LENGTH];
 	u_int			 i;
@@ -382,6 +407,17 @@ pop3_state_connected(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_BLOCK);
 	if (!pop3_okay(line))
 		return (pop3_bad(a, line));
+
+	if (data->starttls) {
+		data->io->ssl = makessl(&data->server, data->io->fd,
+		    conf.verify_certs && data->server.verify, conf.timeout,
+		    &cause);
+		if (data->io->ssl == NULL) {
+			log_warnx("%s: STARTTLS failed: %s", a->name, cause);
+			xfree(cause);
+			return (FETCH_ERROR);
+		}
+	}
 
 	if (data->apop && (line = strchr(line, '<')) != NULL) {
 		if ((ptr = strchr(line + 1, '>')) != NULL) {

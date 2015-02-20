@@ -181,6 +181,7 @@ static const struct token tokens[] = {
 	{ "set", TOKSET },
 	{ "size", TOKSIZE },
 	{ "smtp", TOKSMTP },
+	{ "starttls", TOKSTARTTLS },
 	{ "stdin", TOKSTDIN },
 	{ "stdout", TOKSTDOUT },
 	{ "string", TOKSTRING },

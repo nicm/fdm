@@ -229,6 +229,7 @@ yyerror(const char *fmt, ...)
 %token TOKSET
 %token TOKSIZE
 %token TOKSMTP
+%token TOKSTARTTLS
 %token TOKSTDIN
 %token TOKSTDOUT
 %token TOKSTRING
@@ -305,7 +306,7 @@ yyerror(const char *fmt, ...)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont not disabled keep execpipe writeappend compress verify tls1
-%type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl
+%type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl starttls
 %type  <localgid> localgid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -1209,8 +1210,12 @@ actitem: execpipe strv
 		 data->compress = $3;
 	 }
        | imaptype server userpassnetrc folder1 verify nocrammd5 nologin tls1
+         starttls
 	 {
 		 struct deliver_imap_data	*data;
+
+		 if ($1 && $9)
+			 yyerror("use either imaps or set starttls");
 
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_imap;
@@ -1245,6 +1250,7 @@ actitem: execpipe strv
 		 data->server.ai = NULL;
 		 data->nocrammd5 = $6;
 		 data->nologin = $7;
+		 data->starttls = $9;
 	 }
        | TOKSMTP server from to
 	 {
@@ -2025,6 +2031,16 @@ tls1: TOKNOTLS1
 		$$ = 1;
 	}
 
+starttls: TOKSTARTTLS
+	{
+		$$ = 1;
+	}
+      | /* empty */
+	{
+		$$ = 0;
+	}
+
+
 uidl: TOKNOUIDL
 	{
 		$$ = 0;
@@ -2176,9 +2192,12 @@ imaponly: only
 		  $$ = FETCH_ONLY_ALL;
 	  }
 
-fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1
+fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
            {
 		   struct fetch_pop3_data	*data;
+
+		   if ($1 && $9)
+			   yyerror("use either pop3s or set starttls");
 
 		   $$.fetch = &fetch_pop3;
 		   data = xcalloc(1, sizeof *data);
@@ -2210,6 +2229,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1
 		   data->server.ai = NULL;
 		   data->apop = $5;
 		   data->uidl = $7;
+		   data->starttls = $9;
 
 		   data->path = $4.path;
 		   data->only = $4.only;
@@ -2231,9 +2251,12 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1
 		   data->only = $5.only;
 	   }
          | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
-	   nologin tls1
+	   nologin tls1 starttls
            {
 		   struct fetch_imap_data	*data;
+
+		   if ($1 && $10)
+			   yyerror("use either imaps or set starttls");
 
 		   $$.fetch = &fetch_imap;
 		   data = xcalloc(1, sizeof *data);
@@ -2267,6 +2290,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1
 		   data->only = $5;
 		   data->nocrammd5 = $7;
 		   data->nologin = $8;
+		   data->starttls = $10;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folderlist imaponly
 	   {

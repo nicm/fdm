@@ -39,9 +39,12 @@ int	imap_parse(struct account *, int, char *);
 char   *imap_base64_encode(char *);
 char   *imap_base64_decode(char *);
 
+int	imap_pick_auth(struct account *, struct fetch_ctx *);
+
 int	imap_state_connect(struct account *, struct fetch_ctx *);
 int	imap_state_capability1(struct account *, struct fetch_ctx *);
 int	imap_state_capability2(struct account *, struct fetch_ctx *);
+int	imap_state_starttls(struct account *, struct fetch_ctx *);
 int	imap_state_cram_md5_auth(struct account *, struct fetch_ctx *);
 int	imap_state_login(struct account *, struct fetch_ctx *);
 int	imap_state_user(struct account *, struct fetch_ctx *);
@@ -283,6 +286,34 @@ imap_total(struct account *a)
 	return (data->folders_total);
 }
 
+/* Try an authentication method. */
+int
+imap_pick_auth(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	/* Try CRAM-MD5, if server supports it and user allows it. */
+	if (!data->nocrammd5 && (data->capa & IMAP_CAPA_AUTH_CRAM_MD5)) {
+		if (imap_putln(a,
+		    "%u AUTHENTICATE CRAM-MD5", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_cram_md5_auth;
+		return (FETCH_BLOCK);
+	}
+
+	/* Fall back to LOGIN, unless config disallows it. */
+	if (!data->nologin) {
+		if (imap_putln(a,
+		    "%u LOGIN {%zu}", ++data->tag, strlen(data->user)) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_login;
+		return (FETCH_BLOCK);
+	}
+
+	log_warnx("%s: no authentication methods", a->name);
+	return (FETCH_ERROR);
+}
+
 /* Common initialisation state. */
 int
 imap_state_init(struct account *a, struct fetch_ctx *fctx)
@@ -371,6 +402,9 @@ imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 	if (strstr(line, "XYZZY") != NULL)
 		data->capa |= IMAP_CAPA_XYZZY;
 
+	if (strstr(line, "STARTTLS") != NULL)
+		data->capa |= IMAP_CAPA_STARTTLS;
+
 	fctx->state = imap_state_capability2;
 	return (FETCH_AGAIN);
 }
@@ -389,26 +423,44 @@ imap_state_capability2(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	/* Try CRAM-MD5, if server supports it and user allows it. */
-	if (!data->nocrammd5 && (data->capa & IMAP_CAPA_AUTH_CRAM_MD5)) {
-		if (imap_putln(a,
-		    "%u AUTHENTICATE CRAM-MD5", ++data->tag) != 0)
+	if (data->starttls) {
+		if (!(data->capa & IMAP_CAPA_STARTTLS)) {
+			log_warnx("%s: server doesn't support STARTTLS",
+			    a->name);
 			return (FETCH_ERROR);
-		fctx->state = imap_state_cram_md5_auth;
+		}
+		if (imap_putln(a, "%u STARTTLS", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_starttls;
 		return (FETCH_BLOCK);
 	}
 
-	/* Fall back to LOGIN, unless config disallows it. */
-	if (!data->nologin) {
-		if (imap_putln(a,
-		    "%u LOGIN {%zu}", ++data->tag, strlen(data->user)) != 0)
-			return (FETCH_ERROR);
-		fctx->state = imap_state_login;
+	return (imap_pick_auth(a, fctx));
+}
+
+/* STARTTLS state. */
+int
+imap_state_starttls(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line, *cause;
+
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
 		return (FETCH_BLOCK);
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
+
+	data->io->ssl = makessl(&data->server, data->io->fd,
+	    conf.verify_certs && data->server.verify, conf.timeout, &cause);
+	if (data->io->ssl == NULL) {
+		log_warnx("%s: STARTTLS failed: %s", a->name, cause);
+		xfree(cause);
+		return (FETCH_ERROR);
 	}
 
-	log_warnx("%s: no authentication methods", a->name);
-	return (FETCH_ERROR);
+	return (imap_pick_auth(a, fctx));
 }
 
 /* CRAM-MD5 auth state. */

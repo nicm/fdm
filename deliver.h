@@ -82,6 +82,7 @@ struct deliver_imap_data {
 	struct server	 server;
 	int		 nocrammd5;
 	int		 nologin;
+	int		 starttls;
 
 	struct replstr	 folder;
 };

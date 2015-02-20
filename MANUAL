@@ -581,6 +581,9 @@ disabled for an account using the 'no-apop' flag, for example:
 
 	account "acct" pop3 server "server" user "bob" pass "pass" no-apop
 
+The 'starttls' keyword may be added to a POP3 account to attemp STARTTLS after
+connection.
+
 POP3S is specified in exactly the same way, except using the 'pop3s' keyword
 for the type, and the default port is 'pop3s' rather than 'pop3':
 
@@ -672,6 +675,9 @@ are sent in the clear.  If the server does not advertise CRAM-MD5 capability,
 the older LOGIN method is used.  For IMAPS connections (which use SSL), the
 LOGIN method is just as secure.  Either of these methods may be disabled with
 the 'no-cram-md5' and 'no-login' options.
+
+The 'starttls' keyword may be added to an IMAP account to attemp STARTTLS after
+connection.
 
 As with POP3, IMAP adds the 'server', 'port', 'server_uid' and the three line
 count tags to mail.

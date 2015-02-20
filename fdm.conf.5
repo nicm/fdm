@@ -369,6 +369,7 @@ for details.
 .Op Ar only
 .Op Ic no-apop
 .Op Ic no-uidl
+.Op Ic starttls
 .Xc
 .It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
@@ -443,10 +444,15 @@ The
 .Ic no-tls1
 keyword instructs
 .Xr fdm 1
-not to use the TLSv1 protocol with SSL connections. Some broken servers will
-fail in the handshake phase if the
+not to use the TLSv1 protocol with SSL connections.
+Some broken servers will fail in the handshake phase if the
 .Ic tls1
 flag is not unset.
+.Pp
+.Ic starttls
+attempts to use
+.Em STARTTLS
+after connection.
 .It Xo Ic pop3 Ic pipe Ar command
 .Op Ar userpass
 .Op Ar only
@@ -469,6 +475,7 @@ not be read from
 .Op Ar only
 .Op Ic no-cram-md5
 .Op Ic no-login
+.Op Ic starttls
 .Xc
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
@@ -517,6 +524,11 @@ and
 .Ic no-login
 disable the given authentication method.
 The default is to use CRAM-MD5 if it is available, or LOGIN otherwise.
+.Pp
+.Ic starttls
+attempts to use
+.Em STARTTLS
+after connection.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ar userpass
 .Op Ar folders

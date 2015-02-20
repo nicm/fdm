@@ -43,8 +43,6 @@ int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
 
-SSL    *makessl(struct server *, int, int, int, char **);
-
 char *
 sslerror(const char *fn)
 {
