@@ -80,10 +80,8 @@ fetch_pop3pipe_getln(struct account *a, struct fetch_ctx *fctx, char **line)
 		return (-1);
 	}
 
-	if (err != NULL) {
+	if (err != NULL)
 		log_warnx("%s: %s: %s", a->name, data->pipecmd, err);
-		xfree(err);
-	}
 	*line = out;
 	return (0);
 }

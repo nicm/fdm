@@ -638,9 +638,8 @@ run_command(const char *s, const char *file)
 			yyerror("%s: %s", s, cause);
 		}
 		if (status == 0) {
-			if (err != NULL) {
+			if (err != NULL)
 				log_warnx("%s: %s: %s", file, s, err);
-			}
 			if (out != NULL) {
 				slen += strlen(out) + 1;
 				sbuf = xrealloc(sbuf, 1, slen);
