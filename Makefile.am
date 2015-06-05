@@ -5,13 +5,15 @@ CLEANFILES = parse.c parse.h
 
 EXTRA_DIST = \
 	CHANGES README MANUAL \
-	examples compat fdm-sanitize \
+	examples compat/*.[ch] fdm-sanitize \
 	array.h \
 	deliver.h \
 	fdm.h \
 	fetch.h \
 	io.h \
 	match.h
+dist-hook:
+	make clean
 
 CPPFLAGS += \
 	-DSYSCONFFILE="\"$(sysconfdir)/fdm.conf\"" \
