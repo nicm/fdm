@@ -120,9 +120,3 @@ endif
 if NO_STRTONUM
 nodist_fdm_SOURCES += compat/strtonum.c
 endif
-
-upload-index.html: update-index.html
-	scp index.html nicm,fdm@web.sf.net:/home/groups/f/fd/fdm/htdocs
-
-update-index.html:
-	sed "s|%%RELEASE%%|${RELEASE}|g" <index.html.in >index.html
