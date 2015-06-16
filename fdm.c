@@ -832,9 +832,11 @@ retry:
 				    (long) child->pid);
 				kill(child->pid, SIGTERM);
 
-				io_close(child->io);
-				io_free(child->io);
-				child->io = NULL;
+				if (child->io != NULL) {
+					io_close(child->io);
+					io_free(child->io);
+					child->io = NULL;
+				}
 			}
 		}
 	}
@@ -866,8 +868,10 @@ retry:
 			child = ARRAY_ITEM(&children, i);
 			kill(child->pid, SIGTERM);
 
-			io_close(child->io);
-			io_free(child->io);
+			if (child->io != NULL) {
+				io_close(child->io);
+				io_free(child->io);
+			}
 			xfree(child);
 		}
 		ARRAY_FREE(&children);
