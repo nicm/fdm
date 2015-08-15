@@ -164,10 +164,12 @@ configuration file format.
 
 ### The configuration file
 
-fdm is controlled by its configuration file. It first searches for a .fdm.conf
-file in the invoking user's home directory. If that fails, fdm attempts to use
-/etc/fdm.conf. The configuration file may also be specified using the '-f'
-command line option, see the section on that subject below.
+fdm is controlled by its configuration file. It first searches for a fdm.conf
+file in XDG_CONFIG_HOME and in the invoking user's home directory under .config
+If that fails, fdm looks for a .fdm.conf in the invoking user's home directory.
+finally, fdm attempts to use /etc/fdm.conf. The configuration file may also be
+specified using the '-f' command line option, see the section on that subject
+below.
 
 This section gives an overview of the configuration file syntax. Further
 details of syntax, and specific keywords, are covered in later sections.
