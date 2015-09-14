@@ -104,7 +104,6 @@ dist_fdm_SOURCES = \
 	shm-mmap.c \
 	strb.c \
 	timer.c \
-	xmalloc-debug.c \
 	xmalloc.c \
 	\
 	parse.y \

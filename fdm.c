@@ -720,10 +720,6 @@ retry:
 	SSL_library_init();
 	SSL_load_error_strings();
 
-#ifdef DEBUG
-	COUNTFDS("parent");
-#endif
-
 	/* Filter account list. */
 	TAILQ_INIT(&actaq);
 	TAILQ_FOREACH(a, &conf.accounts, entry) {
@@ -897,8 +893,6 @@ out:
 		unlink(conf.lock_file);
 
 #ifdef DEBUG
-	COUNTFDS("parent");
-
 	/* Free everything. */
 	if (conf.proxy != NULL) {
 		if (conf.proxy->user != NULL)
@@ -946,8 +940,6 @@ out:
 	xfree(conf.strip_chars);
 	free_strings(&conf.incl);
 	free_strings(&conf.excl);
-
-	xmalloc_report(getpid(), "parent");
 #endif
 
 	exit(res);

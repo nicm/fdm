@@ -37,11 +37,6 @@ child_deliver(struct child *child, struct io *pio)
 	struct msgbuf			 msgbuf;
 	int				 error = 0;
 
-#ifdef DEBUG
-	xmalloc_clear();
-	COUNTFDS(a->name);
-#endif
-
 	log_debug2("%s: deliver started, pid %ld", a->name, (long) getpid());
 
 #ifdef HAVE_SETPROCTITLE
@@ -65,11 +60,6 @@ child_deliver(struct child *child, struct io *pio)
 		if (privsep_recv(pio, &msg, NULL) != 0)
 			fatalx("privsep_recv error");
 	} while (msg.type != MSG_EXIT);
-
-#ifdef DEBUG
-	COUNTFDS(a->name);
-	xmalloc_report(getpid(), a->name);
-#endif
 
 	return (error);
 }

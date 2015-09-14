@@ -99,19 +99,6 @@ extern char	*__progname;
 #define letoh64
 #endif
 
-#ifdef DEBUG
-#define NFDS 64
-#define COUNTFDS(s) do {						\
-	int	fd_i, fd_n;						\
-	fd_n = 0;							\
-	for (fd_i = 0; fd_i < NFDS; fd_i++) {				\
-		if (fcntl(fd_i, F_GETFL) != -1)				\
-			fd_n++;						\
-	}								\
-	log_debug2("%s: %d file descriptors in use", s, fd_n);		\
-} while (0)
-#endif
-
 /* Fatal errors. */
 #define fatal(msg) log_fatal("%s: %s", __func__, msg);
 #define fatalx(msg) log_fatalx("%s: %s", __func__, msg);
@@ -976,17 +963,5 @@ int		 xvsnprintf(char *, size_t, const char *, va_list);
 int printflike3	 printpath(char *, size_t, const char *, ...);
 char		*xdirname(const char *);
 char		*xbasename(const char *);
-
-/* xmalloc-debug.c */
-#ifdef DEBUG
-#define xmalloc_caller() __builtin_return_address(0)
-
-void		 xmalloc_clear(void);
-void		 xmalloc_report(pid_t, const char *);
-
-void		 xmalloc_new(void *, void *, size_t);
-void		 xmalloc_change(void *, void *, void *, size_t);
-void		 xmalloc_free(void *);
-#endif
 
 #endif /* FDM_H */
