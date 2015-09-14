@@ -45,11 +45,6 @@ void	fetch_free1(struct mail_ctx *);
 int	fetch_enqueue(struct account *, struct io *, struct mail *);
 int	fetch_dequeue(struct account *, struct mail_ctx *);
 
-#ifdef DEBUG
-double			 fetch_time_polling = 0.0;
-double			 fetch_time_blocked = 0.0;
-#endif
-
 struct mail_queue	 fetch_matchq;
 struct mail_queue	 fetch_deliverq;
 
@@ -158,12 +153,6 @@ fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 		return (-1);
 	}
 	tim = get_time() - tim;
-
-#ifdef DEBUG
-	fetch_time_polling += tim;
-	if (fetch_blocked == fetch_queued && fetch_queued != 0)
-		fetch_time_blocked += tim;
-#endif
 
 	return (0);
 }
@@ -336,11 +325,6 @@ fetch_status(struct account *a, double tim)
 		log_info("%s: 0 messages processed in %.3f seconds",
 		    a->name, tim);
 	}
-
-#ifdef DEBUG
-	log_debug("%s: polled for %.3f seconds (%.3f blocked)", a->name,
-	    fetch_time_polling, fetch_time_blocked);
-#endif
 }
 
 int
