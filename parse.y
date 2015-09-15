@@ -55,8 +55,8 @@ parse_conf(const char *path, struct strings *macros)
 	FILE		*f;
 	u_int		 i;
 
-        if ((f = fopen(path, "r")) == NULL)
-                return (-1);
+	if ((f = fopen(path, "r")) == NULL)
+		return (-1);
 
 	ARRAY_INIT(&parse_rulestack);
 	parse_rule = NULL;
@@ -80,7 +80,7 @@ parse_conf(const char *path, struct strings *macros)
 	}
 
 	parse_file->line++;
-        yyparse();
+	yyparse();
 
 	if (!ARRAY_EMPTY(&parse_rulestack))
 		yyerror("missing }");
@@ -100,8 +100,8 @@ parse_conf(const char *path, struct strings *macros)
 
 	strb_destroy(&parse_tags);
 
-        fclose(f);
-        return (0);
+	fclose(f);
+	return (0);
 }
 
 __dead printflike1 void
@@ -250,9 +250,9 @@ yyerror(const char *fmt, ...)
 
 %union
 {
-	long long 	 	 number;
-        char 			*string;
-	int 		 	 flag;
+	long long		 number;
+	char			*string;
+	int			 flag;
 	u_int			 locks;
 	struct {
 		struct fetch	*fetch;
@@ -262,10 +262,10 @@ yyerror(const char *fmt, ...)
 		char		*host;
 		char		*port;
 	} server;
-	enum area	 	 area;
+	enum area		 area;
 	enum exprop		 exprop;
-	struct actitem 		*actitem;
-	struct actlist 		*actlist;
+	struct actitem		*actitem;
+	struct actlist		*actlist;
 	struct expr		*expr;
 	struct expritem		*expritem;
 	struct strings		*strings;
@@ -289,7 +289,7 @@ yyerror(const char *fmt, ...)
 		int		 pass_netrc;
 	} userpass;
 	userfunction		 ufn;
-	struct userfunctions    *ufns;
+	struct userfunctions	*ufns;
 }
 
 %token NONE
@@ -343,17 +343,17 @@ actionp: TOKACTION
 userp: TOKUSER
      | TOKUSERS
 accountp: TOKACCOUNT
-        | TOKACCOUNTS
+	| TOKACCOUNTS
 groupp: TOKGROUP
       | TOKGROUPS
 folderp: TOKFOLDER
        | TOKFOLDERS
 maildirp: TOKMAILDIR
-        | TOKMAILDIRS
+	| TOKMAILDIRS
 mboxp: TOKMBOX
      | TOKMBOXES
 rmheaderp: TOKREMOVEHEADER
-         | TOKREMOVEHEADERS
+	 | TOKREMOVEHEADERS
 
 val: TOKVALUE strv
      {
@@ -365,9 +365,9 @@ val: TOKVALUE strv
      }
 
 optval: TOKVALUE strv
-        {
+	{
 		$$ = $2;
-        }
+	}
       | /* empty */
 	{
 		$$ = NULL;
@@ -749,7 +749,7 @@ set: TOKSET TOKMAXSIZE size
      }
 
 defmacro: STRMACRO '=' strv
-     	  {
+	  {
 		  struct macro	*macro;
 
 		  if (strlen($1) > MAXNAMESIZE)
@@ -771,7 +771,7 @@ defmacro: STRMACRO '=' strv
 		      macro->value.str);
 		  xfree($1);
 	  }
-        | NUMMACRO '=' numv
+	| NUMMACRO '=' numv
 	  {
 		  struct macro	*macro;
 
@@ -796,7 +796,7 @@ defmacro: STRMACRO '=' strv
 	  }
 
 replstrslist: replstrslist strv
- 	      {
+	      {
 		      if (*$2 == '\0')
 			      yyerror("empty string in list");
 
@@ -892,13 +892,13 @@ maildirs: maildirp replpathv
 		  ARRAY_INIT($$);
 		  ARRAY_ADD($$, $2);
 	  }
-        | maildirp '{' pathslist '}'
+	| maildirp '{' pathslist '}'
 	  {
 		  $$ = $3;
 	  }
 
 mboxes: mboxp replpathv
-        {
+	{
 		if (*$2 == '\0')
 			yyerror("invalid path");
 
@@ -952,7 +952,7 @@ locklist: locklist lock
 	  }
 
 localgid: replstrv
-     	  {
+	  {
 		  struct group	*gr;
 
 		  if (*$1 == '\0')
@@ -966,7 +966,7 @@ localgid: replstrv
 
 		  xfree($1);
 	  }
-        | numv
+	| numv
 	  {
 		  struct group	*gr;
 
@@ -1005,13 +1005,13 @@ users: /* empty */
        }
 
 casere: TOKCASE replstrv
-        {
+	{
 		/* match case */
 		$$.flags = 0;
 		$$.str = $2;
-        }
+	}
       | replstrv
-        {
+	{
 		/* ignore case */
 		$$.flags = RE_IGNCASE;
 		$$.str = $1;
@@ -1036,10 +1036,10 @@ keep: TOKKEEP
       }
 
 disabled: TOKDISABLED
-          {
+	  {
 		  $$ = 1;
-          }
-        | /* empty */
+	  }
+	| /* empty */
 	  {
 		  $$ = 0;
 	  }
@@ -1210,7 +1210,7 @@ actitem: execpipe strv
 		 data->compress = $3;
 	 }
        | imaptype server userpassnetrc folder1 verify nocrammd5 nologin tls1
-         starttls
+	 starttls
 	 {
 		 struct deliver_imap_data	*data;
 
@@ -1344,14 +1344,14 @@ actitem: execpipe strv
 		 $$->data = data;
 
 		 data->actions = $1;
- 	 }
+	 }
        | TOKDROP
-         {
+	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_drop;
 	 }
        | TOKKEEP
-         {
+	 {
 		 $$ = xcalloc(1, sizeof *$$);
 		 $$->deliver = &deliver_keep;
 	 }
@@ -1452,7 +1452,7 @@ actions: actionp strv
 		 ARRAY_LAST($$).str = $2;
 	 }
        | actionp '{' replstrslist '}'
-         {
+	 {
 		 $$ = $3;
 	 }
 
@@ -1534,7 +1534,7 @@ execpipe: TOKEXEC
 	  {
 		  $$ = 0;
 	  }
-        | TOKPIPE
+	| TOKPIPE
 	  {
 		  $$ = 1;
 	  }
@@ -1543,7 +1543,7 @@ writeappend: TOKWRITE
 	     {
 		     $$ = 0;
 	     }
-           | TOKAPPEND
+	   | TOKAPPEND
 	     {
 		     $$ = 1;
 	     }
@@ -1551,7 +1551,7 @@ writeappend: TOKWRITE
 exprop: TOKAND
 	{
 		$$ = OP_AND;
-        }
+	}
       | TOKOR
 	{
 		$$ = OP_OR;
@@ -1564,7 +1564,7 @@ expritem: not TOKALL
 		  $$->inverted = $1;
 	  }
 	| not casere area
-          {
+	  {
 		  struct match_regexp_data	*data;
 		  char				*cause;
 
@@ -1581,7 +1581,7 @@ expritem: not TOKALL
 			  yyerror("%s", cause);
 		  xfree($2.str);
 	  }
-        | not accounts
+	| not accounts
 	  {
 		  struct match_account_data	*data;
 
@@ -1594,7 +1594,7 @@ expritem: not TOKALL
 
 		  data->accounts = $2;
 	  }
-        | not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
+	| not execpipe strv user TOKRETURNS '(' retrc ',' retre ')'
 	  {
 		  struct match_command_data	*data;
 		  char				*cause;
@@ -1642,7 +1642,7 @@ expritem: not TOKALL
 
 		  data->tag.str = $3;
 	  }
-        | not TOKSIZE ltgt size
+	| not TOKSIZE ltgt size
 	  {
 		  struct match_size_data	*data;
 
@@ -1662,7 +1662,7 @@ expritem: not TOKALL
 		  data->size = $4;
 		  data->cmp = $3;
 	  }
-        | not TOKSTRING strv TOKTO casere
+	| not TOKSTRING strv TOKTO casere
 	  {
 		  struct match_string_data	*data;
 		  char				*cause;
@@ -1704,21 +1704,21 @@ expritem: not TOKALL
 		  data->key.str = $5;
 		  data->path = $3;
 	  }
-        | not TOKMATCHED
+	| not TOKMATCHED
 	  {
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_matched;
 		  $$->inverted = $1;
-          }
-        | not TOKUNMATCHED
+	  }
+	| not TOKUNMATCHED
 	  {
 		  $$ = xcalloc(1, sizeof *$$);
 
 		  $$->match = &match_unmatched;
 		  $$->inverted = $1;
-          }
-        | not TOKAGE ltgt time
+	  }
+	| not TOKAGE ltgt time
 	  {
 		  struct match_age_data	*data;
 
@@ -1736,7 +1736,7 @@ expritem: not TOKALL
 		  data->time = $4;
 		  data->cmp = $3;
 	  }
-        | not TOKAGE TOKINVALID
+	| not TOKAGE TOKINVALID
 	  {
 		  struct match_age_data	*data;
 
@@ -1750,7 +1750,7 @@ expritem: not TOKALL
 
 		  data->time = -1;
 	  }
-        | not TOKATTACHMENT TOKCOUNT cmp numv
+	| not TOKATTACHMENT TOKCOUNT cmp numv
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1766,7 +1766,7 @@ expritem: not TOKALL
 		  data->cmp = $4;
 		  data->value.num = $5;
 	  }
-        | not TOKATTACHMENT TOKTOTALSIZE ltgt size
+	| not TOKATTACHMENT TOKTOTALSIZE ltgt size
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1787,7 +1787,7 @@ expritem: not TOKALL
 		  data->cmp = $4;
 		  data->value.size = $5;
 	  }
-        | not TOKATTACHMENT TOKANYSIZE ltgt size
+	| not TOKATTACHMENT TOKANYSIZE ltgt size
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1808,7 +1808,7 @@ expritem: not TOKALL
 		  data->cmp = $4;
 		  data->value.size = $5;
 	  }
-        | not TOKATTACHMENT TOKANYTYPE strv
+	| not TOKATTACHMENT TOKANYTYPE strv
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1826,7 +1826,7 @@ expritem: not TOKALL
 		  data->op = ATTACHOP_ANYTYPE;
 		  data->value.str.str = $4;
 	  }
-        | not TOKATTACHMENT TOKANYNAME strv
+	| not TOKATTACHMENT TOKANYNAME strv
 	  {
 		  struct match_attachment_data	*data;
 
@@ -1852,7 +1852,7 @@ exprlist: exprlist exprop expritem
 		  $3->op = $2;
 		  TAILQ_INSERT_TAIL($$, $3, entry);
 	  }
-        | exprop expritem
+	| exprop expritem
 	  {
 		  $$ = xmalloc(sizeof *$$);
 		  TAILQ_INIT($$);
@@ -1970,12 +1970,12 @@ rule: TOKMATCH expr perform
       }
 
 folderlist: /* empty */
-            {
+	    {
 		    $$ = xmalloc(sizeof *$$);
 		    ARRAY_INIT($$);
 		    ARRAY_ADD($$, xstrdup("INBOX"));
 	    }
-          | folders
+	  | folders
 	    {
 		    $$ = $1;
 	    }
@@ -2000,7 +2000,7 @@ groups: groupp replstrv
 		ARRAY_ADD($$, $2);
 	}
       | groupp '{' stringslist '}'
-        {
+	{
 		$$ = $3;
 	}
 
@@ -2008,7 +2008,7 @@ nocrammd5: TOKNOCRAMMD5
 	   {
 		   $$ = 1;
 	   }
-         | /* empty */
+	 | /* empty */
 	   {
 		   $$ = 0;
 	   }
@@ -2078,28 +2078,28 @@ only: TOKNEWONLY
       }
 
 poptype: TOKPOP3
-         {
+	 {
 		 $$ = 0;
-         }
+	 }
        | TOKPOP3S
 	 {
 		 $$ = 1;
 	 }
 
 imaptype: TOKIMAP
-          {
+	  {
 		  $$ = 0;
-          }
-        | TOKIMAPS
+	  }
+	| TOKIMAPS
 	  {
 		  $$ = 1;
 	  }
 
 nntptype: TOKNNTP
-          {
+	  {
 		  $$ = 0;
-          }
-        | TOKNNTPS
+	  }
+	| TOKNNTPS
 	  {
 		  $$ = 1;
 	  }
@@ -2187,13 +2187,13 @@ imaponly: only
 	  {
 		  $$ = $1;
 	  }
-        | /* empty */
+	| /* empty */
 	  {
 		  $$ = FETCH_ONLY_ALL;
 	  }
 
 fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
-           {
+	   {
 		   struct fetch_pop3_data	*data;
 
 		   if ($1 && $9)
@@ -2250,9 +2250,9 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   data->path = $5.path;
 		   data->only = $5.only;
 	   }
-         | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
+	 | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
 	   nologin tls1 starttls
-           {
+	   {
 		   struct fetch_imap_data	*data;
 
 		   if ($1 && $10)
@@ -2311,7 +2311,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 	   {
 		   $$.fetch = &fetch_stdin;
 	   }
-         | maildirs
+	 | maildirs
 	   {
 		   struct fetch_maildir_data	*data;
 
@@ -2320,7 +2320,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   $$.data = data;
 		   data->maildirs = $1;
 	   }
-         | mboxes
+	 | mboxes
 	   {
 		   struct fetch_mbox_data	*data;
 
@@ -2330,7 +2330,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   data->mboxes = $1;
 	   }
 	 | nntptype server userpassnetrc groups TOKCACHE replpathv verify tls1
-           {
+	   {
 		   struct fetch_nntp_data	*data;
 		   char				*cause;
 
@@ -2373,14 +2373,14 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
 		   else if ($1)
-                           data->server.port = xstrdup("nntps");
-                   else
+			   data->server.port = xstrdup("nntps");
+		   else
 			   data->server.port = xstrdup("nntp");
 		   data->server.ai = NULL;
 	   }
 
 account: TOKACCOUNT replstrv disabled users fetchtype keep
-         {
+	 {
 		 struct account		*a;
 		 char			*su, desc[DESCBUFSIZE];
 
