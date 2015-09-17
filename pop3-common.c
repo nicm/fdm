@@ -69,8 +69,8 @@ int	pop3_state_retr(struct account *, struct fetch_ctx *);
 int	pop3_state_line(struct account *, struct fetch_ctx *);
 int	pop3_state_quit(struct account *, struct fetch_ctx *);
 
-SPLAY_PROTOTYPE(fetch_pop3_tree, fetch_pop3_mail, tentry, pop3_cmp);
-SPLAY_GENERATE(fetch_pop3_tree, fetch_pop3_mail, tentry, pop3_cmp);
+RB_PROTOTYPE(fetch_pop3_tree, fetch_pop3_mail, tentry, pop3_cmp);
+RB_GENERATE(fetch_pop3_tree, fetch_pop3_mail, tentry, pop3_cmp);
 
 /* Put line to server. */
 int
@@ -142,9 +142,9 @@ pop3_freetree(struct fetch_pop3_tree *t)
 {
 	struct fetch_pop3_mail	*aux;
 
-	while (!SPLAY_EMPTY(t)) {
-		aux = SPLAY_ROOT(t);
-		SPLAY_REMOVE(fetch_pop3_tree, t, aux);
+	while (!RB_EMPTY(t)) {
+		aux = RB_ROOT(t);
+		RB_REMOVE(fetch_pop3_tree, t, aux);
 		pop3_free(aux);
 	}
 }
@@ -206,7 +206,7 @@ pop3_load(struct account *a)
 
 		aux = xcalloc(1, sizeof *aux);
 		aux->uid = uid;
-		SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
+		RB_INSERT(fetch_pop3_tree, &data->cacheq, aux);
 	}
 
 	fclose(f);
@@ -250,7 +250,7 @@ pop3_save(struct account *a)
 	fd = -1;
 
 	n = 0;
-	SPLAY_FOREACH(aux, fetch_pop3_tree, &data->cacheq) {
+	RB_FOREACH(aux, fetch_pop3_tree, &data->cacheq) {
 		fprintf(f, "%zu %s\n", strlen(aux->uid), aux->uid);
 		n++;
 	}
@@ -297,8 +297,8 @@ pop3_commit(struct account *a, struct mail *m)
 		m->auxdata = NULL;
 	} else {
 		/* If not already in the cache, add it. */
-		if (SPLAY_FIND(fetch_pop3_tree, &data->cacheq, aux) == NULL)
-			SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
+		if (RB_FIND(fetch_pop3_tree, &data->cacheq, aux) == NULL)
+			RB_INSERT(fetch_pop3_tree, &data->cacheq, aux);
 		else
 			pop3_free(aux);
 		m->auxdata = NULL;
@@ -343,8 +343,8 @@ pop3_state_init(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_pop3_data	*data = a->data;
 
-	SPLAY_INIT(&data->serverq);
-	SPLAY_INIT(&data->cacheq);
+	RB_INIT(&data->serverq);
+	RB_INIT(&data->cacheq);
 	TAILQ_INIT(&data->wantq);
 	TAILQ_INIT(&data->dropq);
 
@@ -614,13 +614,13 @@ pop3_state_cache2(struct account *a, struct fetch_ctx *fctx)
 		 * At the moment we just abort with an error.
 		 * XXX what can we do to about this?
 		 */
-		if (SPLAY_FIND(fetch_pop3_tree, &data->serverq, aux)) {
+		if (RB_FIND(fetch_pop3_tree, &data->serverq, aux)) {
 			xfree(aux);
 			log_warnx("%s: UID collision: %s", a->name, line);
 			return (FETCH_ERROR);
 		}
 
-		SPLAY_INSERT(fetch_pop3_tree, &data->serverq, aux);
+		RB_INSERT(fetch_pop3_tree, &data->serverq, aux);
 		data->cur++;
 	}
 
@@ -662,33 +662,33 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 		/* Load the cache and weed out any mail that doesn't exist. */
 		if (pop3_load(a) != 0)
 			return (FETCH_ERROR);
-		aux1 = SPLAY_MIN(fetch_pop3_tree, &data->cacheq);
+		aux1 = RB_MIN(fetch_pop3_tree, &data->cacheq);
 		while (aux1 != NULL) {
 			aux2 = aux1;
-			aux1 = SPLAY_NEXT(fetch_pop3_tree, &data->cacheq, aux1);
+			aux1 = RB_NEXT(fetch_pop3_tree, &data->cacheq, aux1);
 
-			if (SPLAY_FIND(
+			if (RB_FIND(
 			    fetch_pop3_tree, &data->serverq, aux2) != NULL)
 				continue;
-			SPLAY_REMOVE(fetch_pop3_tree, &data->cacheq, aux2);
+			RB_REMOVE(fetch_pop3_tree, &data->cacheq, aux2);
 			pop3_free(aux2);
 		}
 
 		/* Build the want queue from the server queue. */
-		SPLAY_FOREACH(aux1, fetch_pop3_tree, &data->serverq) {
+		RB_FOREACH(aux1, fetch_pop3_tree, &data->serverq) {
 			switch (data->only) {
 			case FETCH_ONLY_ALL:
 				/* Get all mails. */
 				break;
 			case FETCH_ONLY_NEW:
 				/* Get only mails not in the cache. */
-				if (SPLAY_FIND(fetch_pop3_tree,
+				if (RB_FIND(fetch_pop3_tree,
 				    &data->cacheq, aux1) != NULL)
 					continue;
 				break;
 			case FETCH_ONLY_OLD:
 				/* Get only mails in the cache. */
-				if (SPLAY_FIND(fetch_pop3_tree,
+				if (RB_FIND(fetch_pop3_tree,
 				    &data->cacheq, aux1) == NULL)
 					continue;
 				break;
@@ -742,7 +742,7 @@ pop3_state_cache3(struct account *a, struct fetch_ctx *fctx)
 			 * Check the server queue. Mails now not on the server
 			 * are removed.
 			 */
-			aux3 = SPLAY_FIND(
+			aux3 = RB_FIND(
 			    fetch_pop3_tree, &data->serverq, aux2);
 			if (aux3 == NULL) {
 				TAILQ_REMOVE(&data->wantq, aux2, qentry);
@@ -850,8 +850,8 @@ pop3_state_delete(struct account *a, struct fetch_ctx *fctx)
 	TAILQ_REMOVE(&data->dropq, aux, qentry);
 
 	/* If not already in the cache, add it. */
-	if (SPLAY_FIND(fetch_pop3_tree, &data->cacheq, aux) == NULL)
-		SPLAY_INSERT(fetch_pop3_tree, &data->cacheq, aux);
+	if (RB_FIND(fetch_pop3_tree, &data->cacheq, aux) == NULL)
+		RB_INSERT(fetch_pop3_tree, &data->cacheq, aux);
 	else
 		pop3_free(aux);
 

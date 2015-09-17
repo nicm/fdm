@@ -138,7 +138,7 @@ struct fetch_nntp_data {
 
 /* Fetch pop3 queues and trees. */
 TAILQ_HEAD(fetch_pop3_queue, fetch_pop3_mail);
-SPLAY_HEAD(fetch_pop3_tree, fetch_pop3_mail);
+RB_HEAD(fetch_pop3_tree, fetch_pop3_mail);
 
 /* Fetch pop3 data. */
 struct fetch_pop3_data {
@@ -190,7 +190,7 @@ struct fetch_pop3_mail {
 	u_int		 idx;
 
 	TAILQ_ENTRY(fetch_pop3_mail) qentry;
-	SPLAY_ENTRY(fetch_pop3_mail) tentry;
+	RB_ENTRY(fetch_pop3_mail) tentry;
 };
 
 /* Fetch imap data. */
