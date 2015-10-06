@@ -38,6 +38,16 @@ if test "x$found_static" = xyes; then
 	LDFLAGS="$LDFLAGS -static"
 fi
 
+AC_ARG_ENABLE(
+	pcre,
+	AC_HELP_STRING(--enable-pcre, use PCRE),
+	found_pcre=$enable_pcre
+)
+if test "x$found_pcre" = xyes; then
+	CPPFLAGS="$CPPFLAGS -DPCRE"
+	LIBS="$LIBS -lpcre"
+fi
+
 AC_CHECK_HEADERS(
 	[ \
 		sys/queue.h \
