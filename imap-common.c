@@ -511,14 +511,21 @@ imap_state_login(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
+	size_t			 passlen;
 
 	if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
 		return (FETCH_ERROR);
 	if (line == NULL)
 		return (FETCH_BLOCK);
 
-	if (imap_putln(a, "%s {%zu}", data->user, strlen(data->pass)) != 0)
-		return (FETCH_ERROR);
+	passlen = strlen(data->pass);
+	if (data->capa & IMAP_CAPA_NOSPACE) {
+		if (imap_putln(a, "%s{%zu}", data->user, passlen) != 0)
+			return (FETCH_ERROR);
+	} else {
+		if (imap_putln(a, "%s {%zu}", data->user, passlen) != 0)
+			return (FETCH_ERROR);
+	}
 	fctx->state = imap_state_user;
 	return (FETCH_BLOCK);
 }
@@ -529,11 +536,33 @@ imap_state_user(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
+	int                      tag;
 
-	if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
-		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
+	if (data->capa & IMAP_CAPA_NOSPACE) {
+		if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
+			return (FETCH_ERROR);
+		if (line == NULL)
+			return (FETCH_BLOCK);
+	} else {
+		for (;;) {
+			if (imap_getln(a, fctx, IMAP_RAW, &line) != 0)
+				return (FETCH_ERROR);
+			if (line == NULL)
+				return (FETCH_BLOCK);
+			tag = imap_tag(line);
+			if (tag == IMAP_TAG_NONE)
+				continue;
+			if (tag == IMAP_TAG_CONTINUE || tag == data->tag)
+				break;
+			return (FETCH_ERROR);
+		}
+		if (tag != IMAP_TAG_CONTINUE) {
+			log_debug("%s: didn't accept user (%s); "
+			    "trying without space", a->name, line);
+			data->capa |= IMAP_CAPA_NOSPACE;
+			return (imap_pick_auth(a, fctx));
+		}
+	}
 
 	if (imap_putln(a, "%s", data->pass) != 0)
 		return (FETCH_ERROR);

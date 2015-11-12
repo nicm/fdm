@@ -239,8 +239,13 @@ retry:
 		log_debug2("%s: adjusting size: actual %zu", a->name, maillen);
 		maillen = m->size;
 	}
-	if (imap_putln(a, "%s {%zu}", folder, maillen) != 0)
-		goto error;
+	if (fdata.capa & IMAP_CAPA_NOSPACE) {
+		if (imap_putln(a, "%s{%zu}", folder, maillen) != 0)
+			goto error;
+	} else {
+		if (imap_putln(a, "%s {%zu}", folder, maillen) != 0)
+			goto error;
+	}
 	switch (deliver_imap_waitappend(a, &fctx, io, &line)) {
 	case IMAP_TAG_ERROR:
 		if (line != NULL)

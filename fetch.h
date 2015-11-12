@@ -250,6 +250,7 @@ struct fetch_imap_mail {
 #define IMAP_CAPA_AUTH_CRAM_MD5 0x1
 #define IMAP_CAPA_XYZZY 0x2
 #define IMAP_CAPA_STARTTLS 0x4
+#define IMAP_CAPA_NOSPACE 0x8
 
 /* fetch-maildir.c */
 extern struct fetch	 fetch_maildir;
