@@ -102,13 +102,13 @@ if test "x$found_libssl" = xno; then
 	AC_MSG_ERROR("libssl not found")
 fi
 
-AC_CHECK_FUNC(strlcpy, found_strlcpy=yes, found_strlcpy=no)
+AC_CHECK_DECL(strlcpy, found_strlcpy=yes, found_strlcpy=no)
 if test "x$found_strlcpy" = xyes; then
 	AC_DEFINE(HAVE_STRLCPY)
 fi
 AM_CONDITIONAL(NO_STRLCPY, [test "x$found_strlcpy" = xno])
 
-AC_CHECK_FUNC(strlcat, found_strlcat=yes, found_strlcat=no)
+AC_CHECK_DECL(strlcat, found_strlcat=yes, found_strlcat=no)
 if test "x$found_strlcat" = xyes; then
 	AC_DEFINE(HAVE_STRLCAT)
 fi
