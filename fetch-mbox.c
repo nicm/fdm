@@ -404,7 +404,7 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 	struct mail			*m = fctx->mail;
 	struct fetch_mbox_mbox		*fmbox;
 	struct fetch_mbox_mail		*aux;
-	char				*line, *ptr, *lptr;
+	char				*line, *ptr, *last_line, *lptr;
 	size_t				 llen;
 	int				 flushing;
 
@@ -443,7 +443,7 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 	 * trimmed later with minimal penalty).
 	 */
 	flushing = 0;
-	for (;;) {
+	for (last_line = NULL;; last_line = line) {
 		/* Check for EOF. */
 		if (data->off == fmbox->size) {
 			aux->size = data->off - aux->off;
@@ -459,8 +459,20 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 		} else
 			data->off += ptr - line + 1;
 
-		/* Check if the line is "From ". */
+		/* Check if we have reached the beginning of the next message.
+		 * This is characterised by the next message's "From " line
+		 * (not to be confused with the "From:" header, which is
+		 * followed by a colon,not a space). To allow lines beginning
+		 * "From " to appear in message bodies, they can be escaped by
+		 * prepending the line with a '>'. Some tools escape *all* body
+		 * "From " lines, whereas others only escape "From " lines if
+		 * they immediately follow a blank line (since actual "From "
+		 * lines should only occur after a blank line message
+		 * separator). See RFC 4155 for more information.
+		 */
 		if (line > fmbox->base &&
+		    last_line != NULL &&
+		    (last_line[0] == '\r' || last_line[0] == '\n') &&
 		    ptr - line >= 5 && strncmp(line, "From ", 5) == 0) {
 			/* End of mail. */
 			aux->size = (line - fmbox->base) - aux->off;
