@@ -460,13 +460,15 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 			data->off += ptr - line + 1;
 
 		/* Check if we have reached the beginning of the next message.
-		 * This is characterised by a unquoted "From " header line. To
-		 * allow lines beginning "From: " to appear in message bodies,
-		 * RFC2822 says that they should be escaped by prepending the
-		 * line with a '>' character. Some tools which write mboxs only
-		 * escape "From " lines if they follow a blank line (a
-		 * heuristic, since actual "From" headers should only occur
-		 * after a blank line message separator).
+		 * This is characterised by the next message's "From " line
+		 * (not to be confused with the "From:" header, which is
+		 * followed by a colon,not a space). To allow lines beginning
+		 * "From " to appear in message bodies, they can be escaped by
+		 * prepending the line with a '>'. Some tools escape *all* body
+		 * "From " lines, whereas others only escape "From " lines if
+		 * they immediately follow a blank line (since actual "From "
+		 * lines should only occur after a blank line message
+		 * separator). See RFC 4155 for more information.
 		 */
 		if (line > fmbox->base &&
 		    last_line != NULL &&
