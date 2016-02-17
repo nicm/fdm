@@ -23,6 +23,7 @@
 #include <ctype.h>
 #include <resolv.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -59,6 +60,9 @@ int	imap_state_next(struct account *, struct fetch_ctx *);
 int	imap_state_body(struct account *, struct fetch_ctx *);
 int	imap_state_line(struct account *, struct fetch_ctx *);
 int	imap_state_mail(struct account *, struct fetch_ctx *);
+int	imap_state_gmext_start(struct account *, struct fetch_ctx *);
+int	imap_state_gmext_body(struct account *, struct fetch_ctx *);
+int	imap_state_gmext_done(struct account *, struct fetch_ctx *);
 int	imap_state_commit(struct account *, struct fetch_ctx *);
 int	imap_state_expunge(struct account *, struct fetch_ctx *);
 int	imap_state_close(struct account *, struct fetch_ctx *);
@@ -401,6 +405,10 @@ imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 	/* Use XYZZY to detect Google brokenness. */
 	if (strstr(line, "XYZZY") != NULL)
 		data->capa |= IMAP_CAPA_XYZZY;
+
+	/* Gmail IMAP extensions */
+	if (strstr(line, "X-GM-EXT-1") != NULL)
+		data->capa |= IMAP_CAPA_GMEXT;
 
 	if (strstr(line, "STARTTLS") != NULL)
 		data->capa |= IMAP_CAPA_STARTTLS;
@@ -952,6 +960,81 @@ imap_state_line(struct account *a, struct fetch_ctx *fctx)
 /* Mail state. */
 int
 imap_state_mail(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char	*line;
+
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
+
+	if (data->capa & IMAP_CAPA_GMEXT) {
+		fctx->state = imap_state_gmext_start;
+		return (FETCH_AGAIN);
+	}
+
+	fctx->state = imap_state_next;
+	return (FETCH_MAIL);
+}
+
+/* Gmail extensions start state. */
+int
+imap_state_gmext_start(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	struct mail				*m = fctx->mail;
+	struct fetch_imap_mail	*aux = m->auxdata;
+
+	if (imap_putln(a, "%u FETCH %u (X-GM-MSGID X-GM-THRID X-GM-LABELS)",
+		++data->tag, aux->uid) != 0)
+		return (FETCH_ERROR);
+
+	fctx->state = imap_state_gmext_body;
+	return (FETCH_AGAIN);
+}
+
+/* Gmail extensions body state. */
+int
+imap_state_gmext_body(struct account *a, struct fetch_ctx *fctx)
+{
+	struct mail	*m = fctx->mail;
+	char		*line, *lb;
+	u_int		 n;
+	uint64_t	 thrid, msgid;
+	size_t		 lblen;
+
+	if (imap_getln(a, fctx, IMAP_UNTAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	if (sscanf(line, "* %u FETCH ("
+		"X-GM-THRID %llu X-GM-MSGID %llu ", &n, &thrid, &msgid) != 3)
+		return (imap_invalid(a, line));
+	if ((lb = strstr(line, "X-GM-LABELS")) == NULL)
+		return (imap_invalid(a, line));
+	if ((lb = strchr(lb, '(')) == NULL)
+		return (imap_invalid(a, line));
+	lb++; /* drop '(' */
+	lblen = strlen(lb);
+	if (lb[lblen-1] != ')' || lb[lblen-2] != ')')
+		return (imap_invalid(a, line));
+	lblen -= 2; /* drop '))' from the end */
+
+	add_tag(&m->tags, "gmail_msgid", "%llu", msgid);
+	add_tag(&m->tags, "gmail_thrid", "%llu", thrid);
+	add_tag(&m->tags, "gmail_labels", "%.*s", lblen, lb);
+
+	fctx->state = imap_state_gmext_done;
+	return (FETCH_AGAIN);
+}
+
+/* Gmail extensions done state. */
+int
+imap_state_gmext_done(struct account *a, struct fetch_ctx *fctx)
 {
 	char	*line;
 

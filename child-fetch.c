@@ -517,6 +517,7 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 	int			 error;
 	struct tm		*tm;
 	time_t			 t;
+	const char		*tptr;
 
 	/*
 	 * Check for oversize mails. This must be first since there is no
@@ -620,6 +621,20 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 		}
 		if (error != 0)
 			log_debug3("%s: couldn't add received header", a->name);
+	}
+
+	/* Insert Gmail-specific headers. */
+	if ((tptr = find_tag(m->tags, "gmail_msgid")) != NULL) {
+		if (insert_header(m, "message-id", "X-GM-MSGID: %s", tptr) != 0)
+			log_warnx("%s: failed to add header X-GM-MSGID", a->name);
+	}
+	if ((tptr = find_tag(m->tags, "gmail_thrid")) != NULL) {
+		if (insert_header(m, "message-id", "X-GM-THRID: %s", tptr) != 0)
+			log_warnx("%s: failed to add header X-GM-THRID", a->name);
+	}
+	if ((tptr = find_tag(m->tags, "gmail_labels")) != NULL) {
+		if (insert_header(m, "message-id", "X-GM-LABELS: %s", tptr) != 0)
+			log_warnx("%s: failed to add header X-GM-LABELS", a->name);
 	}
 
 	/* Fill wrapped line list. */
