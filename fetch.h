@@ -251,6 +251,7 @@ struct fetch_imap_mail {
 #define IMAP_CAPA_XYZZY 0x2
 #define IMAP_CAPA_STARTTLS 0x4
 #define IMAP_CAPA_NOSPACE 0x8
+#define IMAP_CAPA_GMEXT 0x10
 
 /* fetch-maildir.c */
 extern struct fetch	 fetch_maildir;
