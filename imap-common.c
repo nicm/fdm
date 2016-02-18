@@ -984,11 +984,11 @@ int
 imap_state_gmext_start(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
-	struct mail				*m = fctx->mail;
+	struct mail		*m = fctx->mail;
 	struct fetch_imap_mail	*aux = m->auxdata;
 
 	if (imap_putln(a, "%u FETCH %u (X-GM-MSGID X-GM-THRID X-GM-LABELS)",
-		++data->tag, aux->uid) != 0)
+	    ++data->tag, aux->uid) != 0)
 		return (FETCH_ERROR);
 
 	fctx->state = imap_state_gmext_body;
@@ -999,16 +999,28 @@ imap_state_gmext_start(struct account *a, struct fetch_ctx *fctx)
 int
 imap_state_gmext_body(struct account *a, struct fetch_ctx *fctx)
 {
-	struct mail	*m = fctx->mail;
-	char		*line, *lb;
-	u_int		 n;
-	uint64_t	 thrid, msgid;
-	size_t		 lblen;
+	struct fetch_imap_data	*data = a->data;
+	struct mail		*m = fctx->mail;
+	char			*line, *lb;
+	int     	         tag;
+	u_int			 n;
+	uint64_t		 thrid, msgid;
+	size_t			 lblen;
 
-	if (imap_getln(a, fctx, IMAP_UNTAGGED, &line) != 0)
+	for (;;) {
+		if (imap_getln(a, fctx, IMAP_RAW, &line) != 0)
+			return (FETCH_ERROR);
+		if (line == NULL)
+			return (FETCH_BLOCK);
+		tag = imap_tag(line);
+		if (tag == IMAP_TAG_NONE)
+			break;
+		if (tag == data->tag) {
+			fctx->state = imap_state_next;
+			return (FETCH_MAIL);
+		}
 		return (FETCH_ERROR);
-	if (line == NULL)
-		return (FETCH_BLOCK);
+	}
 
 	if (sscanf(line, "* %u FETCH (X-GM-THRID %llu X-GM-MSGID %llu ", &n,
 	    &thrid, &msgid) != 3)
