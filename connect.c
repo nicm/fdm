@@ -37,8 +37,6 @@
 
 #include "fdm.h"
 
-char   *check_alt_names(char *, char *, X509 *);
-int	sslverify(struct server *, SSL *, char **);
 int	getport(char *);
 int	httpproxy(struct server *, struct proxy *, struct io *, int, char **);
 int	socks5proxy(struct server *, struct proxy *, struct io *, int, char **);
@@ -82,109 +80,6 @@ sslerror2(int n, const char *fn)
 	xasprintf(&cause,
 	    "%s: %d: %s", fn, n, ERR_error_string(ERR_get_error(), NULL));
 	return (cause);
-}
-
-char *
-check_alt_names(char *host, char *fqdn, X509 *x509)
-{
-	char			*found, *buf;
-	const GENERAL_NAMES	*ans;
-	const GENERAL_NAME	*p;
-	int			 n;
-
-	ans = X509_get_ext_d2i(x509, NID_subject_alt_name, NULL, NULL);
-	if (ans == NULL)
-		return (NULL);
-	n = sk_GENERAL_NAME_num(ans);
-
-	found = NULL;
-	while (n-- > 0 && found == NULL) {
-		p = sk_GENERAL_NAME_value(ans, n);
-		if (p == NULL || p->type != GEN_DNS)
-			continue;
-		if (ASN1_STRING_to_UTF8((u_char **)&buf, p->d.dNSName) <= 0)
-			continue;
-		if (fnmatch(buf, host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
-		    (fqdn != NULL &&
-		    fnmatch(buf, fqdn, FNM_NOESCAPE|FNM_CASEFOLD) == 0))
-			found = buf;
-		OPENSSL_free(buf);
-	}
-
-	sk_GENERAL_NAME_free(ans);
-	return (found);
-}
-
-int
-sslverify(struct server *srv, SSL *ssl, char **cause)
-{
-	X509		*x509;
-	int		 error;
-	char		*fqdn, name[256], *ptr, *ptr2;
-	const char	*s;
-
-	if ((x509 = SSL_get_peer_certificate(ssl)) == NULL) {
-		/* No certificate, error since we wanted to verify it. */
-		s = "no certificate";
-		goto error;
-	}
-
-	/* Verify certificate. */
-	if ((error = SSL_get_verify_result(ssl)) != X509_V_OK) {
-		s = X509_verify_cert_error_string(error);
-		goto error;
-	}
-
-	/* Get certificate name. */
-	X509_NAME_oneline(X509_get_subject_name(x509), name, sizeof name);
-
-	/* Check for CN field. */
-	if ((ptr = strstr(name, "/CN=")) == NULL) {
-		s = "CN missing";
-		goto error;
-	}
-
-	/* Verify CN field. */
-	getaddrs(srv->host, &fqdn, NULL);
-	do {
-		ptr += 4;
-
-		ptr2 = strchr(ptr, '/');
-		if (ptr2 != NULL)
-			*ptr2 = '\0';
-
-		/* Compare against both given host and FQDN. */
-		if (fnmatch(ptr, srv->host, FNM_NOESCAPE|FNM_CASEFOLD) == 0 ||
-		    (fqdn != NULL &&
-		    fnmatch(ptr, fqdn, FNM_NOESCAPE|FNM_CASEFOLD)) == 0)
-			break;
-
-		if (ptr2 != NULL)
-			*ptr2 = '/';
-	} while ((ptr = strstr(ptr, "/CN=")) != NULL);
-
-	/* No valid CN found. Try alternative names. */
-	if (ptr == NULL)
-		ptr = check_alt_names(srv->host, fqdn, x509);
-
-	if (fqdn != NULL)
-		xfree(fqdn);
-
-	/* No valid CN found. */
-	if (ptr == NULL) {
-		s = "no matching CN";
-		goto error;
-	}
-
-	/* Valid CN found. */
-	X509_free(x509);
-	return (0);
-
-error:
-	xasprintf(cause, "certificate verification failed: %s", s);
-	if (x509 != NULL)
-		X509_free(x509);
-	return (-1);
 }
 
 void
@@ -568,7 +463,9 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 {
 	SSL_CTX	*ctx;
 	SSL	*ssl;
+	X509_VERIFY_PARAM *param;
 	int	 n, mode;
+
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
 	SSL_CTX_set_options(ctx, SSL_OP_ALL); /* Enable bug workarounds. */
@@ -579,12 +476,32 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
 
 	SSL_CTX_set_default_verify_paths(ctx);
-	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+	SSL_CTX_set_verify(ctx, verify ? SSL_VERIFY_PEER : SSL_VERIFY_NONE, 0);
 
 	ssl = SSL_new(ctx);
 	if (ssl == NULL) {
 		*cause = sslerror("SSL_new");
 		goto error;
+	}
+
+	if (verify) {
+		param = SSL_get0_param(ssl);
+		char *fqdn;
+
+		/*
+		 * Allow only complete wildcards.  RFC 6125 discourages wildcard usage
+		 * completely, and lists internationalized domain names as a reason
+		 * against partial wildcards.
+		 * See https://tools.ietf.org/html/rfc6125#section-7.2 for more information.
+		 */
+		X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+		X509_VERIFY_PARAM_set1_host(param, srv->host, 0);
+
+		getaddrs(srv->host, &fqdn, NULL);
+		if (fqdn != NULL) {
+			X509_VERIFY_PARAM_add1_host(param, fqdn, 0);
+			xfree(fqdn);
+		}
 	}
 
 	if (SSL_set_fd(ssl, fd) != 1) {
@@ -623,10 +540,6 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 
 	/* Clear the timeout. */
 	timer_cancel();
-
-	/* Verify certificate. */
-	if (verify && sslverify(srv, ssl, cause) != 0)
-		goto error;
 
 	return (ssl);
 
