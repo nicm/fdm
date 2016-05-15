@@ -21,6 +21,7 @@
 #include <arpa/nameser.h>
 
 #include <ctype.h>
+#include <inttypes.h>
 #include <resolv.h>
 #include <string.h>
 
@@ -1022,7 +1023,7 @@ imap_state_gmext_body(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_ERROR);
 	}
 
-	if (sscanf(line, "* %u FETCH (X-GM-THRID %llu X-GM-MSGID %llu ", &n,
+	if (sscanf(line, "* %u FETCH (X-GM-THRID " PRIu64 " X-GM-MSGID " PRIu64 " ", &n,
 	    &thrid, &msgid) != 3)
 		return (imap_invalid(a, line));
 	if ((lb = strstr(line, "X-GM-LABELS")) == NULL)
@@ -1035,8 +1036,8 @@ imap_state_gmext_body(struct account *a, struct fetch_ctx *fctx)
 		return (imap_invalid(a, line));
 	lblen -= 2; /* drop '))' from the end */
 
-	add_tag(&m->tags, "gmail_msgid", "%llu", msgid);
-	add_tag(&m->tags, "gmail_thrid", "%llu", thrid);
+	add_tag(&m->tags, "gmail_msgid", PRIu64, msgid);
+	add_tag(&m->tags, "gmail_thrid", PRIu64, thrid);
 	add_tag(&m->tags, "gmail_labels", "%.*s", (int)lblen, lb);
 
 	fctx->state = imap_state_gmext_done;
