@@ -571,10 +571,13 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 	int	 n, mode;
 
 	ctx = SSL_CTX_new(SSLv23_client_method());
-	if (srv->tls1)
-		SSL_CTX_set_options(ctx, SSL_OP_ALL);
-	else
-		SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_NO_TLSv1);
+	SSL_CTX_set_options(ctx, SSL_OP_ALL); /* Enable bug workarounds. */
+
+	/* Disable insecure SSL/TLS versions. */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2); /* DROWN */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv3); /* POODLE */
+	SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1); /* BEAST */
+
 	SSL_CTX_set_default_verify_paths(ctx);
 	SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
