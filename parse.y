@@ -203,7 +203,6 @@ yyerror(const char *fmt, ...)
 %token TOKNONE
 %token TOKNORECEIVED
 %token TOKNOT
-%token TOKNOTLS1
 %token TOKNOUIDL
 %token TOKNOVERIFY
 %token TOKOLDONLY
@@ -237,6 +236,7 @@ yyerror(const char *fmt, ...)
 %token TOKTAG
 %token TOKTAGGED
 %token TOKTIMEOUT
+%token TOKTLS1
 %token TOKTO
 %token TOKTOTALSIZE
 %token TOKUNMATCHED
@@ -2022,13 +2022,13 @@ nologin: TOKNOLOGIN
 		 $$ = 0;
 	 }
 
-tls1: TOKNOTLS1
+tls1: TOKTLS1
 	{
-		$$ = 0;
+		$$ = 1;
 	}
       | /* empty */
 	{
-		$$ = 1;
+		$$ = 0;
 	}
 
 starttls: TOKSTARTTLS
