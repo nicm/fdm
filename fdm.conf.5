@@ -378,7 +378,7 @@ for details.
 .Op Ic no-apop
 .Op Ic no-uidl
 .Op Ic no-verify
-.Op Ic no-tls1
+.Op Ic tls1
 .Xc
 These statements define a POP3 or POP3S account.
 The
@@ -441,13 +441,9 @@ not use the UIDL command to retrieve mails.
 This is mainly useful for broken POP3 servers.
 .Pp
 The
-.Ic no-tls1
-keyword instructs
-.Xr fdm 1
-not to use the TLSv1 protocol with SSL connections.
-Some broken servers will fail in the handshake phase if the
 .Ic tls1
-flag is not unset.
+keyword enables insecure TLSv1.0 protocol,
+which is disabled by default.
 .Pp
 .Ic starttls
 attempts to use
@@ -492,7 +488,7 @@ not be read from
 .Op Ar folders
 .Op Ar only
 .Op Ic no-verify
-.Op Ic no-tls1
+.Op Ic tls1
 .Op Ic no-cram-md5
 .Op Ic no-login
 .Xc
@@ -599,7 +595,7 @@ basename of the mbox file.
 .Op Ar userpass
 .Ic group Ar group
 .Ic cache Ar cache
-.Op Ic no-tls1
+.Op Ic tls1
 .Xc
 .It Xo Ic nntps Ic server Ar host
 .Op Ic port Ar port
@@ -609,7 +605,7 @@ basename of the mbox file.
 .Ar group ...
 .Li }
 .Ic cache Ar cache
-.Op Ic no-tls1
+.Op Ic tls1
 .Xc
 An NNTP account.
 Articles are fetched from the specified group or groups and delivered.
