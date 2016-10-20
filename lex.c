@@ -116,6 +116,7 @@ static const struct token tokens[] = {
 	{ "imaps", TOKIMAPS },
 	{ "in", TOKIN },
 	{ "in-cache", TOKINCACHE },
+	{ "insecure", TOKINSECURE },
 	{ "invalid", TOKINVALID },
 	{ "k", TOKKILOBYTES },
 	{ "kb", TOKKILOBYTES },

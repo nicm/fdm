@@ -378,7 +378,7 @@ for details.
 .Op Ic no-apop
 .Op Ic no-uidl
 .Op Ic no-verify
-.Op Ic tls1
+.Op Ic insecure
 .Xc
 These statements define a POP3 or POP3S account.
 The
@@ -449,6 +449,10 @@ which is disabled by default.
 attempts to use
 .Em STARTTLS
 after connection.
+.Pp
+.Ic insecure
+allows the use of insecure protocols, which currently includes SSLv2, SSLv3
+and TLS1.0.
 .It Xo Ic pop3 Ic pipe Ar command
 .Op Ar userpass
 .Op Ar only
@@ -491,6 +495,7 @@ not be read from
 .Op Ic tls1
 .Op Ic no-cram-md5
 .Op Ic no-login
+.Op Ic insecure
 .Xc
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3S account, aside from the additional
@@ -525,6 +530,10 @@ The default is to use CRAM-MD5 if it is available, or LOGIN otherwise.
 attempts to use
 .Em STARTTLS
 after connection.
+.Pp
+.Ic insecure
+allows the use of insecure protocols, which currently includes SSLv2, SSLv3
+and TLS1.0.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ar userpass
 .Op Ar folders
