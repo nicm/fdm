@@ -45,6 +45,8 @@ void	fetch_free1(struct mail_ctx *);
 int	fetch_enqueue(struct account *, struct io *, struct mail *);
 int	fetch_dequeue(struct account *, struct mail_ctx *);
 
+void	account_get_method(struct account *a, char *buf,size_t len);
+
 struct mail_queue	 fetch_matchq;
 struct mail_queue	 fetch_deliverq;
 
@@ -504,6 +506,49 @@ finished:
 }
 
 /*
+ * Fills a buf with a string describing the connection method, including
+ * cipher used (if any).
+ */
+
+void
+account_get_method(struct account *a, char *buf,size_t len)
+{
+	int			cipher_bits;
+	char			tmp[128];
+	struct fetch_imap_data	*idata;
+	struct fetch_pop3_data	*pdata;
+	const SSL_CIPHER	*cipher;
+	const char		*proto,*cipher_name,*cipher_version;
+	unsigned long		alg_ssl;
+
+	cipher = NULL;
+	proto = a->fetch->name;
+
+	if(a->fetch == &fetch_imap)
+	{
+		idata = a->data;
+		if(idata->io->ssl != NULL)
+			cipher = SSL_get_current_cipher(idata->io->ssl);
+	}
+	else if (a->fetch == &fetch_pop3)
+	{
+		pdata = a->data;
+		if(pdata->io->ssl != NULL)
+			cipher = SSL_get_current_cipher(pdata->io->ssl);
+	}
+
+	if(cipher != NULL) {
+		cipher_version = SSL_CIPHER_get_version(cipher);
+		cipher_name = SSL_CIPHER_get_name(cipher);
+		cipher_bits = SSL_CIPHER_get_bits(cipher,NULL);
+		snprintf(tmp,128,"version=%s %s %d bits",cipher_version, cipher_name, cipher_bits);
+	} else {
+		snprintf(tmp,128,"unencrypted");
+	}
+	snprintf(buf,len,"with %s (%s)",proto,tmp);
+}
+
+/*
  * Check mail for various problems, add headers and fill tags, then create an
  * mctx and enqueue it onto the fetch queue.
  */
@@ -511,7 +556,7 @@ int
 fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 {
 	struct mail_ctx		*mctx;
-	char			*hdr, rtime[128], *rhost, total[16];
+	char			*hdr, rtime[128], *rhost, with[128], total[16];
 	u_int			 n, b;
 	size_t			 size;
 	int			 error;
@@ -615,9 +660,11 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 			if (rhost == NULL)
 				rhost = conf.host_name;
 
+			account_get_method(a,with,128);
+
 			error = insert_header(m, "received", "Received: by "
-			    "%.450s (%s " VERSION ", account \"%.450s\");\n\t%s",
-			    rhost, __progname, a->name, rtime);
+			    "%.386s (%s " VERSION ", account \"%.386s\") \n\t%.128s\n\t%s",
+			    rhost, __progname, a->name, with, rtime);
 		}
 		if (error != 0)
 			log_debug3("%s: couldn't add received header", a->name);
