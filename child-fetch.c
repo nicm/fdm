@@ -33,6 +33,16 @@
 #include "fetch.h"
 #include "match.h"
 
+
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L && \
+    OPENSSL_VERSION_NUMBER < 0x10100004L
+// definitions copied from ssl_locl.h
+# define SSL_VERSION_FIX
+# define SSL_SSLV2               0x00000001UL
+# define SSL_SSLV3               0x00000002UL
+# define SSL_TLSV1_2             0x00000004UL
+#endif
+
 void	fetch_status(struct account *, double);
 int	fetch_account(struct account *, struct io *, int, double);
 int	fetch_match(struct account *, struct msg *, struct msgbuf *);
@@ -538,7 +548,23 @@ account_get_method(struct account *a, char *buf,size_t len)
 	}
 
 	if(cipher != NULL) {
+#ifdef SSL_VERSION_FIX
+		//Work around bug in openssl prior to 1.1.0 release:
+		//SSL_CIPHER_get_version() incorrectly identified
+		//TLSv1.2 as TLSv1/SSLv3
+		alg_ssl = cipher->algorithm_ssl;
+		if (alg_ssl & SSL_SSLV2)
+			cipher_version = "SSLv2";
+		else if (alg_ssl & SSL_SSLV3)
+			cipher_version = "SSLv3";
+		else if (alg_ssl & SSL_TLSV1_2)
+			cipher_version = "TLSv1.2";
+		else
+			cipher_version = "unknown";
+#else
 		cipher_version = SSL_CIPHER_get_version(cipher);
+#endif
+
 		cipher_name = SSL_CIPHER_get_name(cipher);
 		cipher_bits = SSL_CIPHER_get_bits(cipher,NULL);
 		snprintf(tmp,128,"version=%s %s %d bits",cipher_version, cipher_name, cipher_bits);
