@@ -218,15 +218,15 @@ print_rule(struct rule *r)
 		su = xstrdup("");
 	if (r->lambda != NULL) {
 		make_actlist(r->lambda->list, desc, sizeof desc);
-		log_debug2("added rule %u:%s matches=%slambda=%s", r->idx,
+		log_debug2("added rule %u:%s matches=%slambda=%s", r->idx+1,
 		    su, s, desc);
 	} else if (r->actions != NULL) {
 		ss = fmt_replstrs("", r->actions);
-		log_debug2("added rule %u:%s matches=%sactions=%s", r->idx,
+		log_debug2("added rule %u:%s matches=%sactions=%s", r->idx+1,
 		    su, s, ss);
 		xfree(ss);
 	} else
-		log_debug2("added rule %u: matches=%snested", r->idx, s);
+		log_debug2("added rule %u: matches=%snested", r->idx+1, s);
 	xfree(su);
 }
 
