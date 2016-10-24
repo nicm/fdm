@@ -200,8 +200,8 @@ struct server {
 	char		*port;
 	struct addrinfo	*ai;
 	int		 ssl;
-	int		 tls1;
 	int		 verify;
+	int		 insecure;
 };
 
 /* Proxy type. */

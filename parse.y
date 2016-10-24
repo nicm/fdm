@@ -173,6 +173,7 @@ yyerror(const char *fmt, ...)
 %token TOKIMPLACT
 %token TOKIN
 %token TOKINCACHE
+%token TOKINSECURE
 %token TOKINVALID
 %token TOKKEEP
 %token TOKKEY
@@ -203,7 +204,6 @@ yyerror(const char *fmt, ...)
 %token TOKNONE
 %token TOKNORECEIVED
 %token TOKNOT
-%token TOKNOTLS1
 %token TOKNOUIDL
 %token TOKNOVERIFY
 %token TOKOLDONLY
@@ -305,8 +305,9 @@ yyerror(const char *fmt, ...)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont not disabled keep execpipe writeappend compress verify tls1
+%type  <flag> cont not disabled keep execpipe writeappend compress verify
 %type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl starttls
+%type  <flag> insecure
 %type  <localgid> localgid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -1209,12 +1210,12 @@ actitem: execpipe strv
 		 data->path.str = $2;
 		 data->compress = $3;
 	 }
-       | imaptype server userpassnetrc folder1 verify nocrammd5 nologin tls1
-	 starttls
+       | imaptype server userpassnetrc folder1 verify nocrammd5 nologin
+	 starttls insecure
 	 {
 		 struct deliver_imap_data	*data;
 
-		 if ($1 && $9)
+		 if ($1 && $8)
 			 yyerror("use either imaps or set starttls");
 
 		 $$ = xcalloc(1, sizeof *$$);
@@ -1239,7 +1240,6 @@ actitem: execpipe strv
 		 data->folder.str = $4;
 		 data->server.ssl = $1;
 		 data->server.verify = $5;
-		 data->server.tls1 = $8;
 		 data->server.host = $2.host;
 		 if ($2.port != NULL)
 			 data->server.port = $2.port;
@@ -1250,7 +1250,8 @@ actitem: execpipe strv
 		 data->server.ai = NULL;
 		 data->nocrammd5 = $6;
 		 data->nologin = $7;
-		 data->starttls = $9;
+		 data->starttls = $8;
+		 data->server.insecure = $9;
 	 }
        | TOKSMTP server from to
 	 {
@@ -2022,15 +2023,6 @@ nologin: TOKNOLOGIN
 		 $$ = 0;
 	 }
 
-tls1: TOKNOTLS1
-	{
-		$$ = 0;
-	}
-      | /* empty */
-	{
-		$$ = 1;
-	}
-
 starttls: TOKSTARTTLS
 	{
 		$$ = 1;
@@ -2048,6 +2040,15 @@ uidl: TOKNOUIDL
       | /* empty */
 	{
 		$$ = 1;
+	}
+
+insecure: TOKINSECURE
+	{
+		$$ = 1;
+	}
+      | /* empty */
+	{
+		$$ = 0;
 	}
 
 verify: TOKNOVERIFY
@@ -2192,11 +2193,12 @@ imaponly: only
 		  $$ = FETCH_ONLY_ALL;
 	  }
 
-fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
+fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
+	   insecure
 	   {
 		   struct fetch_pop3_data	*data;
 
-		   if ($1 && $9)
+		   if ($1 && $8)
 			   yyerror("use either pop3s or set starttls");
 
 		   $$.fetch = &fetch_pop3;
@@ -2218,7 +2220,6 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 
 		   data->server.ssl = $1;
 		   data->server.verify = $6;
-		   data->server.tls1 = $8;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2229,7 +2230,8 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   data->server.ai = NULL;
 		   data->apop = $5;
 		   data->uidl = $7;
-		   data->starttls = $9;
+		   data->starttls = $8;
+		   data->server.insecure = $9;
 
 		   data->path = $4.path;
 		   data->only = $4.only;
@@ -2251,11 +2253,11 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   data->only = $5.only;
 	   }
 	 | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
-	   nologin tls1 starttls
+	   nologin starttls insecure
 	   {
 		   struct fetch_imap_data	*data;
 
-		   if ($1 && $10)
+		   if ($1 && $9)
 			   yyerror("use either imaps or set starttls");
 
 		   $$.fetch = &fetch_imap;
@@ -2278,7 +2280,6 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   data->folders = $4;
 		   data->server.ssl = $1;
 		   data->server.verify = $6;
-		   data->server.tls1 = $9;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;
@@ -2290,7 +2291,8 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   data->only = $5;
 		   data->nocrammd5 = $7;
 		   data->nologin = $8;
-		   data->starttls = $10;
+		   data->starttls = $9;
+		   data->server.insecure = $10;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folderlist imaponly
 	   {
@@ -2329,7 +2331,8 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 		   $$.data = data;
 		   data->mboxes = $1;
 	   }
-	 | nntptype server userpassnetrc groups TOKCACHE replpathv verify tls1
+	 | nntptype server userpassnetrc groups TOKCACHE replpathv verify
+	   insecure
 	   {
 		   struct fetch_nntp_data	*data;
 		   char				*cause;
@@ -2368,7 +2371,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl tls1 starttls
 
 		   data->server.ssl = $1;
 		   data->server.verify = $7;
-		   data->server.tls1 = $8;
+		   data->server.insecure = $8;
 		   data->server.host = $2.host;
 		   if ($2.port != NULL)
 			   data->server.port = $2.port;

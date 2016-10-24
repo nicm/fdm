@@ -370,15 +370,16 @@ for details.
 .Op Ic no-apop
 .Op Ic no-uidl
 .Op Ic starttls
+.Op Ic insecure
 .Xc
 .It Xo Ic pop3s Ic server Ar host
 .Op Ic port Ar port
 .Op Ar userpass
 .Op Ar only
 .Op Ic no-apop
-.Op Ic no-uidl
 .Op Ic no-verify
-.Op Ic no-tls1
+.Op Ic no-uidl
+.Op Ic insecure
 .Xc
 These statements define a POP3 or POP3S account.
 The
@@ -440,19 +441,14 @@ keyword makes
 not use the UIDL command to retrieve mails.
 This is mainly useful for broken POP3 servers.
 .Pp
-The
-.Ic no-tls1
-keyword instructs
-.Xr fdm 1
-not to use the TLSv1 protocol with SSL connections.
-Some broken servers will fail in the handshake phase if the
-.Ic tls1
-flag is not unset.
-.Pp
 .Ic starttls
 attempts to use
 .Em STARTTLS
 after connection.
+.Pp
+.Ic insecure
+allows the use of insecure protocols, which currently includes SSLv2, SSLv3
+and TLS1.0.
 .It Xo Ic pop3 Ic pipe Ar command
 .Op Ar userpass
 .Op Ar only
@@ -476,6 +472,7 @@ not be read from
 .Op Ic no-cram-md5
 .Op Ic no-login
 .Op Ic starttls
+.Op Ic insecure
 .Xc
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
@@ -492,9 +489,9 @@ not be read from
 .Op Ar folders
 .Op Ar only
 .Op Ic no-verify
-.Op Ic no-tls1
 .Op Ic no-cram-md5
 .Op Ic no-login
+.Op Ic insecure
 .Xc
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3S account, aside from the additional
@@ -529,6 +526,10 @@ The default is to use CRAM-MD5 if it is available, or LOGIN otherwise.
 attempts to use
 .Em STARTTLS
 after connection.
+.Pp
+.Ic insecure
+allows the use of insecure protocols, which currently includes SSLv2, SSLv3
+and TLS1.0.
 .It Xo Ic imap Ic pipe Ar command
 .Op Ar userpass
 .Op Ar folders
@@ -599,7 +600,6 @@ basename of the mbox file.
 .Op Ar userpass
 .Ic group Ar group
 .Ic cache Ar cache
-.Op Ic no-tls1
 .Xc
 .It Xo Ic nntps Ic server Ar host
 .Op Ic port Ar port
@@ -609,7 +609,6 @@ basename of the mbox file.
 .Ar group ...
 .Li }
 .Ic cache Ar cache
-.Op Ic no-tls1
 .Xc
 An NNTP account.
 Articles are fetched from the specified group or groups and delivered.
