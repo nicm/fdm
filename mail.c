@@ -212,9 +212,10 @@ insert_header(struct mail *m, const char *before, const char *fmt, ...)
 	if (before != NULL) {
 		/* Insert before header. */
 		ptr = find_header(m, before, &len, 0);
-		if (ptr == NULL)
-			return (-1);
-		off = ptr - m->data;
+		if (ptr == NULL) {
+		       log_debug3("insert_header(): \"%s\" not found, adding header to the top.",before);
+			off = 0;
+		} else off = ptr - m->data;
 	} else {
 		/* Insert at the end. */
 		if (m->body == 0) {
