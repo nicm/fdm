@@ -45,6 +45,8 @@ void	fetch_free1(struct mail_ctx *);
 int	fetch_enqueue(struct account *, struct io *, struct mail *);
 int	fetch_dequeue(struct account *, struct mail_ctx *);
 
+const char *account_get_method(struct account *);
+
 struct mail_queue	 fetch_matchq;
 struct mail_queue	 fetch_deliverq;
 
@@ -504,6 +506,41 @@ finished:
 }
 
 /*
+ * Returns a string describing the connection method, including cipher used (if
+ * any).
+ */
+const char *
+account_get_method(struct account *a)
+{
+	struct fetch_imap_data	*idata;
+	struct fetch_pop3_data	*pdata;
+	const SSL_CIPHER	*cipher;
+	static char		 s[128];
+	char			 tmp[128];
+
+	if (a->fetch == &fetch_imap) {
+		idata = a->data;
+		if (idata->io->ssl != NULL)
+			cipher = SSL_get_current_cipher(idata->io->ssl);
+	} else if (a->fetch == &fetch_pop3) {
+		pdata = a->data;
+		if (pdata->io->ssl != NULL)
+			cipher = SSL_get_current_cipher(pdata->io->ssl);
+	} else
+		cipher = NULL;
+	if (cipher != NULL) {
+		snprintf(tmp, sizeof tmp, "version=%s %s %d bits",
+		    SSL_CIPHER_get_version(cipher),
+		    SSL_CIPHER_get_name(cipher),
+		    SSL_CIPHER_get_bits(cipher, NULL));
+	} else
+		snprintf(tmp, sizeof tmp, "unencrypted");
+
+	snprintf(s, sizeof s, "with %s (%s)", a->fetch->name, tmp);
+	return (s);
+}
+
+/*
  * Check mail for various problems, add headers and fill tags, then create an
  * mctx and enqueue it onto the fetch queue.
  */
@@ -616,8 +653,8 @@ fetch_enqueue(struct account *a, struct io *pio, struct mail *m)
 				rhost = conf.host_name;
 
 			error = insert_header(m, "received", "Received: by "
-			    "%.450s (%s " VERSION ", account \"%.450s\");\n\t%s",
-			    rhost, __progname, a->name, rtime);
+			    "%.350s (%s " VERSION ", account \"%.350s\") \n\t%s\n\t%s",
+			    rhost, __progname, a->name, account_get_method(a), rtime);
 		}
 		if (error != 0)
 			log_debug3("%s: couldn't add received header", a->name);
