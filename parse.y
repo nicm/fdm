@@ -237,7 +237,6 @@ yyerror(const char *fmt, ...)
 %token TOKTAG
 %token TOKTAGGED
 %token TOKTIMEOUT
-%token TOKTLS1
 %token TOKTO
 %token TOKTOTALSIZE
 %token TOKUNMATCHED

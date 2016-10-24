@@ -189,7 +189,6 @@ static const struct token tokens[] = {
 	{ "tag", TOKTAG },
 	{ "tagged", TOKTAGGED },
 	{ "timeout", TOKTIMEOUT },
-	{ "tls1", TOKTLS1 },
 	{ "to", TOKTO },
 	{ "to-cache", TOKADDTOCACHE },
 	{ "total-size", TOKTOTALSIZE },
