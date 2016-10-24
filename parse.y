@@ -1213,7 +1213,7 @@ actitem: execpipe strv
 	 {
 		 struct deliver_imap_data	*data;
 
-		 if ($1 && $9)
+		 if ($1 && $8)
 			 yyerror("use either imaps or set starttls");
 
 		 $$ = xcalloc(1, sizeof *$$);
@@ -2195,7 +2195,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls insecu
 	   {
 		   struct fetch_pop3_data	*data;
 
-		   if ($1 && $9)
+		   if ($1 && $8)
 			   yyerror("use either pop3s or set starttls");
 
 		   $$.fetch = &fetch_pop3;
@@ -2253,7 +2253,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls insecu
 	   {
 		   struct fetch_imap_data	*data;
 
-		   if ($1 && $10)
+		   if ($1 && $9)
 			   yyerror("use either imaps or set starttls");
 
 		   $$.fetch = &fetch_imap;

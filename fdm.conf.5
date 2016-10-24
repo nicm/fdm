@@ -440,11 +440,6 @@ keyword makes
 not use the UIDL command to retrieve mails.
 This is mainly useful for broken POP3 servers.
 .Pp
-The
-.Ic tls1
-keyword enables insecure TLSv1.0 protocol,
-which is disabled by default.
-.Pp
 .Ic starttls
 attempts to use
 .Em STARTTLS
@@ -492,7 +487,6 @@ not be read from
 .Op Ar folders
 .Op Ar only
 .Op Ic no-verify
-.Op Ic tls1
 .Op Ic no-cram-md5
 .Op Ic no-login
 .Op Ic insecure
@@ -604,7 +598,6 @@ basename of the mbox file.
 .Op Ar userpass
 .Ic group Ar group
 .Ic cache Ar cache
-.Op Ic tls1
 .Xc
 .It Xo Ic nntps Ic server Ar host
 .Op Ic port Ar port
@@ -614,7 +607,6 @@ basename of the mbox file.
 .Ar group ...
 .Li }
 .Ic cache Ar cache
-.Op Ic tls1
 .Xc
 An NNTP account.
 Articles are fetched from the specified group or groups and delivered.
