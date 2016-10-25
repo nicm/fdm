@@ -412,6 +412,9 @@ imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 	if (strstr(line, "STARTTLS") != NULL)
 		data->capa |= IMAP_CAPA_STARTTLS;
 
+	if (strstr(line, "IDLE") != NULL)
+		data->capa |= IMAP_CAPA_IDLE;
+
 	fctx->state = imap_state_capability2;
 	return (FETCH_AGAIN);
 }
