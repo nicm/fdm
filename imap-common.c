@@ -23,6 +23,7 @@
 #include <ctype.h>
 #include <resolv.h>
 #include <string.h>
+#include <time.h>
 
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
@@ -52,6 +53,9 @@ int	imap_state_pass(struct account *, struct fetch_ctx *);
 int	imap_state_select2(struct account *, struct fetch_ctx *);
 int	imap_state_select3(struct account *, struct fetch_ctx *);
 int	imap_state_select4(struct account *, struct fetch_ctx *);
+int	imap_state_idle2(struct account *, struct fetch_ctx *);
+int	imap_state_idle3(struct account *, struct fetch_ctx *);
+int	imap_state_idle4(struct account *a, struct fetch_ctx *fctx);
 int	imap_state_search1(struct account *, struct fetch_ctx *);
 int	imap_state_search2(struct account *, struct fetch_ctx *);
 int	imap_state_search3(struct account *, struct fetch_ctx *);
@@ -64,6 +68,7 @@ int	imap_state_gmext_body(struct account *, struct fetch_ctx *);
 int	imap_state_gmext_done(struct account *, struct fetch_ctx *);
 int	imap_state_commit(struct account *, struct fetch_ctx *);
 int	imap_state_expunge(struct account *, struct fetch_ctx *);
+int	imap_state_preclose(struct account *, struct fetch_ctx *);
 int	imap_state_close(struct account *, struct fetch_ctx *);
 int	imap_state_quit(struct account *, struct fetch_ctx *);
 
@@ -665,10 +670,8 @@ imap_state_select4(struct account *a, struct fetch_ctx *fctx)
 
 	/* If no mails, stop early. */
 	if (data->total == 0) {
-		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
-			return (FETCH_ERROR);
-		fctx->state = imap_state_close;
-		return (FETCH_BLOCK);
+		fctx->state = imap_state_preclose;
+		return (FETCH_AGAIN);
 	}
 
 	fctx->state = imap_state_search1;
@@ -763,10 +766,8 @@ imap_state_search3(struct account *a, struct fetch_ctx *fctx)
 
 	/* If no mails, or polling, stop here. */
 	if (data->total == 0 || fctx->flags & FETCH_POLL) {
-		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
-			return (FETCH_ERROR);
-		fctx->state = imap_state_close;
-		return (FETCH_BLOCK);
+		fctx->state = imap_state_preclose;
+		return (FETCH_AGAIN);
 	}
 
 	fctx->state = imap_state_next;
@@ -833,10 +834,8 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 	if (ARRAY_EMPTY(&data->wanted)) {
 		if (data->committed != data->total)
 			return (FETCH_BLOCK);
-		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
-			return (FETCH_ERROR);
-		fctx->state = imap_state_close;
-		return (FETCH_BLOCK);
+		fctx->state = imap_state_preclose;
+		return (FETCH_AGAIN);
 	}
 
 	/* Fetch the next mail. */
@@ -1100,6 +1099,123 @@ imap_state_expunge(struct account *a, struct fetch_ctx *fctx)
 	return (FETCH_AGAIN);
 }
 
+/*
+ * preclose state. Decide whether to idle, or to close the mailbox and
+ * continue to the exit.
+ */
+int
+imap_state_preclose(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	log_debug3("%s: preclose state.",a->name);
+	if (conf.daemon && (data->capa & IMAP_CAPA_IDLE)) {
+
+		fctx->state = imap_state_idle1;
+		return (FETCH_AGAIN);
+	} else {
+		if (imap_putln(a, "%u CLOSE", ++data->tag) != 0)
+			return (FETCH_ERROR);
+
+		fctx->state = imap_state_close;
+		return (FETCH_BLOCK);
+	}
+}
+
+/* IDLE state. Send the IDLE command. */
+int
+imap_state_idle1(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	log_debug("%s: idling",a->name);
+	if (imap_putln(a, "%u IDLE", ++data->tag) != 0)
+		return (FETCH_ERROR);
+
+	data->idle_restart_time = time(NULL) + conf.idle_timeout;
+
+	fctx->state = imap_state_idle2;
+	return (FETCH_BLOCK);
+}
+
+/* IDLE state 2. Wait for a continuation confirming we are in IDLE mode. */
+int
+imap_state_idle2(struct account *a, struct fetch_ctx *fctx)
+{
+        struct fetch_imap_data  *data = a->data;
+        char                    *line;
+	int			 tag;
+
+	log_debug3("%s: idle2",a->name);
+	if (imap_getln(a, fctx, IMAP_RAW, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	tag = imap_tag(line);
+	if (tag == IMAP_TAG_CONTINUE) {
+		fctx->state = imap_state_idle3;
+	} /* else FIX: check if the server is rejecting our IDLE request. */
+
+	return (FETCH_AGAIN);
+}
+
+/*
+ * IDLE state 3. Wait for a timeout or a server message. Leave IDLE mode as
+ * appropriate.
+ */
+int
+imap_state_idle3(struct account *a, struct fetch_ctx *fctx)
+{
+        struct fetch_imap_data  *data = a->data;
+	char			*line;
+	int			 tag;
+
+	log_debug3("%s: idle3",a->name);
+
+	if (time(NULL) > data->idle_restart_time) {
+		log_debug("%s: idle3 timeout",a->name);
+		goto idle3_done;
+	}
+
+	if (imap_getln(a, fctx, IMAP_RAW, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_TICK);
+
+	if (sscanf(line, "* %u EXISTS", &data->total) == 1) {
+		log_debug("%s: idle3 got %s", a->name, line);
+		goto idle3_done;
+	} else
+		return (FETCH_TICK);
+
+idle3_done:
+	if(imap_putln(a, "DONE") != 0)
+		return (FETCH_ERROR);
+	fctx->state = imap_state_idle4;
+	return (FETCH_BLOCK);
+}
+
+/* IDLE state 4. Wait for a server OK then go to search mode. */
+int
+imap_state_idle4(struct account *a, struct fetch_ctx *fctx)
+{
+	char			*line;
+
+	log_debug3("%s: idle4",a->name);
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!imap_okay(line))
+		return (imap_bad(a, line));
+
+	log_debug("%s: idle4: got OK",a->name);
+
+        fctx->state = imap_state_search1;
+        return (FETCH_AGAIN);
+}
+
 /* Close state. */
 int
 imap_state_close(struct account *a, struct fetch_ctx *fctx)
@@ -1114,16 +1230,18 @@ imap_state_close(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	data->folder++;
-	if (data->folder != ARRAY_LENGTH(data->folders)) {
-		fctx->state = imap_state_select1;
-		return (FETCH_AGAIN);
-	}
-
 	if (conf.daemon) {
-		data->folder = 0; // go back to the first folder.
+		/* don't log out, start over after a reasonable delay */
 		fctx->state = imap_state_select1;
+		log_debug("%s: IDLE not supported, restarting",a->name);
 		return (FETCH_RESTART);
+	} else {
+		/* no daemon mode -- fetch more folders then log out. */
+		data->folder++;
+		if (data->folder != ARRAY_LENGTH(data->folders)) {
+			fctx->state = imap_state_select1;
+			return (FETCH_AGAIN);
+		}
 	}
 
 	if (imap_putln(a, "%u LOGOUT", ++data->tag) != 0)
