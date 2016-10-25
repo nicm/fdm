@@ -266,7 +266,7 @@ __dead void
 usage(void)
 {
 	fprintf(stderr,
-	    "usage: %s [-hklmnqv] [-a name] [-D name=value] [-f conffile] "
+	    "usage: %s [-dhklmnqv] [-a name] [-D name=value] [-f conffile] "
 	    "[-u user] [-x name] [fetch|poll|cache] [arguments]\n", __progname);
 	exit(1);
 }
@@ -316,6 +316,7 @@ main(int argc, char **argv)
 	conf.lock_timeout = DEFLOCKTIMEOUT;
 	conf.max_size = DEFMAILSIZE;
 	conf.timeout = DEFTIMEOUT;
+	conf.idle_timeout = DEFIDLETIMEOUT;
 	conf.lock_types = LOCK_FLOCK;
 	conf.impl_act = DECISION_NONE;
 	conf.purge_after = 0;
@@ -326,6 +327,12 @@ main(int argc, char **argv)
 	conf.def_user = NULL;
 	conf.cmd_user = NULL;
 	conf.max_accts = -1;
+	conf.keep_all = 0;
+	conf.daemon = 0;
+	conf.syslog = 0;
+	conf.allow_many = 0;
+	conf.check_only = 0;
+	conf.debug = 0;
 	conf.strip_chars = xstrdup(DEFSTRIPCHARS);
 
 	conf.user_order = xmalloc(sizeof *conf.user_order);
@@ -336,7 +343,7 @@ main(int argc, char **argv)
 	ARRAY_INIT(&conf.excl);
 
 	ARRAY_INIT(&macros);
-	while ((opt = getopt(argc, argv, "a:D:f:hklmnqu:vx:")) != -1) {
+	while ((opt = getopt(argc, argv, "a:D:f:dhklmnqu:vx:")) != -1) {
 		switch (opt) {
 		case 'a':
 			ARRAY_ADD(&conf.incl, xstrdup(optarg));
@@ -347,6 +354,9 @@ main(int argc, char **argv)
 		case 'f':
 			if (conf.conf_file == NULL)
 				conf.conf_file = xstrdup(optarg);
+			break;
+		case 'd':
+			conf.daemon = 1;
 			break;
 		case 'h':
 			home = getenv("HOME");

@@ -25,6 +25,8 @@
 #define FETCH_ERROR 3
 #define FETCH_MAIL 4
 #define FETCH_EXIT 5
+#define FETCH_RESTART 6
+#define FETCH_TICK 7
 
 /* Fetch flags. */
 #define FETCH_PURGE 0x1
@@ -211,6 +213,7 @@ struct fetch_imap_data {
 
 	int		 capa;
 	int		 tag;
+	time_t		 idle_restart_time;
 
 	ARRAY_DECL(, u_int) wanted;
 	ARRAY_DECL(, u_int) dropped;
@@ -252,6 +255,7 @@ struct fetch_imap_mail {
 #define IMAP_CAPA_STARTTLS 0x4
 #define IMAP_CAPA_NOSPACE 0x8
 #define IMAP_CAPA_GMEXT 0x10
+#define IMAP_CAPA_IDLE 0x20
 
 /* fetch-maildir.c */
 extern struct fetch	 fetch_maildir;
@@ -291,6 +295,7 @@ int	imap_invalid(struct account *, const char *);
 int	imap_state_init(struct account *, struct fetch_ctx *);
 int	imap_state_connected(struct account *, struct fetch_ctx *);
 int	imap_state_select1(struct account *, struct fetch_ctx *);
+int	imap_state_idle1(struct account *, struct fetch_ctx *);
 int	imap_commit(struct account *, struct mail *);
 void	imap_abort(struct account *);
 u_int	imap_total(struct account *);

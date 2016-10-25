@@ -337,8 +337,9 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 	struct fetch_ctx fctx;
 	struct cache	*cache;
 	struct iolist	 iol;
-	int		 aborted, complete, holding, timeout;
+	int		 aborted, complete, holding, timeout, tick;
 
+restart:
 	log_debug2("%s: fetching", a->name);
 
 	TAILQ_INIT(&fetch_matchq);
@@ -371,6 +372,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 		}
 
 		fetch_blocked = 0;
+		tick = 0;
 
 		/* Check for new privsep messages. */
 		msgp = NULL;
@@ -425,6 +427,17 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 				/* Fetch again - no blocking. */
 				log_debug3("%s: fetch, again", a->name);
 				continue;
+			case FETCH_RESTART:
+				log_debug("%s: sleeping",a->name);
+				sleep(60 * 2); // try again in two minutes
+				log_debug("%s: fetch, restart",a->name);
+				continue;
+			case FETCH_TICK:
+				/* wait a second and look for IO */
+				log_debug3("%s: fetch, tick", a->name);
+				tick = 1;
+				sleep(1);
+				break;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
 				log_debug3("%s: fetch, block", a->name);
@@ -458,7 +471,11 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 		 * non-empty, we can block unless there are mails that aren't
 		 * blocked (these mails can continue to be processed).
 		 */
-		timeout = conf.timeout;
+		if (tick) {
+			timeout = 0; // just check for available IO
+		} else
+			timeout = conf.timeout;
+
 		if (fetch_queued == 0 && ARRAY_LENGTH(&iol) == 1)
 			timeout = 0;
 		else if (fetch_queued != 0 && fetch_blocked != fetch_queued)
@@ -495,6 +512,16 @@ finished:
 	TAILQ_FOREACH(cache, &conf.caches, entry) {
 		if (cache->db != NULL)
 			db_close(cache->db);
+	}
+
+/* 
+ * In daemon mode, wait a couple of minutes but always try to restart. If
+ * there were errors, we could add a re-try limit or make a better decision
+ * based on the particular error.
+ */
+	if (conf.daemon) {
+		sleep(60 * 2);
+		goto restart;
 	}
 
 	/* Print results. */

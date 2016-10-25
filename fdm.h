@@ -63,6 +63,7 @@
 #define DEFSTRIPCHARS	"\\<>$%^&*|{}[]\"'`;"
 #define MAXACTIONCHAIN	5
 #define DEFTIMEOUT	(900 * 1000)
+#define DEFIDLETIMEOUT	(28 * 60 * 60)			/* 28 minutes */
 #define LOCKSLEEPTIME	10000				/* 0.1 seconds */
 #define MAXNAMESIZE	64
 #define DEFUMASK	(S_IRWXG|S_IRWXO)
@@ -613,6 +614,7 @@ struct conf {
 
 	char			*conf_file;
 	char			*strip_chars;
+	int			 daemon;
 	int			 check_only;
 	int			 allow_many;
 	int			 keep_all;
@@ -635,6 +637,7 @@ struct conf {
 
 	size_t			 max_size;
 	int			 timeout;
+	int			 idle_timeout;
 	int			 del_big;
 	int			 ignore_errors;
 	u_int			 lock_types;
