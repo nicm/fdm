@@ -62,9 +62,13 @@ if that doesn't exist.
 .It Fl d
 Run in daemon mode. Use IMAP
 .Pa idle
-command if available, otherwise check all accounts repeatedly with a 
+command if available, otherwise check all accounts repeatedly with a
 delay. In daemon mode, only the first folder in each account will be
-checked.
+checked. Implies
+.Fl l .
+Daemon mode is only compatible with the
+.Ic fetch
+command.
 .It Fl h
 Look at the
 .Ev HOME

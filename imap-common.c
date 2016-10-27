@@ -1210,7 +1210,7 @@ imap_state_idle4(struct account *a, struct fetch_ctx *fctx)
 	if (!imap_okay(line))
 		return (imap_bad(a, line));
 
-	log_debug("%s: idle4: got OK",a->name);
+	log_debug3("%s: idle4: got OK",a->name);
 
         fctx->state = imap_state_search1;
         return (FETCH_AGAIN);

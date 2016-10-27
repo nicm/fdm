@@ -357,6 +357,7 @@ main(int argc, char **argv)
 			break;
 		case 'd':
 			conf.daemon = 1;
+			conf.syslog = 1;
 			break;
 		case 'h':
 			home = getenv("HOME");
@@ -411,6 +412,15 @@ main(int argc, char **argv)
 			op = FDMOP_CACHE;
 		else
 			usage();
+	}
+
+	/* fork off into daemon mode if requested. */
+	if (conf.daemon) {
+		if (op != FDMOP_FETCH)
+			fatal("Fetch command must be given for daemon mode.");
+
+		if (daemon(1,0))
+			fatal("Daemon mode failed.");
 	}
 
 	/* Set debug level and start logging to syslog if necessary. */
