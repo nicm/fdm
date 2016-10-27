@@ -23,7 +23,7 @@
 .Sh SYNOPSIS
 .Nm fdm
 .Bk -words
-.Op Fl hklmnqv
+.Op Fl dhklmnqv
 .Op Fl a Ar account
 .Op Fl D Ar name Ns = Ns Ar value
 .Op Fl f Ar conffile
@@ -59,6 +59,8 @@ Default is
 or
 .Pa /etc/fdm.conf
 if that doesn't exist.
+.It Fl d
+Run in daemon mode. Loop through accounts with a second delay.
 .It Fl h
 Look at the
 .Ev HOME

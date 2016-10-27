@@ -613,6 +613,7 @@ struct conf {
 
 	char			*conf_file;
 	char			*strip_chars;
+	int			 daemon;
 	int			 check_only;
 	int			 allow_many;
 	int			 keep_all;

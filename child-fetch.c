@@ -339,6 +339,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 	struct iolist	 iol;
 	int		 aborted, complete, holding, timeout;
 
+restart:
 	log_debug2("%s: fetching", a->name);
 
 	TAILQ_INIT(&fetch_matchq);
@@ -425,6 +426,11 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 				/* Fetch again - no blocking. */
 				log_debug3("%s: fetch, again", a->name);
 				continue;
+			case FETCH_RESTART:
+				log_debug("%s: sleeping",a->name);
+				sleep(5); // For debugging. Change to 300
+				log_debug("%s: fetch, again",a->name);
+				continue;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
 				log_debug3("%s: fetch, block", a->name);
@@ -495,6 +501,13 @@ finished:
 	TAILQ_FOREACH(cache, &conf.caches, entry) {
 		if (cache->db != NULL)
 			db_close(cache->db);
+	}
+
+	/* In daemon mode, always try to restart. */
+	/* If there were errors here, we could add a re-try limit. */
+	if (conf.daemon) {
+		sleep(5);
+		goto restart;
 	}
 
 	/* Print results. */
