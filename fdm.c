@@ -419,7 +419,7 @@ main(int argc, char **argv)
 		if (op != FDMOP_FETCH)
 			fatal("Fetch command must be given for daemon mode.");
 
-		if (daemon(1,0))
+		if (daemon(0,0))
 			fatal("Daemon mode failed.");
 	}
 
