@@ -428,8 +428,8 @@ restart:
 				continue;
 			case FETCH_RESTART:
 				log_debug("%s: sleeping",a->name);
-				sleep(5); // For debugging. Change to 300
-				log_debug("%s: fetch, again",a->name);
+				sleep(conf.fetch_freq);
+				log_debug("%s: fetch, restart",a->name);
 				continue;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
@@ -503,19 +503,18 @@ finished:
 			db_close(cache->db);
 	}
 
-	/* In daemon mode, always try to restart. */
-	/* If there were errors here, we could add a re-try limit. */
-	if (conf.daemon) {
-		sleep(5);
-		goto restart;
-	}
-
 	/* Print results. */
 	if (nflags & FETCH_POLL)
 		log_info("%s: %u messages found", a->name, a->fetch->total(a));
 	else
 		fetch_status(a, tim);
-	return (aborted);
+
+	/* In daemon mode, always try to restart. */
+	if (conf.daemon) {
+		sleep(conf.fetch_freq);
+		goto restart;
+	} else
+		return (aborted);
 }
 
 /*

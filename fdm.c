@@ -332,6 +332,7 @@ main(int argc, char **argv)
 	conf.allow_many = 0;
 	conf.check_only = 0;
 	conf.debug = 0;
+	conf.fetch_freq = DEFFETCHFREQ;
 	conf.strip_chars = xstrdup(DEFSTRIPCHARS);
 
 	conf.user_order = xmalloc(sizeof *conf.user_order);

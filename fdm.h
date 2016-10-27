@@ -56,6 +56,7 @@
 #define CONFFILE	".fdm.conf"
 #define LOCKFILE	".fdm.lock"
 #define DEFLOCKTIMEOUT	10
+#define DEFFETCHFREQ	60 * 5				/* 5 minutes */
 #define MAXQUEUEVALUE	50
 #define DEFMAILQUEUE	2
 #define DEFMAILSIZE	(32 * 1024 * 1024)		/* 32 MB */
@@ -636,6 +637,7 @@ struct conf {
 
 	size_t			 max_size;
 	int			 timeout;
+	int			 fetch_freq;
 	int			 del_big;
 	int			 ignore_errors;
 	u_int			 lock_types;
