@@ -1239,6 +1239,8 @@ imap_state_close(struct account *a, struct fetch_ctx *fctx)
 		/* no daemon mode -- fetch more folders then log out. */
 		data->folder++;
 		if (data->folder != ARRAY_LENGTH(data->folders)) {
+			ARRAY_FREE(&data->wanted);
+			data->committed = 0;
 			fctx->state = imap_state_select1;
 			return (FETCH_AGAIN);
 		}
