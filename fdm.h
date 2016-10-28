@@ -490,6 +490,7 @@ struct account {
 
 	int			 disabled;
 	int			 keep;
+	int		 	 timeout;
 
 	struct fetch		*fetch;
 	void			*data;
