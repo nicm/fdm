@@ -1123,7 +1123,8 @@ imap_state_close(struct account *a, struct fetch_ctx *fctx)
 	if (conf.daemon) {
 		data->folder = 0; // go back to the first folder.
 		fctx->state = imap_state_select1;
-		return (FETCH_RESTART);
+		a->wakein = conf.fetch_freq;
+		return (FETCH_WAIT);
 	}
 
 	if (imap_putln(a, "%u LOGOUT", ++data->tag) != 0)

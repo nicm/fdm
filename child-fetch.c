@@ -27,6 +27,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "fdm.h"
 #include "deliver.h"
@@ -134,10 +135,13 @@ fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 	struct io	*rio;
 	char		*cause;
 	double		 tim;
+	int		 dur;
 
-	log_debug3(
-	    "%s: polling: %u, timeout=%d", a->name, ARRAY_LENGTH(iol), timeout);
 	tim = get_time();
+
+restart:
+	log_debug3("%s: polling: %u, timeout=%d, wake=%d", a->name,
+	    ARRAY_LENGTH(iol), timeout, a->wakein);
 	switch (io_polln(
 	    ARRAY_DATA(iol), ARRAY_LENGTH(iol), &rio, timeout, &cause)) {
 	case 0:
@@ -154,7 +158,12 @@ fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 		xfree(cause);
 		return (-1);
 	}
-	tim = get_time() - tim;
+	dur = (int)floor(get_time() - tim);
+	if (a->wakein && (a->wakein > dur)) { /* poll returned early, sleep. */
+		sleep(a->wakein - dur);
+		timeout = a->wakein = 0;
+		goto restart;
+	}
 
 	return (0);
 }
@@ -360,7 +369,7 @@ restart:
 
 	ARRAY_INIT(&iol);
 
-	aborted = complete = holding = 0;
+	aborted = complete = holding = a->wakein = 0;
 	for (;;) {
 		log_debug3("%s: fetch loop start", a->name);
 
@@ -426,11 +435,10 @@ restart:
 				/* Fetch again - no blocking. */
 				log_debug3("%s: fetch, again", a->name);
 				continue;
-			case FETCH_RESTART:
-				log_debug("%s: sleeping",a->name);
-				sleep(conf.fetch_freq);
-				log_debug("%s: fetch, restart",a->name);
-				continue;
+			case FETCH_WAIT:
+				log_debug("%s: fetch, restart (%u secs)",
+				    a->name,a->wakein);
+				break;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
 				log_debug3("%s: fetch, block", a->name);
@@ -464,7 +472,11 @@ restart:
 		 * non-empty, we can block unless there are mails that aren't
 		 * blocked (these mails can continue to be processed).
 		 */
-		timeout = conf.timeout;
+
+		if (a->wakein)
+			timeout = a->wakein;
+		else
+			timeout = conf.timeout;
 		if (fetch_queued == 0 && ARRAY_LENGTH(&iol) == 1)
 			timeout = 0;
 		else if (fetch_queued != 0 && fetch_blocked != fetch_queued)
@@ -511,7 +523,7 @@ finished:
 
 	/* In daemon mode, always try to restart. */
 	if (conf.daemon) {
-		sleep(conf.fetch_freq);
+		log_debug("%s: restarting", a->name);
 		goto restart;
 	} else
 		return (aborted);

@@ -490,6 +490,7 @@ struct account {
 
 	int			 disabled;
 	int			 keep;
+	int		 	 wakein;	/* secs */
 	int		 	 timeout;
 
 	struct fetch		*fetch;

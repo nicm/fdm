@@ -25,7 +25,7 @@
 #define FETCH_ERROR 3
 #define FETCH_MAIL 4
 #define FETCH_EXIT 5
-#define FETCH_RESTART 6
+#define FETCH_WAIT 6
 
 /* Fetch flags. */
 #define FETCH_PURGE 0x1
