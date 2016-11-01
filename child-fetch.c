@@ -160,13 +160,12 @@ restart:
 	}
 	remaining = a->wakein - ((int)floor(get_time() - tim));
 	if (a->wakein) {
-		a->wakein = 0;
 		if (remaining > 0) {
 			/* poll returned early, sleep. */
-			sleep(remaining);
-			timeout = 0;
+			timeout = sleep(remaining);
 			goto restart;
 		}
+		a->wakein = 0;
 	}
 
 	return (0);
@@ -439,13 +438,14 @@ restart:
 				/* Fetch again - no blocking. */
 				log_debug3("%s: fetch, again", a->name);
 				continue;
-			case FETCH_WAIT:
-				log_debug("%s: fetch, restart (%u secs)",
-				    a->name,a->wakein);
-				break;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
-				log_debug3("%s: fetch, block", a->name);
+				if (a->wakein)
+					log_debug(
+					  "%s: fetch, block (wake in %u secs)",
+					  a->name,a->wakein);
+				else
+					log_debug3("%s: fetch, block", a->name);
 				break;
 			case FETCH_MAIL:
 				/* Mail ready. */
