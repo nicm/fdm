@@ -135,7 +135,7 @@ fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 	struct io	*rio;
 	char		*cause;
 	double		 tim;
-	int		 dur;
+	int		 remaining;
 
 	tim = get_time();
 
@@ -158,11 +158,15 @@ restart:
 		xfree(cause);
 		return (-1);
 	}
-	dur = (int)floor(get_time() - tim);
-	if (a->wakein && (a->wakein > dur)) { /* poll returned early, sleep. */
-		sleep(a->wakein - dur);
-		timeout = a->wakein = 0;
-		goto restart;
+	remaining = a->wakein - ((int)floor(get_time() - tim));
+	if (a->wakein) {
+		a->wakein = 0;
+		if (remaining > 0) {
+			/* poll returned early, sleep. */
+			sleep(remaining);
+			timeout = 0;
+			goto restart;
+		}
 	}
 
 	return (0);
