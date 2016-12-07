@@ -893,9 +893,10 @@ with an 'mbox_file' tag with the path of the mbox.
 %%% IMAP and IMAPS
 
 An action may be defined to store mail in an IMAP folder. The specification is
-similar to the IMAP action. A server host and optionally port (default 'imap'
-or 'imaps') must be specified. A username and password may be supplied; if they
-are omitted, fdm will attempt to find a .netrc entry. Examples include:
+similar to the IMAP account definition. A server host and optionally port
+(default 'imap' or 'imaps') must be specified. A username and password may be
+supplied; if they are omitted, fdm will attempt to find a .netrc
+entry. Examples include:
 
 	action "myimapaction" imap server "imap.server"
 
