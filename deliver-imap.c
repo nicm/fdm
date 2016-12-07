@@ -293,13 +293,13 @@ retry:
 		goto error;
 	}
 
-	xfree(fctx.lbuf);
-	xfree(folder);
-
 	if (imap_putln(a, "%u LOGOUT", ++fdata.tag) != 0)
 		goto error;
 	if (deliver_imap_waitokay(a, &fctx, io, &line) != 0)
 		goto error;
+
+	xfree(fctx.lbuf);
+	xfree(folder);
 
 	fdata.disconnect(a);
 	return (DELIVER_SUCCESS);
