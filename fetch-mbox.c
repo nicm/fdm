@@ -182,8 +182,8 @@ fetch_mbox_save(struct account *a, struct fetch_mbox_mbox *fmbox)
 			goto error;
 		}
 
-		fetch_mbox_free(this);
 		TAILQ_REMOVE(&data->kept, this, entry);
+		fetch_mbox_free(this);
 	}
 
 	if (fsync(fd) != 0)
