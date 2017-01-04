@@ -538,6 +538,11 @@ make_from(struct mail *m, char *user)
 	char   *s, *from = NULL;
 	size_t	fromlen = 0;
 
+	from = find_tag(m->tags, "mbox_from");
+	if (from != NULL) {
+		xasprintf(&s, "%s", from);
+		return (s);
+	}
 	from = find_header(m, "from", &fromlen, 1);
 	if (from != NULL && fromlen > 0)
 		from = find_address(from, fromlen, &fromlen);

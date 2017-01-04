@@ -499,6 +499,17 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 
 		if (flushing)
 			continue;
+
+		/*
+		 * If we have just found the end of the first line (the "From "
+		 * line), save it as mbox_from tag.
+		 */
+		if (last_line == NULL) {
+			*ptr = '\0';
+			add_tag(&m->tags, "mbox_from", "%s", line);
+			*ptr = '\n';
+		}
+
 		if (append_line(m, line, ptr - line) != 0) {
 			log_warn("%s: failed to resize mail", a->name);
 			mail_destroy(m);
@@ -508,6 +519,9 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 			flushing = 1;
 	}
 	fmbox->total++;
+
+	/* data->off has counted the From line of the next message */
+	data->off = aux->off + aux->size;
 
 	/*
 	 * Check if there was a blank line between the mails and remove it if
