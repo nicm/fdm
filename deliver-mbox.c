@@ -198,13 +198,8 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	}
 
 	/* Append newlines. */
-	if (m->data[m->size - 1] == '\n') {
-		if (deliver_mbox_write(f, gzf, "\n", 1) < 0)
-			goto error_unblock;
-	} else {
-		if (deliver_mbox_write(f, gzf, "\n\n", 2) < 0)
-			goto error_unblock;
-	}
+	if (deliver_mbox_write(f, gzf, "\n\n", 2) < 0)
+		goto error_unblock;
 
 	/* Flush buffers and sync. */
 	if (gzf == NULL) {

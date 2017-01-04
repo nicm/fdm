@@ -123,7 +123,8 @@ fetch_mbox_save(struct account *a, struct fetch_mbox_mbox *fmbox)
 {
 	struct fetch_mbox_data	*data = a->data;
 	struct fetch_mbox_mail	*aux, *this;
-	char			 path[MAXPATHLEN], saved[MAXPATHLEN], c;
+	char			 path[MAXPATHLEN], saved[MAXPATHLEN];
+	static const char        c[2] = "\n\n";
 	int			 fd;
 	ssize_t			 n;
 	struct iovec		 iov[2];
@@ -170,14 +171,13 @@ fetch_mbox_save(struct account *a, struct fetch_mbox_mbox *fmbox)
 
 		log_debug2("%s: writing message from %zu, size %zu",
 		    a->name, this->off, this->size);
-		c = '\n';
 		iov[0].iov_base = fmbox->base + this->off;
 		iov[0].iov_len = this->size;
-		iov[1].iov_base = &c;
-		iov[1].iov_len = 1;
+		iov[1].iov_base = c;
+		iov[1].iov_len = 2;
 		if ((n = writev(fd, iov, 2)) < 0)
 			goto error;
-		if ((size_t) n != this->size + 1) {
+		if ((size_t) n != this->size + 2) {
 			errno = EIO;
 			goto error;
 		}
@@ -520,7 +520,10 @@ fetch_mbox_state_mail(struct account *a, struct fetch_ctx *fctx)
 	}
 	fmbox->total++;
 
-	/* data->off has counted the From line of the next message */
+	/*
+	 * Since data->off has already counted the "From " line of the next
+	 * message, must reset data->off to be the exact message size.
+	 */
 	data->off = aux->off + aux->size;
 
 	/*
