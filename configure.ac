@@ -92,11 +92,16 @@ AC_SEARCH_LIBS(
 if test "x$found_libcrypto" = xno; then
 	AC_MSG_ERROR("libcrypto not found")
 fi
+found_libssl=no
+AC_SEARCH_LIBS(
+  OPENSSL_init_ssl,
+  [ssl],
+  found_libssl=yes
+)
 AC_SEARCH_LIBS(
 	SSL_library_init,
 	[ssl],
-	found_libssl=yes,
-	found_libssl=no
+	found_libssl=yes
 )
 if test "x$found_libssl" = xno; then
 	AC_MSG_ERROR("libssl not found")
