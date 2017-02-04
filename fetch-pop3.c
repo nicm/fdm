@@ -82,7 +82,7 @@ fetch_pop3_connect(struct account *a)
 	char			*cause;
 
 	data->io = connectproxy(&data->server,
-	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
+	    conf.verify_certs, a->proxy, IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);

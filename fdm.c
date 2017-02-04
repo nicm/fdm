@@ -497,23 +497,6 @@ main(int argc, char **argv)
 		user_free(ud);
 	}
 
-	/* Print proxy info. */
-	if (conf.proxy != NULL) {
-		switch (conf.proxy->type) {
-		case PROXY_HTTP:
-			proxy = "HTTP";
-			break;
-		case PROXY_HTTPS:
-			proxy = "HTTPS";
-			break;
-		case PROXY_SOCKS5:
-			proxy = "SOCKS5";
-			break;
-		}
-		log_debug2("using proxy: %s on %s:%s", proxy,
-		    conf.proxy->server.host, conf.proxy->server.port);
-	}
-
 	/* Print some locking info. */
 	*tmp = '\0';
 	if (conf.lock_types == 0)

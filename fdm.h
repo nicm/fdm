@@ -490,6 +490,8 @@ struct account {
 	int			 disabled;
 	int			 keep;
 
+  struct proxy		*proxy;
+
 	struct fetch		*fetch;
 	void			*data;
 
@@ -602,7 +604,6 @@ struct conf {
 	struct strings		 incl;
 	struct strings		 excl;
 
-	struct proxy		*proxy;
 
 	char			*user_home;
 	struct userfunctions	*user_order;
