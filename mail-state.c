@@ -171,13 +171,13 @@ next_expritem:
 	if (mctx->expritem != NULL)
 		return (MAIL_CONTINUE);
 
-	log_debug3("%s: finished rule %u, result %d", a->name, mctx->rule->idx,
+	log_debug3("%s: finished rule %u, result %d", a->name, mctx->rule->idx+1,
 	    mctx->result);
 
 	/* If the result was false, skip to find the next rule. */
 	if (!mctx->result)
 		goto next_rule;
-	log_debug2("%s: matched to rule %u", a->name, mctx->rule->idx);
+	log_debug2("%s: matched to rule %u", a->name, mctx->rule->idx+1);
 
 	/*
 	 * If this rule is stop, mark the context so when we get back after
@@ -306,7 +306,7 @@ done:
 	/* Remove completed action from queue. */
 	TAILQ_REMOVE(&mctx->dqueue, dctx, entry);
 	log_debug("%s: message %u delivered (rule %u, %s) in %.3f seconds",
-	    a->name, m->idx, dctx->rule->idx,
+	    a->name, m->idx, dctx->rule->idx+1,
 	    dctx->actitem->deliver->name, get_time() - dctx->tim);
 	user_free(dctx->udata);
 	xfree(dctx);
