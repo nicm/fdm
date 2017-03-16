@@ -439,11 +439,19 @@ main(int argc, char **argv)
 
 	/* Find the config file. */
 	if (conf.conf_file == NULL) {
-		/* If no file specified, try ~ then /etc. */
-		xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE);
+		/* If no file specified, try XDG_CONFIG_HOME, then ~/.config/, then ~, then /etc. */
+		xasprintf(&conf.conf_file, "%s/%s", getenv("XDG_CONFIG_HOME"), CONFFILE+1);
 		if (access(conf.conf_file, R_OK) != 0) {
 			xfree(conf.conf_file);
-			conf.conf_file = xstrdup(SYSCONFFILE);
+			xasprintf(&conf.conf_file, "%s/%s/%s", conf.user_home, ".config", CONFFILE+1);
+			if (access(conf.conf_file, R_OK) != 0) {
+				xfree(conf.conf_file);
+				xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE);
+				if (access(conf.conf_file, R_OK) != 0) {
+					xfree(conf.conf_file);
+					conf.conf_file = xstrdup(SYSCONFFILE);
+				}
+			}
 		}
 	}
 	log_debug2("loading configuration from %s", conf.conf_file);

@@ -54,11 +54,14 @@ to specify a string or numeric macro.
 This option may appear multiple times.
 .It Fl f Ar conffile
 Specify the configuration file location.
-Default is
+Default is (in order of preference),
+.Pa $XDG_CONFIG_HOME/fdm.conf ,
+or
+.Pa ~/.config/fdm.conf ,
+or
 .Pa ~/.fdm.conf ,
 or
-.Pa /etc/fdm.conf
-if that doesn't exist.
+.Pa /etc/fdm.conf .
 .It Fl h
 Look at the
 .Ev HOME
@@ -147,10 +150,12 @@ Delete all keys from the cache at
 .El
 .Sh FILES
 .Bl -tag -width Ds -compact
+.It Pa $XDG_CONFIG_HOME/fdm.conf
+.It Pa ~/.config/fdm.conf
 .It Pa ~/.fdm.conf
 default
 .Nm
-configuration file
+configuration file locations
 .It Pa /etc/fdm.conf
 default system-wide configuration file
 .It Pa ~/.fdm.lock
