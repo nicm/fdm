@@ -514,7 +514,7 @@ account_get_method(struct account *a)
 {
 	struct fetch_imap_data	*idata;
 	struct fetch_pop3_data	*pdata;
-	const SSL_CIPHER	*cipher;
+	const SSL_CIPHER	*cipher = NULL;
 	static char		 s[128];
 	char			 tmp[128];
 
@@ -526,8 +526,7 @@ account_get_method(struct account *a)
 		pdata = a->data;
 		if (pdata->io->ssl != NULL)
 			cipher = SSL_get_current_cipher(pdata->io->ssl);
-	} else
-		cipher = NULL;
+	}
 	if (cipher != NULL) {
 		snprintf(tmp, sizeof tmp, "version=%s %s %d bits",
 		    SSL_CIPHER_get_version(cipher),
