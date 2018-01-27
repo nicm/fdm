@@ -175,7 +175,7 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 
 	/* Connect to the IMAP server. */
 	io = connectproxy(&data->server,
-	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
+	    conf.verify_certs, a->proxy, IO_CRLF, conf.timeout, &cause);
 	if (io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);

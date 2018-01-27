@@ -262,6 +262,7 @@ yyerror(const char *fmt, ...)
 		char		*host;
 		char		*port;
 	} server;
+  struct proxy *proxy;
 	enum area		 area;
 	enum exprop		 exprop;
 	struct actitem		*actitem;
@@ -317,6 +318,7 @@ yyerror(const char *fmt, ...)
 %type  <re> casere retre
 %type  <rule> perform
 %type  <server> server
+%type  <proxy> proxy
 %type  <string> port to from xstrv strv replstrv replpathv val optval folder1
 %type  <string> user
 %type  <strings> stringslist pathslist maildirs mboxes groups folders folderlist
@@ -662,20 +664,6 @@ set: TOKSET TOKMAXSIZE size
 	     if ($3 == 0)
 		     yyerror("parallel-accounts cannot be zero");
 	     conf.max_accts = $3;
-     }
-   | TOKSET TOKPROXY replstrv
-     {
-	     if (conf.proxy != NULL) {
-		     xfree(conf.proxy->server.host);
-		     xfree(conf.proxy->server.port);
-		     if (conf.proxy->user != NULL)
-			     xfree(conf.proxy->user);
-		     if (conf.proxy->pass != NULL)
-			     xfree(conf.proxy->pass);
-	     }
-	     if ((conf.proxy = getproxy($3)) == NULL)
-		     yyerror("invalid proxy");
-	     xfree($3);
      }
    | TOKSET TOKVERIFYCERTS
      {
@@ -2382,7 +2370,20 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->server.ai = NULL;
 	   }
 
-account: TOKACCOUNT replstrv disabled users fetchtype keep
+proxy: TOKPROXY replstrv
+   {
+     struct proxy *proxy = NULL;
+     if ((proxy = getproxy($2)) == NULL)
+       yyerror("invalid proxy");
+     xfree($2);
+     $$ = proxy;
+   }
+   | /* empty */
+   {
+     $$ = NULL;
+   }
+
+account: TOKACCOUNT replstrv disabled users fetchtype keep proxy
 	 {
 		 struct account		*a;
 		 char			*su, desc[DESCBUFSIZE];
@@ -2397,6 +2398,7 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 		 a = xcalloc(1, sizeof *a);
 		 strlcpy(a->name, $2, sizeof a->name);
 		 a->keep = $6;
+		 a->proxy = $7;
 		 a->disabled = $3;
 		 a->users = $4;
 		 a->fetch = $5.fetch;

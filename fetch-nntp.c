@@ -395,7 +395,7 @@ fetch_nntp_state_connect(struct account *a, struct fetch_ctx *fctx)
 
 	/* Connect to the server. */
 	data->io = connectproxy(&data->server,
-	    conf.verify_certs, conf.proxy, IO_CRLF, conf.timeout, &cause);
+	    conf.verify_certs, a->proxy, IO_CRLF, conf.timeout, &cause);
 	if (data->io == NULL) {
 		log_warnx("%s: %s", a->name, cause);
 		xfree(cause);
