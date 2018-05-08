@@ -110,6 +110,9 @@ dist_fdm_SOURCES = \
 	lex.c
 
 nodist_fdm_SOURCES =
+if NO_B64_NTOP
+nodist_fdm_SOURCES += compat/base64.c
+endif
 if NO_STRLCAT
 nodist_fdm_SOURCES += compat/strlcat.c
 endif

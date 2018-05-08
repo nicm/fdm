@@ -707,6 +707,12 @@ size_t		 strlcpy(char *, const char *, size_t);
 size_t		 strlcat(char *, const char *, size_t);
 #endif
 
+#ifndef HAVE_B64_NTOP
+/* base64.c */
+int b64_ntop(src, srclength, target, targsize);
+int b64_pton(src, target, targsize);
+#endif
+
 /* shm.c */
 char		*shm_path(struct shm *);
 void		*shm_create(struct shm *, size_t);
