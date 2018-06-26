@@ -84,6 +84,18 @@ extern char	*__progname;
 #define INFTIM -1
 #endif
 
+#ifndef WAIT_ANY
+#define WAIT_ANY -1
+#endif
+
+#ifndef GLOB_BRACE
+#define GLOB_BRACE 0
+#endif
+
+#ifndef ACCESSPERMS
+#define ACCESSPERMS (S_IRWXU|S_IRWXG|S_IRWXO)
+#endif
+
 #ifndef __dead
 #define __dead __attribute__ ((__noreturn__))
 #endif
@@ -705,6 +717,12 @@ size_t		 strlcpy(char *, const char *, size_t);
 #ifndef HAVE_STRLCAT
 /* strlcat.c */
 size_t		 strlcat(char *, const char *, size_t);
+#endif
+
+#ifndef HAVE_B64_NTOP
+/* base64.c */
+int b64_ntop(src, srclength, target, targsize);
+int b64_pton(src, target, targsize);
 #endif
 
 /* shm.c */
