@@ -77,7 +77,7 @@ privilege separation to minimise the amount of code running as the root user.
 
 fdm depends on the Trivial Database library (TDB), available at:
 
-	http://sourceforge.net/projects/tdb/
+	https://tdb.samba.org
 
 Ensure it is installed, then download the source tarball and build fdm with:
 
