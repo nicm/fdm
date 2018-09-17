@@ -557,7 +557,8 @@ specifying the following parameters: the server host and optionally port, and
 optionally the user name and password. If the port is not specified, the
 default port ('pop3' in the services(5) database) is used. If the user name,
 password, or both is omitted, fdm attempts to look it up the .netrc file, see
-the next section for details.
+the next section for details. Optionally fdm can read the password from a
+command line program, see below for details.
 
 Examples of a POP3 account definition are:
 
@@ -648,6 +649,13 @@ An example .netrc file is:
 	password "moo"
 
 fdm will abort if the .netrc file is world-writable or world-readable.
+
+%%% Passwords from a command
+
+fdm can read the password from a command by using command substitution
+with $(). For example:
+
+	user "fdm@example.com" pass $(gpg --quiet --decrypt ~/.password.gpg)
 
 %%% IMAP and IMAPS
 
