@@ -72,7 +72,7 @@
 
 extern char	*__progname;
 
-/* Linux compatibility bullshit. */
+/* Various compatibility stuff. */
 #ifndef UID_MAX
 #define UID_MAX UINT_MAX
 #endif
@@ -94,6 +94,10 @@ extern char	*__progname;
 
 #ifndef ACCESSPERMS
 #define ACCESSPERMS (S_IRWXU|S_IRWXG|S_IRWXO)
+#endif
+
+#ifndef MAXNAMLEN
+#define MAXNAMLEN 255
 #endif
 
 #ifndef __dead
