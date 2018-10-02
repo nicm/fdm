@@ -52,6 +52,11 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+/* DragonFlyBSD compatibility */
+#ifndef MAXNAMLEN
+#define MAXNAMLEN	255
+#endif
+
 #define CHILDUSER	"_fdm"
 #define CONFFILE	".fdm.conf"
 #define LOCKFILE	".fdm.lock"
