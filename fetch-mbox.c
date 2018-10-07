@@ -213,9 +213,11 @@ free_all:
 	while (aux != NULL) {
 		this = aux;
 		aux = TAILQ_NEXT(aux, entry);
+		if (this->fmbox != fmbox)
+			continue;
 
-		if (this->fmbox == fmbox)
-			fetch_mbox_free(this);
+		TAILQ_REMOVE(&data->kept, this, entry);
+		fetch_mbox_free(this);
 	}
 
 	if (fmbox->reference != 0)
