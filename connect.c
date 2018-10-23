@@ -589,6 +589,11 @@ makessl(struct server *srv, int fd, int verify, int timeout, char **cause)
 		goto error;
 	}
 
+	if (SSL_set_tlsext_host_name(ssl, srv->host) != 1) {
+		*cause = sslerror("SSL_set_tlsext_host_name");
+		goto error;
+	}
+
 	if (SSL_set_fd(ssl, fd) != 1) {
 		*cause = sslerror("SSL_set_fd");
 		goto error;
