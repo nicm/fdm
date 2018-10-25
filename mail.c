@@ -534,13 +534,14 @@ trim_from(struct mail *m)
 char *
 make_from(struct mail *m, char *user)
 {
-	time_t	t;
-	char   *s, *from = NULL;
-	size_t	fromlen = 0;
+	time_t		 t;
+	char		*s, *from = NULL;
+	const char	*mfrom;
+	size_t		 fromlen = 0;
 
-	from = find_tag(m->tags, "mbox_from");
-	if (from != NULL) {
-		xasprintf(&s, "%s", from);
+	mfrom = find_tag(m->tags, "mbox_from");
+	if (mfrom != NULL) {
+		xasprintf(&s, "%s", mfrom);
 		return (s);
 	}
 	from = find_header(m, "from", &fromlen, 1);
