@@ -2,6 +2,7 @@
 
 bin_PROGRAMS = fdm
 CLEANFILES = parse.c parse.h
+BUILT_SOURCES = parse.c parse.h
 
 EXTRA_DIST = \
 	CHANGES README MANUAL \
