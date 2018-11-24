@@ -717,8 +717,10 @@ retry:
 	}
 	conf.lock_file = lock;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSL_library_init();
 	SSL_load_error_strings();
+#endif
 
 	/* Filter account list. */
 	TAILQ_INIT(&actaq);
