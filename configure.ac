@@ -57,9 +57,17 @@ AC_CHECK_HEADERS(
 AC_CHECK_FUNCS(
 	[ \
 		setproctitle \
-		mremap \
 		setresuid \
 		setresgid \
+	]
+)
+AC_CHECK_DECL(
+        MREMAP_MAYMOVE,
+	AC_CHECK_FUNC([mremap]),
+	,
+	[
+		#define _GNU_SOURCE
+		#include <sys/mman.h>
 	]
 )
 
