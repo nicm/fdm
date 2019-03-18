@@ -218,7 +218,11 @@ shm_resize(struct shm *shm, size_t nmemb, size_t size)
 		return (NULL);
 
 #ifdef HAVE_MREMAP
+#if defined(__NetBSD__)
+	shm->data = mremap(shm->data, shm->size, NULL, newsize, 0);
+#else
 	shm->data = mremap(shm->data, shm->size, newsize, MREMAP_MAYMOVE);
+#endif
 #else
 	shm->data = mmap(NULL, newsize, SHM_PROT, SHM_FLAGS, shm->fd, 0);
 #endif
