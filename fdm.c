@@ -426,7 +426,7 @@ main(int argc, char **argv)
 
 	/* Find invoking user's details. */
 	if ((pw = getpwuid(getuid())) == NULL) {
-		log_warnx("unknown user: %lu", (u_long) geteuid());
+		log_warnx("unknown user: %lu", (u_long) getuid());
 		exit(1);
 	}
 	user = xstrdup(pw->pw_name);

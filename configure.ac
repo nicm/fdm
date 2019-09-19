@@ -62,7 +62,7 @@ AC_CHECK_FUNCS(
 	]
 )
 AC_CHECK_DECL(
-        MREMAP_MAYMOVE,
+	MREMAP_MAYMOVE,
 	AC_CHECK_FUNC([mremap]),
 	,
 	[

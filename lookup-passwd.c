@@ -19,6 +19,7 @@
 #include <sys/types.h>
 
 #include <pwd.h>
+#include <unistd.h>
 
 #include "fdm.h"
 
@@ -44,7 +45,10 @@ passwd_lookup(const char *user)
 	ud = xmalloc(sizeof *ud);
 
 	ud->name = xstrdup(pw->pw_name);
-	ud->home = xstrdup(pw->pw_dir);
+	if (pw->pw_uid == getuid())
+		ud->home = xstrdup(conf.user_home);
+	else
+		ud->home = xstrdup(pw->pw_dir);
 
 	ud->uid = pw->pw_uid;
 	ud->gid = pw->pw_gid;
