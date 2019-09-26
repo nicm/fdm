@@ -111,7 +111,7 @@ check_alt_names(char *host, char *fqdn, X509 *x509)
 		OPENSSL_free(buf);
 	}
 
-	sk_GENERAL_NAME_free(ans);
+	sk_GENERAL_NAME_free((struct stack_st_GENERAL_NAME *)ans);
 	return (found);
 }
 
