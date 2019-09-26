@@ -79,7 +79,8 @@ deliver_mbox_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	sigset_t			 set, oset;
 	struct stat			 sb;
 
-	f = gzf = NULL;
+	f = NULL;
+	gzf = NULL;
 	fd = -1;
 
 	path = replacepath(&data->path, m->tags, m, &m->rml, dctx->udata->home);
