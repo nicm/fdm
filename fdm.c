@@ -421,8 +421,11 @@ main(int argc, char **argv)
 
 	/* Fill the hostname. */
 	fill_host();
-	log_debug2("host is: %s %s %s",
-	    conf.host_name, conf.host_fqdn, conf.host_address);
+	if (conf.host_fqdn != NULL) {
+		log_debug2("host is: %s %s %s", conf.host_name, conf.host_fqdn,
+		    conf.host_address);
+	} else
+		log_debug2("host is: %s %s", conf.host_name, conf.host_address);
 
 	/* Find invoking user's details. */
 	if ((pw = getpwuid(getuid())) == NULL) {
