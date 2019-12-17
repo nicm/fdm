@@ -452,8 +452,11 @@ numv: NUMCOMMAND
 
 replstrv: strv
 	  {
-		  struct replstr	rs;
+		  struct replstr	 rs;
+		  struct userdata	*ud;
 
+		  if ((ud = user_lookup(conf.def_user, conf.user_order)) != NULL)
+			  update_tags(&parse_tags, ud);
 		  rs.str = $1;
 		  $$ = replacestr(&rs, parse_tags, NULL, NULL);
 		  xfree($1);
@@ -461,8 +464,11 @@ replstrv: strv
 
 replpathv: strv
 	   {
-		  struct replpath	rp;
+		  struct replpath	 rp;
+		  struct userdata	*ud;
 
+		  if ((ud = user_lookup(conf.def_user, conf.user_order)) != NULL)
+			  update_tags(&parse_tags, ud);
 		  rp.str = $1;
 		  $$ = replacepath(&rp, parse_tags, NULL, NULL, conf.user_home);
 		  xfree($1);
