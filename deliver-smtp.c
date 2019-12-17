@@ -105,7 +105,7 @@ deliver_smtp_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		from = xstrdup(ptr);
 	else {
 		from = replacestr(&data->from, m->tags, m, &m->rml);
-		if (from == NULL || *from == '\0') {
+		if (from == NULL) {
 			xasprintf(&cause, "%s: empty from", a->name);
 			goto error;
 		}
