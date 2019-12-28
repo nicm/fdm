@@ -28,6 +28,8 @@ user_lookup(const char *user, struct userfunctions *order)
 	struct userdata	*ud;
 	u_int		 i;
 
+	if (user == NULL)
+		return (NULL);
 	for (i = 0; i < ARRAY_LENGTH(order); i++) {
 		if ((ud = ARRAY_ITEM(order, i)(user)) != NULL)
 		    return (ud);
