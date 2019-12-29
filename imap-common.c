@@ -46,7 +46,8 @@ int	imap_state_capability1(struct account *, struct fetch_ctx *);
 int	imap_state_capability2(struct account *, struct fetch_ctx *);
 int	imap_state_starttls(struct account *, struct fetch_ctx *);
 int	imap_state_cram_md5_auth(struct account *, struct fetch_ctx *);
-int	imap_state_login(struct account *, struct fetch_ctx *);
+int	imap_state_login1(struct account *, struct fetch_ctx *);
+int	imap_state_login2(struct account *, struct fetch_ctx *);
 int	imap_state_user(struct account *, struct fetch_ctx *);
 int	imap_state_pass(struct account *, struct fetch_ctx *);
 int	imap_state_select2(struct account *, struct fetch_ctx *);
@@ -66,6 +67,13 @@ int	imap_state_commit(struct account *, struct fetch_ctx *);
 int	imap_state_expunge(struct account *, struct fetch_ctx *);
 int	imap_state_close(struct account *, struct fetch_ctx *);
 int	imap_state_quit(struct account *, struct fetch_ctx *);
+
+/* Does this contain special characters? */
+int
+imap_not_clean(const char *s)
+{
+	return (s[strcspn(s, "\"{}")] != '\0');
+}
 
 /* Put line to server. */
 int
@@ -306,10 +314,18 @@ imap_pick_auth(struct account *a, struct fetch_ctx *fctx)
 
 	/* Fall back to LOGIN, unless config disallows it. */
 	if (!data->nologin) {
-		if (imap_putln(a,
-		    "%u LOGIN {%zu}", ++data->tag, strlen(data->user)) != 0)
-			return (FETCH_ERROR);
-		fctx->state = imap_state_login;
+		if (imap_not_clean(data->user) || imap_not_clean(data->pass)) {
+			if (imap_putln(a, "%u LOGIN {%zu}", ++data->tag,
+			    strlen(data->user)) != 0)
+				return (FETCH_ERROR);
+			fctx->state = imap_state_login2;
+
+		} else {
+			if (imap_putln(a, "%u LOGIN \"%s\" \"%s\"", ++data->tag,
+			    data->user, data->pass) != 0)
+				return (FETCH_ERROR);
+			fctx->state = imap_state_login1;
+		}
 		return (FETCH_BLOCK);
 	}
 
@@ -514,7 +530,31 @@ imap_state_cram_md5_auth(struct account *a, struct fetch_ctx *fctx)
 
 /* Login state. */
 int
-imap_state_login(struct account *a, struct fetch_ctx *fctx)
+imap_state_login1(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line;
+	size_t			 passlen;
+
+	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+	if (!imap_okay(line)) {
+		if (imap_putln(a, "%u LOGIN {%zu}", ++data->tag,
+		    strlen(data->user)) != 0)
+ 			return (FETCH_ERROR);
+		fctx->state = imap_state_login2;
+		return (FETCH_BLOCK);
+	}
+
+	fctx->state = imap_state_select1;
+	return (FETCH_AGAIN);
+}
+
+/* Login state. */
+int
+imap_state_login2(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
@@ -599,11 +639,18 @@ int
 imap_state_select1(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
+	const char		*name = ARRAY_ITEM(data->folders, data->folder);
 
-	if (imap_putln(a, "%u SELECT {%zu}",
-	    ++data->tag, strlen(ARRAY_ITEM(data->folders, data->folder))) != 0)
-		return (FETCH_ERROR);
-	fctx->state = imap_state_select2;
+	if (imap_not_clean(name)) {
+		if (imap_putln(a, "%u SELECT {%zu}", ++data->tag,
+		    strlen(name)) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_select2;
+	} else {
+		if (imap_putln(a, "%u SELECT \"%s\"", ++data->tag, name) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_select3;
+	}
 	return (FETCH_BLOCK);
 }
 
