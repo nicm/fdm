@@ -234,5 +234,5 @@ deliver_smtp_desc(struct actitem *ti, char *buf, size_t len)
 
 	xsnprintf(buf, len, "smtp%s server \"%s\" port %s to \"%s\"",
 	    data->server.ssl ? "s" : "", data->server.host, data->server.port,
-	    data->to.str);
+	    data->to.str == NULL ? "" : data->to.str);
 }
