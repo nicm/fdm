@@ -169,7 +169,7 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	struct io			*io;
 	struct fetch_ctx		 fctx;
 	struct fetch_imap_data		 fdata;
-	char				*cause, *folder, *ptr, *line;
+	char				*cause, *folder, *ptr, *line, *exchange_version;
 	size_t				 len, maillen;
 	u_int				 total, body;
 
@@ -235,6 +235,13 @@ retry:
 	 */
 	count_lines(m, &total, &body);
 	maillen = m->size + total - 1;
+	exchange_version = getenv("FDM_EXCHANGE_VERSION");
+	if (exchange_version != NULL) {
+		if (strncmp(exchange_version, "2007", strlen(exchange_version)) == 0) {
+			log_debug2("%s: reducing size by 1 for Exchange %s", a->name, exchange_version);
+		        maillen--;
+		}
+	}
 	if (fdata.capa & IMAP_CAPA_XYZZY) {
 		log_debug2("%s: adjusting size: actual %zu", a->name, maillen);
 		maillen = m->size;
