@@ -234,7 +234,7 @@ retry:
 	 * every CRLF was a CR if the server has XYZZY.
 	 */
 	count_lines(m, &total, &body);
-	maillen = m->size + total - 1;
+	maillen = m->size + total - 2;
 	if (fdata.capa & IMAP_CAPA_XYZZY) {
 		log_debug2("%s: adjusting size: actual %zu", a->name, maillen);
 		maillen = m->size;
