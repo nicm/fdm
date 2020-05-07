@@ -211,9 +211,28 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 		goto error;
 
 retry:
+	/*
+	 * Determine the mail size, not forgetting lines are CRLF
+	 * terminated. The Google IMAP server is written strangely, so send
+	 * the size as if every CRLF was a CR if the server has XYZZY.
+	 */
+	count_lines(m, &total, &body);
+	maillen = m->size + total - 2;
+	if (fdata.capa & IMAP_CAPA_XYZZY) {
+		log_debug2("%s: adjusting size: actual %zu", a->name, maillen);
+		maillen = m->size;
+	}
+
 	/* Send an append command. */
-	if (imap_putln(a, "%u APPEND {%zu}", ++fdata.tag, strlen(folder)) != 0)
-		goto error;
+	if (imap_not_clean(folder)) {
+		if (imap_putln(a, "%u APPEND {%zu}", ++fdata.tag, strlen(folder)) != 0)
+			goto error;
+	} else {
+		if (imap_putln(a, "%u APPEND \"%s\" {%zu}", ++fdata.tag, folder, maillen) != 0)
+			goto error;
+		goto data;
+	}
+
 	switch (deliver_imap_waitappend(a, &fctx, io, &line)) {
 	case IMAP_TAG_ERROR:
 		if (line != NULL)
@@ -228,17 +247,6 @@ retry:
 		goto error;
 	}
 
-	/*
-	 * Send the mail size, not forgetting lines are CRLF terminated. The
-	 * Google IMAP server is written strangely, so send the size as if
-	 * every CRLF was a CR if the server has XYZZY.
-	 */
-	count_lines(m, &total, &body);
-	maillen = m->size + total - 1;
-	if (fdata.capa & IMAP_CAPA_XYZZY) {
-		log_debug2("%s: adjusting size: actual %zu", a->name, maillen);
-		maillen = m->size;
-	}
 	if (fdata.capa & IMAP_CAPA_NOSPACE) {
 		if (imap_putln(a, "%s{%zu}", folder, maillen) != 0)
 			goto error;
@@ -246,6 +254,8 @@ retry:
 		if (imap_putln(a, "%s {%zu}", folder, maillen) != 0)
 			goto error;
 	}
+
+data:
 	switch (deliver_imap_waitappend(a, &fctx, io, &line)) {
 	case IMAP_TAG_ERROR:
 		if (line != NULL)
