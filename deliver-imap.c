@@ -197,6 +197,7 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	fdata.pass = data->pass;
 	fdata.nocrammd5 = data->nocrammd5;
 	fdata.nologin = data->nologin;
+	fdata.oauthbearer = data->oauthbearer;
 	memcpy(&fdata.server, &data->server, sizeof fdata.server);
 	fdata.io = io;
 	fdata.only = FETCH_ONLY_ALL;

@@ -157,6 +157,7 @@ static const struct token tokens[] = {
 	{ "no-verify", TOKNOVERIFY },
 	{ "none", TOKNONE },
 	{ "not", TOKNOT },
+	{ "oauthbearer", TOKOAUTHBEARER },
 	{ "old-only", TOKOLDONLY },
 	{ "or", TOKOR },
 	{ "parallel-accounts", TOKPARALLELACCOUNTS },

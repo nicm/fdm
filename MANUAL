@@ -680,9 +680,12 @@ Examples of IMAP and IMAPS accounts include:
 
 By default, fdm prefers the CRAM-MD5 authentication method, since no passwords
 are sent in the clear.  If the server does not advertise CRAM-MD5 capability,
-the older LOGIN method is used.  For IMAPS connections (which use SSL), the
-LOGIN method is just as secure.  Either of these methods may be disabled with
-the 'no-cram-md5' and 'no-login' options.
+and 'oauthbearer' option is not passed the older LOGIN method is used.  For
+IMAPS connections (which use SSL), the LOGIN method is just as secure.  
+Either of these methods may be disabled with the 'no-cram-md5' and 'no-login'
+options.  If the server advertises OAUTHBEARER capability, 'oauthbearer'
+option will use OAuth 2.0 bearer tokens - passed via 'pass' keyword - as
+authentication method.
 
 The 'starttls' keyword may be added to an IMAP account to attemp STARTTLS after
 connection.

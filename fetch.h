@@ -204,6 +204,7 @@ struct fetch_imap_data {
 	int		 starttls;
 	int		 nocrammd5;
 	int		 nologin;
+	int		 oauthbearer;
 
 	u_int		 folder;
 	struct strings	*folders;
@@ -252,6 +253,7 @@ struct fetch_imap_mail {
 #define IMAP_CAPA_STARTTLS 0x4
 #define IMAP_CAPA_NOSPACE 0x8
 #define IMAP_CAPA_GMEXT 0x10
+#define IMAP_CAPA_AUTH_OAUTHBEARER 0x20
 
 /* fetch-maildir.c */
 extern struct fetch	 fetch_maildir;
