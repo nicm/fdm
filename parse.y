@@ -206,6 +206,7 @@ yyerror(const char *fmt, ...)
 %token TOKNOT
 %token TOKNOUIDL
 %token TOKNOVERIFY
+%token TOKOAUTHBEARER
 %token TOKOLDONLY
 %token TOKOR
 %token TOKPARALLELACCOUNTS
@@ -307,7 +308,7 @@ yyerror(const char *fmt, ...)
 %type  <fetch> fetchtype
 %type  <flag> cont not disabled keep execpipe writeappend compress verify
 %type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl starttls
-%type  <flag> insecure
+%type  <flag> insecure oauthbearer
 %type  <localgid> localgid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -1217,7 +1218,7 @@ actitem: execpipe strv
 		 data->compress = $3;
 	 }
        | imaptype server userpassnetrc folder1 verify nocrammd5 nologin
-	 starttls insecure
+	 starttls insecure oauthbearer
 	 {
 		 struct deliver_imap_data	*data;
 
@@ -1258,6 +1259,7 @@ actitem: execpipe strv
 		 data->nologin = $7;
 		 data->starttls = $8;
 		 data->server.insecure = $9;
+		 data->oauthbearer = $10;
 	 }
        | TOKSMTP server from to
 	 {
@@ -2057,6 +2059,15 @@ insecure: TOKINSECURE
 		$$ = 0;
 	}
 
+oauthbearer: TOKOAUTHBEARER
+	   {
+		   $$ = 1;
+	   }
+	 | /* empty */
+	   {
+		   $$ = 0;
+	   }
+
 verify: TOKNOVERIFY
 	{
 		$$ = 0;
@@ -2259,7 +2270,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->only = $5.only;
 	   }
 	 | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
-	   nologin starttls insecure
+	   nologin starttls insecure oauthbearer
 	   {
 		   struct fetch_imap_data	*data;
 
@@ -2299,6 +2310,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->nologin = $8;
 		   data->starttls = $9;
 		   data->server.insecure = $10;
+		   data->oauthbearer = $11;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folderlist imaponly
 	   {
