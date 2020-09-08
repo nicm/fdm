@@ -1,0 +1,2 @@
+option('static', type: 'boolean', value: 'false')
+option('pcre', type: 'boolean', value: 'false')
