@@ -568,7 +568,6 @@ imap_state_login1(struct account *a, struct fetch_ctx *fctx)
 {
 	struct fetch_imap_data	*data = a->data;
 	char			*line;
-	size_t			 passlen;
 
 	if (imap_getln(a, fctx, IMAP_TAGGED, &line) != 0)
 		return (FETCH_ERROR);

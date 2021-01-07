@@ -102,7 +102,7 @@ db_size(TDB_CONTEXT *db)
 
 int
 db_print_item(
-    unused TDB_CONTEXT *tdb, unused TDB_DATA key, TDB_DATA value, void *ptr)
+    unused TDB_CONTEXT *tdb, TDB_DATA key, TDB_DATA value, void *ptr)
 {
 	void			(*p)(const char *, ...) = ptr;
 	struct cacheitem	v;

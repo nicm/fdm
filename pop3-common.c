@@ -374,8 +374,7 @@ pop3_state_connect(struct account *a, struct fetch_ctx *fctx)
 int
 pop3_state_starttls(struct account *a, struct fetch_ctx *fctx)
 {
-	struct fetch_pop3_data	*data = a->data;
-	char			*line;
+	char	*line;
 
 	if (pop3_getln(a, fctx, &line) != 0)
 		return (FETCH_ERROR);
