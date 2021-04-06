@@ -203,10 +203,10 @@ wait_children(
 		/* Wait for a child. */
 		switch (pid = waitpid(WAIT_ANY, &status, flags)) {
 		case 0:
-			return (0);
+			return (retcode);
 		case -1:
 			if (errno == ECHILD)
-				return (0);
+				return (retcode);
 			fatal("waitpid failed");
 		}
 
@@ -947,5 +947,6 @@ out:
 	free_strings(&conf.excl);
 #endif
 
+	log_debug2("parent: exit code %d", res);
 	exit(res);
 }
