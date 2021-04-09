@@ -155,6 +155,7 @@ yyerror(const char *fmt, ...)
 %token TOKEXEC
 %token TOKEXPIRE
 %token TOKFCNTL
+%token TOKFETCHFREQ
 %token TOKFILEGROUP
 %token TOKFILEUMASK
 %token TOKFLOCK
@@ -311,7 +312,7 @@ yyerror(const char *fmt, ...)
 %type  <flag> insecure oauthbearer
 %type  <localgid> localgid
 %type  <locks> lock locklist
-%type  <number> size time numv retrc expire
+%type  <number> size time numv retrc expire timeout
 %type  <only> only imaponly
 %type  <poponly> poponly
 %type  <replstrs> replstrslist actions rmheaders accounts users
@@ -610,6 +611,10 @@ set: TOKSET TOKMAXSIZE size
    | TOKSET TOKDELTOOBIG
      {
 	     conf.del_big = 1;
+     }
+   | TOKSET TOKFETCHFREQ time
+     {
+	     conf.fetch_freq = $3;
      }
    | TOKSET TOKIGNOREERRORS
      {
@@ -1065,6 +1070,15 @@ port: TOKPORT replstrv
 		      yyerror("invalid port");
 
 	      xasprintf(&$$, "%lld", $2);
+      }
+
+timeout: /* not present */
+      {
+		$$ = 0;	/* use global value */
+      }
+    | TOKTIMEOUT time
+      {
+		$$ = $2;
       }
 
 server: TOKSERVER replstrv port
@@ -2400,7 +2414,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->server.ai = NULL;
 	   }
 
-account: TOKACCOUNT replstrv disabled users fetchtype keep
+account: TOKACCOUNT replstrv disabled users fetchtype keep timeout
 	 {
 		 struct account		*a;
 		 char			*su, desc[DESCBUFSIZE];
@@ -2415,6 +2429,7 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 		 a = xcalloc(1, sizeof *a);
 		 strlcpy(a->name, $2, sizeof a->name);
 		 a->keep = $6;
+		 a->timeout = $7;
 		 a->disabled = $3;
 		 a->users = $4;
 		 a->fetch = $5.fetch;

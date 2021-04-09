@@ -27,6 +27,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <math.h>
 
 #include "fdm.h"
 #include "deliver.h"
@@ -134,10 +135,13 @@ fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 	struct io	*rio;
 	char		*cause;
 	double		 tim;
+	int		 remaining;
 
-	log_debug3(
-	    "%s: polling: %u, timeout=%d", a->name, ARRAY_LENGTH(iol), timeout);
 	tim = get_time();
+
+restart:
+	log_debug3("%s: polling: %u, timeout=%d, wake=%d", a->name,
+	    ARRAY_LENGTH(iol), timeout, a->wakein);
 	switch (io_polln(
 	    ARRAY_DATA(iol), ARRAY_LENGTH(iol), &rio, timeout, &cause)) {
 	case 0:
@@ -154,7 +158,15 @@ fetch_poll(struct account *a, struct iolist *iol, struct io *pio, int timeout)
 		xfree(cause);
 		return (-1);
 	}
-	tim = get_time() - tim;
+	remaining = a->wakein - ((int)floor(get_time() - tim));
+	if (a->wakein) {
+		if (remaining > 0) {
+			/* poll returned early, sleep. */
+			timeout = sleep(remaining);
+			goto restart;
+		}
+		a->wakein = 0;
+	}
 
 	return (0);
 }
@@ -339,6 +351,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 	struct iolist	 iol;
 	int		 aborted, complete, holding, timeout;
 
+restart:
 	log_debug2("%s: fetching", a->name);
 
 	TAILQ_INIT(&fetch_matchq);
@@ -359,7 +372,7 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 
 	ARRAY_INIT(&iol);
 
-	aborted = complete = holding = 0;
+	aborted = complete = holding = a->wakein = 0;
 	for (;;) {
 		log_debug3("%s: fetch loop start", a->name);
 
@@ -427,7 +440,12 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 				continue;
 			case FETCH_BLOCK:
 				/* Fetch again - allow blocking. */
-				log_debug3("%s: fetch, block", a->name);
+				if (a->wakein)
+					log_debug(
+					  "%s: fetch, block (wake in %u secs)",
+					  a->name,a->wakein);
+				else
+					log_debug3("%s: fetch, block", a->name);
 				break;
 			case FETCH_MAIL:
 				/* Mail ready. */
@@ -458,7 +476,11 @@ fetch_account(struct account *a, struct io *pio, int nflags, double tim)
 		 * non-empty, we can block unless there are mails that aren't
 		 * blocked (these mails can continue to be processed).
 		 */
-		timeout = conf.timeout;
+
+		if (a->wakein)
+			timeout = a->wakein;
+		else
+			timeout = conf.timeout;
 		if (fetch_queued == 0 && ARRAY_LENGTH(&iol) == 1)
 			timeout = 0;
 		else if (fetch_queued != 0 && fetch_blocked != fetch_queued)
@@ -502,7 +524,13 @@ finished:
 		log_info("%s: %u messages found", a->name, a->fetch->total(a));
 	else
 		fetch_status(a, tim);
-	return (aborted);
+
+	/* In daemon mode, always try to restart. */
+	if (conf.daemon) {
+		log_debug("%s: restarting", a->name);
+		goto restart;
+	} else
+		return (aborted);
 }
 
 /*

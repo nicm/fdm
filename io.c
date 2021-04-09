@@ -158,7 +158,7 @@ io_polln(struct io **iop, u_int n, struct io **rio, int timeout, char **cause)
 		xfree(pfds);
 
 		if (error == 0) {
-			if (timeout == 0) {
+			if (timeout != conf.timeout) {
 				errno = EAGAIN;
 				return (-1);
 			}
