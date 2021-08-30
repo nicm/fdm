@@ -499,7 +499,8 @@ These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3S account, aside from the additional
 .Ar folders
 option which sets the name of the folder or folders to use (the default is to
-fetch from the inbox). This has the form:
+fetch from the inbox). These folders gain the "folder" tag with the name of
+the origin folder. This has the form:
 .Bl -tag -width Ds
 .It Xo Ic folder Ar name | Ic folders
 .Li {
