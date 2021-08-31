@@ -539,6 +539,8 @@ mail_year			The year from the mail's date header as four
 mail_year2			The same as two digits.
 mail_rfc822date			The mail date in RFC822 format.
 hostname			The local hostname.
+folder				The name of the IMAP folder that the mail
+				originated from.
 
 In addition, the shorthand %% is replaced with a literal %, and %1 to %9 are
 replaced with the result of any bracket expressions in the last regexp (see
@@ -663,7 +665,8 @@ IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
 and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
 port is 'imap' or 'imaps'. There is also an additional, optional 'folders'
 option to specify the folders from which mail should be fetched. If omitted,
-fdm defaults to the inbox.
+fdm defaults to the inbox. When the 'folders' tag is used the recieved mail
+will have a 'folder' tag with the origin folder name.
 
 Note that with IMAP and IMAPS, mail is still removed from the server unless the
 'keep' option is given, or the '-k' command line option used.
