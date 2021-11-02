@@ -60,6 +60,21 @@ fetch_imappipe_putln(struct account *a, const char *fmt, va_list ap)
 	return (0);
 }
 
+/* Write buffer to server. */
+int
+fetch_imappipe_putn(struct account *a, const char *buf, size_t len)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	if (data->cmd->io_in == NULL) {
+		log_warnx("%s: %s", a->name, strerror(EPIPE));
+		return (-1);
+	}
+
+	io_write(data->cmd->io_in, buf, len);
+	return (0);
+}
+
 /* Get line from server. */
 int
 fetch_imappipe_getln(struct account *a, struct fetch_ctx *fctx, char **line)
@@ -140,6 +155,7 @@ fetch_imappipe_state_init(struct account *a, struct fetch_ctx *fctx)
 	data->connect = fetch_imappipe_connect;
 	data->getln = fetch_imappipe_getln;
 	data->putln = fetch_imappipe_putln;
+	data->putn = fetch_imappipe_putn;
 	data->disconnect = fetch_imappipe_disconnect;
 
 	data->src = NULL;

@@ -46,7 +46,9 @@ int	imap_state_capability1(struct account *, struct fetch_ctx *);
 int	imap_state_capability2(struct account *, struct fetch_ctx *);
 int	imap_state_starttls(struct account *, struct fetch_ctx *);
 int	imap_state_oauthbearer_auth(struct account *, struct fetch_ctx *);
+int	imap_state_xoauth2_auth(struct account *, struct fetch_ctx *);
 int	imap_state_cram_md5_auth(struct account *, struct fetch_ctx *);
+int	imap_state_plain_auth(struct account *, struct fetch_ctx *);
 int	imap_state_login1(struct account *, struct fetch_ctx *);
 int	imap_state_login2(struct account *, struct fetch_ctx *);
 int	imap_state_user(struct account *, struct fetch_ctx *);
@@ -310,12 +312,27 @@ imap_pick_auth(struct account *a, struct fetch_ctx *fctx)
 		return (FETCH_AGAIN);
 	}
 
+	/* Try XOAUTH2, if requested by user and if server supports it. */
+	if (data->xoauth2 && (data->capa & IMAP_CAPA_AUTH_XOAUTH2)) {
+		fctx->state = imap_state_xoauth2_auth;
+		return (FETCH_AGAIN);
+	}
+
 	/* Try CRAM-MD5, if server supports it and user allows it. */
 	if (!data->nocrammd5 && (data->capa & IMAP_CAPA_AUTH_CRAM_MD5)) {
 		if (imap_putln(a,
 		    "%u AUTHENTICATE CRAM-MD5", ++data->tag) != 0)
 			return (FETCH_ERROR);
 		fctx->state = imap_state_cram_md5_auth;
+		return (FETCH_BLOCK);
+	}
+
+	/* Try PLAIN, if server supports it and user allows it. */
+	if (!data->noplain && (data->capa & IMAP_CAPA_AUTH_PLAIN)) {
+		if (imap_putln(a,
+		    "%u AUTHENTICATE PLAIN", ++data->tag) != 0)
+			return (FETCH_ERROR);
+		fctx->state = imap_state_plain_auth;
 		return (FETCH_BLOCK);
 	}
 
@@ -421,11 +438,14 @@ imap_state_capability1(struct account *a, struct fetch_ctx *fctx)
 	}
 
 	data->capa = 0;
+	if (strstr(line, "AUTH=PLAIN") != NULL)
+		data->capa |= IMAP_CAPA_AUTH_PLAIN;
 	if (strstr(line, "AUTH=CRAM-MD5") != NULL)
 		data->capa |= IMAP_CAPA_AUTH_CRAM_MD5;
-
 	if (strstr(line, "AUTH=OAUTHBEARER") != NULL)
 		data->capa |= IMAP_CAPA_AUTH_OAUTHBEARER;
+	if (strstr(line, "AUTH=XOAUTH2") != NULL)
+		data->capa |= IMAP_CAPA_AUTH_XOAUTH2;
 
 	/* Use XYZZY to detect Google brokenness. */
 	if (strstr(line, "XYZZY") != NULL)
@@ -519,6 +539,66 @@ imap_state_oauthbearer_auth(struct account *a, struct fetch_ctx *fctx)
 	fctx->state = imap_state_pass;
 	return (FETCH_BLOCK);
 }
+
+/* OAUTH auth state. */
+int
+imap_state_xoauth2_auth(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*src, *b64;
+
+	xasprintf(&src, "user=%s\001auth=Bearer %s\001\001", data->user,
+	    data->pass);
+	b64 = imap_base64_encode(src);
+	xfree(src);
+
+	if (imap_putln(a, "%u AUTHENTICATE XOAUTH2 %s", ++data->tag, b64) != 0) {
+		xfree(b64);
+		return (FETCH_ERROR);
+	}
+	xfree(b64);
+
+	fctx->state = imap_state_pass;
+	return (FETCH_BLOCK);
+}
+
+/* PLAIN auth state. */
+int
+imap_state_plain_auth(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_imap_data	*data = a->data;
+	char			*line, *ptr, *out;
+	size_t			 outlen;
+
+	if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
+
+	ptr = line + 1;
+	while (isspace((u_char) *ptr))
+		ptr++;
+	if (*ptr != '\0' && strcmp(ptr, "\"\"") != 0)
+		return (imap_invalid(a, line));
+
+	outlen = 1 + strlen(data->user) + 1 + strlen(data->pass) + 1;
+	out = xcalloc(1, outlen);
+	memcpy(out + 1, data->user, strlen(data->user));
+	memcpy(out + 1 + strlen(data->user) + 1, data->pass,
+	    strlen(data->pass));
+	if (data->putn(a, out, outlen) != 0) {
+		xfree(out);
+		return (FETCH_ERROR);
+	}
+	xfree(out);
+
+	if (imap_putln(a, "") != 0)
+		return (FETCH_ERROR);
+
+	fctx->state = imap_state_pass;
+	return (FETCH_BLOCK);
+}
+
 
 /* CRAM-MD5 auth state. */
 int

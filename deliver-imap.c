@@ -197,7 +197,9 @@ deliver_imap_deliver(struct deliver_ctx *dctx, struct actitem *ti)
 	fdata.pass = data->pass;
 	fdata.nocrammd5 = data->nocrammd5;
 	fdata.nologin = data->nologin;
+	fdata.noplain = data->noplain;
 	fdata.oauthbearer = data->oauthbearer;
+	fdata.xoauth2 = data->xoauth2;
 	memcpy(&fdata.server, &data->server, sizeof fdata.server);
 	fdata.io = io;
 	fdata.only = FETCH_ONLY_ALL;
@@ -226,10 +228,12 @@ retry:
 
 	/* Send an append command. */
 	if (imap_not_clean(folder)) {
-		if (imap_putln(a, "%u APPEND {%zu}", ++fdata.tag, strlen(folder)) != 0)
+		if (imap_putln(a, "%u APPEND {%zu}", ++fdata.tag,
+		    strlen(folder)) != 0)
 			goto error;
 	} else {
-		if (imap_putln(a, "%u APPEND \"%s\" {%zu}", ++fdata.tag, folder, maillen) != 0)
+		if (imap_putln(a, "%u APPEND \"%s\" {%zu}", ++fdata.tag, folder,
+		    maillen) != 0)
 			goto error;
 		goto data;
 	}
@@ -315,7 +319,7 @@ data:
 	fdata.disconnect(a);
 	return (DELIVER_SUCCESS);
 
-try_create:	/* XXX function? */
+try_create:
 	/* Try to create the folder. */
 	if (imap_putln(a, "%u CREATE {%zu}", ++fdata.tag, strlen(folder)) != 0)
 		goto error;

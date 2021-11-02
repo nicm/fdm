@@ -202,10 +202,12 @@ yyerror(const char *fmt, ...)
 %token TOKNOCREATE
 %token TOKNOLOGIN
 %token TOKNONE
+%token TOKNOPLAIN
 %token TOKNORECEIVED
 %token TOKNOT
 %token TOKNOUIDL
 %token TOKNOVERIFY
+%token TOKXOAUTH2
 %token TOKOAUTHBEARER
 %token TOKOLDONLY
 %token TOKOR
@@ -307,8 +309,8 @@ yyerror(const char *fmt, ...)
 %type  <exprop> exprop
 %type  <fetch> fetchtype
 %type  <flag> cont not disabled keep execpipe writeappend compress verify
-%type  <flag> apop poptype imaptype nntptype nocrammd5 nologin uidl starttls
-%type  <flag> insecure oauthbearer
+%type  <flag> apop poptype imaptype nntptype nocrammd5 noplain nologin uidl
+%type  <flag> starttls insecure oauthbearer xoauth2
 %type  <localgid> localgid
 %type  <locks> lock locklist
 %type  <number> size time numv retrc expire
@@ -1217,12 +1219,12 @@ actitem: execpipe strv
 		 data->path.str = $2;
 		 data->compress = $3;
 	 }
-       | imaptype server userpassnetrc folder1 verify nocrammd5 nologin
-	 starttls insecure oauthbearer
+       | imaptype server userpassnetrc folder1 verify nocrammd5 noplain nologin
+	 starttls insecure oauthbearer xoauth2
 	 {
 		 struct deliver_imap_data	*data;
 
-		 if ($1 && $8)
+		 if ($1 && $9)
 			 yyerror("use either imaps or set starttls");
 
 		 $$ = xcalloc(1, sizeof *$$);
@@ -1256,10 +1258,12 @@ actitem: execpipe strv
 			 data->server.port = xstrdup("imap");
 		 data->server.ai = NULL;
 		 data->nocrammd5 = $6;
-		 data->nologin = $7;
-		 data->starttls = $8;
-		 data->server.insecure = $9;
+		 data->noplain = $7;
+		 data->nologin = $8;
+		 data->starttls = $9;
+		 data->server.insecure = $10;
 		 data->oauthbearer = $10;
+		 data->xoauth2 = $11;
 	 }
        | TOKSMTP server from to
 	 {
@@ -2022,6 +2026,15 @@ nocrammd5: TOKNOCRAMMD5
 		   $$ = 0;
 	   }
 
+noplain: TOKNOPLAIN
+	 {
+		 $$ = 1;
+	 }
+       | /* empty */
+	 {
+		 $$ = 0;
+	 }
+
 nologin: TOKNOLOGIN
 	 {
 		 $$ = 1;
@@ -2032,41 +2045,50 @@ nologin: TOKNOLOGIN
 	 }
 
 starttls: TOKSTARTTLS
-	{
-		$$ = 1;
-	}
-      | /* empty */
-	{
-		$$ = 0;
-	}
+	  {
+		  $$ = 1;
+	  }
+	| /* empty */
+	  {
+		  $$ = 0;
+	  }
 
 
 uidl: TOKNOUIDL
-	{
-		$$ = 0;
-	}
-      | /* empty */
-	{
-		$$ = 1;
-	}
+      {
+	      $$ = 0;
+      }
+    | /* empty */
+      {
+	      $$ = 1;
+      }
 
 insecure: TOKINSECURE
-	{
-		$$ = 1;
-	}
-      | /* empty */
-	{
-		$$ = 0;
-	}
+	  {
+		  $$ = 1;
+	  }
+	| /* empty */
+	  {
+		  $$ = 0;
+	  }
 
 oauthbearer: TOKOAUTHBEARER
-	   {
-		   $$ = 1;
-	   }
-	 | /* empty */
-	   {
-		   $$ = 0;
-	   }
+	     {
+		     $$ = 1;
+	     }
+	   | /* empty */
+	     {
+		     $$ = 0;
+	     }
+
+xoauth2: TOKXOAUTH2
+	 {
+		 $$ = 1;
+	 }
+       | /* empty */
+	 {
+		 $$ = 0;
+	 }
 
 verify: TOKNOVERIFY
 	{
@@ -2270,11 +2292,11 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->only = $5.only;
 	   }
 	 | imaptype server userpassnetrc folderlist imaponly verify nocrammd5
-	   nologin starttls insecure oauthbearer
+	   noplain nologin starttls insecure oauthbearer xoauth2
 	   {
 		   struct fetch_imap_data	*data;
 
-		   if ($1 && $9)
+		   if ($1 && $10)
 			   yyerror("use either imaps or set starttls");
 
 		   $$.fetch = &fetch_imap;
@@ -2307,10 +2329,12 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->server.ai = NULL;
 		   data->only = $5;
 		   data->nocrammd5 = $7;
-		   data->nologin = $8;
-		   data->starttls = $9;
-		   data->server.insecure = $10;
-		   data->oauthbearer = $11;
+		   data->noplain = $8;
+		   data->nologin = $9;
+		   data->starttls = $10;
+		   data->server.insecure = $11;
+		   data->oauthbearer = $12;
+		   data->xoauth2 = $13;
 	   }
 	 | TOKIMAP TOKPIPE replstrv userpass folderlist imaponly
 	   {

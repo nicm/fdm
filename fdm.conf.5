@@ -470,10 +470,12 @@ not be read from
 .Op Ic folder Ar name
 .Op Ar only
 .Op Ic no-cram-md5
+.Op Ic no-plain
 .Op Ic no-login
 .Op Ic starttls
 .Op Ic insecure
 .Op Ic oauthbearer
+.Op Ic xoauth2
 .Xc
 .It Xo Ic imap Ic server Ar host
 .Op Ic port Ar port
@@ -491,9 +493,11 @@ not be read from
 .Op Ar only
 .Op Ic no-verify
 .Op Ic no-cram-md5
+.Op Ic no-plain
 .Op Ic no-login
 .Op Ic insecure
 .Op Ic oauthbearer
+.Op Ic xoauth2
 .Xc
 These define an IMAP or IMAPS account.
 The parameters are as for a POP3 or POP3S account, aside from the additional
@@ -518,11 +522,13 @@ or
 - a cache file is not required.
 .Pp
 Options
-.Ic no-cram-md5
+.Ic no-cram-md5 ,
+.Ic no-plain
 and
 .Ic no-login
 disable the given authentication method.
-The default is to use CRAM-MD5 if it is available, or LOGIN otherwise.
+The default is to use CRAM-MD5 if it is available, then PLAIN, and LOGIN
+otherwise.
 .Pp
 .Ic starttls
 attempts to use

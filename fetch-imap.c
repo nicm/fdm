@@ -51,6 +51,17 @@ fetch_imap_putln(struct account *a, const char *fmt, va_list ap)
 	return (0);
 }
 
+/* Write buffer to server. */
+int
+fetch_imap_putn(struct account *a, const char *buf, size_t len)
+{
+	struct fetch_imap_data	*data = a->data;
+
+	io_write(data->io, buf, len);
+
+	return (0);
+}
+
 /* Get line from server. */
 int
 fetch_imap_getln(struct account *a, struct fetch_ctx *fctx, char **line)
@@ -112,6 +123,7 @@ fetch_imap_state_init(struct account *a, struct fetch_ctx *fctx)
 	data->connect = fetch_imap_connect;
 	data->getln = fetch_imap_getln;
 	data->putln = fetch_imap_putln;
+	data->putn = fetch_imap_putn;
 	data->disconnect = fetch_imap_disconnect;
 
 	data->src = data->server.host;

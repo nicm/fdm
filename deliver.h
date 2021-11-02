@@ -81,8 +81,10 @@ struct deliver_imap_data {
 	char		*pass;
 	struct server	 server;
 	int		 nocrammd5;
+	int		 noplain;
 	int		 nologin;
 	int		 oauthbearer;
+	int		 xoauth2;
 	int		 starttls;
 
 	struct replstr	 folder;
