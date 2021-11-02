@@ -864,6 +864,7 @@ struct proxy	*getproxy(const char *);
 struct io	*connectproxy(struct server *, int, struct proxy *,
 		     const char *, int, char **);
 struct io	*connectio(struct server *, int, const char *, int, char **);
+struct io	*connectunix(const char *, char **);
 
 /* file.c */
 int printflike3	 ppath(char *, size_t, const char *, ...);

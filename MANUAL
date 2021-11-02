@@ -46,6 +46,7 @@ privilege separation to minimise the amount of code running as the root user.
 %%	Mboxes
 %%	IMAP and IMAPS
 %%	SMTP
+%%	LMTP
 %%	Write, pipe, exec and append
 %%	stdout
 %% 	Rewriting mail
@@ -935,6 +936,17 @@ RCPT TO and MAIL FROM commands. If the port is not specified it defaults to
 		server "smtp.server" port "submission" from "bob@server.com"
 
 	action "mysmtpaction" smtp server "smtp.server" to "me@somewhere"
+
+%%% LMTP
+
+An action may be defined to store mail in a LMTP server. UNIX and TCP sockets
+are supported. Examples include:
+
+	action "mylmtpaction" lmtp server "/path/to/socket"  to "user@domain"
+
+	action "mylmtpaction" lmtp server "hostname" port 24 to "user@domain"
+
+	action "mylmtpaction" lmtp server "10.1.1.7" port 24 to "user@domain"
 
 %%% Write, pipe, exec and append
 

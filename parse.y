@@ -178,6 +178,7 @@ yyerror(const char *fmt, ...)
 %token TOKKEEP
 %token TOKKEY
 %token TOKKILOBYTES
+%token TOKLMTP
 %token TOKLOCKFILE
 %token TOKLOCKTIMEOUT
 %token TOKLOCKTYPES
@@ -1281,6 +1282,28 @@ actitem: execpipe strv
 		 else
 			 data->server.port = xstrdup("smtp");
 		 data->server.ai = NULL;
+		 data->from.str = $3;
+		 data->to.str = $4;
+	 }
+       | TOKLMTP server from to
+	 {
+		 struct deliver_lmtp_data       *data;
+
+		 $$ = xcalloc(1, sizeof *$$);
+		 $$->deliver = &deliver_lmtp;
+
+		 data = xcalloc(1, sizeof *data);
+		 $$->data = data;
+
+		 if (*$2.host == '/')
+			data->socket = $2.host;
+		 else {
+			data->server.host = $2.host;
+			if ($2.port != NULL)
+				data->server.port = $2.port;
+			else
+				data->server.port = xstrdup("24");
+		 }
 		 data->from.str = $3;
 		 data->to.str = $4;
 	 }

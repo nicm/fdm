@@ -879,6 +879,25 @@ or
 is specified, they are passed to the server in the MAIL FROM or RCPT TO
 commands.
 If not, the current user and host names are used.
+.It Xo Ic lmtp Ic server Ar path | Ar host 
+.Op Ic port Ar port
+.Op Ic from Ar from
+.Op Ic to Ar to
+.Xc
+Connect to an LMTP server and attempt to store the mail there.
+If a UNIX socket is to be used,
+.Ar path
+must be the absolute pathname.
+.Pp
+.Ar port
+defaults to 24.
+If
+.Ar from
+or
+.Ar to
+is specified, they are passed to the server in the MAIL FROM or RCPT TO
+commands.
+If not, the current user and host names are used.
 .It Xo Ic rewrite Ar command
 .Xc
 Pipe the entire mail through

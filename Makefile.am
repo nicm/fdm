@@ -50,6 +50,7 @@ dist_fdm_SOURCES = \
 	deliver-drop.c \
 	deliver-imap.c \
 	deliver-keep.c \
+	deliver-lmtp.c \
 	deliver-maildir.c \
 	deliver-mbox.c \
 	deliver-pipe.c \

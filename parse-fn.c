@@ -342,6 +342,20 @@ free_actitem(struct actitem *ti)
 		xfree(data->server.port);
 		if (data->server.ai != NULL)
 			freeaddrinfo(data->server.ai);
+	} else if (ti->deliver == &deliver_lmtp) {
+		struct deliver_lmtp_data                *data = ti->data;
+		if (data->to.str != NULL)
+			xfree(data->to.str);
+		if (data->from.str != NULL)
+			xfree(data->from.str);
+		if (data->socket != NULL)
+			xfree(data->socket);
+		else {
+			xfree(data->server.host);
+			xfree(data->server.port);
+			if (data->server.ai != NULL)
+				freeaddrinfo(data->server.ai);
+		}
 	} else if (ti->deliver == &deliver_imap) {
 		struct deliver_imap_data		*data = ti->data;
 		if (data->user != NULL)

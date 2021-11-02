@@ -75,6 +75,14 @@ struct deliver_smtp_data {
 	struct replstr	from;
 };
 
+/* Deliver lmtp data */
+struct deliver_lmtp_data {
+	char		*socket;
+	struct server	 server;
+	struct replstr	 to;
+	struct replstr	 from;
+};
+
 /* Deliver imap data. */
 struct deliver_imap_data {
 	char		*user;
@@ -154,6 +162,9 @@ struct deliver_remove_from_cache_data {
 
 /* deliver-smtp.c */
 extern struct deliver	 deliver_smtp;
+
+/* deliver-lmtp.c */
+extern struct deliver	 deliver_lmtp;
 
 /* deliver-imap.c */
 extern struct deliver	 deliver_imap;

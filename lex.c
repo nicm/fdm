@@ -124,6 +124,7 @@ static const struct token tokens[] = {
 	{ "key", TOKKEY },
 	{ "kilobyte", TOKKILOBYTES },
 	{ "kilobytes", TOKKILOBYTES },
+	{ "lmtp", TOKLMTP },
 	{ "lock-file", TOKLOCKFILE },
 	{ "lock-timeout", TOKLOCKTIMEOUT },
 	{ "lock-type", TOKLOCKTYPES },

@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netinet/in.h>
 
 #include <errno.h>
@@ -699,3 +700,37 @@ connectio(
 	}
 	return (io_create(fd, ssl, eol));
 }
+
+struct io *
+connectunix(const char *dest, char **cause)
+{
+	struct sockaddr_un	addr;
+	int			s;
+
+	if (*dest != '/') {
+		*cause = xstrdup("connectunix failed: path must be absolute");
+		return (NULL);
+	}
+
+	if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+		xasprintf(cause, "connectunix failed: socket: %s",
+		    strerror(errno));
+		return (NULL);
+	}
+
+	memset(&addr, 0, sizeof addr);
+	addr.sun_family = AF_UNIX;
+	if (strlcpy(addr.sun_path, dest, sizeof addr.sun_path) >=
+	    sizeof addr.sun_path) {
+		*cause = xstrdup("connectunix failed: path is to long");
+		return (NULL);
+	}
+	if (connect(s, (struct sockaddr *)&addr, sizeof addr) == -1) {
+		xasprintf(cause, "connectunix failed: connect: %s",
+		    strerror(errno));
+		return (NULL);
+	}
+
+	return (io_create(s, NULL, IO_CRLF));
+}
+
