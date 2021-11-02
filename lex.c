@@ -159,7 +159,6 @@ static const struct token tokens[] = {
 	{ "no-verify", TOKNOVERIFY },
 	{ "none", TOKNONE },
 	{ "not", TOKNOT },
-	{ "xoauth2", TOKXOAUTH2 },
 	{ "oauthbearer", TOKOAUTHBEARER },
 	{ "old-only", TOKOLDONLY },
 	{ "or", TOKOR },
@@ -205,6 +204,7 @@ static const struct token tokens[] = {
 	{ "week", TOKWEEKS },
 	{ "weeks", TOKWEEKS },
 	{ "write", TOKWRITE },
+	{ "xoauth2", TOKXOAUTH2 },
 	{ "year", TOKYEARS },
 	{ "years", TOKYEARS }
 };
