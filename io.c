@@ -655,9 +655,11 @@ io_vwriteline(struct io *io, const char *fmt, va_list ap)
 		n = xvsnprintf(NULL, 0, fmt, aq);
 		va_end(aq);
 
-		buffer_ensure(io->wr, n + 1);
-		xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
-		buffer_add(io->wr, n);
+		if (n != 0) {
+			buffer_ensure(io->wr, n + 1);
+			xvsnprintf(BUFFER_IN(io->wr), n + 1, fmt, ap);
+			buffer_add(io->wr, n);
+		}
 	} else
 		n = 0;
 	io_write(io, io->eol, strlen(io->eol));
