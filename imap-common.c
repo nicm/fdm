@@ -33,12 +33,7 @@
 #include "fetch.h"
 
 void	imap_free(void *);
-
 int	imap_parse(struct account *, int, char *);
-
-char   *imap_base64_encode(char *);
-char   *imap_base64_decode(char *);
-
 int	imap_pick_auth(struct account *, struct fetch_ctx *);
 
 int	imap_state_connect(struct account *, struct fetch_ctx *);
@@ -214,25 +209,32 @@ imap_tag(char *line)
 	return (tag);
 }
 
-/* Base64 encode string. */
+/* Base64 encode data. */
 char *
-imap_base64_encode(char *in)
+imap_base64_encode_n(const char *in, size_t inlen)
 {
 	char	*out;
 	size_t	 size;
 
-	size = (strlen(in) * 2) + 1;
+	size = (inlen * 2) + 1;
 	out = xcalloc(1, size);
-	if (b64_ntop(in, strlen(in), out, size) < 0) {
+	if (b64_ntop(in, inlen, out, size) < 0) {
 		xfree(out);
 		return (NULL);
 	}
 	return (out);
 }
 
+/* Base64 encode string. */
+char *
+imap_base64_encode(const char *in)
+{
+	return (imap_base64_encode_n(in, strlen(in)));
+}
+
 /* Base64 decode string. */
 char *
-imap_base64_decode(char *in)
+imap_base64_decode(const char *in)
 {
 	char	*out;
 	size_t	 size;
@@ -569,6 +571,7 @@ imap_state_plain_auth(struct account *a, struct fetch_ctx *fctx)
 	struct fetch_imap_data	*data = a->data;
 	char			*line, *ptr, *out;
 	size_t			 outlen;
+	char			*b64;
 
 	if (imap_getln(a, fctx, IMAP_CONTINUE, &line) != 0)
 		return (FETCH_ERROR);
@@ -586,14 +589,14 @@ imap_state_plain_auth(struct account *a, struct fetch_ctx *fctx)
 	memcpy(out + 1, data->user, strlen(data->user));
 	memcpy(out + 1 + strlen(data->user) + 1, data->pass,
 	    strlen(data->pass));
-	if (data->putn(a, out, outlen) != 0) {
-		xfree(out);
-		return (FETCH_ERROR);
-	}
+	b64 = imap_base64_encode_n(out, outlen);
 	xfree(out);
 
-	if (imap_putln(a, "") != 0)
+	if (imap_putln(a, "%s", b64) != 0) {
+		xfree(b64);
 		return (FETCH_ERROR);
+	}
+	xfree(b64);
 
 	fctx->state = imap_state_pass;
 	return (FETCH_BLOCK);
