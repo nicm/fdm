@@ -581,7 +581,7 @@ imap_state_plain_auth(struct account *a, struct fetch_ctx *fctx)
 	if (*ptr != '\0' && strcmp(ptr, "\"\"") != 0)
 		return (imap_invalid(a, line));
 
-	outlen = 1 + strlen(data->user) + 1 + strlen(data->pass) + 1;
+	outlen = 1 + strlen(data->user) + 1 + strlen(data->pass);
 	out = xcalloc(1, outlen);
 	memcpy(out + 1, data->user, strlen(data->user));
 	memcpy(out + 1 + strlen(data->user) + 1, data->pass,
