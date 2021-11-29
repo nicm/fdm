@@ -1234,7 +1234,10 @@ actitem: execpipe strv
 		 data = xcalloc(1, sizeof *data);
 		 $$->data = data;
 
-		 if ($3.user_netrc && $3.pass_netrc)
+		 if ($3.user && $3.pass == NULL) {
+			 data->user = $3.user;
+			 find_netrc($2.host, &data->user, &data->pass);
+		 } else if ($3.user_netrc && $3.pass_netrc)
 			 find_netrc($2.host, &data->user, &data->pass);
 		 else {
 			 if ($3.user_netrc)
@@ -2267,7 +2270,10 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 
-		   if ($3.user_netrc && $3.pass_netrc)
+		   if ($3.user && $3.pass == NULL) {
+			   data->user = $3.user;
+			   find_netrc($2.host, &data->user, &data->pass);
+		   } else if ($3.user_netrc && $3.pass_netrc)
 			  find_netrc($2.host, &data->user, &data->pass);
 		   else {
 			   if ($3.user_netrc)
@@ -2326,7 +2332,10 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 
-		   if ($3.user_netrc && $3.pass_netrc)
+		   if ($3.user && $3.pass == NULL) {
+			   data->user = $3.user;
+			   find_netrc($2.host, &data->user, &data->pass);
+		   } else if ($3.user_netrc && $3.pass_netrc)
 			   find_netrc($2.host, &data->user, &data->pass);
 		   else {
 			   if ($3.user_netrc)
@@ -2409,15 +2418,17 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data = xcalloc(1, sizeof *data);
 		   $$.data = data;
 
-		   if ($3.user_netrc && $3.pass_netrc) {
-			   if (find_netrc1($2.host,
-			       &data->user, &data->pass, &cause) != 0) {
+		   if ($3.user && $3.pass == NULL) {
+			   data->user = $3.user;
+			   find_netrc($2.host, &data->user, &data->pass);
+		   } else if ($3.user_netrc && $3.pass_netrc) {
+			   if (find_netrc1($2.host, &data->user, &data->pass,
+			       &cause) != 0) {
 				   log_debug2("%s", cause);
 				   xfree(cause);
 				   data->user = NULL;
 				   data->pass = NULL;
 			   }
-
 		   } else {
 			   if ($3.user_netrc)
 				   find_netrc($2.host, &data->user, NULL);

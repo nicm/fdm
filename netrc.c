@@ -64,15 +64,17 @@ netrc_close(FILE *f)
 int
 netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 {
+	enum netrc_state {
+		NETRC_NO_MACHINE_FOUND,
+		NETRC_MACHINE_FOUND,
+		NETRC_USER_FOUND,
+	}	 state = NETRC_NO_MACHINE_FOUND;
 	char	*token;
-	int	 found;
+	int	 found = 0, found_default = 0, default_entries = 0;
 
-	if (user != NULL)
-		*user = NULL;
 	if (pass != NULL)
 		*pass = NULL;
 
-	found = 0;
 	for (;;) {
 		switch (netrc_token(f, &token)) {
 		case 1:
@@ -81,34 +83,105 @@ netrc_lookup(FILE *f, const char *host, char **user, char **pass)
 			return (-1);
 		}
 
-		if (!found) {
+		switch (state) {
+		case NETRC_NO_MACHINE_FOUND:
 			if (strcmp(token, "machine") == 0) {
 				if (netrc_token(f, &token) != 0)
 					return (-1);
 				if (strcmp(token, host) == 0)
-					found = 1;
-			} else if (strcmp(token, "default") == 0)
-				found = 1;
-		} else {
-			if (strcmp(token, "machine") == 0)
-				break;
-			if (strcmp(token, "default") == 0)
-				break;
+					state = NETRC_MACHINE_FOUND;
+			} else if (!found && strcmp(token, "default") == 0) {
+				state = NETRC_MACHINE_FOUND;
+				/* The line is a default entry. */
+				found_default = 1;
+			}
+			continue;
+		case NETRC_MACHINE_FOUND:
+			if (strcmp(token, "login") != 0)
+				continue;
+			if (netrc_token(f, &token) != 0)
+				return (-1);
+			if (*token == '\0')
+				return (-1);
 
-			if (user != NULL && strcmp(token, "login") == 0) {
-				if (netrc_token(f, &token) != 0)
-					return (-1);
-				if (*token == '\0')
-					return (-1);
+			if (user != NULL && *user == NULL) {
 				*user = xstrdup(token);
+				state = NETRC_USER_FOUND;
+				continue;
 			}
-			if (pass != NULL && strcmp(token, "password") == 0) {
-				if (netrc_token(f, &token) != 0)
-					return (-1);
-				if (*token == '\0')
-					return (-1);
-				*pass = xstrdup(token);
+
+			if (strcmp(token, *user) != 0)
+				continue;
+			if (!found) {
+				/*
+				 * We didn't find any matching host/user
+				 * combination before and we are processing one
+				 * so we advance to the next state.
+				 */
+				state = NETRC_USER_FOUND;
+			} else if (found && !found_default) {
+				/*
+				 * We have the same host/user combination twice
+				 * as we already found a host/user matching
+				 * pair that is not a default entry and we're
+				 * processing a second matching host/user pair.
+				 */
+				log_warnx("duplicate netrc entry with the same "
+				    "login (%s) and machine", *user);
+				return (-1);
+			} else if (found &&
+			    found_default &&
+			    default_entries == 0) {
+				/*
+				 * Here we already have a valid host/user
+				 * combination and we are processing a default
+				 * entry line so we want to record the number
+				 * of default/user to warn about duplicates.
+				 */
+				state = NETRC_NO_MACHINE_FOUND;
+				found_default = 0;
+				default_entries++;
+			} else if (found &&
+			    found_default == 1 &&
+			    default_entries >= 1) {
+				/*
+				 * We are processing a matching default entry
+				 * but we already processed a matching one
+				 * before, so the current line is a duplicate.
+				 */
+				log_warnx("duplicate netrc entry with the same "
+				    "login (%s) and 'default' machine", *user);
+				return (-1);
 			}
+			continue;
+		case NETRC_USER_FOUND:
+			if (strcmp(token, "password") != 0)
+				continue;
+			if (netrc_token(f, &token) != 0)
+				return (-1);
+			if (*token == '\0')
+				return (-1);
+
+			*pass = xstrdup(token);
+
+			/*
+			 * We want to continue searching to make sure there is
+			 * no other lines with the same host/user combination,
+			 * else we would have to warn the user about it.
+			 */
+			state = NETRC_NO_MACHINE_FOUND;
+			found++;
+
+			if (found_default) {
+				found_default = 0;
+
+				/*
+				 * This is so as to error if there are multiple
+				 * matching default lines.
+				 */
+				default_entries++;
+			}
+			continue;
 		}
 	}
 
