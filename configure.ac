@@ -1,7 +1,7 @@
 # $Id$
 
-AC_INIT(fdm, 2.0)
-RELEASE=2.0
+AC_INIT(fdm, 2.1)
+RELEASE=2.1
 AC_SUBST(RELEASE)
 
 AC_CONFIG_AUX_DIR(etc)
