@@ -253,6 +253,8 @@ wait_children(
 			child2 = ARRAY_ITEM(children, j);
 			if (child2->parent != child)
 				continue;
+			if (child2->exit_req)
+				continue;
 
 			log_debug2("parent: child %ld died: killing %ld",
 			    (long) child->pid, (long) child2->pid);
@@ -779,7 +781,7 @@ retry:
 		ARRAY_CLEAR(&iol);
 		for (i = 0; i < ARRAY_LENGTH(&children); i++) {
 			child = ARRAY_ITEM(&children, i);
-			if (child->io != NULL)
+			if (child->io != NULL && !child->exit_req)
 				ARRAY_ADD(&iol, child->io);
 		}
 
@@ -817,6 +819,7 @@ retry:
 			msg.type = MSG_EXIT;
 			if (privsep_send(child->io, &msg, NULL) != 0)
 				fatalx("privsep_send error");
+			child->exit_req = 1;
 		}
 
 		/* Collect any dead children. */
@@ -830,6 +833,9 @@ retry:
 				child = ARRAY_ITEM(&children, i);
 				if (dead_io != child->io)
 					continue;
+				if (child->exit_req)
+					continue;
+
 				log_debug2("parent: child %ld socket error",
 				    (long) child->pid);
 				kill(child->pid, SIGTERM);

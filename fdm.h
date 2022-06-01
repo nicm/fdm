@@ -459,6 +459,8 @@ struct child {
 
 	void		*buf;
 	size_t		 len;
+
+	int		exit_req;
 };
 
 /* List of children. */
