@@ -16,11 +16,13 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef PCRE
+#ifdef PCRE2
 
 #include <sys/types.h>
 
-#include <pcre.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#include <pcre2.h>
 #include <string.h>
 
 #include "fdm.h"
@@ -28,8 +30,9 @@
 int
 re_compile(struct re *re, const char *s, int flags, char **cause)
 {
-	const char	*error;
-	int		 off;
+	char		error[256];
+	PCRE2_SIZE	off;
+	int		errorcode;
 
 	if (s == NULL)
 		fatalx("null regexp");
@@ -38,11 +41,12 @@ re_compile(struct re *re, const char *s, int flags, char **cause)
 		return (0);
 	re->flags = flags;
 
-	flags = PCRE_MULTILINE;
+	flags = PCRE2_MULTILINE;
 	if (re->flags & RE_IGNCASE)
-		flags |= PCRE_CASELESS;
+		flags |= PCRE2_CASELESS;
 
-	if ((re->pcre = pcre_compile(s, flags, &error, &off, NULL)) == NULL) {
+	if ((re->pcre2 = pcre2_compile(s, PCRE2_ZERO_TERMINATED, flags, &errorcode, &off, NULL)) == NULL) {
+		pcre2_get_error_message(errorcode, error, sizeof(error));
 		*cause = xstrdup(error);
 		return (-1);
 	}
@@ -60,7 +64,9 @@ int
 re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
     char **cause)
 {
-	int	res, pm[NPMATCH * 3];
+	int	res;
+	pcre2_match_data *pmd;
+	PCRE2_SIZE *ovector;
 	u_int	i, j;
 
 	if (len > INT_MAX)
@@ -76,32 +82,35 @@ re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
 		return (0);
 	}
 
-	res = pcre_exec(re->pcre, NULL, buf, len, 0, 0, pm, NPMATCH * 3);
-	if (res < 0 && res != PCRE_ERROR_NOMATCH) {
+	pmd = pcre2_match_data_create_from_pattern(re->pcre2, NULL);
+	res = pcre2_match(re->pcre2, buf, len, 0, 0, pmd, NULL);
+	if (res < 0 && res != PCRE2_ERROR_NOMATCH) {
 		xasprintf(cause, "%s: regexec failed", re->str);
+		pcre2_match_data_free(pmd);
 		return (-1);
 	}
 
 	if (rml != NULL) {
-		for (i = 0; i < NPMATCH; i++) {
+		ovector = pcre2_get_ovector_pointer(pmd);
+		for (i = 0; i < res; i++) {
 			j = i * 2;
-			if (pm[j + 1] <= pm[j])
+			if (ovector[j + 1] <= ovector[j])
 				break;
 			rml->list[i].valid = 1;
-			rml->list[i].so = pm[j];
-			rml->list[i].eo = pm[j + 1];
+			rml->list[i].so = ovector[j];
+			rml->list[i].eo = ovector[j + 1];
 		}
 		rml->valid = 1;
 	}
 
-	return (res != PCRE_ERROR_NOMATCH);
+	return (res != PCRE2_ERROR_NOMATCH);
 }
 
 void
 re_free(struct re *re)
 {
 	xfree(re->str);
-	pcre_free(re->pcre);
+	pcre2_code_free(re->pcre2);
 }
 
-#endif /* PCRE */
+#endif /* PCRE2 */

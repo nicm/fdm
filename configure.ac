@@ -39,13 +39,13 @@ if test "x$found_static" = xyes; then
 fi
 
 AC_ARG_ENABLE(
-	pcre,
-	AC_HELP_STRING(--enable-pcre, use PCRE),
-	found_pcre=$enable_pcre
+	pcre2,
+	AC_HELP_STRING(--enable-pcre2, use PCRE2),
+	found_pcre2=$enable_pcre2
 )
-if test "x$found_pcre" = xyes; then
-	CPPFLAGS="$CPPFLAGS -DPCRE"
-	LIBS="$LIBS -lpcre"
+if test "x$found_pcre2" = xyes; then
+	CPPFLAGS="$CPPFLAGS -DPCRE2"
+	LIBS="$LIBS -lpcre2-8"
 fi
 
 AC_CHECK_HEADERS(

@@ -44,8 +44,9 @@
 #include <tdb.h>
 #include <regex.h>
 
-#ifdef PCRE
-#include <pcre.h>
+#ifdef PCRE2
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 #endif
 
 #include <openssl/ssl.h>
@@ -291,10 +292,10 @@ struct strb {
 /* Regexp wrapper structs. */
 struct re {
 	char		*str;
-#ifndef PCRE
+#ifndef PCRE2
 	regex_t		 re;
 #else
-	pcre		*pcre;
+	pcre2_code	*pcre2;
 #endif
 	int		 flags;
 };
