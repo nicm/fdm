@@ -45,7 +45,16 @@ AC_ARG_ENABLE(
 )
 if test "x$found_pcre2" = xyes; then
 	CPPFLAGS="$CPPFLAGS -DPCRE2"
-	LIBS="$LIBS -lpcre2-8"
+
+	AC_SEARCH_LIBS(
+		pcre2_compile_8,
+		[pcre2-8],
+		found_pcre=yes,
+		found_pcre=no
+	)
+	if test "x$found_pcre" = xno; then
+		AC_MSG_ERROR("libpcre2 not found")
+	fi
 fi
 
 AC_CHECK_HEADERS(
