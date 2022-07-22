@@ -16,7 +16,7 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef PCRE
+#ifndef PCRE2
 
 #include <sys/types.h>
 
@@ -109,4 +109,4 @@ re_free(struct re *re)
 	regfree(&re->re);
 }
 
-#endif /* !PCRE */
+#endif /* !PCRE2 */
