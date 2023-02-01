@@ -66,7 +66,7 @@ int
 re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
     char **cause)
 {
-	int			 res;
+	int			 res, ret;
 	pcre2_match_data	*pmd;
 	PCRE2_SIZE		*ovector;
 	u_int			 i, j;
@@ -85,27 +85,34 @@ re_block(struct re *re, const void *buf, size_t len, struct rmlist *rml,
 	}
 
 	pmd = pcre2_match_data_create_from_pattern(re->pcre2, NULL);
+	if (pmd == NULL)
+		fatalx("pcre2_match_data_create_from_pattern failed");
+
 	res = pcre2_match(re->pcre2, buf, len, 0, 0, pmd, NULL);
-	if (res < 0 && res != PCRE2_ERROR_NOMATCH) {
-		xasprintf(cause, "%s: regexec failed", re->str);
-		pcre2_match_data_free(pmd);
-		return (-1);
-	}
-
-	if (rml != NULL) {
-		ovector = pcre2_get_ovector_pointer(pmd);
-		for (i = 0; i < res; i++) {
-			j = i * 2;
-			if (ovector[j + 1] <= ovector[j])
-				break;
-			rml->list[i].valid = 1;
-			rml->list[i].so = ovector[j];
-			rml->list[i].eo = ovector[j + 1];
+	if (res > 0) {
+		if (rml != NULL) {
+			if (res > NPMATCH)
+				res = NPMATCH;
+			ovector = pcre2_get_ovector_pointer(pmd);
+			for (i = 0; i < res; i++) {
+				j = i * 2;
+				if (ovector[j + 1] < ovector[j])
+					break;
+				rml->list[i].valid = 1;
+				rml->list[i].so = ovector[j];
+				rml->list[i].eo = ovector[j + 1];
+			}
+			rml->valid = 1;
 		}
-		rml->valid = 1;
+		ret = 1;
+	} else if (res == PCRE2_ERROR_NOMATCH)
+		ret = 0;
+	else {
+		xasprintf(cause, "%s: regexec failed", re->str);
+		ret = -1;
 	}
-
-	return (res != PCRE2_ERROR_NOMATCH);
+	pcre2_match_data_free(pmd);
+	return (ret);
 }
 
 void
