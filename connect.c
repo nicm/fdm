@@ -550,8 +550,8 @@ httpproxy(struct server *srv,
 			if (strlen(line) < 12 ||
 			    strncmp(line, "HTTP/", 5) != 0 ||
 			    strncmp(line + 8, " 200", 4) != 0) {
-				xfree(line);
 				xasprintf(cause, "unexpected data: %s", line);
+				xfree(line);
 				return (-1);
 			}
 			header = 1;
