@@ -24,14 +24,14 @@ test "$localstatedir" = '${prefix}/var' && localstatedir=/var
 
 AC_ARG_ENABLE(
 	debug,
-	AC_HELP_STRING(--enable-debug, create a debug build),
+	AS_HELP_STRING([--enable-debug], [create a debug build]),
 	found_debug=$enable_debug
 )
 AM_CONDITIONAL(IS_DEBUG, test "x$found_debug" = xyes)
 
 AC_ARG_ENABLE(
 	static,
-	AC_HELP_STRING(--enable-static, create a static build),
+	AS_HELP_STRING([--enable-static], [create a static build]),
 	found_static=$enable_static
 )
 if test "x$found_static" = xyes; then
@@ -40,7 +40,7 @@ fi
 
 AC_ARG_ENABLE(
 	pcre2,
-	AC_HELP_STRING(--enable-pcre2, use PCRE2),
+	AS_HELP_STRING([--enable-pcre2], [use PCRE2]),
 	found_pcre2=$enable_pcre2
 )
 if test "x$found_pcre2" = xyes; then
@@ -143,13 +143,12 @@ fi
 AM_CONDITIONAL(NO_STRTONUM, [test "x$found_strtonum" = xno])
 
 AC_MSG_CHECKING(for b64_ntop)
-AC_TRY_LINK(
-	[
+AC_LINK_IFELSE([AC_LANG_PROGRAM([
 		#include <sys/types.h>
 		#include <netinet/in.h>
 		#include <resolv.h>
 	],
-	[b64_ntop(NULL, 0, NULL, 0);],
+	[b64_ntop(NULL, 0, NULL, 0);])],
 	found_b64_ntop=yes,
 	found_b64_ntop=no
 )
@@ -158,13 +157,12 @@ if test "x$found_b64_ntop" = xno; then
 
 	AC_MSG_CHECKING(for b64_ntop with -lresolv)
 	LIBS="$LIBS -lresolv"
-	AC_TRY_LINK(
-		[
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([
 			#include <sys/types.h>
 			#include <netinet/in.h>
 			#include <resolv.h>
 		],
-		[b64_ntop(NULL, 0, NULL, 0);],
+		[b64_ntop(NULL, 0, NULL, 0);])],
 		found_b64_ntop=yes,
 		found_b64_ntop=no
 	)
@@ -178,4 +176,6 @@ if test "x$found_b64_ntop" = xyes; then
 fi
 AM_CONDITIONAL(NO_B64_NTOP, [test "x$found_b64_ntop" = xno])
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT
