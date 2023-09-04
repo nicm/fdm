@@ -54,6 +54,7 @@ int	pop3_invalid(struct account *, const char *);
 int	pop3_state_connect(struct account *, struct fetch_ctx *);
 int	pop3_state_starttls(struct account *, struct fetch_ctx *);
 int	pop3_state_connected(struct account *, struct fetch_ctx *);
+int	pop3_state_utf8(struct account *, struct fetch_ctx *);
 int	pop3_state_user(struct account *, struct fetch_ctx *);
 int	pop3_state_cache1(struct account *, struct fetch_ctx *);
 int	pop3_state_cache2(struct account *, struct fetch_ctx *);
@@ -435,6 +436,24 @@ pop3_state_connected(struct account *a, struct fetch_ctx *fctx)
 			return (FETCH_BLOCK);
 		}
 	}
+
+	if (pop3_putln(a, "UTF8") != 0)
+		return (FETCH_ERROR);
+	fctx->state = pop3_state_utf8;
+	return (FETCH_BLOCK);
+}
+
+/* UTF8 state. */
+int
+pop3_state_utf8(struct account *a, struct fetch_ctx *fctx)
+{
+	struct fetch_pop3_data	*data = a->data;
+	char			*line;
+
+	if (pop3_getln(a, fctx, &line) != 0)
+		return (FETCH_ERROR);
+	if (line == NULL)
+		return (FETCH_BLOCK);
 
 	if (pop3_putln(a, "USER %s", data->user) != 0)
 		return (FETCH_ERROR);
