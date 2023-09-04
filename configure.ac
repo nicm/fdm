@@ -17,6 +17,8 @@ LDFLAGS="$LDFLAGS -L/usr/local/lib"
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
+AC_CHECK_PROG(YACC,[yacc],[yacc],[no])
+test "$YACC" == "no" && AC_MSG_ERROR("yacc not found")
 AC_PROG_YACC
 
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
