@@ -61,6 +61,7 @@ AC_CHECK_HEADERS(
 	[ \
 		sys/queue.h \
 		sys/tree.h \
+		math.h \
 	]
 )
 AC_CHECK_FUNCS(
@@ -79,6 +80,10 @@ AC_CHECK_DECL(
 		#include <sys/mman.h>
 	]
 )
+
+AC_SEARCH_LIBS(
+	floor,
+	[m])
 
 AC_SEARCH_LIBS(
 	tdb_open,

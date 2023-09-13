@@ -95,6 +95,7 @@ static const struct token tokens[] = {
 	{ "exec", TOKEXEC },
 	{ "expire", TOKEXPIRE },
 	{ "fcntl", TOKFCNTL },
+	{ "fetch-frequency", TOKFETCHFREQ },
 	{ "file-group", TOKFILEGROUP },
 	{ "file-umask", TOKFILEUMASK },
 	{ "flock", TOKFLOCK },
