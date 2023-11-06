@@ -956,7 +956,7 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 		 * GMail is broken and does not set the \Seen flag after mail
 		 * is fetched, so set it explicitly for kept mail.
 		 */
-		if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT (\\Seen)",
+		if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT ()",
 		    ++data->tag, ARRAY_FIRST(&data->kept)) != 0)
 			return (FETCH_ERROR);
 		ARRAY_REMOVE(&data->kept, 0);
@@ -1001,7 +1001,7 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 
 	/* Fetch the next mail. */
 	if (imap_putln(a, "%u "
-	    "UID FETCH %u BODY[]",++data->tag, ARRAY_FIRST(&data->wanted)) != 0)
+	    "UID FETCH %u BODY.PEEK[]",++data->tag, ARRAY_FIRST(&data->wanted)) != 0)
 		return (FETCH_ERROR);
 	fctx->state = imap_state_body;
 	return (FETCH_BLOCK);
