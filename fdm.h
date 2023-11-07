@@ -507,6 +507,7 @@ struct account {
 
 	int			 disabled;
 	int			 keep;
+	int          remain_unseen;
 
 	struct fetch		*fetch;
 	void			*data;
