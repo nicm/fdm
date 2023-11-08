@@ -470,7 +470,7 @@ fdm fetches mail from a set of 'accounts', defined using the 'account'
 keyword. Each account has a name, a type, a number of account specific
 parameters and a couple of optional flags. The general form is:
 
-	account <name> [<users>] [disabled] <type> [<parameters>] [keep]
+	account <name> [<users>] [disabled] <type> [<parameters>] [keep] [unseen]
 
 The <name> item is a string by which the account is referred in filtering
 rules, log output and for the '-a' and '-x' command line options.
@@ -485,6 +485,10 @@ it is specified on the command line using the '-a' flag.
 The optional 'keep' keyword instructs fdm to keep all mail from this account
 (not delete it from the server) regardless of the result of the filtering
 rules.
+
+If the optional keyword 'unseen' is used, fdm will not mark all delivered 
+mails as seen. This can be useful for archiving purposes, so that the mail 
+status on the server is not changed, but backups can be created by fdm.
 
 The <type> item may be one of: 'pop3', 'pop3s', 'imap', 'imaps', 'stdin',
 'maildir' or 'maildirs'.
@@ -805,7 +809,8 @@ match account "news" {
 With POP3 and IMAP, fdm can be set up to fetch only new or old mail. For POP3
 this is achieved by recording the current state of the server in a cache file,
 which is updated as each mail is fetched. For IMAP it makes use of the 'seen'
-server flag which is updated by the server after each mail is fetched.
+server flag which is updated by the server after each mail is fetched. 
+The 'unseen' flag is not compatible with this functionality.
 
 These options are specified as in the following examples. For POP3:
 
@@ -1603,7 +1608,7 @@ This is because GMail is broken, see:
 In addition, GMail IMAP doesn't set the \Seen flag when mail is fetched with
 the UID FETCH BODY[] command (RFC3501 says that the "\Seen flag is implicitly
 set"). fdm works around this bug by setting the flag explicitly when mail is
-kept.
+kept (unless the 'unseen' flag is used). 
 
 %%% Why doesn't fdm run as a daemon?
 
