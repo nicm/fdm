@@ -197,6 +197,7 @@ static const struct token tokens[] = {
 	{ "total-size", TOKTOTALSIZE },
 	{ "unmatched", TOKUNMATCHED },
 	{ "unmatched-mail", TOKIMPLACT },
+	{ "unseen", TOKUNSEEN },
 	{ "user", TOKUSER },
 	{ "users", TOKUSERS },
 	{ "value", TOKVALUE },

@@ -176,6 +176,7 @@ yyerror(const char *fmt, ...)
 %token TOKINSECURE
 %token TOKINVALID
 %token TOKKEEP
+%token TOKUNSEEN
 %token TOKKEY
 %token TOKKILOBYTES
 %token TOKLMTP
@@ -309,7 +310,7 @@ yyerror(const char *fmt, ...)
 %type  <expritem> expritem
 %type  <exprop> exprop
 %type  <fetch> fetchtype
-%type  <flag> cont not disabled keep execpipe writeappend compress verify
+%type  <flag> cont not disabled keep unseen execpipe writeappend compress verify
 %type  <flag> apop poptype imaptype nntptype nocrammd5 noplain nologin uidl
 %type  <flag> starttls insecure oauthbearer xoauth2
 %type  <localgid> localgid
@@ -1038,6 +1039,15 @@ not: TOKNOT
       }
 
 keep: TOKKEEP
+      {
+	      $$ = 1;
+      }
+    | /* empty */
+      {
+	      $$ = 0;
+      }
+
+unseen: TOKUNSEEN
       {
 	      $$ = 1;
       }
@@ -2458,7 +2468,7 @@ fetchtype: poptype server userpassnetrc poponly apop verify uidl starttls
 		   data->server.ai = NULL;
 	   }
 
-account: TOKACCOUNT replstrv disabled users fetchtype keep
+account: TOKACCOUNT replstrv disabled users fetchtype keep unseen
 	 {
 		 struct account		*a;
 		 char			*su, desc[DESCBUFSIZE];
@@ -2473,6 +2483,7 @@ account: TOKACCOUNT replstrv disabled users fetchtype keep
 		 a = xcalloc(1, sizeof *a);
 		 strlcpy(a->name, $2, sizeof a->name);
 		 a->keep = $6;
+		 a->remain_unseen = $7;
 		 a->disabled = $3;
 		 a->users = $4;
 		 a->fetch = $5.fetch;
