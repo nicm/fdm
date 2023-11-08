@@ -960,11 +960,10 @@ imap_state_next(struct account *a, struct fetch_ctx *fctx)
 			if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT ()",
 				++data->tag, ARRAY_FIRST(&data->kept)) != 0)
 				return (FETCH_ERROR);
-		else {
+		} else {
 			if (imap_putln(a, "%u UID STORE %u +FLAGS.SILENT (\\Seen)",
 				++data->tag, ARRAY_FIRST(&data->kept)) != 0)
 				return (FETCH_ERROR);
-
 		}
 		ARRAY_REMOVE(&data->kept, 0);
 		fctx->state = imap_state_commit;
