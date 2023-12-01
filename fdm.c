@@ -445,11 +445,21 @@ main(int argc, char **argv)
 
 	/* Find the config file. */
 	if (conf.conf_file == NULL) {
-		/* If no file specified, try ~ then /etc. */
-		xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE);
-		if (access(conf.conf_file, R_OK) != 0) {
-			xfree(conf.conf_file);
-			conf.conf_file = xstrdup(SYSCONFFILE);
+		/* If no file specified, try $XDG_CONFIG_HOME, then ~ then /etc. */
+		s = getenv("XDG_CONFIG_HOME");
+		if (s != NULL && *s != '\0') {
+			xasprintf(&conf.conf_file, "%s/%s", s, CONFFILE);
+			if (access(conf.conf_file, R_OK) != 0) {
+				xfree(conf.conf_file);
+				conf.conf_file = NULL;
+			}
+		}
+		if (conf.conf_file == NULL) {
+			xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE_HOME);
+			if (access(conf.conf_file, R_OK) != 0) {
+				xfree(conf.conf_file);
+				conf.conf_file = xstrdup(SYSCONFFILE);
+			}
 		}
 	}
 	log_debug2("loading configuration from %s", conf.conf_file);
@@ -702,7 +712,15 @@ main(int argc, char **argv)
 		if (geteuid() == 0)
 			lock = xstrdup(SYSLOCKFILE);
 		else
-			xasprintf(&lock, "%s/%s", conf.user_home, LOCKFILE);
+		{
+			/* Lockfile is stored in XDG_RUNTIME_DIR if provided.
+			 * If not, we store it in the user's home directory. */
+			s = getenv("XDG_RUNTIME_DIR");
+			if (s != NULL && *s != '\0')
+				xasprintf(&lock, "%s/%s", s, LOCKFILE);
+			else
+				xasprintf(&lock, "%s/%s", conf.user_home, LOCKFILE_HOME);
+		}
 	}
 retry:
 	if (*lock != '\0' && !conf.allow_many) {

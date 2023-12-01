@@ -52,9 +52,11 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#define CHILDUSER	"_fdm"
-#define CONFFILE	".fdm.conf"
-#define LOCKFILE	".fdm.lock"
+#define CHILDUSER		"_fdm"
+#define CONFFILE		"fdm.conf"
+#define LOCKFILE		"fdm.lock"
+#define CONFFILE_HOME	"." CONFFILE
+#define LOCKFILE_HOME	"." LOCKFILE
 #define DEFLOCKTIMEOUT	10
 #define MAXQUEUEVALUE	50
 #define DEFMAILQUEUE	2
