@@ -445,11 +445,20 @@ main(int argc, char **argv)
 
 	/* Find the config file. */
 	if (conf.conf_file == NULL) {
-		/* If no file specified, try ~ then /etc. */
-		xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE);
-		if (access(conf.conf_file, R_OK) != 0) {
-			xfree(conf.conf_file);
-			conf.conf_file = xstrdup(SYSCONFFILE);
+		/* If no file specified, try $XDG_CONFIG_HOME, then ~ then /etc. */
+		if ((s = getenv("XDG_CONFIG_HOME")) != NULL) {
+			xasprintf(&conf.conf_file, "%s/%s", s, CONFFILE);
+			if (access(conf.conf_file, R_OK) != 0) {
+				xfree(conf.conf_file);
+				conf.conf_file = NULL;
+			}
+		}
+		if (conf.conf_file == NULL) {
+			xasprintf(&conf.conf_file, "%s/%s", conf.user_home, CONFFILE_HOME);
+			if (access(conf.conf_file, R_OK) != 0) {
+				xfree(conf.conf_file);
+				conf.conf_file = xstrdup(SYSCONFFILE);
+			}
 		}
 	}
 	log_debug2("loading configuration from %s", conf.conf_file);
@@ -702,7 +711,7 @@ main(int argc, char **argv)
 		if (geteuid() == 0)
 			lock = xstrdup(SYSLOCKFILE);
 		else
-			xasprintf(&lock, "%s/%s", conf.user_home, LOCKFILE);
+			xasprintf(&lock, "%s/%s", conf.user_home, LOCKFILE_HOME);
 	}
 retry:
 	if (*lock != '\0' && !conf.allow_many) {
