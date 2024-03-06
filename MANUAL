@@ -666,7 +666,7 @@ IMAP and IMAPS accounts are defined using exactly the same syntax as for POP3
 and POP3S, aside from using the 'imap' or 'imaps' keywords and that the default
 port is 'imap' or 'imaps'. There is also an additional, optional 'folders'
 option to specify the folders from which mail should be fetched. If omitted,
-fdm defaults to the inbox. When the 'folders' tag is used the recieved mail
+fdm defaults to the inbox. When the 'folders' tag is used the received mail
 will have a 'folder' tag with the origin folder name.
 
 Note that with IMAP and IMAPS, mail is still removed from the server unless the
@@ -783,7 +783,7 @@ one group is supplied in the account definition, %[group] tags are replaced by
 the name of the group in the cache path. If multiple groups are provided,
 %[group] is removed.
 
-Note that whether a message is kept or deleted is irrelevent to NNTP, articles
+Note that whether a message is kept or deleted is irrelevant to NNTP, articles
 are always left on the server. The index and message-id of the last article
 is recorded in the cache file so that older articles are skipped when the a
 newsgroup is again fetched. This happens regardless of any 'keep' keywords or
@@ -1325,7 +1325,7 @@ Any string may be used as key, but the message-id is most often useful. Note
 that the key may not be empty, so care must be taken with messages without
 message-id (such as news posts fetched with NNTP).
 
-Caches may be used to elimate duplicate messages using rules similar to those
+Caches may be used to eliminate duplicate messages using rules similar to those
 above:
 
 	$db = "~/.fdm-duplicates.db"
@@ -1436,7 +1436,7 @@ the user who invoked fdm.
 - default-user <user>
 
 This specifies the default user to use if run as root and no users are specified
-on the action or filtering rule. This option may be overriden with the '-u'
+on the action or filtering rule. This option may be overridden with the '-u'
 flag on the command line.
 
 - lock-types [fcntl] [flock] [dotlock]
