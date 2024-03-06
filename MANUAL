@@ -456,7 +456,7 @@ Or afterwards:
 	./fdm-sanitize <vvvv-output >my-output
 
 Since fdm fetches multiple accounts simultaneously, which may intersperse
-debugging output, it is recommended to fetch each account seperately if running
+debugging output, it is recommended to fetch each account separately if running
 the output through fdm-sanitize. If this is not done, it may not be able to
 detect all usernames or passwords.
 
@@ -1033,7 +1033,7 @@ are similar to standard single actions but multiple actions are provided using
 Compound action are executed from top-to-bottom, once for each user. Note that
 the effects are cumulative: the second example above would deliver a mail
 rewritten once to 'bob' and rewritten again (ie, twice) to 'jim'. If this is
-not desired, seperate actions must be used.
+not desired, separate actions must be used.
 
 %%% Chained actions
 
